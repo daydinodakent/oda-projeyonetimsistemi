@@ -24,6 +24,7 @@ import InsaatView from './components/InsaatView';
 import IsletmeView from './components/IsletmeView';
 import CEODashboard from './components/CEODashboard';
 import AdminPanel from './components/AdminPanel';
+import KrokiMapModule from './components/gis/KrokiMapModule';
 
 // Dynamic Side Panels (One Map, One Timeline, One Truth)
 import PlanLeftPanel from './components/PlanLeftPanel';
@@ -1802,8 +1803,8 @@ export default function App() {
                 )}
 
                 {centerTab === 'map' && (
-                  <div className="w-full h-[calc(100vh-170px)] min-h-[500px] bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl overflow-hidden shadow-2xl relative animate-fade-in flex items-center justify-center">
-                    <div className="text-zinc-400 text-sm">Yeni harita modülü kodları bekleniyor...</div>
+                  <div className="w-full h-[calc(100vh-170px)] min-h-[500px] bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl overflow-hidden shadow-2xl relative animate-fade-in">
+                    <KrokiMapModule />
                   </div>
                 )}
 
