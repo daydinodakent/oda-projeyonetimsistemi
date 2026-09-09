@@ -1,0 +1,11 @@
+{
+  "name": "Remix Remix ODA+ Proje Yönetim Sistemi -3",
+  "description": "Bütünleşik coğrafi referanslı 4D/5D proje, inşaat ve varlık yönetim sistemi (ODA+PROJE YS)",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
