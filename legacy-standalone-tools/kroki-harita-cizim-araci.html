@@ -4008,7 +4008,9 @@
     var f = selectedFeature();
     document.getElementById('editEmpty').style.display = f ? 'none' : 'block';
     document.getElementById('editControls').style.display = f ? 'flex' : 'none';
+    document.getElementById('btnEditAttributes').classList.toggle('disabled', !f);
     if (!f) return;
+    renderDocumentsForFeature(f.id);
     editBaseGeometry = JSON.parse(JSON.stringify(f.geometry));
     var type = f.geometry.type;
     var extruded = !!(f.properties && f.properties.extrude);
