@@ -3646,32 +3646,53 @@
   }
 
   // ---------------------------------------------------------------------
-  // "+ Yerleştir" — veri giriş formu, ardından haritada çizime başlama
+  // "Obje" — veri giriş formu, ardından haritada çizime başlama.
+  // Aynı form, "Öznitelik" ile seçili bir objeyi düzenlemek için de kullanılır
+  // (featureFormEditingId doluysa gönderim yeni obje çizmez, mevcut objeyi günceller).
   // ---------------------------------------------------------------------
   document.getElementById('btnPlaceFeature').addEventListener('click', function(){
     var lyr = getLayer(activeLayerId);
     if (!lyr){ showToast('Önce bir katman seçin.'); return; }
     if (!lyr.geomType){ showToast('Bu katman için geometri türü tanımlanmamış — Harita sekmesinden türü belirlenmiş bir katman seçin/oluşturun.'); return; }
+    featureFormEditingId = null;
     document.getElementById('featureFormTitle').textContent = lyr.name + ' — Veri Girişi (' + geomTypeLabel(lyr.geomType) + ')';
     document.getElementById('ffName').value = '';
     document.getElementById('ffDescription').value = '';
     document.getElementById('ffCustomFields').innerHTML = '';
     document.getElementById('featureFormModal').classList.add('show');
   });
+  document.getElementById('btnEditAttributes').addEventListener('click', function(){
+    var f = selectedFeature();
+    if (!f){ showToast('Önce düzenlenecek bir obje seçin.'); return; }
+    var lyr = getLayer(f.properties && f.properties.layerId);
+    featureFormEditingId = f.id;
+    document.getElementById('featureFormTitle').textContent = (lyr ? lyr.name + ' — ' : '') + 'Öznitelikleri Düzenle';
+    document.getElementById('ffName').value = (f.properties && f.properties.name) || '';
+    document.getElementById('ffDescription').value = (f.properties && f.properties.description) || '';
+    var customFieldsEl = document.getElementById('ffCustomFields');
+    customFieldsEl.innerHTML = '';
+    Object.keys(f.properties || {}).forEach(function(k){
+      if (['name','description','layerId','extrude','floors','floorHeight','height','base','pipe','diameter','shape'].indexOf(k) >= 0) return;
+      addCustomFieldRow(k, f.properties[k]);
+    });
+    document.getElementById('featureFormModal').classList.add('show');
+  });
   document.getElementById('btnFFCancel').addEventListener('click', function(){
+    featureFormEditingId = null;
     document.getElementById('featureFormModal').classList.remove('show');
   });
-  document.getElementById('btnFFAddField').addEventListener('click', function(){
+  function addCustomFieldRow(key, val){
     var row = document.createElement('div');
     row.className = 'ff-custom-row';
     row.innerHTML = '<input type="text" placeholder="Alan adı" class="ff-key"><input type="text" placeholder="Değer" class="ff-val">' +
       '<button class="layer-icon-btn del ff-remove" title="Alanı kaldır"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 6l12 12M18 6L6 18"/></svg></button>';
+    row.querySelector('.ff-key').value = key || '';
+    row.querySelector('.ff-val').value = val || '';
     row.querySelector('.ff-remove').addEventListener('click', function(){ row.remove(); });
     document.getElementById('ffCustomFields').appendChild(row);
-  });
+  }
+  document.getElementById('btnFFAddField').addEventListener('click', function(){ addCustomFieldRow('', ''); });
   document.getElementById('btnFFSubmit').addEventListener('click', function(){
-    var lyr = getLayer(activeLayerId);
-    if (!lyr || !lyr.geomType){ showToast('Geçerli bir katman bulunamadı.'); return; }
     var attrs = {};
     var nameVal = document.getElementById('ffName').value.trim();
     var descVal = document.getElementById('ffDescription').value.trim();
@@ -3682,6 +3703,28 @@
       var v = row.querySelector('.ff-val').value.trim();
       if (k) attrs[k] = v;
     });
+
+    if (featureFormEditingId){
+      var target = features.find(function(x){ return x.id === featureFormEditingId; });
+      featureFormEditingId = null;
+      document.getElementById('featureFormModal').classList.remove('show');
+      if (!target) return;
+      pushHistory();
+      var layerId = target.properties && target.properties.layerId;
+      var keep = {};
+      ['layerId','extrude','floors','floorHeight','height','base','pipe','diameter','shape'].forEach(function(k){
+        if (target.properties && (k in target.properties)) keep[k] = target.properties[k];
+      });
+      target.properties = Object.assign({}, attrs, keep);
+      if (layerId) target.properties.layerId = layerId;
+      renderFeatures();
+      updateEditPanel();
+      showToast('Öznitelikler güncellendi.');
+      return;
+    }
+
+    var lyr = getLayer(activeLayerId);
+    if (!lyr || !lyr.geomType){ showToast('Geçerli bir katman bulunamadı.'); return; }
     pendingFeatureAttributes = attrs;
     pendingFeatureModeExpected = geomTypeToMode(lyr.geomType);
     document.getElementById('featureFormModal').classList.remove('show');
@@ -3689,6 +3732,129 @@
     setMode(pendingFeatureModeExpected);
     showToast('Haritaya tıklayarak ' + geomTypeLabel(lyr.geomType).toLowerCase() + ' çizmeye başlayın.');
   });
+
+  // ---------------------------------------------------------------------
+  // "Doküman" — seçili ya da listeden seçilecek bir objeye resim/video/
+  // diğer dosya ekler. Dokümanlar ayrı bir "tablo"da (documents dizisi)
+  // entity (katman id) ve objectId (obje id) ile ilişkilendirilerek tutulur.
+  // ---------------------------------------------------------------------
+  function docKindFor(mime){
+    if (mime.indexOf('image/') === 0) return 'image';
+    if (mime.indexOf('video/') === 0) return 'video';
+    return 'other';
+  }
+  function formatBytes(n){
+    if (n < 1024) return n + ' B';
+    if (n < 1024*1024) return (n/1024).toFixed(1) + ' KB';
+    return (n/1024/1024).toFixed(1) + ' MB';
+  }
+  function renderDocPendingList(){
+    var el = document.getElementById('docPendingList');
+    el.innerHTML = '';
+    docPendingFiles.forEach(function(pf, idx){
+      var row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-dim);';
+      row.innerHTML = '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' +
+        pf.name.replace(/</g,'&lt;') + ' (' + formatBytes(pf.size) + ')</span>' +
+        '<button class="layer-icon-btn del" title="Kaldır"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 6l12 12M18 6L6 18"/></svg></button>';
+      row.querySelector('.del').addEventListener('click', function(){
+        docPendingFiles.splice(idx, 1);
+        renderDocPendingList();
+      });
+      el.appendChild(row);
+    });
+  }
+  document.getElementById('btnAddDocument').addEventListener('click', function(){
+    if (!features.length){ showToast('Önce haritaya en az bir obje ekleyin.'); return; }
+    var sel = document.getElementById('docObjectSelect');
+    sel.innerHTML = '';
+    features.forEach(function(f){
+      var lyr = getLayer(f.properties && f.properties.layerId);
+      var label = (f.properties && f.properties.name) || f.id.split('_').pop();
+      var opt = document.createElement('option');
+      opt.value = f.id;
+      opt.textContent = label + ' — ' + (lyr ? lyr.name : 'Katmansız') + ' (' + typeLabel(f) + ')';
+      sel.appendChild(opt);
+    });
+    if (selectedId) sel.value = selectedId;
+    docPendingFiles = [];
+    renderDocPendingList();
+    document.getElementById('docFileInput').value = '';
+    document.getElementById('documentModal').classList.add('show');
+  });
+  document.getElementById('btnDocCancel').addEventListener('click', function(){
+    document.getElementById('documentModal').classList.remove('show');
+  });
+  document.getElementById('docFileInput').addEventListener('change', function(e){
+    var files = Array.prototype.slice.call(e.target.files || []);
+    var remaining = files.length;
+    if (!remaining) return;
+    files.forEach(function(file){
+      var reader = new FileReader();
+      reader.onload = function(){
+        docPendingFiles.push({ name: file.name, mime: file.type || 'application/octet-stream', size: file.size, dataUrl: reader.result });
+        renderDocPendingList();
+      };
+      reader.onerror = function(){ showToast('"' + file.name + '" okunamadı.'); };
+      reader.readAsDataURL(file);
+    });
+    e.target.value = '';
+  });
+  document.getElementById('btnDocSubmit').addEventListener('click', function(){
+    var objectId = document.getElementById('docObjectSelect').value;
+    var target = features.find(function(x){ return x.id === objectId; });
+    if (!target){ showToast('Önce bir obje seçin.'); return; }
+    if (!docPendingFiles.length){ showToast('Önce en az bir dosya seçin.'); return; }
+    docPendingFiles.forEach(function(pf){
+      documents.push({
+        id: uid(),
+        entity: target.properties && target.properties.layerId,
+        objectId: target.id,
+        name: pf.name,
+        mime: pf.mime,
+        kind: docKindFor(pf.mime),
+        size: pf.size,
+        dataUrl: pf.dataUrl,
+        addedAt: Date.now()
+      });
+    });
+    var count = docPendingFiles.length;
+    docPendingFiles = [];
+    document.getElementById('documentModal').classList.remove('show');
+    if (selectedId === target.id) renderDocumentsForFeature(target.id);
+    showToast(count + ' doküman eklendi.');
+  });
+  function renderDocumentsForFeature(featureId){
+    var el = document.getElementById('docListContainer');
+    if (!el) return;
+    el.innerHTML = '';
+    var docs = documents.filter(function(d){ return d.objectId === featureId; });
+    if (!docs.length){
+      el.innerHTML = '<div class="field-label" style="margin:0;">Henüz doküman eklenmedi.</div>';
+      return;
+    }
+    docs.forEach(function(d){
+      var row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:center;gap:8px;';
+      var iconSvg = d.kind === 'image'
+        ? '<circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/><rect x="3" y="3" width="18" height="18" rx="2"/>'
+        : d.kind === 'video'
+        ? '<rect x="2" y="5" width="15" height="14" rx="2"/><path d="M17 10l5-3v10l-5-3z"/>'
+        : '<path d="M14 3v5h5"/><path d="M6 3h8l5 5v13H6z"/>';
+      row.innerHTML =
+        '<a href="' + d.dataUrl + '" download="' + d.name.replace(/"/g,'') + '" style="display:flex;align-items:center;gap:8px;flex:1;overflow:hidden;color:inherit;text-decoration:none;" title="' + d.name.replace(/"/g,'') + '">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:16px;height:16px;flex:0 0 auto;color:var(--teal);">' + iconSvg + '</svg>' +
+          '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;">' + d.name.replace(/</g,'&lt;') + '</span>' +
+          '<span style="font-size:10px;color:var(--text-dim);flex:0 0 auto;">' + formatBytes(d.size) + '</span>' +
+        '</a>' +
+        '<button class="layer-icon-btn del" title="Dokümanı sil"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></button>';
+      row.querySelector('.del').addEventListener('click', function(){
+        documents = documents.filter(function(x){ return x.id !== d.id; });
+        renderDocumentsForFeature(featureId);
+      });
+      el.appendChild(row);
+    });
+  }
 
   document.getElementById('layerOpacitySlider').addEventListener('input', function(e){
     var op = (parseFloat(e.target.value) || 100) / 100;
