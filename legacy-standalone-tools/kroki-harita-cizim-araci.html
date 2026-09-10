@@ -1042,6 +1042,21 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="documentModal">
+  <div class="modal-box">
+    <div class="modal-title">Doküman Ekle</div>
+    <label class="field-label">Obje</label>
+    <select id="docObjectSelect" class="native-select"></select>
+    <label class="field-label" style="margin-top:10px;">Dosyalar (resim, video, diğer — çoklu seçilebilir)</label>
+    <input type="file" id="docFileInput" multiple accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.zip,.dwg">
+    <div id="docPendingList" style="margin-top:8px;display:flex;flex-direction:column;gap:4px;"></div>
+    <div class="modal-actions">
+      <div class="btn" id="btnDocCancel">Vazgeç</div>
+      <div class="btn primary" id="btnDocSubmit">Ekle</div>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="layerStyleModal">
   <div class="modal-box">
     <div class="modal-title" id="layerStyleTitle">Katman Stili</div>
