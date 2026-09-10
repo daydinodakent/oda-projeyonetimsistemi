@@ -2959,6 +2959,12 @@
   var activeLayerId = 'layer-point';
   var pendingFeatureAttributes = null; // "+ Yerleştir" formundan gelen öznitelikler
   var pendingFeatureModeExpected = null; // form sonrası beklenen çizim modu
+  var featureFormEditingId = null; // dolu ise, form "yeni obje" değil bu id'li objenin özniteliklerini düzenliyor demektir
+
+  // Dokümanlar: her obje (feature) için sınırsız sayıda dosya eklenebilir.
+  // Ayrı bir "tablo" olarak tutulur — entity: katman id'si (layerId), objectId: obje (feature) id'si.
+  var documents = []; // { id, entity, objectId, name, mime, kind:'image'|'video'|'other', size, dataUrl, addedAt }
+  var docPendingFiles = []; // dokuman modalı açıkken henüz eklenmemiş, okunmuş dosyalar
 
   function geomTypeLabel(t){
     return t === 'Point' ? 'Nokta' : t === 'LineString' ? 'Çizgi' : t === 'Polygon' ? 'Poligon' : 'Karma';
