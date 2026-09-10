@@ -1255,57 +1255,57 @@ export default function App() {
               {/* Sol: Dashboard Butonu */}
               <button
                 onClick={() => setCenterTab(prev => prev === 'dashboard' ? 'kpis' : 'dashboard')}
-                className={`p-2 rounded-xl border transition-all duration-300 flex items-center justify-center cursor-pointer shadow-md ${
+                className={`group p-2 rounded-xl border transition-all duration-300 flex items-center justify-center cursor-pointer shadow-md hover:scale-110 ${
                   centerTab === 'dashboard'
                     ? 'bg-gradient-to-r from-indigo-600/30 to-blue-600/30 border-indigo-500 text-indigo-400 ring-2 ring-indigo-500/30 shadow-[0_0_12px_rgba(99,102,241,0.35)]'
-                    : 'bg-[#151926]/80 hover:bg-[#1a2035]/90 border-indigo-900/40 text-indigo-400/80 hover:text-indigo-300 shadow-inner'
+                    : 'bg-[#151926] hover:bg-indigo-600/20 border-indigo-500/50 hover:border-indigo-400 text-indigo-400 shadow-inner hover:shadow-[0_0_12px_rgba(99,102,241,0.45)]'
                 }`}
                 title="Dashboard"
                 id="hdr-btn-dashboard-trigger"
               >
-                <LayoutGrid className={`w-3.5 h-3.5 transition-transform duration-300 ${centerTab === 'dashboard' ? 'scale-110 text-indigo-400' : 'text-indigo-400/60'}`} />
+                <LayoutGrid className={`w-3.5 h-3.5 transition-transform duration-300 text-indigo-400 group-hover:text-indigo-300 ${centerTab === 'dashboard' ? 'scale-110' : ''}`} />
               </button>
 
               {/* Orta: İş-Zaman Butonu (Timeline) */}
               <button
                 onClick={() => setCenterTab(prev => prev === 'gantt' ? 'kpis' : 'gantt')}
-                className={`p-2 rounded-xl border transition-all duration-300 flex items-center justify-center cursor-pointer shadow-md ${
+                className={`group p-2 rounded-xl border transition-all duration-300 flex items-center justify-center cursor-pointer shadow-md hover:scale-110 ${
                   centerTab === 'gantt'
                     ? 'bg-gradient-to-r from-emerald-600/30 to-teal-600/30 border-emerald-500 text-emerald-400 ring-2 ring-emerald-500/30 shadow-[0_0_12px_rgba(16,185,129,0.35)]'
-                    : 'bg-[#0f2118]/80 hover:bg-[#142d20]/90 border-emerald-900/40 text-emerald-400/80 hover:text-emerald-300 shadow-inner'
+                    : 'bg-[#0f2118] hover:bg-emerald-600/20 border-emerald-500/50 hover:border-emerald-400 text-emerald-400 shadow-inner hover:shadow-[0_0_12px_rgba(16,185,129,0.45)]'
                 }`}
                 title="İş-Zaman Çizelgesi (Timeline)"
                 id="hdr-btn-gantt-trigger"
               >
-                <Clock className={`w-3.5 h-3.5 transition-transform duration-500 ${centerTab === 'gantt' ? 'rotate-180 text-emerald-400' : 'text-emerald-400/60'}`} />
+                <Clock className={`w-3.5 h-3.5 transition-transform duration-500 text-emerald-400 group-hover:text-emerald-300 ${centerTab === 'gantt' ? 'rotate-180' : 'group-hover:rotate-45'}`} />
               </button>
 
               {/* Sağ: İş Gücü & Tedarik Butonu */}
               <button
                 onClick={() => setCenterTab(prev => prev === 'resources' ? 'kpis' : 'resources')}
-                className={`p-2 rounded-xl border transition-all duration-300 flex items-center justify-center cursor-pointer shadow-md ${
+                className={`group p-2 rounded-xl border transition-all duration-300 flex items-center justify-center cursor-pointer shadow-md hover:scale-110 ${
                   centerTab === 'resources'
                     ? 'bg-gradient-to-r from-purple-600/30 to-fuchsia-600/30 border-purple-500 text-purple-400 ring-2 ring-purple-500/30 shadow-[0_0_12px_rgba(168,85,247,0.35)]'
-                    : 'bg-[#1b1526]/80 hover:bg-[#231b35]/90 border-purple-900/40 text-purple-400/80 hover:text-purple-300 shadow-inner'
+                    : 'bg-[#1b1526] hover:bg-purple-600/20 border-purple-500/50 hover:border-purple-400 text-purple-400 shadow-inner hover:shadow-[0_0_12px_rgba(168,85,247,0.45)]'
                 }`}
                 title="İş Gücü & Tedarik"
                 id="hdr-btn-resources-trigger"
               >
-                <Users className={`w-3.5 h-3.5 transition-transform duration-300 ${centerTab === 'resources' ? 'scale-110 text-purple-400' : 'text-purple-400/60'}`} />
+                <Users className={`w-3.5 h-3.5 transition-transform duration-300 text-purple-400 group-hover:text-purple-300 ${centerTab === 'resources' ? 'scale-110' : ''}`} />
               </button>
 
               {/* 4. Buton: Doküman Arşivi (Technical Specifications & Docs) */}
               <button
                 onClick={() => setCenterTab(prev => prev === 'documents' ? 'kpis' : 'documents')}
-                className={`p-2 rounded-xl border transition-all duration-300 flex items-center justify-center cursor-pointer shadow-md ${
+                className={`group p-2 rounded-xl border transition-all duration-300 flex items-center justify-center cursor-pointer shadow-md hover:scale-110 ${
                   centerTab === 'documents'
                     ? 'bg-gradient-to-r from-indigo-600/30 to-blue-600/30 border-indigo-500 text-indigo-400 ring-2 ring-indigo-500/30 shadow-[0_0_12px_rgba(99,102,241,0.35)]'
-                    : 'bg-[#121a2e]/80 hover:bg-[#1a2542]/90 border-indigo-900/40 text-indigo-400/80 hover:text-indigo-300 shadow-inner'
+                    : 'bg-[#121a2e] hover:bg-indigo-600/20 border-indigo-500/50 hover:border-indigo-400 text-indigo-400 shadow-inner hover:shadow-[0_0_12px_rgba(99,102,241,0.45)]'
                 }`}
                 title="Doküman Yönetimi"
                 id="hdr-btn-document-archive-trigger"
               >
-                <FileText className={`w-3.5 h-3.5 transition-transform duration-300 ${centerTab === 'documents' ? 'scale-110 text-indigo-400' : 'text-indigo-400/60'}`} />
+                <FileText className={`w-3.5 h-3.5 transition-transform duration-300 text-indigo-400 group-hover:text-indigo-300 ${centerTab === 'documents' ? 'scale-110' : ''}`} />
               </button>
             </div>
 
