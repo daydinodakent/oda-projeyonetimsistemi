@@ -629,10 +629,6 @@
       <div id="quickShapeGroup" style="display:none;margin-top:12px;">
         <span class="field-label">Hızlı ekle (form olmadan — sadece Poligon katmanlarda)</span>
         <div class="tool-grid">
-          <button class="tool" data-mode="polygon3d" data-tip="3B Poligon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5"/><path d="M12 12v9"/></svg>
-            <span>3B Pol.</span>
-          </button>
           <button class="tool" data-mode="rectangle" data-tip="Dikdörtgen">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="6" width="16" height="12" rx="1"/></svg>
             <span>D.gen</span>
@@ -641,6 +637,10 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8"/></svg>
             <span>Çember</span>
           </button>
+          <label class="tool" id="quick3DToggle" data-tip="3 Boyutlu (kat adedi/yüksekliği ile)" style="cursor:pointer;">
+            <input type="checkbox" id="quick3DCheckbox" style="width:15px;height:15px;accent-color:var(--amber);cursor:pointer;">
+            <span>3B</span>
+          </label>
         </div>
       </div>
     </div>
@@ -1648,7 +1648,7 @@
   // paralel ama her zaman düz okunur (baş aşağı olmayacak) şekilde
   // döndürmek için gereken text-rotate açısını hesaplar.
   function labelRotationForBearing(bearing){
-    var angle = 90 - bearing;
+    var angle = bearing - 90;
     angle = ((angle + 180) % 360 + 360) % 360 - 180;
     if (angle > 90 || angle < -90){
       angle += 180;
@@ -2117,8 +2117,28 @@
     if (map.getLayer('vertex-layer')) map.setLayoutProperty('vertex-layer', 'visibility', mode === 'select' ? 'visible' : 'none');
     railButtons.forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-mode') === mode); });
     document.getElementById('stMode').textContent = mode;
-    document.getElementById('floor3dPanel').classList.toggle('show', mode === 'polygon3d');
     if (!isVertexDrawMode(mode)) hideCursorInput();
+  }
+
+  // "3B" onay kutusu: sonraki hızlı poligon (D.gen/Çember/Yerleştir) 3 boyutlu
+  // (kat adedi/yüksekliği ile) oluşturulsun mu — tüm poligon türleri için geçerli.
+  var quick3DEnabled = false;
+  var quick3DCheckbox = document.getElementById('quick3DCheckbox');
+  var quick3DToggle = document.getElementById('quick3DToggle');
+  quick3DCheckbox.addEventListener('change', function(e){
+    quick3DEnabled = e.target.checked;
+    quick3DToggle.classList.toggle('active', quick3DEnabled);
+    document.getElementById('floor3dPanel').classList.toggle('show', quick3DEnabled);
+  });
+
+  function applyQuick3DProps(f){
+    var newFloors = Math.max(1, parseInt(document.getElementById('floorCountInput').value, 10) || 1);
+    var newFloorH = Math.max(0.1, parseFloat(document.getElementById('floorHeightInput').value) || 3);
+    f.properties.extrude = true;
+    f.properties.floors = newFloors;
+    f.properties.floorHeight = newFloorH;
+    f.properties.height = newFloors * newFloorH;
+    f.properties.base = 0;
   }
 
   function hideCursorInput(){
@@ -2155,7 +2175,7 @@
     }
   });
 
-  function isPolygonMode(m){ return m === 'polygon' || m === 'polygon3d'; }
+  function isPolygonMode(m){ return m === 'polygon'; }
   function isAreaMeasure(m){ return m === 'measure-area'; }
   function isLineMeasure(m){ return m === 'measure-distance'; }
   function isMeasureMode(m){ return isAreaMeasure(m) || isLineMeasure(m); }
@@ -2408,17 +2428,9 @@
     } else if (isPolygonMode(mode) && draftCoords.length >= 3){
       var ring = draftCoords.slice(); ring.push(ring[0]);
       var f = makeFeature('Polygon', [ring]);
-      if (mode === 'polygon3d'){
-        var newFloors = Math.max(1, parseInt(document.getElementById('floorCountInput').value, 10) || 1);
-        var newFloorH = Math.max(0.1, parseFloat(document.getElementById('floorHeightInput').value) || 3);
-        f.properties.extrude = true;
-        f.properties.floors = newFloors;
-        f.properties.floorHeight = newFloorH;
-        f.properties.height = newFloors * newFloorH;
-        f.properties.base = 0;
-      }
+      if (quick3DEnabled) applyQuick3DProps(f);
       addFeature(f);
-      if (mode === 'polygon3d') ensure3DView();
+      if (quick3DEnabled) ensure3DView();
     } else if (mode === 'rectangle' && draftCoords.length >= 2){
       var a2 = draftCoords[0], b2 = draftCoords[1];
       if (a2[0] === b2[0] || a2[1] === b2[1]){
@@ -2426,7 +2438,9 @@
       } else {
         var ring2 = [[a2[0],a2[1]],[b2[0],a2[1]],[b2[0],b2[1]],[a2[0],b2[1]],[a2[0],a2[1]]];
         var rf = makeFeature('Polygon', [ring2]); rf.properties.shape = 'rectangle';
+        if (quick3DEnabled) applyQuick3DProps(rf);
         addFeature(rf);
+        if (quick3DEnabled) ensure3DView();
       }
     } else if (mode === 'circle' && draftCoords.length >= 2){
       var c2 = draftCoords[0], e2 = draftCoords[1];
@@ -2436,7 +2450,9 @@
       } else {
         var circleFeature = turf.circle(c2, r2, { steps:64, units:'kilometers' });
         var cf = makeFeature('Polygon', circleFeature.geometry.coordinates); cf.properties.shape = 'circle';
+        if (quick3DEnabled) applyQuick3DProps(cf);
         addFeature(cf);
+        if (quick3DEnabled) ensure3DView();
       }
     } else {
       showToast('Şekli tamamlamak için en az ' + requiredMinPoints(mode) + ' nokta gerekli.');
@@ -3442,7 +3458,7 @@
 
   // Editör sekmesindeki "Ekle" grubunun altında aktif katmanın geometri
   // türünü gösterir ve sadece Poligon katmanlarda anlamlı olan "hızlı ekle"
-  // (Dikdörtgen/Çember/3B Poligon) alt bölümünü buna göre gösterir/gizler.
+  // (Dikdörtgen/Çember + 3B seçeneği) alt bölümünü buna göre gösterir/gizler.
   function refreshEditorLayerHint(){
     var hint = document.getElementById('activeLayerGeomHint');
     var quick = document.getElementById('quickShapeGroup');

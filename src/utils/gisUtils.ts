@@ -2,6 +2,20 @@ import * as turf from '@turf/turf';
 import JSZip from 'jszip';
 
 // ---------------------------------------------------------------------
+// Label rotation: keeps a text label parallel to its measurement line
+// while staying upright/readable regardless of the line's direction.
+// ---------------------------------------------------------------------
+export function labelRotationForBearing(bearingDeg: number): number {
+  let angle = bearingDeg - 90;
+  angle = ((angle + 180) % 360 + 360) % 360 - 180;
+  if (angle > 90 || angle < -90) {
+    angle += 180;
+    angle = ((angle + 180) % 360 + 360) % 360 - 180;
+  }
+  return angle;
+}
+
+// ---------------------------------------------------------------------
 // Convex Hull 2D (Monotone Chain Algorithm)
 // ---------------------------------------------------------------------
 export function convexHull2D(points: [number, number][]): [number, number][] {
