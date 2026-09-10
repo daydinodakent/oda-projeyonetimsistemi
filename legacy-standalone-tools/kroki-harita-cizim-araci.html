@@ -1253,15 +1253,10 @@
     showToast('Seç/kaydırma moduna geçildi.');
   });
 
-  document.getElementById('btnPin').addEventListener('click', function(){
-    var btn = document.getElementById('btnPin');
-    if (!bookmarkedView){
-      bookmarkedView = { center: map.getCenter(), zoom: map.getZoom(), bearing: map.getBearing(), pitch: map.getPitch() };
-      btn.classList.add('active');
-      showToast('Görünüm sabitlendi — tekrar tıklayınca buraya dönersiniz.');
-    } else {
-      map.easeTo(Object.assign({ duration:500 }, bookmarkedView));
-    }
+  document.getElementById('btnSelectMode').addEventListener('click', function(){
+    setModule('editor');
+    setMode('select');
+    showToast('Seç/kaydırma moduna geçildi.');
   });
 
   // ---------------------------------------------------------------------
