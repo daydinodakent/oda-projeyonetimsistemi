@@ -2890,6 +2890,7 @@
   function removeFeatureById(id){
     pushHistory();
     features = features.filter(function(f){ return f.id !== id; });
+    documents = documents.filter(function(d){ return d.objectId !== id; });
     if (selectedId === id) deselect();
     renderFeatures();
     renderVertices();
