@@ -717,7 +717,9 @@
      KENDİ z-index'iyle karşılaştırılıyor; clusterBottomVertical gibi DOM'da
      SONRA gelen aynı z-index:5'li kümelerin popover açıkken üzerine
      binmemesi için clusterTop ile aynı mantıkla yükseltilir. */
-  #clusterBasemap{top:137px;z-index:6;}
+  /* Altlık Haritalar kümesi/popover'ı her zaman en üstte kalsın istendi —
+     diğer tüm .map-cluster'lardan (varsayılan 5, clusterTop 8) daha yüksek. */
+  #clusterBasemap{top:137px;z-index:50;}
   #basemapPopover{
     position:absolute;top:100%;right:0;margin-top:4px;display:none;flex-direction:column;gap:8px;
     background:rgba(15,30,41,.95);border:1px solid var(--line);border-radius:var(--radius);
@@ -734,9 +736,9 @@
   /* Ölçüm popover'ındaki Mesafe/Alan/Nokta düğmeleri, paylaşılan .tool
      sınıfından (Editör araç ızgarasında da kullanılır, orada değişmemeli)
      %25 daha küçük gösterilir. */
-  #measureToolsPopover .tool{width:39px;height:33px;font-size:6.5px;gap:2px;}
+  #measureToolsPopover .tool{width:39px;height:33px;gap:2px;}
   #measureToolsPopover .tool svg{width:13px;height:13px;}
-  #measureToolsPopover .tool span{font-size:6px;}
+  #measureToolsPopover .tool span{font-size:8px;}
   #basemapPopover .style-row{flex-direction:column;}
   /* "3B Görünüm" (btnCompass) — kümenin diğer butonlarından belirgin şekilde
      daha büyük ve durumu canlı yansıtan (dinamik) bir tasarım: ibre haritanın
@@ -1409,7 +1411,7 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></svg>
   </button>
   <div id="basemapPopover">
-    <span class="field-label" style="margin-bottom:2px;">CBS Haritası</span>
+    <span class="field-label" style="margin-bottom:2px;">Altlık Haritalar</span>
     <div class="style-row" id="styleRow"></div>
   </div>
 </div>
@@ -1433,9 +1435,6 @@
         <span>Nokta</span>
       </button>
     </div>
-    <button class="layer-icon-btn" id="btnClearMeasurements" data-tip="Ölçümleri Temizle" style="margin-top:8px;width:100%;height:26px;background:var(--bg-panel-raise);border:1px solid var(--line);border-radius:2px;">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m3 0-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
-    </button>
   </div>
 </div>
 
@@ -2267,12 +2266,6 @@
     this.classList.toggle('active', labelsVisible);
     showToast(labelsVisible ? 'Ölçüm etiketleri açıldı.' : 'Ölçüm etiketleri kapatıldı.');
   });
-  document.getElementById('btnClearMeasurements').addEventListener('click', function(){
-    clearPersistedMeasurements();
-    cleanupMeasureFolderIfEmpty();
-    document.getElementById('measureToolsPopover').classList.remove('show');
-    showToast('Tüm ölçümler temizlendi.');
-  });
   document.querySelectorAll('#measureToolsPopover .tool[data-mode]').forEach(function(b){
     b.addEventListener('click', function(){ document.getElementById('measureToolsPopover').classList.remove('show'); });
   });
@@ -2340,6 +2333,8 @@
       document.getElementById('btnAttrEdit').classList.remove('active');
     }
     document.getElementById('infoPopover').classList.remove('show');
+    infoHighlightId = null;
+    renderFeatures();
     map.getCanvas().style.cursor = infoMode ? 'help' : (mode === 'select' ? 'default' : (isVertexDrawMode(mode) ? 'crosshair' : ''));
     showToast(infoMode ? 'Bilgi modu açık — haritada bir objeye tıklayın.' : 'Bilgi modu kapatıldı.');
   });
@@ -2348,6 +2343,8 @@
   document.getElementById('infoPopoverClose').addEventListener('click', function(e){
     e.stopPropagation();
     document.getElementById('infoPopover').classList.remove('show');
+    infoHighlightId = null;
+    renderFeatures();
   });
   // Bilgi balonunun altındaki "Doküman Ekle" — o an görüntülenen objeye
   // (activeInfoFeatureId) doğrudan mevcut doküman yükleme modalını açar,
@@ -2399,6 +2396,11 @@
   var ffStagedDocFiles = [];         // Veri Girişi formunda "Doküman ekle" ile hazırlanan, obje çizilince eklenecek dosyalar
   var featureDocumentsCache = {};    // { [featureId]: DokumanRecord[] } — üst pencereden (React) senkronize edilir
   var activeInfoFeatureId = null;    // Bilgi paneli şu an hangi objeyi gösteriyor (doküman panelini canlı tutmak için)
+  // Bilgi balonunda gösterilen obje haritada da vurgulansın diye tutulan id —
+  // gerçek seçimden (selectedIds) KASITLI olarak ayrı: Sil/toplu düzenleme gibi
+  // seçime bağlı işlemleri etkilememesi için (bkz. visibleFeaturesForRender,
+  // INFO_HIGHLIGHT_COLOR). Bilgi balonu kapanınca (X veya Bilgi modu kapatılınca) temizlenir.
+  var infoHighlightId = null;
   var infoPopoverAnchorLngLat = null; // Bilgi balonunun harita üzerinde iğnelendiği nokta (bkz. updateInfoPopoverPosition)
   var hoveredMidpoint = null; // Seç modunda, fare tek seçili objenin bir kenar orta noktasına yakınsa (bkz. findNearestMidpoint)
   var draftCoords = null;   // linestring / polygon çizerken tıklanan noktalar
@@ -3374,17 +3376,11 @@
       f = features.find(function(x){ return x.id === candidateId; });
     }
     if (!f) f = geometricHitTest(e.point, e.lngLat);
+    // Boş bir noktaya tıklanınca Bilgi formu AÇILMAZ ve halihazırda açıksa
+    // DEĞİŞMEZ — yalnızca gerçekten bir obje bulunduğunda güncellenir.
+    if (!f) return;
     var pop = document.getElementById('infoPopover');
     var main = document.getElementById('infoPopoverBody');
-    if (!f){
-      main.innerHTML = '<b>Bilgi</b><br>Bu noktada bir obje bulunamadı — haritada çizilmiş bir şekle tıklayın.';
-      infoPopoverAnchorLngLat = { lng: e.lngLat.lng, lat: e.lngLat.lat };
-      pop.classList.add('show');
-      updateInfoPopoverPosition();
-      renderInfoDocsPanel(null);
-      document.getElementById('infoAddDocBtn').classList.add('hidden');
-      return;
-    }
     var lyr = getLayer(f.properties && f.properties.layerId);
     var lyrLabel = lyr ? lyr.name.split(' — ')[0] : '';
     var schemaCols = (f.properties && dbTableSchemas[f.properties.layerId]) || null;
@@ -3418,6 +3414,9 @@
     updateInfoPopoverPosition();
     renderInfoDocsPanel(f.id);
     document.getElementById('infoAddDocBtn').classList.remove('hidden');
+    // Bilgi balonunda gösterilen obje haritada da vurgulansın (bkz. INFO_HIGHLIGHT_COLOR).
+    infoHighlightId = f.id;
+    renderFeatures();
   }
 
   // ---------------------------------------------------------------------
@@ -3456,6 +3455,7 @@
       infoMode = false;
       document.getElementById('btnInfo').classList.remove('active');
       document.getElementById('infoPopover').classList.remove('show');
+      infoHighlightId = null; renderFeatures();
       attributeEditMode = false;
       document.getElementById('btnAttrEdit').classList.remove('active');
     }
@@ -5991,6 +5991,9 @@
   // Seçili objeler (selectedIds) sarıya boyanır — hangi obje(ler)in seçili
   // olduğu sadece ince bir çerçeveyle değil, objenin kendi rengiyle de belli olur.
   var SELECTION_COLOR = '#facc15';
+  // Bilgi balonunda incelenen obje (infoHighlightId) camgöbeği ile vurgulanır —
+  // gerçek seçimden (sarı) bilinçli olarak farklı bir renk, ikisi karışmasın diye.
+  var INFO_HIGHLIGHT_COLOR = '#22d3ee';
 
   // ---------------------------------------------------------------------
   // 4D Analizi: 3B binaların "İnşaat İlerlemesi (%)" değeri BUGÜNÜ referans
@@ -6058,6 +6061,11 @@
       if (f2.geometry.type === 'Polygon' && f2.properties && f2.properties.extrude){
         var progress = getEffectiveProgress(f2);
         f2.properties.__extrusionColor = (progress >= 100) ? EXTRUSION_PROGRESS_COLOR : extrusionStatusColor(f2.properties.veri_durumu);
+      }
+      if (infoHighlightId != null && String(f.id) === String(infoHighlightId)){
+        f2.properties.__layerColor = INFO_HIGHLIGHT_COLOR;
+        f2.properties.__layerFillColor = INFO_HIGHLIGHT_COLOR;
+        f2.properties.__extrusionColor = INFO_HIGHLIGHT_COLOR;
       }
       if (selectedIds.indexOf(f.id) !== -1){
         f2.properties.__layerColor = SELECTION_COLOR;
