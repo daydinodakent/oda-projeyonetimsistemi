@@ -1085,14 +1085,18 @@ export default function App() {
                     AY
                   </div>
                   <span className="text-amber-500 text-[10px]">SpU</span>
-                  
-                  {/* Warning badge on top of user button */}
-                  {unreadNotifications.length > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center border-2 border-[#1c1c1e] animate-pulse">
-                      {unreadNotifications.length}
-                    </span>
-                  )}
                 </button>
+
+                {/* Warning badge on top of user button — global button CSS
+                    (index.css: button:not(.native-btn)) sets overflow:hidden
+                    on every <button>, which clipped this badge's negative
+                    offset; rendered as a sibling of the button (inside the
+                    same relative wrapper) instead so it isn't clipped. */}
+                {unreadNotifications.length > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center border-2 border-[#1c1c1e] animate-pulse pointer-events-none">
+                    {unreadNotifications.length}
+                  </span>
+                )}
 
                 {/* Dropdown Menu */}
                 {showProfileDropdown && (
@@ -1435,14 +1439,16 @@ export default function App() {
                   title="Kullanıcı Menüsü"
                 >
                   AY
-                  
-                  {/* Warning badge on top of user button */}
-                  {unreadNotifications.length > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-3 h-3 rounded-full flex items-center justify-center border border-[#141416] animate-pulse">
-                      {unreadNotifications.length}
-                    </span>
-                  )}
                 </button>
+
+                {/* Warning badge on top of user button — rendered as a
+                    sibling of the button (see non-compact profile pill
+                    above for why: global button CSS clips it otherwise). */}
+                {unreadNotifications.length > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-3 h-3 rounded-full flex items-center justify-center border border-[#141416] animate-pulse pointer-events-none">
+                    {unreadNotifications.length}
+                  </span>
+                )}
 
                 {/* Dropdown Menu */}
                 {showCompactProfileDropdown && (
