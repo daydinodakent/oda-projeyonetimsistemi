@@ -790,27 +790,7 @@
     border-top:8px solid var(--bg-panel);
   }
   #infoPopover b{color:var(--text);}
-  #infoPopoverMain{width:248px;padding:16px;padding-right:28px;}
-  /* Bilgi (Info) balonu içeriği — Stripe tarzı sade, kart benzeri form görünümü:
-     üstte ikon+başlık bir "header" şeridi, altında her öznitelik kendi satırında
-     küçük büyük-harf etiket + altında belirgin değer, ince ayraçlarla bölünmüş. */
-  #infoPopoverMain .info-header{
-    display:flex;align-items:center;gap:8px;padding-bottom:10px;margin-bottom:2px;border-bottom:1px solid var(--line);
-  }
-  #infoPopoverMain .info-header .info-icon{
-    width:26px;height:26px;flex:0 0 auto;border-radius:7px;background:rgba(212,175,55,.12);
-    color:var(--gold);display:flex;align-items:center;justify-content:center;
-  }
-  #infoPopoverMain .info-header .info-icon svg{width:15px;height:15px;}
-  #infoPopoverMain .info-header b{font-size:13px;letter-spacing:.1px;}
-  #infoPopoverMain .info-row{padding:7px 0;border-bottom:1px solid rgba(255,255,255,.06);}
-  #infoPopoverMain .info-row:last-child{border-bottom:none;}
-  #infoPopoverMain .info-row-label{
-    font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:var(--text-dim);
-    margin-bottom:2px;
-  }
-  #infoPopoverMain .info-row-value{font-size:12.5px;color:var(--text);font-weight:600;word-break:break-word;}
-  #infoPopoverMain .info-empty{padding-top:8px;color:var(--text-dim);font-size:11.5px;}
+  #infoPopoverMain{width:230px;padding:14px;padding-right:26px;}
   /* Doküman paneli: info penceresinin SAĞINDA açılır (yalnızca objeye ait
      doküman varken görünür) — üstte liste, hemen altında seçili dokümanın
      önizlemesi ("view"). */
@@ -3285,13 +3265,6 @@
   function escapeAttrHtml(s){
     return String(s).replace(/[&<>"]/g, function(c){ return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]; });
   }
-  // Bilgi (Info) balonundaki her özniteliği, üstte küçük büyük-harf bir etiket
-  // ve altında belirgin değerden oluşan tek bir "form satırı" olarak üretir
-  // (Stripe'ın detay panellerindeki sade kart görünümünden esinlenildi).
-  function infoRowHtml(label, value){
-    return '<div class="info-row"><div class="info-row-label">' + escapeAttrHtml(label) +
-      '</div><div class="info-row-value">' + escapeAttrHtml(String(value)) + '</div></div>';
-  }
   // Bilgi balonunun harita üzerinde iğnelendiği koordinatı belirler:
   // Nokta objelerde kendi konumu, çizgi/poligonlarda üst-orta (bbox tepe
   // noktası) — böylece balon objenin tam ÜZERİNDE açılır.
@@ -3339,7 +3312,7 @@
     var pop = document.getElementById('infoPopover');
     var main = document.getElementById('infoPopoverMain');
     if (!f){
-      main.innerHTML = '<div class="info-header"><b>Bilgi</b></div><div class="info-empty">Bu noktada bir obje bulunamadı — haritada çizilmiş bir şekle tıklayın.</div>';
+      main.innerHTML = '<b>Bilgi</b><br>Bu noktada bir obje bulunamadı — haritada çizilmiş bir şekle tıklayın.';
       infoPopoverAnchorLngLat = { lng: e.lngLat.lng, lat: e.lngLat.lat };
       pop.classList.add('show');
       updateInfoPopoverPosition();
@@ -3354,19 +3327,25 @@
       var schemaRows = schemaCols.map(function(col){
         var val = f.properties ? f.properties[col.column_name] : undefined;
         if (val === undefined || val === null || val === '') return '';
-        return infoRowHtml(col.display_name || col.column_name.replace(/_/g,' '), val);
+        return '<div style="display:flex;gap:10px;justify-content:space-between;margin-top:4px;">' +
+          '<span style="color:var(--text-dim);">' + escapeAttrHtml(col.display_name || col.column_name.replace(/_/g,' ')) + '</span>' +
+          '<span style="color:var(--text);text-align:right;">' + escapeAttrHtml(String(val)) + '</span></div>';
       }).join('');
-      body = schemaRows || '<div class="info-empty">Bu objede öznitelik bilgisi girilmemiş.</div>';
+      body = schemaRows || '<div style="margin-top:4px;">Bu objede öznitelik bilgisi girilmemiş.</div>';
     } else {
       var rows = Object.keys(f.properties || {}).filter(function(k){
         return k.indexOf('__') !== 0 && k !== 'layerId' && k !== 'tablo';
       });
       body = rows.length
-        ? rows.map(function(k){ return infoRowHtml(k, f.properties[k]); }).join('')
-        : '<div class="info-empty">Bu objede öznitelik bilgisi girilmemiş.</div>';
+        ? rows.map(function(k){
+            return '<div style="display:flex;gap:10px;justify-content:space-between;margin-top:4px;">' +
+              '<span style="color:var(--text-dim);">' + escapeAttrHtml(k) + '</span>' +
+              '<span style="color:var(--text);text-align:right;">' + escapeAttrHtml(String(f.properties[k])) + '</span></div>';
+          }).join('')
+        : '<div style="margin-top:4px;">Bu objede öznitelik bilgisi girilmemiş.</div>';
     }
-    main.innerHTML = '<div class="info-header">' +
-        '<span class="info-icon">' + iconFor(f) + '</span>' +
+    main.innerHTML = '<div style="display:flex;align-items:center;gap:8px;">' +
+        '<span style="width:18px;height:18px;flex:0 0 auto;color:var(--gold);">' + iconFor(f) + '</span>' +
         '<b>' + (lyrLabel ? escapeAttrHtml(lyrLabel) : typeLabel(f)) + '</b></div>' + body;
     infoPopoverAnchorLngLat = infoAnchorForFeature(f) || { lng: e.lngLat.lng, lat: e.lngLat.lat };
     pop.classList.add('show');
