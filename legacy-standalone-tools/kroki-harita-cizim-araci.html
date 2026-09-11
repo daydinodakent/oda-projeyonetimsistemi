@@ -778,26 +778,30 @@
     color:var(--amber);font-size:10px;
   }
 
-  /* Sağ alt küme: dikey grup (pin/kaydırma/yenile) ile alttaki yatay grup
-     (yakınlaştır/ev/uzaklaştır/bilgi) artık TEK, bitişik bir blok (bkz.
-     #clusterBottomRow) — aralarında boşluk kalmasın diye ayrı kümeler yerine
-     aynı .map-cluster içinde iç içe geçirildi. */
-  /* Dikey grup (Seç/Kaydır/Yenile) alttaki yatay grubun SOL tarafındaki
-     Yakınlaştır/Ev/Uzaklaştır'ın değil, EN SAĞDAKİ Bilgi düğmesinin tam
-     üzerinde dursun diye sağa hizalanır (align-items:flex-end). */
-  #clusterBottomVertical{bottom:38px;right:14px;border-radius:10px 10px var(--radius) 10px;align-items:flex-end;}
-  #clusterBottomRow{display:flex;flex-direction:row;align-items:center;}
-  #clusterBottomRowSep{width:1px;height:20px;margin:0 2px;}
-  #clusterBottomVertical button[data-tip]::after{
+  /* Sağ alt küme "ters L" şeklinde: iki AYRI, bitişik kutu — yatay grup
+     (Yakınlaştır/Ev/Uzaklaştır/Bilgi) sabit konumlu ana küme, dikey grup
+     (Seç/Kaydır/Yenile) onun İÇİNDE bottom:100% ile hemen üzerinde, sağa
+     hizalı (Bilgi düğmesinin tam üstünde) kendi ayrı arka planı/köşeleriyle
+     konumlanır — tek bir dikdörtgen panel yerine gerçek bir L silueti oluşur
+     (aradaki boş üst-sol alan hiç boyanmaz, çünkü orada DOM elemanı yok). */
+  #clusterBottom{bottom:38px;right:14px;flex-direction:row;align-items:center;}
+  /* #clusterBottom yatay (row) olduğundan, paylaşılan .map-cluster .sep
+     (yatay çizgi/sütun ayracı) yerine burada dikey bir çizgi/satır ayracı gerekir. */
+  #clusterBottom > .sep{width:1px;height:20px;margin:0 2px;}
+  #clusterBottomVertical{
+    position:absolute;bottom:100%;right:0;flex-direction:column;
+    border-radius:10px 10px var(--radius) var(--radius);
+  }
+  #clusterBottom button[data-tip]::after, #clusterBottomVertical button[data-tip]::after{
     right:auto;left:50%;transform:translateX(-50%);bottom:110%;top:auto;
   }
-  #clusterBottomVertical button:not(.active){color:var(--offwhite);}
+  #clusterBottom button:not(.active), #clusterBottomVertical button:not(.active){color:var(--offwhite);}
   /* Dikey grubun İLK düğmesi (Seç) ve yatay grubun İLK düğmesi (Yakınlaştır),
-     kümenin kendi köşe yuvarlaklığıyla (yukarıdaki border-radius) uyumlu
-     olacak şekilde kendi "uçlarında" daha belirgin yuvarlatılır — Bilgi
-     düğmesinin dairesel tasarımıyla aynı estetik dilde. */
+     kendi kutularının köşe yuvarlaklığıyla uyumlu olacak şekilde kendi
+     "uçlarında" daha belirgin yuvarlatılır — Bilgi düğmesinin dairesel
+     tasarımıyla aynı estetik dilde. */
   #btnSelectMode{border-radius:10px 10px 2px 2px;}
-  #clusterBottomRow #btnZoomIn{border-radius:10px 2px 2px 10px;}
+  #clusterBottom #btnZoomIn{border-radius:10px 2px 2px 10px;}
   .map-cluster button{
     width:27px;height:27px;background:transparent;border:none;color:var(--offwhite);
     cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:2px;position:relative;
@@ -1476,32 +1480,36 @@
   </div>
 </div>
 
-<div class="map-cluster" id="clusterBottomVertical">
-  <button id="btnSelectMode" data-tip="Seç / Düzenle">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 3l14 7-6 2-2 6-6-15z"/></svg>
-  </button>
-  <button id="btnPanMode" class="active" data-tip="Kaydır (haritayı sürükleyerek gezin)">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 11V6a2 2 0 1 1 4 0M12 6a2 2 0 1 1 4 0v5M16 11V8a2 2 0 1 1 4 0v6c0 3.3-2.7 6-6 6h-2a6 6 0 0 1-5-2.7L4.5 13a1.8 1.8 0 0 1 2.8-2.2L8 11.5"/></svg>
-  </button>
-  <button id="btnRefresh" data-tip="Yenile">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4v6h6"/><path d="M20 20v-6h-6"/><path d="M5 14a8 8 0 0 0 14 3l1-3M19 10A8 8 0 0 0 5 7L4 10"/></svg>
-  </button>
-  <div class="sep"></div>
-  <div id="clusterBottomRow">
-    <button id="btnZoomIn" data-tip="Yakınlaştır">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 5v14M5 12h14"/></svg>
+<!-- Sağ alt buton kümesi "ters L" şeklinde: dikey grup (Seç/Kaydır/Yenile)
+     yatay grubun (Yakınlaştır/Ev/Uzaklaştır/Bilgi) İÇİNDE, bottom:100% ile
+     hemen üzerinde ve sağa hizalı (Bilgi düğmesinin tam üstünde) konumlanır —
+     tek bir dikdörtgen panel yerine iki bitişik, kendi köşeleri yuvarlak
+     kutu görünümü verir (aradaki boş üst-sol alan boyanmaz). -->
+<div class="map-cluster" id="clusterBottom">
+  <div class="map-cluster" id="clusterBottomVertical">
+    <button id="btnSelectMode" data-tip="Seç / Düzenle">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 3l14 7-6 2-2 6-6-15z"/></svg>
     </button>
-    <button id="btnHome" data-tip="Ana görünüm">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 11l8-7 8 7"/><path d="M6 10v9h12v-9"/></svg>
+    <button id="btnPanMode" class="active" data-tip="Kaydır (haritayı sürükleyerek gezin)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 11V6a2 2 0 1 1 4 0M12 6a2 2 0 1 1 4 0v5M16 11V8a2 2 0 1 1 4 0v6c0 3.3-2.7 6-6 6h-2a6 6 0 0 1-5-2.7L4.5 13a1.8 1.8 0 0 1 2.8-2.2L8 11.5"/></svg>
     </button>
-    <button id="btnZoomOut" data-tip="Uzaklaştır">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 12h14"/></svg>
-    </button>
-    <div class="sep" id="clusterBottomRowSep"></div>
-    <button id="btnInfo" data-tip="Bilgi — objeye tıklayıp özniteliklerini gör">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.01"/></svg>
+    <button id="btnRefresh" data-tip="Yenile">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4v6h6"/><path d="M20 20v-6h-6"/><path d="M5 14a8 8 0 0 0 14 3l1-3M19 10A8 8 0 0 0 5 7L4 10"/></svg>
     </button>
   </div>
+  <button id="btnZoomIn" data-tip="Yakınlaştır">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 5v14M5 12h14"/></svg>
+  </button>
+  <button id="btnHome" data-tip="Ana görünüm">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 11l8-7 8 7"/><path d="M6 10v9h12v-9"/></svg>
+  </button>
+  <button id="btnZoomOut" data-tip="Uzaklaştır">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 12h14"/></svg>
+  </button>
+  <div class="sep"></div>
+  <button id="btnInfo" data-tip="Bilgi — objeye tıklayıp özniteliklerini gör">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.01"/></svg>
+  </button>
 </div>
 
 <div id="treeContextMenu"></div>
@@ -1648,14 +1656,18 @@
     </div>
 
     <div class="modal-actions">
+      <button type="button" class="btn icon-only" id="btnAttrEditGeometryEdit" title="Geometriyi Düzenle — köşe noktalarını sürükleyerek şekli değiştirin">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 5l6 14 2.5-6L20 10z"/><circle cx="5" cy="5" r="1.6" fill="currentColor" stroke="none"/><circle cx="11" cy="19" r="1.6" fill="currentColor" stroke="none"/><circle cx="20" cy="10" r="1.6" fill="currentColor" stroke="none"/></svg>
+      </button>
       <button type="button" class="btn icon-only" id="btnAttrEditAddDoc" title="Doküman ekle">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 3v5h5"/><path d="M6 3h8l5 5v13H6z"/><path d="M9 13h6M9 17h6"/></svg>
       </button>
       <button type="button" class="btn icon-only" id="btnAttrEditMake3D" title="3B yap" style="display:none;">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5"/><path d="M12 12v9"/></svg>
       </button>
+      <div style="flex:1 1 auto;"></div>
       <div class="btn" id="btnAttrEditCancel">Vazgeç</div>
-      <div class="btn primary" id="btnAttrEditSubmit">Kaydet</div>
+      <div class="btn primary" id="btnAttrEditSubmit">Güncelle</div>
     </div>
   </div>
 </div>
@@ -2450,6 +2462,12 @@
   // ---------------------------------------------------------------------
   var features = [];        // {id, type:'Feature', geometry, properties}
   var selectedIds = [];     // toplu seçim — Ctrl+tık ile obje ekle/çıkar, pencere (kutu) ile toplu seç
+  // Seç modunda haritada bir objeye TEK tıklamak artık köşe tutamaçlarını
+  // (vertex handles) otomatik göstermez — yalnızca objeyi seçer (bkz.
+  // selectFeatureId). Köşe düzenleme, çift tıkla açılan Öznitelik Düzenle
+  // formundaki "Geometriyi Düzenle" düğmesiyle (btnAttrEditGeometryEdit)
+  // AÇIKÇA etkinleştirilmedikçe kapalı kalır (bkz. renderVertices).
+  var suppressVertexHandles = false;
   var mode = 'pan';
   var infoMode = false;     // Bilgi modu: açıkken haritaya tıklamak objenin özniteliklerini gösterir
   var docAttachMode = false; // Doküman ekleme modu: açıkken haritaya tıklamak, tıklanan objeye doküman ekleme formunu açar
@@ -3251,8 +3269,11 @@
     var src = map.getSource('vertices');
     if (!src) return;
     // Köşe tutamaçları (sürükleyerek reshape) sadece TEK bir obje seçiliyken
-    // gösterilir — birden fazla obje seçiliyken köşe düzenleme anlamsızdır.
-    var f = (selectedIds.length === 1) ? features.find(function(x){ return x.id === selectedIds[0]; }) : null;
+    // VE geometri düzenleme bastırılmamışken gösterilir — birden fazla obje
+    // seçiliyken köşe düzenleme anlamsızdır; tek tıkla seçimde ise (bkz.
+    // selectFeatureId/suppressVertexHandles) kullanıcı "Geometriyi Düzenle"ye
+    // basana kadar tutamaçlar görünmez.
+    var f = (selectedIds.length === 1 && !suppressVertexHandles) ? features.find(function(x){ return x.id === selectedIds[0]; }) : null;
     src.setData(fc(f ? coordsToVertexFeatures(f) : []));
   }
 
@@ -4189,6 +4210,22 @@
     openDocUploadModal(attrEditTargetFeature);
   });
 
+  // "Geometriyi Düzenle" — formu kapatır, objeyi seçili tutar ve köşe
+  // tutamaçlarını AÇIKÇA gösterir (bkz. suppressVertexHandles) — böylece
+  // sıradan tek tıkla seçimde köşeler kazara sürüklenemez, yalnızca bu
+  // düğmeyle bilinçli olarak geometri düzenleme moduna geçilebilir.
+  document.getElementById('btnAttrEditGeometryEdit').addEventListener('click', function(){
+    if (!attrEditTargetFeature) return;
+    var f = attrEditTargetFeature;
+    document.getElementById('attrEditModal').classList.remove('show');
+    attrEditTargetFeature = null;
+    closeAttr3DPopover();
+    selectedIds = [f.id];
+    suppressVertexHandles = false;
+    refreshSelectionUI();
+    showToast('Geometri düzenleme etkin — köşe noktalarını sürükleyerek şekli değiştirebilirsiniz.');
+  });
+
   document.getElementById('btnAttrEditSubmit').addEventListener('click', function(){
     if (!attrEditTargetFeature) return;
     var f = attrEditTargetFeature;
@@ -4991,8 +5028,9 @@
       var effectiveLngLat = snap ? snap.coord : lastMouseLngLat;
       positionCursorInput(e.point);
       updateDraftDynamicPreview(effectiveLngLat);
-    } else if (mode === 'select' && selectedIds.length === 1){
-      // Tek obje seçiliyken fare bir kenarın orta noktasına yaklaşırsa "orta
+    } else if (mode === 'select' && selectedIds.length === 1 && !suppressVertexHandles){
+      // Tek obje seçiliyken (VE geometri düzenleme etkinken — bkz.
+      // suppressVertexHandles) fare bir kenarın orta noktasına yaklaşırsa "orta
       // nokta işareti" (snap-marker, midpoint tipiyle) gösterilir — bu işaret
       // görünürken çift tıklamak köşe ekler (bkz. map 'dblclick').
       var selectedForMid = features.find(function(x){ return x.id === selectedIds[0]; });
@@ -5841,6 +5879,7 @@
   }
   function selectFeatureId(id){
     selectedIds = [id];
+    suppressVertexHandles = true;
     refreshSelectionUI();
   }
   function toggleFeatureSelection(id){
