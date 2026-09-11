@@ -4992,7 +4992,10 @@
     line.setAttribute('x2', pinPoint.x);
     line.setAttribute('y2', pinPoint.y);
     line.style.stroke = sahaColorForId(p.id);
-    line.style.display = '';
+    // NOT: '' değil 'block' — #sahaLeaderLine kuralının kendi varsayılanı
+    // zaten display:none olduğundan, inline stili boşaltmak çizgiyi TEKRAR
+    // gizli bırakırdı (bu satırın asıl sebebi buydu — çizgi hiç görünmüyordu).
+    line.style.display = 'block';
   }
   map.on('move', sahaUpdateLeaderLine);
   // Durum çubuğundaki "Saha" düğmesi VE filmstrip'in kendi kapat (×) düğmesi
