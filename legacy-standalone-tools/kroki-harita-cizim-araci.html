@@ -756,6 +756,8 @@
     width:23px;height:23px;
   }
   #btnAnalizLabel{font-size:9.5px;font-weight:700;letter-spacing:.2px;}
+  #btnAnaliz{gap:4px;}
+  #btnAnalizIcon{width:13px;height:13px;flex:0 0 auto;}
   #clusterTop #btnCompass .compass-needle{
     transform-origin:12px 12px;transition:transform .35s cubic-bezier(.34,1.4,.64,1);
   }
@@ -812,6 +814,7 @@
     opacity:0;pointer-events:none;transition:opacity .1s;z-index:9;
   }
   .map-cluster button:hover[data-tip]::after{opacity:1;}
+  #btnMeasureMenu svg{width:19px;height:19px;}
 
   /* Bilgi butonu — önceki tasarımdaki gibi ayrı, altın renkli daire (diğer kare butonlardan farklı) */
   #btnInfo{
@@ -1432,6 +1435,7 @@
        menüde listeler — btnCompass ile birebir aynı desen. Seçilen analiz
        kanvasın alt kısmındaki #analizToolbar'da gösterilir (bkz. openAnalizToolbar). -->
   <button id="btnAnaliz" data-tip="Analiz araçları (4D Analizi)">
+    <svg id="btnAnalizIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v16M12 13l2 2 4-4"/></svg>
     <span id="btnAnalizLabel">4D</span>
   </button>
   <button id="btnAnalizMenuToggle" data-tip="Diğer analizler" style="height:13px;">
@@ -2242,10 +2246,14 @@
   // wiring'i — hepsi ID'ler üzerinden çalıştığı için taşınma bunları
   // etkilemez).
   var analizActiveKind = null;
+  // Ana buton (#btnAnaliz) en son hangi analiz seçildiyse onu temsil eder —
+  // panel kapansa bile bir sonraki tıklamada aynı analiz açılsın diye
+  // analizActiveKind'dan (yalnızca panel açıkken dolu) AYRI tutulur.
+  var analizMainKind = 'fourd';
   var ANALIZ_META = {
-    fourd: { title:'4D Analizi', icon:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v16M12 13l2 2 4-4"/>' },
-    shadow: { title:'Gölge Analizi', icon:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.4 1.4M17.6 17.6L19 19M19 5l-1.4 1.4M6.4 17.6L5 19"/>' },
-    compare: { title:'Görüntü Karşılaştırma', icon:'<rect x="3" y="4" width="12" height="14" rx="1"/><rect x="9" y="7" width="12" height="14" rx="1"/>' }
+    fourd: { title:'4D Analizi', shortLabel:'4D', icon:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v16M12 13l2 2 4-4"/>' },
+    shadow: { title:'Gölge Analizi', shortLabel:'Gölge', icon:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.4 1.4M17.6 17.6L19 19M19 5l-1.4 1.4M6.4 17.6L5 19"/>' },
+    compare: { title:'Görüntü Karşılaştırma', shortLabel:'Karşıl.', icon:'<rect x="3" y="4" width="12" height="14" rx="1"/><rect x="9" y="7" width="12" height="14" rx="1"/>' }
   };
   // Kapatılırken veya farklı bir analize geçilirken arkada sessizce çalışmaya
   // devam eden döngüleri (4D "Oynat", Karşılaştırma "Yanıp Sön") durdurur —
@@ -2266,7 +2274,13 @@
     document.getElementById('analizToolbarTitle').textContent = ANALIZ_META[kind].title;
     document.getElementById('analizToolbarIcon').innerHTML = ANALIZ_META[kind].icon;
     document.getElementById('analizToolbar').classList.remove('hidden');
-    document.getElementById('btnAnaliz').classList.toggle('active', kind === 'fourd');
+    // Seçilen analiz ana buton olarak görünsün: ikon/etiket/ipucu güncellenir
+    // ve bir sonraki ana buton tıklamasında da aynı analiz açılır.
+    analizMainKind = kind;
+    document.getElementById('btnAnalizIcon').innerHTML = ANALIZ_META[kind].icon;
+    document.getElementById('btnAnalizLabel').textContent = ANALIZ_META[kind].shortLabel;
+    document.getElementById('btnAnaliz').setAttribute('data-tip', 'Analiz araçları (' + ANALIZ_META[kind].title + ')');
+    document.getElementById('btnAnaliz').classList.add('active');
     // Panele özgü "değer" göstergesini (bkz. #analizToolbarValue) tazeler —
     // gölge analizinde geçerli saati göstermek için slider'ın kendi 'input'
     // olayını tetiklemek yeterli (aynı zamanda gölgeyi de günceller).
@@ -2282,8 +2296,8 @@
   }
   document.getElementById('btnAnaliz').addEventListener('click', function(){
     var toolbar = document.getElementById('analizToolbar');
-    if (!toolbar.classList.contains('hidden') && analizActiveKind === 'fourd'){ closeAnalizToolbar(); return; }
-    openAnalizToolbar('fourd');
+    if (!toolbar.classList.contains('hidden') && analizActiveKind === analizMainKind){ closeAnalizToolbar(); return; }
+    openAnalizToolbar(analizMainKind);
   });
   document.getElementById('btnAnalizMenuToggle').addEventListener('click', function(e){
     e.stopPropagation();
@@ -2415,7 +2429,7 @@
     document.getElementById('infoPopover').classList.remove('show');
     infoHighlightId = null;
     renderFeatures();
-    map.getCanvas().style.cursor = infoMode ? 'help' : (mode === 'select' ? 'default' : (isVertexDrawMode(mode) ? 'crosshair' : ''));
+    updateCanvasCursor();
     showToast(infoMode ? (selectedIds.length > 1 ? 'Seçili objelerin bilgileri aşağıda gösteriliyor.' : 'Bilgi modu açık — haritada bir objeye tıklayın.') : 'Bilgi modu kapatıldı.');
   });
   // Bilgi penceresinin sağ üstündeki X — yalnızca o an açık pencereyi kapatır,
@@ -3331,7 +3345,7 @@
     measureFrozen = false; clearMeasureSummary();
     if (mode === 'select' && newMode !== 'select') deselect();
     mode = newMode;
-    map.getCanvas().style.cursor = infoMode ? 'help' : (mode === 'pan' ? 'grab' : (mode === 'select') ? 'default' : 'crosshair');
+    updateCanvasCursor();
     if (isVertexDrawMode(mode) && typeof syncDraftStyleToActiveLayer === 'function') syncDraftStyleToActiveLayer();
     if (map.getLayer('vertex-layer')) map.setLayoutProperty('vertex-layer', 'visibility', mode === 'select' ? 'visible' : 'none');
     railButtons.forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-mode') === mode); });
@@ -3548,7 +3562,7 @@
       attributeEditMode = false;
       document.getElementById('btnAttrEdit').classList.remove('active');
     }
-    map.getCanvas().style.cursor = docAttachMode ? 'copy' : (mode === 'select' ? 'default' : (isVertexDrawMode(mode) ? 'crosshair' : ''));
+    updateCanvasCursor();
     showToast(docAttachMode ? 'Doküman eklemek istediğiniz objeye haritada tıklayın.' : 'Doküman ekleme modu kapatıldı.');
   });
 
@@ -3567,7 +3581,7 @@
     }
     docAttachMode = false;
     document.getElementById('btnAddDocument').classList.remove('active');
-    map.getCanvas().style.cursor = mode === 'select' ? 'default' : (isVertexDrawMode(mode) ? 'crosshair' : '');
+    updateCanvasCursor();
     openDocUploadModal(f);
   }
 
@@ -3921,6 +3935,20 @@
   // ---------------------------------------------------------------------
   var attributeEditMode = false;
   var attrEditTargetFeature = null;
+
+  // Haritanın fare imlecini o an aktif olan modun (Bilgi/Öznitelik Düzenle/
+  // Doküman Ekle/Seç/Kaydır/çizim) durumuna göre TEK bir yerden belirler —
+  // önceden her mod düğmesi kendi yerinde aynı zinciri tekrar ediyordu ve
+  // bazıları (ör. Saha katmanındaki mouseenter/mouseleave) bu modları hiç
+  // bilmediğinden üzerine yazıp imleci sessizce eski haline döndürüyordu.
+  function updateCanvasCursor(){
+    map.getCanvas().style.cursor = (infoMode || attributeEditMode) ? 'help'
+      : docAttachMode ? 'copy'
+      : mode === 'pan' ? 'grab'
+      : mode === 'select' ? 'default'
+      : 'crosshair';
+  }
+
   document.getElementById('btnAttrEdit').addEventListener('click', function(){
     attributeEditMode = !attributeEditMode;
     this.classList.toggle('active', attributeEditMode);
@@ -3929,7 +3957,7 @@
       document.getElementById('infoPopover').classList.remove('show');
       docAttachMode = false; document.getElementById('btnAddDocument').classList.remove('active');
     }
-    map.getCanvas().style.cursor = attributeEditMode ? 'help' : (mode === 'select' ? 'default' : (isVertexDrawMode(mode) ? 'crosshair' : ''));
+    updateCanvasCursor();
     showToast(attributeEditMode ? 'Öznitelik düzenleme modu açık — haritada bir objeye tıklayın.' : 'Öznitelik düzenleme modu kapatıldı.');
   });
 
@@ -3945,7 +3973,7 @@
     if (!f){ showToast('Bu noktada bir obje bulunamadı — haritada çizilmiş bir şekle tıklayın.'); return; }
     attributeEditMode = false;
     document.getElementById('btnAttrEdit').classList.remove('active');
-    map.getCanvas().style.cursor = mode === 'select' ? 'default' : (isVertexDrawMode(mode) ? 'crosshair' : '');
+    updateCanvasCursor();
     openAttributeEditModal(f);
   }
 
@@ -4790,8 +4818,13 @@
       id: SAHA_LAYER_ID, type: 'symbol', source: SAHA_SOURCE_ID,
       layout: { 'icon-image': ['get', 'icon'], 'icon-size': 1, 'icon-allow-overlap': true, 'icon-ignore-placement': true }
     });
-    map.on('mouseenter', SAHA_LAYER_ID, function(){ map.getCanvas().style.cursor = 'pointer'; });
-    map.on('mouseleave', SAHA_LAYER_ID, function(){ map.getCanvas().style.cursor = mode === 'select' ? 'default' : ''; });
+    // Bilgi/Öznitelik Düzenle/Doküman Ekle modlarından biri açıkken, bu
+    // noktaların üzerine gelince imleç 'pointer'a düşüp modun kendi imlecini
+    // (help/copy) gizlemesin — sadece hiçbir özel mod aktif değilken göster.
+    map.on('mouseenter', SAHA_LAYER_ID, function(){
+      if (!infoMode && !attributeEditMode && !docAttachMode) map.getCanvas().style.cursor = 'pointer';
+    });
+    map.on('mouseleave', SAHA_LAYER_ID, function(){ updateCanvasCursor(); });
     map.on('click', SAHA_LAYER_ID, function(e){
       var clicked = e.features[0].properties;
       var p = sahaPhotos.find(function(x){ return String(x.id) === String(clicked.id); });
@@ -5648,16 +5681,16 @@
       if (attributeEditMode){
         attributeEditMode = false;
         document.getElementById('btnAttrEdit').classList.remove('active');
-        map.getCanvas().style.cursor = (mode === 'select') ? 'default' : (isVertexDrawMode(mode) ? 'crosshair' : '');
+        updateCanvasCursor();
       } else if (docAttachMode){
         docAttachMode = false;
         document.getElementById('btnAddDocument').classList.remove('active');
-        map.getCanvas().style.cursor = (mode === 'select') ? 'default' : (isVertexDrawMode(mode) ? 'crosshair' : '');
+        updateCanvasCursor();
       } else if (infoMode){
         infoMode = false;
         document.getElementById('btnInfo').classList.remove('active');
         document.getElementById('infoPopover').classList.remove('show');
-        map.getCanvas().style.cursor = (mode === 'select') ? 'default' : (isVertexDrawMode(mode) ? 'crosshair' : '');
+        updateCanvasCursor();
       } else if (draftCoords) cancelDraft(); else deselect();
     } else if (e.key === 'Enter'){
       if (draftCoords) finishDraft();
