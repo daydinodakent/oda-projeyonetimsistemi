@@ -370,6 +370,124 @@
   .saha-popup-notes{font-size:11px;color:#3c4c56;margin-top:3px;white-space:pre-wrap;}
   .saha-popup-coord{font-family:var(--font-mono);font-size:10px;color:#6b7684;margin-top:4px;}
 
+  /* ---------- Saha fotoğrafları şeridi (harita altı, yatay) ---------- */
+  #sahaFilmstrip{
+    position:absolute;left:50%;transform:translateX(-50%);bottom:26px;z-index:5;height:88px;
+    max-width:min(78vw,900px);width:max-content;
+    background:rgba(10,22,32,.95);border:1px solid var(--line);border-radius:10px;
+    display:flex;align-items:center;gap:4px;padding:0 6px;box-shadow:0 4px 18px rgba(0,0,0,.4);
+  }
+  #sahaFilmstrip.hidden{display:none;}
+  .saha-filmstrip-nav{
+    flex:0 0 auto;width:24px;height:60px;background:var(--bg-panel-raise);border:1px solid var(--line);
+    color:var(--text-dim);border-radius:2px;cursor:pointer;font-size:18px;line-height:1;
+  }
+  .saha-filmstrip-nav:hover{color:var(--text);border-color:var(--teal);}
+  #sahaFilmstripTrack{
+    flex:1 1 auto;display:flex;gap:8px;overflow-x:auto;scroll-behavior:smooth;height:100%;
+    align-items:center;justify-content:center;padding:8px 2px;
+  }
+  #sahaLeaderLineSvg{position:absolute;inset:0;z-index:4;width:100%;height:100%;pointer-events:none;}
+  #sahaLeaderLine{stroke:#ec4899;stroke-width:1.5;stroke-dasharray:4 3;display:none;filter:drop-shadow(0 0 2px rgba(0,0,0,.6));}
+  .saha-filmstrip-item{
+    flex:0 0 auto;width:64px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;
+  }
+  .saha-filmstrip-thumb-wrap{
+    width:56px;height:56px;border-radius:2px;overflow:hidden;border:2px solid transparent;background:var(--bg-deep);
+  }
+  .saha-filmstrip-item:hover .saha-filmstrip-thumb-wrap{border-color:var(--teal)!important;}
+  .saha-filmstrip-item.active .saha-filmstrip-thumb-wrap{border-color:var(--amber)!important;box-shadow:0 0 0 1px var(--amber);}
+  .saha-filmstrip-thumb-wrap img{width:100%;height:100%;object-fit:cover;display:block;}
+  .saha-filmstrip-name{font-size:9.5px;color:var(--text-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:64px;}
+  .saha-filmstrip-close{
+    flex:0 0 auto;width:22px;height:22px;background:transparent;border:none;color:var(--text-dim);
+    cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:2px;
+  }
+  .saha-filmstrip-close svg{width:14px;height:14px;}
+  .saha-filmstrip-close:hover{color:var(--text);background:var(--bg-panel-raise);}
+
+  /* ---------- Saha fotoğrafı tam ekran görüntüleyici ---------- */
+  #sahaLightbox{
+    position:absolute;inset:0;z-index:70;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    background:rgba(5,10,15,.92);gap:14px;padding:40px;
+  }
+  #sahaLightbox.hidden{display:none;}
+  #sahaLightboxImg{max-width:min(82vw,900px);max-height:70vh;object-fit:contain;border-radius:4px;box-shadow:0 10px 40px rgba(0,0,0,.6);}
+  #sahaLightboxCaption{text-align:center;max-width:80vw;}
+  #sahaLightboxName{color:#fff;font-size:14px;font-weight:600;}
+  #sahaLightboxNotes{color:#b7c3cc;font-size:12.5px;margin-top:4px;white-space:pre-wrap;}
+  #sahaLightboxCoord{color:#8296a1;font-family:var(--font-mono);font-size:11px;margin-top:6px;}
+  .saha-lightbox-close, .saha-lightbox-nav{
+    position:absolute;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);color:#fff;
+    border-radius:4px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  }
+  .saha-lightbox-close:hover, .saha-lightbox-nav:hover{background:rgba(255,255,255,.18);}
+  .saha-lightbox-close{top:16px;right:16px;width:36px;height:36px;}
+  .saha-lightbox-close svg{width:18px;height:18px;}
+  .saha-lightbox-nav{top:50%;transform:translateY(-50%);width:44px;height:44px;}
+  .saha-lightbox-nav.prev{left:16px;}
+  .saha-lightbox-nav.next{right:16px;}
+  .saha-lightbox-nav svg{width:22px;height:22px;}
+  .saha-lightbox-nav.hidden{display:none;}
+
+  /* ---------- Analiz araç çubuğu (harita altı, kapatılabilir) ----------
+     Kompakt, yatay bir "hap" (pill) — referans görseldeki genişliğin
+     yaklaşık yarısı, gereksiz yer kaplamaması için. */
+  /* NOT: genişlik BİLEREK sabit bir değere (width, max-content DEĞİL)
+     ayarlanır — 4D "Oynat" gibi bir animasyon çalışırken #analizToolbarValue
+     metni (ör. "bugün" → "17 Ağu 2026") sürekli uzunluk değiştirdiğinden,
+     genişlik içeriğe göre otomatik hesaplansaydı (width:max-content) çubuk
+     her karede titreyerek yeniden boyutlanırdı. */
+  #analizToolbar{
+    position:absolute;left:50%;transform:translateX(-50%);bottom:36px;z-index:5;
+    width:min(50vw,400px);min-width:280px;
+    background:rgba(10,22,32,.95);border:1px solid var(--line);border-radius:22px;
+    display:flex;align-items:center;gap:8px;padding:6px 8px 6px 12px;
+    box-shadow:0 4px 18px rgba(0,0,0,.4);
+  }
+  #analizToolbar.hidden{display:none;}
+  #analizToolbarIconWrap{flex:0 0 auto;display:flex;color:var(--teal);}
+  #analizToolbarIconWrap svg{width:17px;height:17px;}
+  #analizToolbarLabels{flex:0 0 auto;display:flex;flex-direction:column;line-height:1.3;width:82px;min-width:82px;}
+  #analizToolbarTitle{color:var(--text);font-weight:600;font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  #analizToolbarValue{
+    color:var(--amber);font-size:10.5px;font-family:var(--font-mono);white-space:nowrap;
+    display:inline-block;min-width:64px;
+  }
+  .analiz-panel{flex:1 1 auto;display:flex;align-items:center;gap:6px;min-width:0;}
+  .analiz-icon-btn{
+    flex:0 0 auto;width:24px;height:24px;border-radius:50%;background:var(--bg-panel-raise);
+    border:1px solid var(--line);color:var(--text-dim);cursor:pointer;padding:0;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .analiz-icon-btn:hover{color:var(--text);border-color:var(--teal);}
+  .analiz-icon-btn svg{width:12px;height:12px;}
+  .analiz-icon-btn.primary{background:var(--amber-dim);border-color:var(--amber);color:var(--amber);}
+  .analiz-icon-btn.primary:hover{color:#fff;}
+  .analiz-icon-btn.active{background:var(--amber);color:#1a1206;border-color:var(--amber);}
+  .analiz-scrubber{
+    flex:1 1 auto;min-width:40px;-webkit-appearance:none;appearance:none;height:6px;
+    background-color:#0a1620;
+    background-image:repeating-linear-gradient(90deg,rgba(227,165,65,.55) 0 2px,transparent 2px 8px);
+    border:1px solid var(--line);border-radius:4px;outline:none;cursor:pointer;
+  }
+  .analiz-scrubber::-webkit-slider-thumb{
+    -webkit-appearance:none;width:13px;height:13px;border-radius:50%;margin-top:0;
+    background:var(--amber);border:2px solid rgba(10,22,32,.95);cursor:pointer;box-shadow:0 0 0 1px var(--amber);
+  }
+  .analiz-scrubber::-moz-range-thumb{
+    width:13px;height:13px;border-radius:50%;background:var(--amber);
+    border:2px solid rgba(10,22,32,.95);cursor:pointer;box-shadow:0 0 0 1px var(--amber);
+  }
+  .analiz-select-sm{
+    flex:0 0 auto;width:auto;max-width:92px;padding:4px 6px;font-size:10px;
+    background:var(--bg-panel-raise);border:1px solid var(--line);color:var(--text);border-radius:3px;
+  }
+  /* fourDInfo/shadowInfo: computeAndRenderShadows/applyFourDDate hâlâ bu
+     elemanlara yazıyor (istatistik/güneş açısı bilgisi) — çubuğu kompakt
+     tutmak için ekrandan gizlenir, DOM'dan kaldırılmaz. */
+  .analiz-info-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
+
   .fmt-grid{display:flex;flex-wrap:wrap;gap:5px;align-items:center;}
   .fmt-cat{width:100%;font-size:10px;letter-spacing:.4px;color:var(--text-dim);margin-top:6px;}
   .fmt-cat:first-child{margin-top:0;}
@@ -462,6 +580,7 @@
   }
   .status-snap-btn .status-icon{color:inherit;}
   .status-snap-btn.active{color:#e02424;}
+  .saha-toggle-btn.on{color:var(--teal);}
   #snapTolerancePopover{
     position:absolute;bottom:34px;right:14px;z-index:8;display:none;
     background:var(--bg-panel);border:1px solid var(--line);border-radius:var(--radius);
@@ -494,6 +613,16 @@
   }
   .attr-table-close svg{width:14px;height:14px;}
   .attr-table-close:hover{color:var(--text);background:var(--bg-panel-raise);}
+  #attrTableBulkBar{
+    flex:0 0 auto;display:flex;align-items:center;gap:8px;
+    padding:6px 12px;border-bottom:1px solid var(--line);background:rgba(227,165,65,.08);
+  }
+  #attrTableBulkBar.hidden{display:none;}
+  #attrTableBulkCount{font-size:11.5px;color:var(--amber);white-space:nowrap;flex:0 0 auto;}
+  #attrTableBulkColumn{width:auto;flex:0 0 auto;max-width:160px;padding:5px 8px;font-size:11.5px;}
+  #attrTableBulkValueWrap{flex:1 1 auto;min-width:0;max-width:200px;}
+  #attrTableBulkValueWrap .native-select{width:100%;padding:5px 8px;font-size:11.5px;}
+  #attrTableBulkBar .btn{flex:0 0 auto;padding:5px 10px;font-size:11.5px;}
   #attrTableBody{flex:1 1 auto;overflow:auto;}
   #attrTableEl{border-collapse:collapse;width:100%;font-family:var(--font-mono);font-size:11.5px;}
   #attrTableEl th{
@@ -501,9 +630,11 @@
     text-align:left;padding:6px 10px;border-bottom:1px solid var(--line);white-space:nowrap;font-weight:500;
   }
   #attrTableEl td{padding:5px 10px;border-bottom:1px solid var(--line-soft);white-space:nowrap;color:var(--text);}
+  #attrTableEl th:first-child, #attrTableEl td:first-child{padding-left:10px;padding-right:2px;width:20px;}
   #attrTableEl tbody tr{cursor:pointer;}
   #attrTableEl tbody tr:hover{background:var(--bg-panel-raise);}
   #attrTableEl tbody tr.selected{background:rgba(63,194,172,.15);}
+  #attrTableEl tbody tr.attr-row-checked{background:rgba(227,165,65,.1);}
   #attrTableEl .attr-table-empty td{color:var(--text-dim);cursor:default;text-align:center;padding:14px;}
   #attrTableEl .attr-table-empty:hover{background:transparent;}
 
@@ -547,17 +678,27 @@
     background:rgba(15,30,41,.92);border:1px solid var(--line);border-radius:var(--radius);
     padding:4px;backdrop-filter:blur(6px);
   }
-  #clusterTop{top:14px;}
-  #clusterBasemap{top:66px;}
+  /* z-index diğer .map-cluster'lardan (hepsi 5) yüksek — aksi halde clusterTop
+     kendi açılır menüsünü (topToolsMenu/analizToolsMenu, iç z-index:10)
+     içeren KENDİ yerel yığınlama bağlamında tutar; menü DOM sırasında
+     SONRA gelen clusterBasemap/clusterMeasure'ın (aynı z-index:5, bu yüzden
+     belge sırasına göre üstte kalan) ALTINDA kalırdı. */
+  #clusterTop{top:14px;z-index:8;}
+  /* NOT: clusterTop artık btnCompass'in yanı sıra Analiz split-butonunu da
+     içerdiği için eskisinden daha uzun — aşağıdaki üç sabit "top" değeri
+     (clusterBasemap/clusterMeasure ve popover'ları) buna göre +71px
+     kaydırılmıştır; clusterTop'a yeni bir buton eklenirse bunlar da
+     yeniden hesaplanmalıdır. */
+  #clusterBasemap{top:137px;}
   #basemapPopover{
-    position:absolute;top:166px;right:14px;z-index:6;display:none;flex-direction:column;gap:8px;
+    position:absolute;top:237px;right:14px;z-index:6;display:none;flex-direction:column;gap:8px;
     background:rgba(15,30,41,.95);border:1px solid var(--line);border-radius:var(--radius);
     padding:10px;backdrop-filter:blur(6px);min-width:120px;
   }
   #basemapPopover.show{display:flex;}
-  #clusterMeasure{top:115px;}
+  #clusterMeasure{top:186px;}
   #measureToolsPopover{
-    position:absolute;top:215px;right:14px;z-index:6;display:none;flex-direction:column;
+    position:absolute;top:286px;right:14px;z-index:6;display:none;flex-direction:column;
     background:rgba(15,30,41,.95);border:1px solid var(--line);border-radius:var(--radius);
     padding:10px;backdrop-filter:blur(6px);min-width:150px;
   }
@@ -571,6 +712,7 @@
   #clusterTop #btnCompass svg{
     width:23px;height:23px;
   }
+  #btnAnalizLabel{font-size:9.5px;font-weight:700;letter-spacing:.2px;}
   #clusterTop #btnCompass .compass-needle{
     transform-origin:12px 12px;transition:transform .35s cubic-bezier(.34,1.4,.64,1);
   }
@@ -581,7 +723,11 @@
     0%, 100%{ box-shadow:inset 0 0 0 1px rgba(212,175,55,.45), 0 0 0 0 rgba(212,175,55,.38); }
     50%{ box-shadow:inset 0 0 0 1px rgba(212,175,55,.7), 0 0 0 7px rgba(212,175,55,0); }
   }
-  #basemapPopover .style-btn{width:100%;text-align:center;}
+  #basemapPopover .style-btn{width:100%;text-align:center;position:relative;}
+  #basemapPopover .style-btn.is-default::after{
+    content:'★';position:absolute;left:6px;top:50%;transform:translateY(-50%);
+    color:var(--amber);font-size:10px;
+  }
 
   /* Sağ alt küme: dikey grup (pin/kaydırma/yenile) alttaki yatay gruple (yakınlaştır/ev/uzaklaştır/bilgi) aynı sağ kenara hizalanır */
   #clusterBottomVertical{bottom:81px;right:14px;}
@@ -631,13 +777,40 @@
     transform:translate(-50%,calc(-100% - 12px));
   }
   #infoPopover.show{display:flex;}
+  #infoPopoverClose{
+    position:absolute;top:4px;right:4px;z-index:1;
+    background:transparent;border:none;color:var(--text-dim);cursor:pointer;
+    width:20px;height:20px;display:flex;align-items:center;justify-content:center;border-radius:2px;
+  }
+  #infoPopoverClose svg{width:12px;height:12px;}
+  #infoPopoverClose:hover{color:var(--text);background:var(--bg-panel-raise);}
   #infoPopover::after{
     content:'';position:absolute;left:50%;bottom:-8px;transform:translateX(-50%);
     width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;
     border-top:8px solid var(--bg-panel);
   }
   #infoPopover b{color:var(--text);}
-  #infoPopoverMain{width:230px;padding:14px;}
+  #infoPopoverMain{width:248px;padding:16px;padding-right:28px;}
+  /* Bilgi (Info) balonu içeriği — Stripe tarzı sade, kart benzeri form görünümü:
+     üstte ikon+başlık bir "header" şeridi, altında her öznitelik kendi satırında
+     küçük büyük-harf etiket + altında belirgin değer, ince ayraçlarla bölünmüş. */
+  #infoPopoverMain .info-header{
+    display:flex;align-items:center;gap:8px;padding-bottom:10px;margin-bottom:2px;border-bottom:1px solid var(--line);
+  }
+  #infoPopoverMain .info-header .info-icon{
+    width:26px;height:26px;flex:0 0 auto;border-radius:7px;background:rgba(212,175,55,.12);
+    color:var(--gold);display:flex;align-items:center;justify-content:center;
+  }
+  #infoPopoverMain .info-header .info-icon svg{width:15px;height:15px;}
+  #infoPopoverMain .info-header b{font-size:13px;letter-spacing:.1px;}
+  #infoPopoverMain .info-row{padding:7px 0;border-bottom:1px solid rgba(255,255,255,.06);}
+  #infoPopoverMain .info-row:last-child{border-bottom:none;}
+  #infoPopoverMain .info-row-label{
+    font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:var(--text-dim);
+    margin-bottom:2px;
+  }
+  #infoPopoverMain .info-row-value{font-size:12.5px;color:var(--text);font-weight:600;word-break:break-word;}
+  #infoPopoverMain .info-empty{padding-top:8px;color:var(--text-dim);font-size:11.5px;}
   /* Doküman paneli: info penceresinin SAĞINDA açılır (yalnızca objeye ait
      doküman varken görünür) — üstte liste, hemen altında seçili dokümanın
      önizlemesi ("view"). */
@@ -756,8 +929,14 @@
 
 <div id="map"></div>
 
+<!-- Saha filmstrip'inden bir fotoğraf seçilince, o fotoğrafın haritadaki
+     pin'ine ince bir bağlantı çizgisi çizer — bkz. sahaUpdateLeaderLine(). -->
+<svg id="sahaLeaderLineSvg">
+  <line id="sahaLeaderLine" x1="0" y1="0" x2="0" y2="0"/>
+</svg>
+
 <div id="moduleNav" class="hidden">
-  <button class="mod-btn" data-module="sorgu" data-tip="Sorgu">
+  <button class="mod-btn" data-module="sorgu" data-tip="Sorgu" style="display:none;">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
     <span>Sorgu</span>
   </button>
@@ -777,7 +956,7 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 8V6a2 2 0 0 1 2-2h2M4 16v2a2 2 0 0 0 2 2h2M20 8V6a2 2 0 0 0-2-2h-2M20 16v2a2 2 0 0 1-2 2h-2"/><circle cx="12" cy="12" r="3.2"/></svg>
     <span>Saha</span>
   </button>
-  <button class="mod-btn" data-module="cikti" data-tip="Çıktı">
+  <button class="mod-btn" data-module="cikti" data-tip="Çıktı" style="display:none;">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v12"/><path d="M7 9l5-6 5 6"/><path d="M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg>
     <span>Çıktı</span>
   </button>
@@ -1042,80 +1221,8 @@
 
   <!-- ================= ANALİZ MODÜLÜ ================= -->
   <div class="module-page" data-module-page="analiz" style="display:none;">
-
-    <div class="accordion open" data-accordion="fourd">
-      <div class="accordion-header">
-        <span class="field-label group-label" style="margin-bottom:0;">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v16M12 13l2 2 4-4"/></svg>
-          4D Analizi (Zaman Bazlı İnşaat İlerlemesi)
-          <span class="info-tip" onclick="event.stopPropagation()" data-tip="3B (extrude) binaların o anki 'İnşaat İlerlemesi (%)' değeri, bugünü referans alan bir zaman çizelgesine yayılarak simüle edilir. Kaydırıcıyı geçmişe/geleceğe taşıdıkça binaların doluluk rengi (yeşil/mavi/turuncu) o tarihteki simüle ilerlemeye göre anlık günceller. Gerçek veriler değişmez, yalnızca görselleştirme geçicidir.">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.01"/></svg>
-          </span>
-        </span>
-        <svg class="accordion-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
-      </div>
-      <div class="accordion-body">
-        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:6px;">
-          <span class="field-label" style="margin-bottom:0;">Simülasyon Tarihi</span>
-          <span class="field-label" id="fourDDateLabel" style="margin-bottom:0;font-family:var(--font-mono);color:var(--text);">bugün</span>
-        </div>
-        <input type="range" id="fourDDaySlider" min="-365" max="365" step="1" value="0" style="width:100%;">
-        <div class="btn-row" style="margin-top:8px;">
-          <div class="btn primary" id="btnFourDPlay">▶ Oynat</div>
-          <div class="btn" id="btnFourDReset">Bugüne Dön</div>
-        </div>
-        <div class="field-label" id="fourDInfo" style="margin-top:8px;margin-bottom:0;"></div>
-      </div>
-    </div>
-
-    <div class="accordion" data-accordion="shadow">
-      <div class="accordion-header">
-        <span class="field-label group-label" style="margin-bottom:0;">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.4 1.4M17.6 17.6L19 19M19 5l-1.4 1.4M6.4 17.6L5 19"/></svg>
-          Bina Gölge Analizi
-          <span class="info-tip" onclick="event.stopPropagation()" data-tip="3B Poligon (yükseklikli bina) katmanları için, seçilen tarih/saatteki güneş konumuna göre yaklaşık gölge izdüşümü hesaplanır. Saat, tarayıcınızın yerel saat dilimine göre değerlendirilir.">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.01"/></svg>
-          </span>
-        </span>
-        <svg class="accordion-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
-      </div>
-      <div class="accordion-body">
-        <div class="field-label" style="margin-top:6px;">Tarih</div>
-        <input type="date" id="shadowDate" class="native-select">
-        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:10px;">
-          <span class="field-label" style="margin-bottom:0;">Saat</span>
-          <span class="field-label" id="shadowHourLabel" style="margin-bottom:0;font-family:var(--font-mono);color:var(--text);">12:00</span>
-        </div>
-        <input type="range" id="shadowHourSlider" min="0" max="23.75" step="0.25" value="12" style="width:100%;">
-        <div class="btn-row" style="margin-top:8px;">
-          <div class="btn primary" id="btnComputeShadows">Gölgeleri Hesapla</div>
-          <div class="btn" id="btnClearShadows">Temizle</div>
-        </div>
-        <div class="field-label" id="shadowInfo" style="margin-top:8px;margin-bottom:0;"></div>
-      </div>
-    </div>
-
-    <div class="accordion" data-accordion="compare">
-      <div class="accordion-header">
-        <span class="field-label group-label" style="margin-bottom:0;">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="12" height="14" rx="1"/><rect x="9" y="7" width="12" height="14" rx="1"/></svg>
-          Zamana Bağlı Görüntü Karşılaştırma
-          <span class="info-tip" onclick="event.stopPropagation()" data-tip="Çıktı sekmesinden veya Harita sekmesindeki &quot;+&quot; ile en az iki georeferanslı görüntü (JPG/PNG + JGW/PGW) içe aktarmanız gerekir. Kaydırıcı iki görüntü arasında opaklık geçişi yapar; &quot;Yanıp Sön&quot; hızlıca ikisi arasında geçiş yaparak değişimi fark etmenizi kolaylaştırır.">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.01"/></svg>
-          </span>
-        </span>
-        <svg class="accordion-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
-      </div>
-      <div class="accordion-body">
-        <div class="field-label" style="margin-top:6px;">Görüntü A (eski)</div>
-        <select id="compareRasterA" class="native-select"><option value="">— seçin —</option></select>
-        <div class="field-label" style="margin-top:8px;">Görüntü B (yeni)</div>
-        <select id="compareRasterB" class="native-select"><option value="">— seçin —</option></select>
-        <input type="range" id="compareSlider" min="0" max="100" value="50" style="width:100%;margin-top:10px;">
-        <div class="btn-row" style="margin-top:8px;">
-          <div class="btn" id="btnCompareFlicker">Yanıp Sön</div>
-        </div>
-      </div>
+    <div class="hint" style="border:1px dashed var(--line);border-radius:2px;padding:14px;margin-top:0;">
+      Analiz araçları (4D Analizi, Gölge Analizi, Görüntü Karşılaştırma) artık haritanın sağ üst köşesindeki analiz düğmesinden (varsayılan: 4D Analizi) açılır — seçilen analiz kanvasın alt kısmında bir araç çubuğu olarak görünür.
     </div>
   </div>
 
@@ -1248,6 +1355,32 @@
       <span>DEM Görünümü</span>
     </div>
   </div>
+
+  <div class="sep"></div>
+  <!-- Analiz split-butonu: ana buton varsayılan olarak 4D Analizi'ni açar/
+       kapatır; ok tuşu diğer analizleri (Gölge, Görüntü Karşılaştırma)
+       menüde listeler — btnCompass ile birebir aynı desen. Seçilen analiz
+       kanvasın alt kısmındaki #analizToolbar'da gösterilir (bkz. openAnalizToolbar). -->
+  <button id="btnAnaliz" data-tip="Analiz araçları (4D Analizi)">
+    <span id="btnAnalizLabel">4D</span>
+  </button>
+  <button id="btnAnalizMenuToggle" data-tip="Diğer analizler" style="height:13px;">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="width:10px;height:10px;"><path d="M6 9l6 6 6-6"/></svg>
+  </button>
+  <div class="split-btn-menu" id="analizToolsMenu" style="top:100%;right:0;margin-top:4px;">
+    <div class="split-btn-menu-item" data-analiz="fourd">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v16M12 13l2 2 4-4"/></svg>
+      <span>4D Analizi</span>
+    </div>
+    <div class="split-btn-menu-item" data-analiz="shadow">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.4 1.4M17.6 17.6L19 19M19 5l-1.4 1.4M6.4 17.6L5 19"/></svg>
+      <span>Gölge Analizi</span>
+    </div>
+    <div class="split-btn-menu-item" data-analiz="compare">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="12" height="14" rx="1"/><rect x="9" y="7" width="12" height="14" rx="1"/></svg>
+      <span>Görüntü Karşılaştırma</span>
+    </div>
+  </div>
 </div>
 
 <div class="map-cluster" id="clusterBasemap">
@@ -1317,6 +1450,7 @@
 <div id="treeContextMenu"></div>
 
 <div id="infoPopover">
+  <button id="infoPopoverClose" class="attr-table-close" title="Kapat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
   <div id="infoPopoverMain">
     <b>Bilgi</b><br>
     Haritada bir objeye tıklayarak özniteliklerini görüntüleyin.
@@ -1565,9 +1699,83 @@
     <div style="flex:1 1 auto;"></div>
     <button id="attrTableCloseBtn" class="attr-table-close" title="Kapat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
   </div>
+  <!-- Toplu düzenleme çubuğu — 1+ satır seçilince görünür olur (bkz.
+       updateAttrTableBulkBar). İlişkili (FK) sütunlar için combobox,
+       diğerleri için sütun tipine uygun bir girdi gösterir. -->
+  <div id="attrTableBulkBar" class="hidden">
+    <span id="attrTableBulkCount">0 kayıt seçili</span>
+    <select id="attrTableBulkColumn" class="native-select"></select>
+    <span id="attrTableBulkValueWrap"></span>
+    <button id="attrTableBulkApply" class="btn primary">Uygula</button>
+    <button id="attrTableBulkClear" class="btn">Seçimi Temizle</button>
+  </div>
   <div id="attrTableBody">
     <table id="attrTableEl"><thead></thead><tbody></tbody></table>
   </div>
+</div>
+
+<!-- Saha fotoğrafları şeridi — kayıtlı saha fotoğrafı olduğunda kanvasın alt
+     kısmında (durum çubuğunun hemen üstünde) belirir. bkz. renderSahaFilmstrip(). -->
+<div id="sahaFilmstrip" class="hidden">
+  <button id="sahaFilmstripPrev" class="saha-filmstrip-nav" title="Geri">‹</button>
+  <div id="sahaFilmstripTrack"></div>
+  <button id="sahaFilmstripNext" class="saha-filmstrip-nav" title="İleri">›</button>
+  <button id="sahaFilmstripClose" class="saha-filmstrip-close" title="Kapat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+</div>
+
+<!-- Saha fotoğrafı tam ekran görüntüleyici — haritadaki bir pin'e tıklayınca
+     açılan popup'taki fotoğrafa tıklanınca açılır. bkz. sahaOpenLightbox(). -->
+<div id="sahaLightbox" class="hidden">
+  <button id="sahaLightboxClose" class="saha-lightbox-close" title="Kapat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  <button id="sahaLightboxPrev" class="saha-lightbox-nav prev" title="Önceki"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>
+  <img id="sahaLightboxImg" src="">
+  <button id="sahaLightboxNext" class="saha-lightbox-nav next" title="Sonraki"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></button>
+  <div id="sahaLightboxCaption">
+    <div id="sahaLightboxName"></div>
+    <div id="sahaLightboxNotes"></div>
+    <div id="sahaLightboxCoord"></div>
+  </div>
+</div>
+
+<!-- Analiz araç çubuğu — sağ üstteki analiz split-butonundan (varsayılan 4D
+     Analizi) bir analiz seçilince kanvasın alt kısmında, kapatılabilir bir
+     araç çubuğu olarak açılır. İçeriği seçilen analize göre değişir (bkz.
+     openAnalizToolbar()) — üç panel de aynı DOM'da durur, sadece biri
+     görünür kılınır, böylece mevcut JS mantığı (initFourDControls,
+     initShadowControls, compare slider) ID'ler değişmediği için AYNEN çalışır. -->
+<div id="analizToolbar" class="hidden">
+  <div id="analizToolbarIconWrap"><svg id="analizToolbarIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v16M12 13l2 2 4-4"/></svg></div>
+  <div id="analizToolbarLabels">
+    <span id="analizToolbarTitle">4D Analizi</span>
+    <span id="analizToolbarValue">bugün</span>
+  </div>
+
+  <div class="analiz-panel" data-analiz-panel="fourd">
+    <button class="analiz-icon-btn" id="btnFourDReset" title="Bugüne Dön"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 1 3 6.7"/><path d="M3 4v6h6"/></svg></button>
+    <button class="analiz-icon-btn primary" id="btnFourDPlay" title="Oynat/Durdur"><svg id="btnFourDPlayIcon" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M8 5v14l11-7z"/></svg></button>
+    <input type="range" id="fourDDaySlider" class="analiz-scrubber" min="-365" max="365" step="1" value="0">
+  </div>
+  <div class="analiz-panel" data-analiz-panel="shadow" style="display:none;">
+    <input type="date" id="shadowDate" class="analiz-select-sm" title="Tarih">
+    <input type="range" id="shadowHourSlider" class="analiz-scrubber" min="0" max="23.75" step="0.25" value="12">
+    <button class="analiz-icon-btn primary" id="btnComputeShadows" title="Gölgeleri Hesapla"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg></button>
+    <button class="analiz-icon-btn" id="btnClearShadows" title="Temizle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </div>
+  <div class="analiz-panel" data-analiz-panel="compare" style="display:none;">
+    <select id="compareRasterA" class="analiz-select-sm" title="Görüntü A (eski)"><option value="">A — seçin</option></select>
+    <input type="range" id="compareSlider" class="analiz-scrubber" min="0" max="100" value="50">
+    <select id="compareRasterB" class="analiz-select-sm" title="Görüntü B (yeni)"><option value="">B — seçin</option></select>
+    <button class="analiz-icon-btn" id="btnCompareFlicker" title="Yanıp Sön"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3l4 4-4 4M21 7H7a4 4 0 0 0-4 4v1M7 21l-4-4 4-4M3 17h14a4 4 0 0 0 4-4v-1"/></svg></button>
+  </div>
+
+  <!-- Ekranda gösterilmez — mevcut computeAndRenderShadows/applyFourDDate
+       mantığı bu elemanlara yazmaya devam eder (bkz. .analiz-info-sr),
+       çubuk kompakt kalsın diye görsel olarak gizlenir ama DOM'dan
+       kaldırılmaz (kod tarafında hâlâ okunabilir/test edilebilir). -->
+  <span id="fourDInfo" class="analiz-info-sr"></span>
+  <span id="shadowInfo" class="analiz-info-sr"></span>
+
+  <button id="analizToolbarClose" class="attr-table-close" title="Kapat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
 </div>
 
 <div id="statusbar">
@@ -1582,6 +1790,8 @@
   <button id="statusSnapBtn" class="status-snap-btn active" title="Snap (sol tık: aç/kapat, sağ tık: yakalama mesafesi)"><svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3v7a6 6 0 0 0 12 0V3"/><path d="M6 3h4M14 3h4"/></svg></button>
   <div class="div"></div>
   <span title="Yakınlaştırma" style="margin-left:auto;"><svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><b id="stZoom">—</b></span>
+  <div class="div"></div>
+  <button id="statusSahaToggleBtn" class="status-snap-btn saha-toggle-btn on" title="Saha fotoğraflarını göster/gizle"><svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M21 15l-5-4-4 3-3-2-5 4"/></svg></button>
 </div>
 
 <div id="snapTolerancePopover">
@@ -1710,9 +1920,26 @@
   var DEFAULT_VIEW = { center:[35.0, 39.0], zoom:5.4, bearing:0, pitch:0 };
   var initialView = loadHomeView() || DEFAULT_VIEW;
 
+  // Varsayılan açılış altlığı — Harita altlıkları popover'ında bir altlığa sağ
+  // tıklayıp "Varsayılan Yap" seçilince, o altlığın id'si tarayıcının
+  // localStorage'ında saklanır ve bundan sonraki her açılışta harita o altlıkla
+  // başlar (bkz. loadHomeView ile aynı kalıcılık deseni).
+  var KROKI_DEFAULT_BASEMAP_STORAGE_KEY = 'kroki_default_basemap_v1';
+  function loadDefaultBasemapId(){
+    try{ return localStorage.getItem(KROKI_DEFAULT_BASEMAP_STORAGE_KEY) || null; }
+    catch(err){ return null; }
+  }
+  function saveDefaultBasemapId(id){
+    try{ localStorage.setItem(KROKI_DEFAULT_BASEMAP_STORAGE_KEY, id); }
+    catch(err){ console.error('Varsayılan altlık kaydedilemedi:', err); }
+  }
+  var savedDefaultBasemapId = loadDefaultBasemapId();
+  var defaultStyleEntry = (savedDefaultBasemapId && STYLES.find(function(s){ return s.id === savedDefaultBasemapId; })) || STYLES[0];
+  currentStyleId = defaultStyleEntry.id;
+
   var map = new maplibregl.Map({
     container: 'map',
-    style: STYLES[0].url,
+    style: defaultStyleEntry.style || defaultStyleEntry.url,
     center: initialView.center,
     zoom: initialView.zoom,
     bearing: initialView.bearing || 0,
@@ -1913,6 +2140,77 @@
     }
   });
 
+  // ---------------------------------------------------------------------
+  // Analiz split-butonu — ana buton varsayılan olarak 4D Analizi'ni açar/
+  // kapatır; ok tuşu diğer analizleri (Gölge, Görüntü Karşılaştırma) menüde
+  // listeler. Seçilen analiz #analizToolbar'da (kanvasın alt kısmı) bir
+  // panel olarak gösterilir — üç panel de her zaman DOM'dadır, sadece biri
+  // görünür kılınır (bkz. initFourDControls/initShadowControls/compare
+  // wiring'i — hepsi ID'ler üzerinden çalıştığı için taşınma bunları
+  // etkilemez).
+  var analizActiveKind = null;
+  var ANALIZ_META = {
+    fourd: { title:'4D Analizi', icon:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v16M12 13l2 2 4-4"/>' },
+    shadow: { title:'Gölge Analizi', icon:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.4 1.4M17.6 17.6L19 19M19 5l-1.4 1.4M6.4 17.6L5 19"/>' },
+    compare: { title:'Görüntü Karşılaştırma', icon:'<rect x="3" y="4" width="12" height="14" rx="1"/><rect x="9" y="7" width="12" height="14" rx="1"/>' }
+  };
+  // Kapatılırken veya farklı bir analize geçilirken arkada sessizce çalışmaya
+  // devam eden döngüleri (4D "Oynat", Karşılaştırma "Yanıp Sön") durdurur —
+  // kendi mevcut aç/kapa düğmelerini tetikleyerek (closure'larına dokunmadan).
+  function stopRunningAnalizEffects(){
+    var playBtn = document.getElementById('btnFourDPlay');
+    if (playBtn && playBtn.classList.contains('active')) playBtn.click();
+    var flickerBtn = document.getElementById('btnCompareFlicker');
+    if (flickerBtn && flickerBtn.classList.contains('active')) flickerBtn.click();
+  }
+  function openAnalizToolbar(kind){
+    if (!ANALIZ_META[kind]) return;
+    if (analizActiveKind && analizActiveKind !== kind) stopRunningAnalizEffects();
+    analizActiveKind = kind;
+    document.querySelectorAll('.analiz-panel').forEach(function(p){
+      p.style.display = (p.getAttribute('data-analiz-panel') === kind) ? '' : 'none';
+    });
+    document.getElementById('analizToolbarTitle').textContent = ANALIZ_META[kind].title;
+    document.getElementById('analizToolbarIcon').innerHTML = ANALIZ_META[kind].icon;
+    document.getElementById('analizToolbar').classList.remove('hidden');
+    document.getElementById('btnAnaliz').classList.toggle('active', kind === 'fourd');
+    // Panele özgü "değer" göstergesini (bkz. #analizToolbarValue) tazeler —
+    // gölge analizinde geçerli saati göstermek için slider'ın kendi 'input'
+    // olayını tetiklemek yeterli (aynı zamanda gölgeyi de günceller).
+    var valueEl = document.getElementById('analizToolbarValue');
+    if (kind === 'shadow') document.getElementById('shadowHourSlider').dispatchEvent(new Event('input'));
+    else if (kind === 'compare') valueEl.textContent = '';
+  }
+  function closeAnalizToolbar(){
+    stopRunningAnalizEffects();
+    analizActiveKind = null;
+    document.getElementById('analizToolbar').classList.add('hidden');
+    document.getElementById('btnAnaliz').classList.remove('active');
+  }
+  document.getElementById('btnAnaliz').addEventListener('click', function(){
+    var toolbar = document.getElementById('analizToolbar');
+    if (!toolbar.classList.contains('hidden') && analizActiveKind === 'fourd'){ closeAnalizToolbar(); return; }
+    openAnalizToolbar('fourd');
+  });
+  document.getElementById('btnAnalizMenuToggle').addEventListener('click', function(e){
+    e.stopPropagation();
+    document.getElementById('analizToolsMenu').classList.toggle('show');
+  });
+  document.getElementById('analizToolsMenu').addEventListener('click', function(e){
+    var item = e.target.closest('.split-btn-menu-item');
+    if (!item) return;
+    this.classList.remove('show');
+    openAnalizToolbar(item.getAttribute('data-analiz'));
+  });
+  document.addEventListener('click', function(e){
+    var menu = document.getElementById('analizToolsMenu');
+    var toggleBtn = document.getElementById('btnAnalizMenuToggle');
+    if (menu.classList.contains('show') && !menu.contains(e.target) && e.target !== toggleBtn && !toggleBtn.contains(e.target)){
+      menu.classList.remove('show');
+    }
+  });
+  document.getElementById('analizToolbarClose').addEventListener('click', closeAnalizToolbar);
+
   document.getElementById('btnBasemapToggle').addEventListener('click', function(e){
     e.stopPropagation();
     document.getElementById('basemapPopover').classList.toggle('show');
@@ -1938,6 +2236,7 @@
   });
   document.getElementById('btnClearMeasurements').addEventListener('click', function(){
     clearPersistedMeasurements();
+    cleanupMeasureFolderIfEmpty();
     document.getElementById('measureToolsPopover').classList.remove('show');
     showToast('Tüm ölçümler temizlendi.');
   });
@@ -2010,6 +2309,12 @@
     document.getElementById('infoPopover').classList.remove('show');
     map.getCanvas().style.cursor = infoMode ? 'help' : (mode === 'select' ? 'default' : (isVertexDrawMode(mode) ? 'crosshair' : ''));
     showToast(infoMode ? 'Bilgi modu açık — haritada bir objeye tıklayın.' : 'Bilgi modu kapatıldı.');
+  });
+  // Bilgi penceresinin sağ üstündeki X — yalnızca o an açık pencereyi kapatır,
+  // Bilgi modunu KAPATMAZ (kullanıcı başka bir objeye tıklamaya devam edebilir).
+  document.getElementById('infoPopoverClose').addEventListener('click', function(e){
+    e.stopPropagation();
+    document.getElementById('infoPopover').classList.remove('show');
   });
 
   document.getElementById('statusSnapBtn').addEventListener('click', function(){
@@ -2401,6 +2706,9 @@
     updateFloorSource();
     refreshPanel();
     renderLayerTree();
+    // Saha fotoğrafı pin'leri her zaman en üstte kalsın — aradan (raster
+    // içe aktarma, yeni katman vb.) başka bir katman eklenmiş olabilir.
+    if (typeof SAHA_LAYER_ID !== 'undefined' && map.getLayer(SAHA_LAYER_ID)) map.moveLayer(SAHA_LAYER_ID);
   }
 
   // Bir çizgi/poligonun haritada gösterilecek kısa ölçüm etiketini üretir
@@ -2977,6 +3285,13 @@
   function escapeAttrHtml(s){
     return String(s).replace(/[&<>"]/g, function(c){ return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]; });
   }
+  // Bilgi (Info) balonundaki her özniteliği, üstte küçük büyük-harf bir etiket
+  // ve altında belirgin değerden oluşan tek bir "form satırı" olarak üretir
+  // (Stripe'ın detay panellerindeki sade kart görünümünden esinlenildi).
+  function infoRowHtml(label, value){
+    return '<div class="info-row"><div class="info-row-label">' + escapeAttrHtml(label) +
+      '</div><div class="info-row-value">' + escapeAttrHtml(String(value)) + '</div></div>';
+  }
   // Bilgi balonunun harita üzerinde iğnelendiği koordinatı belirler:
   // Nokta objelerde kendi konumu, çizgi/poligonlarda üst-orta (bbox tepe
   // noktası) — böylece balon objenin tam ÜZERİNDE açılır.
@@ -3024,7 +3339,7 @@
     var pop = document.getElementById('infoPopover');
     var main = document.getElementById('infoPopoverMain');
     if (!f){
-      main.innerHTML = '<b>Bilgi</b><br>Bu noktada bir obje bulunamadı — haritada çizilmiş bir şekle tıklayın.';
+      main.innerHTML = '<div class="info-header"><b>Bilgi</b></div><div class="info-empty">Bu noktada bir obje bulunamadı — haritada çizilmiş bir şekle tıklayın.</div>';
       infoPopoverAnchorLngLat = { lng: e.lngLat.lng, lat: e.lngLat.lat };
       pop.classList.add('show');
       updateInfoPopoverPosition();
@@ -3039,25 +3354,19 @@
       var schemaRows = schemaCols.map(function(col){
         var val = f.properties ? f.properties[col.column_name] : undefined;
         if (val === undefined || val === null || val === '') return '';
-        return '<div style="display:flex;gap:10px;justify-content:space-between;margin-top:4px;">' +
-          '<span style="color:var(--text-dim);">' + escapeAttrHtml(col.display_name || col.column_name.replace(/_/g,' ')) + '</span>' +
-          '<span style="color:var(--text);text-align:right;">' + escapeAttrHtml(String(val)) + '</span></div>';
+        return infoRowHtml(col.display_name || col.column_name.replace(/_/g,' '), val);
       }).join('');
-      body = schemaRows || '<div style="margin-top:4px;">Bu objede öznitelik bilgisi girilmemiş.</div>';
+      body = schemaRows || '<div class="info-empty">Bu objede öznitelik bilgisi girilmemiş.</div>';
     } else {
       var rows = Object.keys(f.properties || {}).filter(function(k){
         return k.indexOf('__') !== 0 && k !== 'layerId' && k !== 'tablo';
       });
       body = rows.length
-        ? rows.map(function(k){
-            return '<div style="display:flex;gap:10px;justify-content:space-between;margin-top:4px;">' +
-              '<span style="color:var(--text-dim);">' + escapeAttrHtml(k) + '</span>' +
-              '<span style="color:var(--text);text-align:right;">' + escapeAttrHtml(String(f.properties[k])) + '</span></div>';
-          }).join('')
-        : '<div style="margin-top:4px;">Bu objede öznitelik bilgisi girilmemiş.</div>';
+        ? rows.map(function(k){ return infoRowHtml(k, f.properties[k]); }).join('')
+        : '<div class="info-empty">Bu objede öznitelik bilgisi girilmemiş.</div>';
     }
-    main.innerHTML = '<div style="display:flex;align-items:center;gap:8px;">' +
-        '<span style="width:18px;height:18px;flex:0 0 auto;color:var(--gold);">' + iconFor(f) + '</span>' +
+    main.innerHTML = '<div class="info-header">' +
+        '<span class="info-icon">' + iconFor(f) + '</span>' +
         '<b>' + (lyrLabel ? escapeAttrHtml(lyrLabel) : typeLabel(f)) + '</b></div>' + body;
     infoPopoverAnchorLngLat = infoAnchorForFeature(f) || { lng: e.lngLat.lng, lat: e.lngLat.lat };
     pop.classList.add('show');
@@ -3994,52 +4303,292 @@
     showToast(payload.length + ' fotoğraf kaydedildi.');
   });
 
+  // Harita üzerinde saha fotoğrafı pin'i — düz nokta/emoji yerine, fotoğrafın
+  // kendisinden üretilmiş ÇEMBER İÇİNE KIRPILMIŞ küçük bir simge olarak
+  // gösterilir (bkz. sahaBuildCircleIcon). MapLibre'nin sembol katmanları
+  // ancak ÖNCEDEN map.addImage() ile kayıtlı bir raster görüntüyü
+  // 'icon-image' ile referans alabildiği için, her fotoğraf ilk göründüğünde
+  // (bkz. ensureSahaPhotoIcons) tembel olarak bir kez üretilip kaydedilir;
+  // aynı id ikinci kez kaydedilmeye çalışılmaz (MapLibre bunda hata fırlatır).
+  var sahaRegisteredIconIds = {}; // { 'saha-photo-<id>': true }
+  var SAHA_ICON_SIZE = 50;        // üretilen simgenin piksel boyutu (kanvas) — %10 küçültülmüş (orijinal: 56)
+
+  // Her fotoğrafı haritada, filmstrip'te ve bağlantı çizgisinde AYNI, birbirinden
+  // FARKLI pastel renkle gösterebilmek için id'ye göre deterministik bir renk seçer
+  // (aynı fotoğraf her render'da hep aynı rengi alır, farklı fotoğraflar farklı renk alır).
+  var SAHA_PASTEL_COLORS = ['#f8a5c2','#a5d8ff','#b2f2bb','#ffe08a','#d0bfff','#ffc9a8','#99e9d4','#ffb3c6','#bdb2ff','#c3f0ca'];
+  function sahaColorForId(id){
+    var s = String(id), hash = 0;
+    for (var i = 0; i < s.length; i++) hash = (hash * 31 + s.charCodeAt(i)) >>> 0;
+    return SAHA_PASTEL_COLORS[hash % SAHA_PASTEL_COLORS.length];
+  }
+
+  // dataUrl'deki fotoğrafı yükleyip SAHA_ICON_SIZE x SAHA_ICON_SIZE bir
+  // kanvasa dairesel olarak kırpar ve etrafına renkli bir halka çizer —
+  // sonucu (ImageData) map.addImage() için doğrudan kullanılabilir.
+  function sahaBuildCircleIcon(dataUrl, ringColor){
+    return new Promise(function(resolve, reject){
+      var img = new Image();
+      img.onload = function(){
+        var size = SAHA_ICON_SIZE;
+        var canvas = document.createElement('canvas');
+        canvas.width = size; canvas.height = size;
+        var ctx = canvas.getContext('2d');
+        var r = size / 2;
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(r, r, r - 3, 0, Math.PI * 2);
+        ctx.closePath();
+        ctx.clip();
+        // Fotoğrafı, en-boy oranını koruyarak dairenin tamamını kaplayacak
+        // şekilde (object-fit:cover mantığıyla) ortalar.
+        var scale = Math.max(size / img.naturalWidth, size / img.naturalHeight);
+        var w = img.naturalWidth * scale, h = img.naturalHeight * scale;
+        ctx.drawImage(img, (size - w) / 2, (size - h) / 2, w, h);
+        ctx.restore();
+        ctx.beginPath();
+        ctx.arc(r, r, r - 2.5, 0, Math.PI * 2);
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = ringColor || '#ffffff';
+        ctx.stroke();
+        resolve(ctx.getImageData(0, 0, size, size));
+      };
+      img.onerror = function(){ reject(new Error('simge oluşturulamadı')); };
+      img.src = dataUrl;
+    });
+  }
+  // photos listesindeki her fotoğraf için (henüz kayıtlı değilse) bir çember
+  // simge üretip map.addImage() ile kaydeder — hepsi hazır olunca resolve olur.
+  function ensureSahaPhotoIcons(photos){
+    var jobs = photos.filter(function(p){ return p.file_data_url && !sahaRegisteredIconIds['saha-photo-' + p.id]; })
+      .map(function(p){
+        var iconId = 'saha-photo-' + p.id;
+        return sahaBuildCircleIcon(p.file_data_url, sahaColorForId(p.id)).then(function(imgData){
+          if (!map.hasImage(iconId)) map.addImage(iconId, imgData);
+          sahaRegisteredIconIds[iconId] = true;
+        }).catch(function(){ /* bozuk/okunamayan görsel — bu fotoğraf simgesiz kalır */ });
+      });
+    return Promise.all(jobs);
+  }
+  // Artık listede olmayan fotoğrafların simgelerini stilden temizler (bkz.
+  // 'kroki:saha-photos-updated' dinleyicisi) — uzun oturumlarda gereksiz
+  // raster birikmesini önler.
+  function sahaCleanupRemovedIcons(currentPhotos){
+    var currentIds = {};
+    currentPhotos.forEach(function(p){ currentIds['saha-photo-' + p.id] = true; });
+    Object.keys(sahaRegisteredIconIds).forEach(function(iconId){
+      if (currentIds[iconId]) return;
+      try{ if (map.hasImage(iconId)) map.removeImage(iconId); }catch(e){ /* yoksay */ }
+      delete sahaRegisteredIconIds[iconId];
+    });
+  }
+
+  var sahaActivePopup = null; // aynı anda tek popup açık kalsın diye (filmstrip'ten art arda tıklamada yığılmayı önler)
+  function sahaOpenPhotoPopup(p){
+    if (sahaActivePopup) sahaActivePopup.remove();
+    map.flyTo({ center: [p.lng, p.lat], zoom: Math.max(map.getZoom(), 17), duration: 600 });
+    var popup = new maplibregl.Popup({ offset: 14, closeButton: true, maxWidth: '200px' })
+      .setLngLat([p.lng, p.lat])
+      .setHTML(
+        '<div class="saha-popup">' +
+          (p.file_data_url ? '<img src="' + p.file_data_url + '" class="saha-popup-img" title="Tam ekran için tıklayın">' : '') +
+          '<div class="saha-popup-name">' + String(p.name || '').replace(/</g,'&lt;') + '</div>' +
+          (p.notes ? '<div class="saha-popup-notes">' + String(p.notes).replace(/</g,'&lt;') + '</div>' : '') +
+          '<div class="saha-popup-coord">' + Number(p.lat).toFixed(6) + ', ' + Number(p.lng).toFixed(6) + '</div>' +
+        '</div>'
+      )
+      .addTo(map);
+    sahaActivePopup = popup;
+    // Popup kapanınca (× / haritada başka yere tıklama / yeni popup açılması)
+    // filmstrip'teki bağlantı çizgisi ve "aktif" vurgusu da temizlenir.
+    popup.on('close', function(){
+      if (sahaActivePopup === popup) sahaActivePopup = null;
+      sahaHideLeaderLine();
+    });
+    // Popup içindeki fotoğrafa tıklanınca tam ekran görüntüleyici açılır.
+    var imgEl = popup.getElement().querySelector('.saha-popup-img');
+    if (imgEl) imgEl.addEventListener('click', function(){ sahaOpenLightbox(p); });
+  }
+
+  // Saha fotoğrafı tam ekran görüntüleyici — haritadaki bir pin'in popup'ındaki
+  // fotoğrafa tıklanınca açılır; birden fazla saha fotoğrafı varsa ok
+  // tuşlarıyla/ok düğmeleriyle diğer fotoğraflara geçilebilir.
+  var sahaLightboxIndex = -1;
+  function sahaOpenLightbox(p){
+    sahaLightboxIndex = sahaPhotos.findIndex(function(x){ return String(x.id) === String(p.id); });
+    if (sahaLightboxIndex === -1) sahaLightboxIndex = 0;
+    sahaRenderLightbox();
+    document.getElementById('sahaLightbox').classList.remove('hidden');
+  }
+  function sahaCloseLightbox(){
+    document.getElementById('sahaLightbox').classList.add('hidden');
+    sahaLightboxIndex = -1;
+  }
+  function sahaRenderLightbox(){
+    if (sahaLightboxIndex < 0 || sahaLightboxIndex >= sahaPhotos.length) return;
+    var p = sahaPhotos[sahaLightboxIndex];
+    document.getElementById('sahaLightboxImg').src = p.file_data_url || '';
+    document.getElementById('sahaLightboxName').textContent = p.name || '';
+    var notesEl = document.getElementById('sahaLightboxNotes');
+    notesEl.textContent = p.notes || '';
+    notesEl.style.display = p.notes ? '' : 'none';
+    document.getElementById('sahaLightboxCoord').textContent = Number(p.lat).toFixed(6) + ', ' + Number(p.lng).toFixed(6);
+    var multi = sahaPhotos.length > 1;
+    document.getElementById('sahaLightboxPrev').classList.toggle('hidden', !multi);
+    document.getElementById('sahaLightboxNext').classList.toggle('hidden', !multi);
+  }
+  document.getElementById('sahaLightboxClose').addEventListener('click', sahaCloseLightbox);
+  document.getElementById('sahaLightbox').addEventListener('click', function(e){
+    if (e.target.id === 'sahaLightbox') sahaCloseLightbox(); // arka plana tıklayınca da kapat
+  });
+  document.getElementById('sahaLightboxPrev').addEventListener('click', function(e){
+    e.stopPropagation();
+    sahaLightboxIndex = (sahaLightboxIndex - 1 + sahaPhotos.length) % sahaPhotos.length;
+    sahaRenderLightbox();
+  });
+  document.getElementById('sahaLightboxNext').addEventListener('click', function(e){
+    e.stopPropagation();
+    sahaLightboxIndex = (sahaLightboxIndex + 1) % sahaPhotos.length;
+    sahaRenderLightbox();
+  });
+  document.addEventListener('keydown', function(e){
+    if (document.getElementById('sahaLightbox').classList.contains('hidden')) return;
+    if (e.key === 'Escape') sahaCloseLightbox();
+    else if (e.key === 'ArrowLeft') document.getElementById('sahaLightboxPrev').click();
+    else if (e.key === 'ArrowRight') document.getElementById('sahaLightboxNext').click();
+  });
+
   // Harita üzerinde saha fotoğrafı pin katmanı — GeoJSON kaynağı ilk
   // kullanımda (kayıtlı fotoğraf listesi ilk geldiğinde) tembel oluşturulur.
   function ensureSahaPhotoLayer(){
     if (map.getSource(SAHA_SOURCE_ID)) return;
     map.addSource(SAHA_SOURCE_ID, { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
     map.addLayer({
-      id: SAHA_LAYER_ID, type: 'circle', source: SAHA_SOURCE_ID,
-      paint: { 'circle-radius': 9, 'circle-color': '#ec4899', 'circle-stroke-width': 2, 'circle-stroke-color': '#ffffff' }
-    });
-    map.addLayer({
-      id: SAHA_LAYER_ID + '-icon', type: 'symbol', source: SAHA_SOURCE_ID,
-      layout: { 'text-field': '📷', 'text-size': 11, 'text-allow-overlap': true, 'text-ignore-placement': true }
+      id: SAHA_LAYER_ID, type: 'symbol', source: SAHA_SOURCE_ID,
+      layout: { 'icon-image': ['get', 'icon'], 'icon-size': 1, 'icon-allow-overlap': true, 'icon-ignore-placement': true }
     });
     map.on('mouseenter', SAHA_LAYER_ID, function(){ map.getCanvas().style.cursor = 'pointer'; });
     map.on('mouseleave', SAHA_LAYER_ID, function(){ map.getCanvas().style.cursor = mode === 'select' ? 'default' : ''; });
     map.on('click', SAHA_LAYER_ID, function(e){
-      var f = e.features[0];
-      var p = f.properties;
-      new maplibregl.Popup({ offset: 14, closeButton: true, maxWidth: '200px' })
-        .setLngLat(f.geometry.coordinates)
-        .setHTML(
-          '<div class="saha-popup">' +
-            (p.dataUrl ? '<img src="' + p.dataUrl + '" class="saha-popup-img">' : '') +
-            '<div class="saha-popup-name">' + String(p.name || '').replace(/</g,'&lt;') + '</div>' +
-            (p.notes ? '<div class="saha-popup-notes">' + String(p.notes).replace(/</g,'&lt;') + '</div>' : '') +
-            '<div class="saha-popup-coord">' + Number(p.lat).toFixed(6) + ', ' + Number(p.lng).toFixed(6) + '</div>' +
-          '</div>'
-        )
-        .addTo(map);
+      var clicked = e.features[0].properties;
+      var p = sahaPhotos.find(function(x){ return String(x.id) === String(clicked.id); });
+      if (p) sahaOpenPhotoPopup(p);
     });
   }
   function updateSahaPhotoSource(){
     ensureSahaPhotoLayer();
+    // Saha fotoğrafı pin'leri her zaman diğer TÜM katmanların (binalar,
+    // sınırlar, kullanıcı katmanları, raster'lar vb.) üzerinde görünmeli —
+    // aradan başka katmanlar eklenmiş/yeniden oluşturulmuş olsa bile bu
+    // katmanı yığının en üstüne taşır (beforeId'siz moveLayer = en üste alır).
+    if (map.getLayer(SAHA_LAYER_ID)) map.moveLayer(SAHA_LAYER_ID);
     var src = map.getSource(SAHA_SOURCE_ID);
     if (!src) return;
-    src.setData({
-      type: 'FeatureCollection',
-      features: sahaPhotos.map(function(p){
-        return {
-          type: 'Feature',
-          geometry: { type: 'Point', coordinates: [p.lng, p.lat] },
-          properties: { id: p.id, name: p.name, notes: p.notes, dataUrl: p.file_data_url, lat: p.lat, lng: p.lng }
-        };
-      })
+    ensureSahaPhotoIcons(sahaPhotos).then(function(){
+      src.setData({
+        type: 'FeatureCollection',
+        features: sahaPhotos.map(function(p){
+          var iconId = 'saha-photo-' + p.id;
+          return {
+            type: 'Feature',
+            geometry: { type: 'Point', coordinates: [p.lng, p.lat] },
+            properties: { id: p.id, icon: sahaRegisteredIconIds[iconId] ? iconId : undefined }
+          };
+        })
+      });
     });
   }
+
+  // Kanvasın alt kısmında, kayıtlı tüm saha fotoğraflarını yatay bir şerit
+  // (filmstrip) olarak gösterir — bir öğeye tıklamak o fotoğrafa yakınlaşıp
+  // popup'ını açar (bkz. sahaOpenPhotoPopup). Görünürlüğü durum çubuğundaki
+  // "Saha" düğmesiyle (bkz. applySahaVisibility) açılıp kapatılır — hem şerit
+  // hem haritadaki fotoğraf pin katmanı AYNI sahaVisible bayrağını paylaşır.
+  var sahaVisible = true;
+  function renderSahaFilmstrip(){
+    var dock = document.getElementById('sahaFilmstrip');
+    var track = document.getElementById('sahaFilmstripTrack');
+    if (!sahaPhotos.length || !sahaVisible){ dock.classList.add('hidden'); sahaHideLeaderLine(); return; }
+    dock.classList.remove('hidden');
+    track.innerHTML = '';
+    sahaPhotos.forEach(function(p){
+      var item = document.createElement('div');
+      item.className = 'saha-filmstrip-item' + (String(p.id) === String(sahaLeaderTargetId) ? ' active' : '');
+      item.setAttribute('data-id', p.id);
+      item.innerHTML =
+        '<div class="saha-filmstrip-thumb-wrap" style="border-color:' + sahaColorForId(p.id) + '"><img src="' + (p.file_data_url || '') + '"></div>' +
+        '<span class="saha-filmstrip-name">' + String(p.name || '').replace(/</g,'&lt;') + '</span>';
+      item.addEventListener('click', function(){
+        document.querySelectorAll('.saha-filmstrip-item.active').forEach(function(el){ el.classList.remove('active'); });
+        item.classList.add('active');
+        sahaShowLeaderLine(p.id);
+        sahaOpenPhotoPopup(p);
+      });
+      track.appendChild(item);
+    });
+    sahaUpdateLeaderLine();
+  }
+
+  // Filmstrip'ten bir fotoğraf seçilince, o fotoğrafın haritadaki pin'ine
+  // ince kesikli bir çizgiyle bağlantı gösterir (SVG <line>, bkz. HTML'deki
+  // #sahaLeaderLineSvg) — popup kapanınca veya filmstrip gizlenince kalkar.
+  // Harita hareket ettikçe (pan/zoom) çizgi buna göre yeniden konumlanır.
+  var sahaLeaderTargetId = null;
+  function sahaShowLeaderLine(id){
+    sahaLeaderTargetId = id;
+    sahaUpdateLeaderLine();
+  }
+  function sahaHideLeaderLine(){
+    sahaLeaderTargetId = null;
+    var line = document.getElementById('sahaLeaderLine');
+    if (line) line.style.display = 'none';
+    document.querySelectorAll('.saha-filmstrip-item.active').forEach(function(el){ el.classList.remove('active'); });
+  }
+  function sahaUpdateLeaderLine(){
+    var line = document.getElementById('sahaLeaderLine');
+    if (!sahaLeaderTargetId){ line.style.display = 'none'; return; }
+    var p = sahaPhotos.find(function(x){ return String(x.id) === String(sahaLeaderTargetId); });
+    var itemEl = document.querySelector('.saha-filmstrip-item[data-id="' + sahaLeaderTargetId + '"]');
+    var dockHidden = document.getElementById('sahaFilmstrip').classList.contains('hidden');
+    if (!p || !itemEl || dockHidden){ line.style.display = 'none'; return; }
+    var thumbEl = itemEl.querySelector('.saha-filmstrip-thumb-wrap');
+    var itemRect = thumbEl.getBoundingClientRect();
+    var pinPoint = map.project([p.lng, p.lat]);
+    line.setAttribute('x1', itemRect.left + itemRect.width / 2);
+    line.setAttribute('y1', itemRect.top);
+    line.setAttribute('x2', pinPoint.x);
+    line.setAttribute('y2', pinPoint.y);
+    line.style.stroke = sahaColorForId(p.id);
+    line.style.display = '';
+  }
+  map.on('move', sahaUpdateLeaderLine);
+  // Durum çubuğundaki "Saha" düğmesi VE filmstrip'in kendi kapat (×) düğmesi
+  // aynı işlevi paylaşır: haritadaki fotoğraf pin katmanının görünürlüğünü
+  // (map.setLayoutProperty) ve alttaki şeridi birlikte açıp kapatır.
+  function applySahaVisibility(){
+    var btn = document.getElementById('statusSahaToggleBtn');
+    btn.classList.toggle('on', sahaVisible);
+    if (map.getLayer(SAHA_LAYER_ID)){
+      map.setLayoutProperty(SAHA_LAYER_ID, 'visibility', sahaVisible ? 'visible' : 'none');
+    }
+    renderSahaFilmstrip();
+  }
+  document.getElementById('statusSahaToggleBtn').addEventListener('click', function(){
+    sahaVisible = !sahaVisible;
+    applySahaVisibility();
+    showToast(sahaVisible ? 'Saha fotoğrafları gösteriliyor.' : 'Saha fotoğrafları gizlendi.');
+  });
+  document.getElementById('sahaFilmstripClose').addEventListener('click', function(){
+    sahaVisible = false;
+    applySahaVisibility();
+  });
+  document.getElementById('sahaFilmstripPrev').addEventListener('click', function(){
+    document.getElementById('sahaFilmstripTrack').scrollBy({ left: -220, behavior: 'smooth' });
+  });
+  document.getElementById('sahaFilmstripNext').addEventListener('click', function(){
+    document.getElementById('sahaFilmstripTrack').scrollBy({ left: 220, behavior: 'smooth' });
+  });
+
   function renderSahaSavedList(){
     var list = document.getElementById('sahaSavedList');
     var countEl = document.getElementById('sahaSavedCount');
@@ -4059,7 +4608,7 @@
         '<button class="layer-icon-btn del saha-saved-del" title="Sil"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 6l12 12M18 6L6 18"/></svg></button>';
       row.addEventListener('click', function(e){
         if (e.target.closest('.saha-saved-del')) return;
-        map.flyTo({ center: [p.lng, p.lat], zoom: Math.max(map.getZoom(), 17), duration: 600 });
+        sahaOpenPhotoPopup(p);
       });
       row.querySelector('.saha-saved-del').addEventListener('click', function(e){
         e.stopPropagation();
@@ -4071,10 +4620,12 @@
   window.addEventListener('message', function(e){
     var msg = e.data;
     if (!msg || msg.type !== 'kroki:saha-photos-updated' || !Array.isArray(msg.photos)) return;
+    sahaCleanupRemovedIcons(msg.photos);
     sahaPhotos = msg.photos;
     updateSahaPhotoSource();
     renderSahaSavedList();
     renderSahaPendingList();
+    applySahaVisibility();
   });
 
   // ---------------------------------------------------------------------
@@ -5065,6 +5616,7 @@
     if (idx !== -1){ selectedIds.splice(idx, 1); refreshSelectedFilter(); refreshPanel(); updateEditPanel(); }
     renderFeatures();
     renderVertices();
+    cleanupMeasureFolderIfEmpty();
   }
   // Toplu seçimdeki TÜM objeleri tek bir geçmiş (undo) adımında siler.
   function removeSelectedFeatures(){
@@ -5078,6 +5630,7 @@
     renderVertices();
     refreshPanel();
     updateEditPanel();
+    cleanupMeasureFolderIfEmpty();
   }
 
   // ---------------------------------------------------------------------
@@ -5177,6 +5730,19 @@
       layers.push({ id: MEASURE_LAYER_ID, name:'Ölçüm ve Koordinatlar', mapId:'map-genel', folderId: MEASURE_FOLDER_ID, visible:true, color:'#38bdf8', fillColor:'#38bdf8', lineWidth:2, dash:'dashed', geomType:null, deletable:false });
       renderLayerTree();
     }
+  }
+  // Ölçümler klasörü/katmanında artık hiç obje kalmadıysa (ne Nokta/Koordinat
+  // objesi, ne de dondurulmuş Mesafe/Alan ölçümü), ikisini de sessizce siler —
+  // böylece ekrandaki tüm ölçümler tek tek silindiğinde de klasör/katman
+  // otomatik temizlenir (önceden bu yalnızca "Yenile" ile mümkündü).
+  function cleanupMeasureFolderIfEmpty(){
+    var hasFeatures = features.some(function(f){ return f.properties && f.properties.layerId === MEASURE_LAYER_ID; });
+    if (hasFeatures || persistedMeasurements.length) return;
+    if (!layers.some(function(l){ return l.id === MEASURE_LAYER_ID; }) && !folders.some(function(fo){ return fo.id === MEASURE_FOLDER_ID; })) return;
+    layers = layers.filter(function(l){ return l.id !== MEASURE_LAYER_ID; });
+    folders = folders.filter(function(fo){ return fo.id !== MEASURE_FOLDER_ID; });
+    if (activeLayerId === MEASURE_LAYER_ID) activeLayerId = layers[0] ? layers[0].id : null;
+    renderLayerTree(); refreshActiveLayerSelect();
   }
   var activeLayerId = null;
   var pendingFeatureAttributes = null; // "+ Yerleştir" formundan gelen öznitelikler
@@ -5282,6 +5848,11 @@
         if (lyr.symbol) f2.properties.__layerSymbol = lyr.symbol;
         if (lyr.scale) f2.properties.__layerScale = lyr.scale;
       }
+      // Altyapı hatları: katmanın TEK renginin yerine, her hattın kendi
+      // altyapı tipine (içmesuyu/atıksu/yağmursuyu/doğalgaz/elektrik/fiber —
+      // bkz. tb_altyapi_tipi FK) ait rengi kullanır (KrokiMapModule.tsx'te
+      // her objeye 'line_color' özniteliği olarak eklenir).
+      if (f2.properties && f2.properties.line_color) f2.properties.__layerColor = f2.properties.line_color;
       if (f2.geometry.type === 'Polygon' && f2.properties && f2.properties.extrude){
         var progress = getEffectiveProgress(f2);
         f2.properties.__extrusionColor = (progress >= 100) ? EXTRUSION_PROGRESS_COLOR : extrusionStatusColor(f2.properties.veri_durumu);
@@ -5483,8 +6054,10 @@
   // tıklamak o objeyi haritada seçer ve ona yakınlaştırır (klasik GIS
   // "attribute table" davranışı).
   // ---------------------------------------------------------------------
-  var attrTableLayerId = null;   // açık öznitelik tablosunun ait olduğu katman (kapalıysa null)
-  var attrTableRowEls = [];      // [{ tr, featureId }] — harita seçimiyle satır vurgusunu senkronlamak için
+  var attrTableLayerId = null;      // açık öznitelik tablosunun ait olduğu katman (kapalıysa null)
+  var attrTableRowEls = [];         // [{ tr, featureId }] — harita seçimiyle satır vurgusunu senkronlamak için
+  var attrTableSelectedIds = {};    // { [featureId]: true } — toplu düzenleme için işaretlenmiş satırlar
+  var attrTableCurrentColumns = []; // son render'daki dinamik sütun adları — şema yoksa toplu düzenleme sütun listesi bundan türetilir
 
   function attrTableColumnsForFeatures(feats){
     var seen = {};
@@ -5506,16 +6079,20 @@
     return String(v);
   }
 
-  function openAttributeTable(layerId){
-    var lyr = getLayer(layerId);
+  // Tabloyu (satırlar + toplu düzenleme çubuğu) açık katmanın GÜNCEL
+  // özniteliklerine göre yeniden çizer — attrTableSelectedIds'e DOKUNMAZ,
+  // böylece bir toplu düzenleme uygulandıktan sonra seçim korunur ve arka
+  // arkaya birden fazla sütun güncellenebilir. Katman değiştirirken
+  // (openAttributeTable) veya kapatırken (closeAttributeTable) seçim ayrıca
+  // sıfırlanır.
+  function renderAttrTableRows(){
+    var lyr = getLayer(attrTableLayerId);
     if (!lyr) return;
-    var feats = features.filter(function(f){ return (f.properties && f.properties.layerId) === layerId; });
-    attrTableLayerId = layerId;
-
-    document.getElementById('attrTableTitle').textContent = layerDisplayName(lyr);
-    document.getElementById('attrTableCount').textContent = feats.length + (feats.length === 1 ? ' kayıt' : ' kayıt');
+    var feats = features.filter(function(f){ return (f.properties && f.properties.layerId) === attrTableLayerId; });
+    document.getElementById('attrTableCount').textContent = feats.length + ' kayıt';
 
     var cols = attrTableColumnsForFeatures(feats);
+    attrTableCurrentColumns = cols;
     var table = document.getElementById('attrTableEl');
     var thead = table.querySelector('thead');
     var tbody = table.querySelector('tbody');
@@ -5524,28 +6101,52 @@
     attrTableRowEls = [];
 
     var headRow = document.createElement('tr');
+    var selAllTh = document.createElement('th');
+    selAllTh.innerHTML = '<input type="checkbox" id="attrTableSelectAll" title="Tümünü seç/bırak">';
+    headRow.appendChild(selAllTh);
     var idTh = document.createElement('th'); idTh.textContent = 'ID'; headRow.appendChild(idTh);
     cols.forEach(function(c){ var th = document.createElement('th'); th.textContent = c; headRow.appendChild(th); });
     thead.appendChild(headRow);
+    document.getElementById('attrTableSelectAll').addEventListener('change', function(e){
+      feats.forEach(function(f){
+        if (e.target.checked) attrTableSelectedIds[f.id] = true; else delete attrTableSelectedIds[f.id];
+      });
+      renderAttrTableRows();
+    });
 
     if (!feats.length){
       var emptyRow = document.createElement('tr');
       emptyRow.className = 'attr-table-empty';
       var emptyTd = document.createElement('td');
-      emptyTd.colSpan = cols.length + 1;
+      emptyTd.colSpan = cols.length + 2;
       emptyTd.textContent = 'Bu katmanda kayıt yok.';
       emptyRow.appendChild(emptyTd);
       tbody.appendChild(emptyRow);
     } else {
       feats.forEach(function(f){
         var tr = document.createElement('tr');
+        tr.classList.toggle('attr-row-checked', !!attrTableSelectedIds[f.id]);
+        var checkTd = document.createElement('td');
+        var checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = !!attrTableSelectedIds[f.id];
+        checkbox.addEventListener('click', function(e){ e.stopPropagation(); });
+        checkbox.addEventListener('change', function(){
+          if (checkbox.checked) attrTableSelectedIds[f.id] = true; else delete attrTableSelectedIds[f.id];
+          tr.classList.toggle('attr-row-checked', checkbox.checked);
+          updateAttrTableSelectAllState(feats);
+          updateAttrTableBulkBar();
+        });
+        checkTd.appendChild(checkbox);
+        tr.appendChild(checkTd);
         var idTd = document.createElement('td'); idTd.textContent = String(f.id); tr.appendChild(idTd);
         cols.forEach(function(c){
           var td = document.createElement('td');
           td.textContent = attrTableFormatValue(f.properties ? f.properties[c] : undefined);
           tr.appendChild(td);
         });
-        tr.addEventListener('click', function(){
+        tr.addEventListener('click', function(e){
+          if (e.target.tagName === 'INPUT') return;
           setSelection([f.id]);
           try{
             var bbox = turf.bbox(f);
@@ -5557,15 +6158,136 @@
       });
     }
 
+    updateAttrTableSelectAllState(feats);
+    updateAttrTableBulkBar();
     syncAttrTableSelectionHighlight();
+  }
+  function updateAttrTableSelectAllState(feats){
+    var cb = document.getElementById('attrTableSelectAll');
+    if (!cb) return;
+    var selectedCount = feats.filter(function(f){ return attrTableSelectedIds[f.id]; }).length;
+    cb.checked = feats.length > 0 && selectedCount === feats.length;
+    cb.indeterminate = selectedCount > 0 && selectedCount < feats.length;
+  }
+
+  function openAttributeTable(layerId){
+    var lyr = getLayer(layerId);
+    if (!lyr) return;
+    attrTableLayerId = layerId;
+    attrTableSelectedIds = {};
+    document.getElementById('attrTableTitle').textContent = layerDisplayName(lyr);
+    renderAttrTableRows();
     document.getElementById('attrTableDock').classList.remove('hidden');
   }
 
   function closeAttributeTable(){
     attrTableLayerId = null;
     attrTableRowEls = [];
+    attrTableSelectedIds = {};
     document.getElementById('attrTableDock').classList.add('hidden');
   }
+
+  // ---------------------------------------------------------------------
+  // Toplu düzenleme — 1+ satır işaretlenince araç çubuğu belirir: bir sütun
+  // seçilir (veritabanı şeması varsa STANDART/geometri sütunları hariç
+  // gerçek sütunlar, yoksa tablodaki dinamik sütunlar), sütun tablosal bir
+  // ilişkiye (relation_table) sahipse değer bir combobox'tan seçilir —
+  // tıpkı Veri Girişi/Öznitelik Düzenle formlarındaki (bkz. renderSchemaFields)
+  // FK alanları gibi. "Uygula", işaretli TÜM objelerin o sütununu
+  // günceller ve veritabanı katmanlarında (db-layer-*) maybeAutoSaveDbFeature
+  // ile kalıcı olarak kaydeder.
+  // ---------------------------------------------------------------------
+  function attrTableBulkColumns(){
+    var schema = dbTableSchemas[attrTableLayerId];
+    if (schema && schema.length){
+      return schema
+        .filter(function(c){ return !c.is_hidden && (c.data_type || '').indexOf('geometry') !== 0; })
+        .map(function(c){ return { column_name:c.column_name, display_name:c.display_name || c.column_name, data_type:c.data_type, relation_table:c.relation_table }; });
+    }
+    // Şema yoksa (kullanıcı tanımlı katman): tablodaki dinamik sütunları düz metin alanı olarak sun.
+    return attrTableCurrentColumns.map(function(name){ return { column_name:name, display_name:name, data_type:'text', relation_table:null }; });
+  }
+  function updateAttrTableBulkBar(){
+    var bar = document.getElementById('attrTableBulkBar');
+    var ids = Object.keys(attrTableSelectedIds);
+    if (!ids.length){ bar.classList.add('hidden'); return; }
+    bar.classList.remove('hidden');
+    document.getElementById('attrTableBulkCount').textContent = ids.length + ' kayıt seçili';
+    renderAttrBulkColumnOptions();
+  }
+  function renderAttrBulkColumnOptions(){
+    var sel = document.getElementById('attrTableBulkColumn');
+    var prev = sel.value;
+    var cols = attrTableBulkColumns();
+    sel.innerHTML = '';
+    cols.forEach(function(c){
+      var opt = document.createElement('option');
+      opt.value = c.column_name; opt.textContent = c.display_name;
+      sel.appendChild(opt);
+    });
+    if (cols.some(function(c){ return c.column_name === prev; })) sel.value = prev;
+    renderAttrBulkValueInput();
+  }
+  function renderAttrBulkValueInput(){
+    var wrap = document.getElementById('attrTableBulkValueWrap');
+    wrap.innerHTML = '';
+    var colName = document.getElementById('attrTableBulkColumn').value;
+    var colDef = attrTableBulkColumns().find(function(c){ return c.column_name === colName; });
+    var relOptions = colDef && colDef.relation_table ? (relationOptionsCache[colDef.relation_table] || null) : null;
+    var input;
+    if (relOptions){
+      input = document.createElement('select');
+      input.className = 'native-select';
+      var optEmpty = document.createElement('option'); optEmpty.value = ''; optEmpty.textContent = 'Seçiniz...';
+      input.appendChild(optEmpty);
+      relOptions.forEach(function(o){
+        var opt = document.createElement('option');
+        opt.value = o.id; opt.textContent = (String(o.label) === String(o.id)) ? o.label : (o.label + ' (' + o.id + ')');
+        input.appendChild(opt);
+      });
+    } else if (colDef && colDef.data_type === 'boolean'){
+      input = document.createElement('input');
+      input.type = 'checkbox';
+      input.style.cssText = 'width:16px;height:16px;';
+    } else {
+      input = document.createElement('input');
+      input.type = (colDef && inputTypeForColumn(colDef) === 'number') ? 'number' : 'text';
+      input.className = 'native-select';
+      input.placeholder = 'Yeni değer';
+    }
+    input.id = 'attrTableBulkValue';
+    wrap.appendChild(input);
+  }
+  document.getElementById('attrTableBulkColumn').addEventListener('change', renderAttrBulkValueInput);
+  document.getElementById('attrTableBulkApply').addEventListener('click', function(){
+    var ids = Object.keys(attrTableSelectedIds);
+    if (!ids.length) return;
+    var colName = document.getElementById('attrTableBulkColumn').value;
+    if (!colName) return;
+    var valueEl = document.getElementById('attrTableBulkValue');
+    var value;
+    if (valueEl.type === 'checkbox') value = valueEl.checked;
+    else if (valueEl.type === 'number') value = valueEl.value === '' ? null : Number(valueEl.value);
+    else value = valueEl.value;
+    if (valueEl.tagName === 'SELECT' && !value){ showToast('Bir değer seçin.'); return; }
+    var colDef = attrTableBulkColumns().find(function(c){ return c.column_name === colName; });
+    var updatedCount = 0;
+    ids.forEach(function(id){
+      var f = features.find(function(x){ return x.id === id; });
+      if (!f) return;
+      if (!f.properties) f.properties = {};
+      f.properties[colName] = value;
+      maybeAutoSaveDbFeature(f);
+      updatedCount++;
+    });
+    renderFeatures();
+    renderAttrTableRows();
+    showToast(updatedCount + ' kayıtta "' + (colDef ? colDef.display_name : colName) + '" güncellendi.');
+  });
+  document.getElementById('attrTableBulkClear').addEventListener('click', function(){
+    attrTableSelectedIds = {};
+    renderAttrTableRows();
+  });
 
   // Haritada seçim değiştiğinde (obje tıklama, toplu seçim vb.) açık öznitelik
   // tablosundaki ilgili satır(lar)ı da vurgular — bkz. refreshSelectionUI().
@@ -6500,9 +7222,17 @@
     }, 600);
   }
   var styleRow = document.getElementById('styleRow');
+  function refreshDefaultBasemapMarkers(){
+    var defId = loadDefaultBasemapId() || STYLES[0].id;
+    Array.prototype.slice.call(styleRow.children).forEach(function(c){
+      c.classList.toggle('is-default', c.getAttribute('data-style-id') === defId);
+    });
+  }
   STYLES.forEach(function(s){
     var b = document.createElement('div');
     b.className = 'style-btn' + (s.id === currentStyleId ? ' active' : '');
+    b.setAttribute('data-style-id', s.id);
+    b.setAttribute('data-tip', 'Sağ tık: varsayılan açılış altlığı yap');
     b.textContent = s.label;
     b.addEventListener('click', function(){
       if (s.id === currentStyleId) return;
@@ -6512,8 +7242,15 @@
       reapplyCustomLayersAfterStyleChange(s.style || s.url);
       document.getElementById('basemapPopover').classList.remove('show');
     });
+    b.addEventListener('contextmenu', function(e){
+      e.preventDefault(); e.stopPropagation();
+      saveDefaultBasemapId(s.id);
+      refreshDefaultBasemapMarkers();
+      showToast(s.label + ' varsayılan açılış altlığı yapıldı.');
+    });
     styleRow.appendChild(b);
   });
+  refreshDefaultBasemapMarkers();
 
   // ---------------------------------------------------------------------
   // Ölçüm ve panel
@@ -7407,19 +8144,20 @@
       (shadows.length ? '' : ' · Gölge hesaplanacak 3B poligon (bina) bulunamadı.');
   }
 
-  document.querySelectorAll('.accordion-header').forEach(function(header){
-    header.addEventListener('click', function(){
-      header.closest('.accordion').classList.toggle('open');
-    });
-  });
-
   // ---- 4D Analizi (zaman bazlı inşaat ilerlemesi simülasyonu) ----
+  var FOURD_PLAY_ICON = '<path d="M8 5v14l11-7z"/>';
+  var FOURD_PAUSE_ICON = '<rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/>';
   (function initFourDControls(){
     var slider = document.getElementById('fourDDaySlider');
-    var label = document.getElementById('fourDDateLabel');
+    var label = document.getElementById('analizToolbarValue');
     var info = document.getElementById('fourDInfo');
     var playBtn = document.getElementById('btnFourDPlay');
+    var playIconEl = document.getElementById('btnFourDPlayIcon');
     var playTimer = null;
+    function setPlaying(isPlaying){
+      playBtn.classList.toggle('active', isPlaying);
+      playIconEl.innerHTML = isPlaying ? FOURD_PAUSE_ICON : FOURD_PLAY_ICON;
+    }
 
     function formatFourDDate(d){
       var months = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];
@@ -7451,7 +8189,7 @@
     });
 
     document.getElementById('btnFourDReset').addEventListener('click', function(){
-      if (playTimer){ clearInterval(playTimer); playTimer = null; playBtn.textContent = '▶ Oynat'; }
+      if (playTimer){ clearInterval(playTimer); playTimer = null; setPlaying(false); }
       slider.value = 0;
       applyFourDDate(0);
     });
@@ -7462,17 +8200,17 @@
       if (playTimer){
         clearInterval(playTimer);
         playTimer = null;
-        playBtn.textContent = '▶ Oynat';
+        setPlaying(false);
         return;
       }
-      playBtn.textContent = '⏸ Durdur';
+      setPlaying(true);
       if (parseInt(slider.value, 10) >= 365) slider.value = -365;
       playTimer = setInterval(function(){
         var next = (parseInt(slider.value, 10) || 0) + 5;
         if (next > 365){
           clearInterval(playTimer);
           playTimer = null;
-          playBtn.textContent = '▶ Oynat';
+          setPlaying(false);
           next = 365;
         }
         slider.value = next;
@@ -7490,7 +8228,7 @@
     document.getElementById('shadowHourSlider').addEventListener('input', function(){
       var h = parseFloat(this.value);
       var hh = Math.floor(h), mm = Math.round((h - hh) * 60);
-      document.getElementById('shadowHourLabel').textContent = String(hh).padStart(2,'0') + ':' + String(mm).padStart(2,'0');
+      document.getElementById('analizToolbarValue').textContent = String(hh).padStart(2,'0') + ':' + String(mm).padStart(2,'0');
       computeAndRenderShadows();
     });
     document.getElementById('shadowDate').addEventListener('change', computeAndRenderShadows);
@@ -7536,14 +8274,14 @@
     var btn = this;
     if (compareFlickerTimer){
       clearInterval(compareFlickerTimer); compareFlickerTimer = null;
-      btn.classList.remove('active'); btn.textContent = 'Yanıp Sön';
+      btn.classList.remove('active');
       setCompareOpacity(parseFloat(document.getElementById('compareSlider').value) / 100);
       return;
     }
     if (!document.getElementById('compareRasterA').value || !document.getElementById('compareRasterB').value){
       showToast('Önce Görüntü A ve Görüntü B seçin.'); return;
     }
-    btn.classList.add('active'); btn.textContent = 'Durdur';
+    btn.classList.add('active');
     var state = 0;
     compareFlickerTimer = setInterval(function(){ state = 1 - state; setCompareOpacity(state); }, 700);
   });
