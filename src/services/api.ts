@@ -36,8 +36,10 @@ import {
 // ==========================================
 // Bu dosya artık tarayıcı belleğinde bir mock DEĞİL — server/index.js'in
 // sunduğu gerçek bir yerel REST API'ye bağlanır; veriler server/data/
-// oda_pys.sqlite dosyasına (bkz. server/db.js) kalıcı olarak yazılır. Sayfa
-// yenilense veya sunucu yeniden başlasa bile veri kaybolmaz.
+// oda_pys.gpkg dosyasına (bkz. server/db.js) kalıcı olarak yazılır — CBS
+// katmanlarındaki (proje sınırları, binalar, altyapı hatları) geometriler
+// GERÇEK GeoPackage WKB formatında saklanır. Sayfa yenilense veya sunucu
+// yeniden başlasa bile veri kaybolmaz.
 //
 // Vite dev sunucusu `/api` isteklerini server'a proxy'ler (bkz. vite.config.ts)
 // — bu yüzden burada sadece göreli '/api' kök yolu kullanılır, CORS/port
@@ -984,7 +986,9 @@ export async function createDokuman(item: Partial<DokumanRecord>): Promise<Dokum
     approval_status: item.approval_status || 'Approved',
     approver: item.approver || 'BIM Koordinatörü',
     doc_type: item.doc_type,
-    file_data_url: item.file_data_url || null
+    file_data_url: item.file_data_url || null,
+    lat: item.lat ?? null,
+    lng: item.lng ?? null
   };
   return apiCreate('tb_dokumanlar', newItem);
 }

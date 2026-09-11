@@ -2,9 +2,12 @@
 //
 // api.ts'teki mock (tarayıcı-içi bellek) veri katmanının yerini alır: tüm
 // tablolar generic bir REST arayüzü (GET/POST/PUT/DELETE /api/:table[/:id])
-// üzerinden gerçek bir yerel SQLite dosyasına (server/data/oda_pys.sqlite,
+// üzerinden gerçek bir yerel GeoPackage dosyasına (server/data/oda_pys.gpkg,
 // bkz. db.js) kalıcı olarak okunur/yazılır — sayfa yenilense, sunucu yeniden
-// başlasa bile veri kaybolmaz.
+// başlasa bile veri kaybolmaz. CBS/PostGIS katmanlarındaki (proje sınırları,
+// binalar, altyapı hatları) geometriler bu dosyada GERÇEK GeoPackage WKB
+// olarak saklanır — haritada bir obje taşındığında yazılan/okunan veri
+// budur, ayrı bir "dışa aktarım" adımına gerek yoktur.
 //
 // PostGIS'e geçiş: Üretimde db.js'in üstündeki generic list/get/putRecord/
 // seedIfEmpty fonksiyonlarını gerçek bir PostgreSQL/PostGIS istemcisiyle
@@ -113,5 +116,5 @@ app.post('/api/:table/seed', (req, res) => {
 
 const PORT = process.env.ODA_API_PORT || 4001;
 app.listen(PORT, () => {
-  console.log(`[oda-pys-api] http://localhost:${PORT} (SQLite: server/data/oda_pys.sqlite)`);
+  console.log(`[oda-pys-api] http://localhost:${PORT} (GeoPackage: server/data/oda_pys.gpkg)`);
 });

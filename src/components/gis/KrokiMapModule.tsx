@@ -10,7 +10,6 @@ import React, { useEffect, useRef, useState } from 'react';
 // iframe normal bir doküman gibi davranır ve bu sorun ortadan kalkar.
 // @ts-ignore - .html?url için tip tanımı gerekmiyor, Vite bunu string olarak çözer.
 import krokiHtmlUrl from '../../../legacy-standalone-tools/kroki-harita-cizim-araci.html?url';
-import { gisBoundaryRecords } from '../../data';
 import * as api from '../../services/api';
 
 /**
@@ -28,13 +27,12 @@ import * as api from '../../services/api';
  * altında ekler (bkz. legacy-standalone-tools/kroki-harita-cizim-araci.html
  * içindeki 'kroki:load-db-layers' mesaj dinleyicisi).
  *
- * Proje ↔ harita entegrasyonu: `activeProjectId` değiştiğinde (üst panelden
- * bir proje seçildiğinde), gisBoundaryRecords'taki o projenin tek sınır
- * kaydından bir bbox hesaplanıp 'kroki:zoom-to-project' mesajıyla iframe'e
- * gönderilir; Kroki bu sınıra yakınlaşır (bkz. HTML'deki ilgili dinleyici).
- * İlk yüklemede (mount) zoom tetiklenmez — bu, kullanıcının "Açılış Ekranı
- * Yap" ile kaydettiği görünümü ezmemesi içindir; sadece gerçek bir SEÇİM
- * değişikliğinde devreye girer.
+ * Proje ↔ harita entegrasyonu: `activeProjectId` her belirlendiğinde/
+ * değiştiğinde (harita ilk açıldığında üst panelde zaten seçili olan proje
+ * dahil, ya da kullanıcı üst panelden BAŞKA bir proje seçtiğinde), CANLI
+ * veritabanındaki (api.getProjeSinirlari()) o projenin tek sınır kaydından
+ * bir bbox hesaplanıp 'kroki:zoom-to-project' mesajıyla iframe'e gönderilir;
+ * Kroki doğrudan bu sınıra yakınlaşır (bkz. HTML'deki ilgili dinleyici).
  */
 interface KrokiMapModuleProps {
   activeProjectId?: string;
@@ -51,6 +49,23 @@ async function sendDocumentsToIframe(iframeWindow: Window) {
     iframeWindow.postMessage({ type: 'kroki:documents-updated', documents: featureDocs }, '*');
   } catch (err) {
     console.error('Dokümanlar haritaya gönderilemedi:', err);
+  }
+}
+
+// Harita > Saha sekmesinden eklenen, belirli bir obje/feature'a değil
+// doğrudan projeye bağlı, konumlu (lat/lng) saha fotoğraflarını (tb_dokumanlar,
+// doc_type:'resim') Kroki iframe'ine gönderir — hem ilk açılışta/proje
+// değiştiğinde hem de yeni fotoğraf eklendikten sonra çağrılır, böylece
+// Saha panelindeki harita pin'leri ve alt filmstrip her zaman güncel kalır.
+async function sendSahaPhotosToIframe(iframeWindow: Window, projectId?: string) {
+  try {
+    const allDocs = await api.getDokumanlar();
+    const sahaPhotos = allDocs.filter(
+      (d) => d.doc_type === 'resim' && !d.feature_id && d.lat != null && d.lng != null && (!projectId || d.project_id === projectId)
+    );
+    iframeWindow.postMessage({ type: 'kroki:saha-photos-updated', photos: sahaPhotos }, '*');
+  } catch (err) {
+    console.error('Saha fotoğrafları haritaya gönderilemedi:', err);
   }
 }
 
@@ -108,7 +123,11 @@ async function sendSchemasToIframe(iframeWindow: Window) {
 const KrokiMapModule: React.FC<KrokiMapModuleProps> = ({ activeProjectId }) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [iframeReady, setIframeReady] = useState(false);
-  const isFirstProjectRender = useRef(true);
+  // handleReady/handleAddSahaPhotos, ([] bağımlılıklı) mount effect'i
+  // içinde tanımlandığından activeProjectId'nin İLK render'daki (bayat)
+  // değerini closure'da tutar — güncel değeri her zaman bu ref üzerinden okur.
+  const activeProjectIdRef = useRef(activeProjectId);
+  useEffect(() => { activeProjectIdRef.current = activeProjectId; }, [activeProjectId]);
 
   useEffect(() => {
     const handleReady = async (event: MessageEvent) => {
@@ -143,7 +162,7 @@ const KrokiMapModule: React.FC<KrokiMapModuleProps> = ({ activeProjectId }) => {
       const dbLayers = [
         {
           id: 'db-layer-sinirlar',
-          name: `Proje Sınırları — tb_proje_sinirlari (${sinirlar.length})`,
+          name: 'Proje Sınırları',
           visible: true,
           color: '#f59e0b',
           fillColor: '#f59e0b',
@@ -155,7 +174,7 @@ const KrokiMapModule: React.FC<KrokiMapModuleProps> = ({ activeProjectId }) => {
         },
         {
           id: 'db-layer-binalar',
-          name: `Binalar 3D — tb_binalar_3d (${binalar.length})`,
+          name: 'Binalar 3D',
           visible: true,
           color: '#6366f1',
           fillColor: '#6366f1',
@@ -167,7 +186,7 @@ const KrokiMapModule: React.FC<KrokiMapModuleProps> = ({ activeProjectId }) => {
         },
         {
           id: 'db-layer-altyapi',
-          name: `Altyapı Hatları — tb_altyapi_hatlari (${altyapi.length})`,
+          name: 'Altyapı Hatları',
           visible: true,
           color: '#10b981',
           lineWidth: 2,
@@ -205,25 +224,37 @@ const KrokiMapModule: React.FC<KrokiMapModuleProps> = ({ activeProjectId }) => {
             veri_durumu: r.veri_durumu,
           },
         })),
-        ...binalar.map((r) => ({
-          id: r.id,
-          type: 'Feature',
-          geometry: { type: r.the_geom?.tip, coordinates: r.the_geom?.coordinates },
-          properties: {
-            layerId: 'db-layer-binalar',
-            tablo: LAYER_TABLE_MAP['db-layer-binalar'],
-            name: r.block_name,
-            project_id: r.project_id,
-            block_name: r.block_name,
-            building_type: r.building_type,
-            height_meters: r.height_meters,
-            floors_count: r.floors_count,
-            construction_progress: r.construction_progress,
-            structural_status: r.structural_status,
-            footprint_area_sqm: r.footprint_area_sqm,
-            veri_durumu: r.veri_durumu,
-          },
-        })),
+        ...binalar.map((r) => {
+          // Kat adedi/yükseklik bilgisi dolu olan bir bina, haritada
+          // otomatik olarak 3B (ekstrüzyonlu) çizilir — kullanıcının her
+          // birini tek tek "3B'ye çevir" ile dönüştürmesine gerek kalmaz.
+          const floors = r.floors_count || 1;
+          const floorHeight = r.height_meters && floors ? r.height_meters / floors : 3;
+          return {
+            id: r.id,
+            type: 'Feature',
+            geometry: { type: r.the_geom?.tip, coordinates: r.the_geom?.coordinates },
+            properties: {
+              layerId: 'db-layer-binalar',
+              tablo: LAYER_TABLE_MAP['db-layer-binalar'],
+              name: r.block_name,
+              project_id: r.project_id,
+              block_name: r.block_name,
+              building_type: r.building_type,
+              height_meters: r.height_meters,
+              floors_count: r.floors_count,
+              construction_progress: r.construction_progress,
+              structural_status: r.structural_status,
+              footprint_area_sqm: r.footprint_area_sqm,
+              veri_durumu: r.veri_durumu,
+              extrude: true,
+              floors,
+              floorHeight,
+              height: r.height_meters || floors * floorHeight,
+              base: 0,
+            },
+          };
+        }),
         ...altyapi.map((r) => ({
           id: r.id,
           type: 'Feature',
@@ -329,37 +360,111 @@ const KrokiMapModule: React.FC<KrokiMapModuleProps> = ({ activeProjectId }) => {
       }
     };
 
+    // Harita > Saha sekmesinden ("Kaydet") gelen konumlu fotoğraflar —
+    // EXIF GPS'ten otomatik ya da haritada tıklanarak elle belirlenen
+    // lat/lng ile birlikte gelir; doğrudan projeye bağlı (feature_id yok)
+    // birer tb_dokumanlar kaydı olarak saklanır.
+    const handleAddSahaPhotos = async (event: MessageEvent) => {
+      const iframeWindow = iframeRef.current?.contentWindow;
+      if (!iframeWindow || event.source !== iframeWindow) return;
+      const msg = event.data;
+      if (!msg || msg.type !== 'kroki:add-saha-photos' || !Array.isArray(msg.photos)) return;
+      const projectId = msg.projectId || activeProjectIdRef.current;
+      try {
+        for (const photo of msg.photos) {
+          await api.createDokuman({
+            project_id: projectId,
+            name: photo.name,
+            version: 'v1.0',
+            file_size: photo.sizeLabel,
+            upload_date: new Date().toISOString().slice(0, 10),
+            doc_type: 'resim',
+            file_data_url: photo.dataUrl || null,
+            notes: photo.notes || null,
+            lat: photo.lat,
+            lng: photo.lng,
+            approval_status: 'Approved',
+            approver: 'Saha Ekibi'
+          });
+        }
+        await sendSahaPhotosToIframe(iframeWindow, activeProjectIdRef.current);
+      } catch (err) {
+        console.error('Saha fotoğrafı eklenemedi:', err);
+      }
+    };
+
+    // Saha panelindeki "Sil" — kayıtlı bir saha fotoğrafını (tb_dokumanlar
+    // kaydı) kalıcı olarak siler, ardından güncel listeyi tekrar gönderir.
+    const handleDeleteSahaPhoto = async (event: MessageEvent) => {
+      const iframeWindow = iframeRef.current?.contentWindow;
+      if (!iframeWindow || event.source !== iframeWindow) return;
+      const msg = event.data;
+      if (!msg || msg.type !== 'kroki:delete-saha-photo' || !msg.id) return;
+      try {
+        await api.deleteDokuman(msg.id);
+        await sendSahaPhotosToIframe(iframeWindow, activeProjectIdRef.current);
+      } catch (err) {
+        console.error('Saha fotoğrafı silinemedi:', err);
+      }
+    };
+
     window.addEventListener('message', handleReady);
     window.addEventListener('message', handleAddDocuments);
     window.addEventListener('message', handleUpdateDbFeature);
+    window.addEventListener('message', handleAddSahaPhotos);
+    window.addEventListener('message', handleDeleteSahaPhoto);
     return () => {
       window.removeEventListener('message', handleReady);
       window.removeEventListener('message', handleAddDocuments);
       window.removeEventListener('message', handleUpdateDbFeature);
+      window.removeEventListener('message', handleAddSahaPhotos);
+      window.removeEventListener('message', handleDeleteSahaPhoto);
     };
   }, []);
 
   useEffect(() => {
-    // İlk render'da (uygulama açılışında) atla — sadece kullanıcı üst
-    // panelden gerçekten farklı bir proje SEÇTİĞİNDE zoom tetiklenir.
-    if (isFirstProjectRender.current) {
-      isFirstProjectRender.current = false;
-      return;
-    }
+    // Üst panelden bir proje seçildiğinde (ilk açılış dahil) o projeye ait
+    // konumlu saha fotoğraflarını (bkz. sendSahaPhotosToIframe) haritaya
+    // gönderir — hem ilk açılışta hem proje değiştiğinde günceller.
+    if (!iframeReady || !activeProjectId) return;
+    const iframeWindow = iframeRef.current?.contentWindow;
+    if (!iframeWindow) return;
+    sendSahaPhotosToIframe(iframeWindow, activeProjectId);
+  }, [activeProjectId, iframeReady]);
+
+  useEffect(() => {
+    // Üst panelden bir proje seçili olduğunda (ilk açılış dahil) doğrudan o
+    // projenin sınırına yakınlaşır — hem harita ilk açıldığında zaten seçili
+    // olan proje için, hem de kullanıcı üst panelden BAŞKA bir proje
+    // seçtiğinde (activeProjectId değiştiğinde) devreye girer.
+    //
+    // Not: bbox, data.ts'teki DURAĞAN (pristine) gisBoundaryRecords'tan değil,
+    // api.getProjeSinirlari() ile CANLI veritabanından hesaplanır — böylece
+    // zoom hedefi HER ZAMAN haritada GERÇEKTEN ÇİZİLEN (ve kullanıcı
+    // tarafından taşınmış/düzenlenmiş olabilecek) proje sınırı objesiyle
+    // birebir aynı kaynaktan gelir; aksi halde (statik veri kullanılsaydı)
+    // harita binalarla değil, sınırın ESKİ/durağan konumuyla hizalı olmayan
+    // yanlış bir noktaya yakınlaşabilirdi.
     if (!iframeReady || !activeProjectId) return;
     const iframeWindow = iframeRef.current?.contentWindow;
     if (!iframeWindow) return;
 
-    const boundary = gisBoundaryRecords.find((r) => r.project_id === activeProjectId);
-    if (!boundary || !boundary.geojson || !boundary.geojson.coordinates) return;
-    const ring: [number, number][] = boundary.geojson.coordinates[0];
-    const lngs = ring.map((c) => c[0]);
-    const lats = ring.map((c) => c[1]);
-    const bbox: [number, number, number, number] = [
-      Math.min(...lngs), Math.min(...lats), Math.max(...lngs), Math.max(...lats),
-    ];
+    let cancelled = false;
+    (async () => {
+      const sinirlar = await api.getProjeSinirlari();
+      if (cancelled) return;
+      const boundary = sinirlar.find((r) => r.project_id === activeProjectId);
+      const ring = boundary?.the_geom?.coordinates?.[0];
+      if (!boundary || !ring || !ring.length) return;
+      const lngs = ring.map((c) => c[0]);
+      const lats = ring.map((c) => c[1]);
+      const bbox: [number, number, number, number] = [
+        Math.min(...lngs), Math.min(...lats), Math.max(...lngs), Math.max(...lats),
+      ];
+      iframeWindow.postMessage({ type: 'kroki:zoom-to-project', bbox }, '*');
+    })();
 
-    iframeWindow.postMessage({ type: 'kroki:zoom-to-project', bbox }, '*');
+    return () => { cancelled = true; };
   }, [activeProjectId, iframeReady]);
 
   return (

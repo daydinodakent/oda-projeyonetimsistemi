@@ -191,6 +191,12 @@ export interface DokumanRecord extends BaseEntity {
   // ortamında gerçek bir dosya sunucusu olmadığından önizleme bu şekilde
   // sağlanır. Büyük/ikili dosyalarda (cad/bim vb.) boş bırakılır.
   file_data_url?: string | null;
+  // Harita > Saha sekmesinden eklenen coğrafi (konumlu) fotoğraflar için:
+  // fotoğrafın EXIF GPS verisinden otomatik okunan ya da kullanıcının
+  // haritada tıklayarak elle belirlediği konum. Belirli bir obje/feature'a
+  // değil doğrudan projeye bağlı, bağımsız bir harita pin'i olarak gösterilir.
+  lat?: number | null;
+  lng?: number | null;
 }
 
 // 12. Varlıklar (DATA)

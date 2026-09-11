@@ -19,7 +19,12 @@ export default defineConfig(() => {
       // Do not modifyâfile watching is disabled to prevent flickering during agent edits.
       hmr: process.env.DISABLE_HMR !== 'true',
       // Disable file watching when DISABLE_HMR is true to save CPU during agent edits.
-      watch: process.env.DISABLE_HMR === 'true' ? null : {},
+      // ÖNEMLİ: server/data/ (yerel veritabanı dosyası, bkz. server/db.js) izlemeden
+      // HARİÇ TUTULUR — aksi halde haritada bir obje her taşındığında/kaydedildiğinde
+      // arka uç bu dosyaya yazar, Vite bunu bir kaynak kodu değişikliği sanıp sayfayı
+      // tam yeniler (full reload) ve kullanıcı o an bulunduğu sekmeden/görünümden
+      // (ör. Harita > Editör) App.tsx'in başlangıç durumuna geri fırlatılır.
+      watch: process.env.DISABLE_HMR === 'true' ? null : { ignored: ['**/server/data/**'] },
       // src/services/api.ts artık bir yerel dosya veritabanı sunucusuna
       // (server/index.js, bkz. server/db.js) '/api/...' üzerinden bağlanır —
       // bu proxy sayesinde tarayıcı aynı origin'den (localhost:3000) çağırır,

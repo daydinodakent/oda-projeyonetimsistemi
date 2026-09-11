@@ -3,7 +3,10 @@
 // CBS/PostGIS tablosu (tb_proje_sinirlari, tb_binalar_3d, tb_altyapi_hatlari)
 // için kullanılır; "Dışa Aktar (.gpkg)" akışında (bkz. index.js) talep üzerine
 // bellekte üretilip indirilir — uygulamanın çalışma-zamanı veritabanı
-// (db.js / oda_pys.sqlite) bundan bağımsızdır.
+// (db.js / oda_pys.gpkg) bundan bağımsızdır — o dosyadaki 3 CBS tablosu
+// zaten bu modüldeki aynı WKB kodlayıcı/çözücüyü kullanarak canlı okunup
+// yazılıyor; bu fonksiyon ayrıca TEMİZ, sadece bu 3 katmanı içeren
+// bağımsız bir dosya indirmek isteyenler için kullanılır.
 //
 // Not: gpkg dosyası aslında SQLite'tır; burada `node:sqlite` ile GeoPackage
 // spesifikasyonunun gerektirdiği minimum meta tabloları (gpkg_spatial_ref_sys,
@@ -83,7 +86,56 @@ export function geomToGpkgBlob(geom, srid) {
   return null;
 }
 
-const SRID_WGS84 = 4326;
+// Bir GeoPackage Binary (GPB) blob'unu (geomToGpkgBlob'un ürettiği format)
+// geri {tip, coordinates} GeoJSON-benzeri nesnesine çözer — server/db.js'in
+// yaşayan (runtime) .gpkg katman tablolarından okurken kullanılır.
+export function geomFromGpkgBlob(rawBuf) {
+  if (!rawBuf || rawBuf.length < 8) return null;
+  // node:sqlite BLOB sütunlarını Buffer değil Uint8Array olarak döndürür —
+  // Buffer'a özgü readUInt8/readDoubleLE vb. metodlar için sarmalanır.
+  const buf = Buffer.isBuffer(rawBuf) ? rawBuf : Buffer.from(rawBuf.buffer, rawBuf.byteOffset, rawBuf.byteLength);
+  if (buf[0] !== 0x47 || buf[1] !== 0x50) return null; // 'GP' magic
+  const flags = buf.readUInt8(3);
+  const envelopeIndicator = (flags >> 1) & 0x07;
+  const envelopeSizes = [0, 32, 48, 48, 64];
+  const envSize = envelopeSizes[envelopeIndicator] || 0;
+  let offset = 8 + envSize;
+
+  const byteOrder = buf.readUInt8(offset);
+  const little = byteOrder === 1;
+  const readU32 = (o) => (little ? buf.readUInt32LE(o) : buf.readUInt32BE(o));
+  const readF64 = (o) => (little ? buf.readDoubleLE(o) : buf.readDoubleBE(o));
+  const wkbType = readU32(offset + 1);
+  offset += 5;
+
+  function readPoint(o) { return [readF64(o), readF64(o + 8)]; }
+  function readRing(o) {
+    const n = readU32(o); o += 4;
+    const pts = [];
+    for (let i = 0; i < n; i++) { pts.push(readPoint(o)); o += 16; }
+    return { pts, next: o };
+  }
+
+  if (wkbType === WKB_POINT) {
+    return { tip: 'Point', coordinates: readPoint(offset) };
+  }
+  if (wkbType === WKB_LINESTRING) {
+    return { tip: 'LineString', coordinates: readRing(offset).pts };
+  }
+  if (wkbType === WKB_POLYGON) {
+    const numRings = readU32(offset); offset += 4;
+    const rings = [];
+    for (let r = 0; r < numRings; r++) {
+      const { pts, next } = readRing(offset);
+      rings.push(pts);
+      offset = next;
+    }
+    return { tip: 'Polygon', coordinates: rings };
+  }
+  return null;
+}
+
+export const SRID_WGS84 = 4326;
 
 // layers: [{ tableName, description, records, columns }]
 // - columns: özellik (attribute) sütun adları listesi (geometri hariç).
@@ -170,7 +222,7 @@ export function buildGeoPackageBuffer(layers, tmpFilePath) {
   return buf;
 }
 
-function flattenCoords(geom) {
+export function flattenCoords(geom) {
   if (!geom || !geom.coordinates) return [];
   if (geom.tip === 'Point') return [geom.coordinates];
   if (geom.tip === 'LineString') return geom.coordinates;
