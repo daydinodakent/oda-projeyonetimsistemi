@@ -53,17 +53,27 @@ async function sendDocumentsToIframe(iframeWindow: Window) {
 }
 
 // Harita > Saha sekmesinden eklenen, belirli bir obje/feature'a değil
-// doğrudan projeye bağlı, konumlu (lat/lng) saha fotoğraflarını (tb_dokumanlar,
-// doc_type:'resim') Kroki iframe'ine gönderir — hem ilk açılışta/proje
+// doğrudan projeye bağlı, konumlu saha fotoğraflarını (tb_saha_fotograflari —
+// gerçek bir GeoPackage nokta katmanı, bkz. server/db.js SPATIAL_TABLES ve
+// SahaFotografRecord) Kroki iframe'ine gönderir — hem ilk açılışta/proje
 // değiştiğinde hem de yeni fotoğraf eklendikten sonra çağrılır, böylece
 // Saha panelindeki harita pin'leri ve alt filmstrip her zaman güncel kalır.
+// Kroki tarafı (legacy HTML aracı) düz lat/lng ile çalıştığı için the_geom
+// (Point) burada, React↔iframe sınırında, lat/lng'e dönüştürülür.
 async function sendSahaPhotosToIframe(iframeWindow: Window, projectId?: string) {
   try {
-    const allDocs = await api.getDokumanlar();
-    const sahaPhotos = allDocs.filter(
-      (d) => d.doc_type === 'resim' && !d.feature_id && d.lat != null && d.lng != null && (!projectId || d.project_id === projectId)
-    );
-    iframeWindow.postMessage({ type: 'kroki:saha-photos-updated', photos: sahaPhotos }, '*');
+    const all = await api.getSahaFotograflari();
+    const photos = all
+      .filter((p) => p.the_geom?.coordinates && (!projectId || p.project_id === projectId))
+      .map((p) => ({
+        id: p.id,
+        name: p.name,
+        notes: p.notes,
+        file_data_url: p.file_data_url,
+        lng: p.the_geom!.coordinates[0],
+        lat: p.the_geom!.coordinates[1]
+      }));
+    iframeWindow.postMessage({ type: 'kroki:saha-photos-updated', photos }, '*');
   } catch (err) {
     console.error('Saha fotoğrafları haritaya gönderilemedi:', err);
   }
@@ -93,6 +103,10 @@ async function fetchRelationOptions(tableName: string): Promise<{ id: any; label
     }
     case 'tb_data_status': {
       const rows = await api.getVeriDurumlari();
+      return rows.map((r) => ({ id: r.id, label: r.name }));
+    }
+    case 'tb_altyapi_tipi': {
+      const rows = await api.getAltyapiTipleri();
       return rows.map((r) => ({ id: r.id, label: r.name }));
     }
     default:
@@ -144,11 +158,18 @@ const KrokiMapModule: React.FC<KrokiMapModuleProps> = ({ activeProjectId }) => {
       // kaydedilmiş (handleUpdateDbFeature → api.updateProjeSiniri/updateBina3D/
       // updateAltyapiHatti) bir obje, harita yeniden yüklendiğinde eski/orijinal
       // konumuyla değil SON KAYDEDİLMİŞ haliyle görüntülenir.
-      const [sinirlar, binalar, altyapi] = await Promise.all([
+      const [sinirlar, binalar, altyapi, altyapiTipleri] = await Promise.all([
         api.getProjeSinirlari(),
         api.getBinalar3D(),
         api.getAltyapiHatlari(),
+        api.getAltyapiTipleri(),
       ]);
+      // Her altyapı tipinin (içmesuyu/atıksu/yağmursuyu/doğalgaz/elektrik/
+      // fiber) kendi haritada çizim rengi — aşağıda her hat objesine
+      // 'line_color' özniteliği olarak eklenir (bkz. Kroki'deki
+      // visibleFeaturesForRender → __layerColor override'ı).
+      const altyapiColorByType: Record<string, string> = {};
+      altyapiTipleri.forEach((t) => { altyapiColorByType[String(t.id)] = t.color; });
 
       const dbFolder = {
         id: 'folder-db',
@@ -272,6 +293,7 @@ const KrokiMapModule: React.FC<KrokiMapModuleProps> = ({ activeProjectId }) => {
             status: r.status,
             total_length_meters: r.total_length_meters,
             veri_durumu: r.veri_durumu,
+            line_color: altyapiColorByType[String(r.line_type)] || '#10b981',
           },
         })),
       ];
@@ -372,19 +394,14 @@ const KrokiMapModule: React.FC<KrokiMapModuleProps> = ({ activeProjectId }) => {
       const projectId = msg.projectId || activeProjectIdRef.current;
       try {
         for (const photo of msg.photos) {
-          await api.createDokuman({
+          await api.createSahaFotografi({
             project_id: projectId,
             name: photo.name,
-            version: 'v1.0',
             file_size: photo.sizeLabel,
             upload_date: new Date().toISOString().slice(0, 10),
-            doc_type: 'resim',
             file_data_url: photo.dataUrl || null,
             notes: photo.notes || null,
-            lat: photo.lat,
-            lng: photo.lng,
-            approval_status: 'Approved',
-            approver: 'Saha Ekibi'
+            the_geom: { tip: 'Point', coordinates: [photo.lng, photo.lat] }
           });
         }
         await sendSahaPhotosToIframe(iframeWindow, activeProjectIdRef.current);
@@ -401,7 +418,7 @@ const KrokiMapModule: React.FC<KrokiMapModuleProps> = ({ activeProjectId }) => {
       const msg = event.data;
       if (!msg || msg.type !== 'kroki:delete-saha-photo' || !msg.id) return;
       try {
-        await api.deleteDokuman(msg.id);
+        await api.deleteSahaFotografi(msg.id);
         await sendSahaPhotosToIframe(iframeWindow, activeProjectIdRef.current);
       } catch (err) {
         console.error('Saha fotoğrafı silinemedi:', err);

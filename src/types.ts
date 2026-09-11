@@ -163,7 +163,9 @@ export interface GISInfrastructureRecord {
   id: string;
   table_name: 'tb_altyapi_hatlari';
   project_id: string;
-  line_type: 'elektrik' | 'su' | 'gaz' | 'yakit' | 'telekom' | 'drenaj';
+  // 6 altyapı tipi — tb_altyapi_tipi liste tablosuna FK (bkz. src/types/index.ts
+  // AltyapiTipiRecord); haritada her tip kendi rengiyle çizilir.
+  line_type: 'icmesuyu' | 'atiksu' | 'yagmursuyu' | 'dogalgaz' | 'elektrik' | 'fiber';
   network_name: string;
   pipe_or_cable_spec: string;
   depth_meters: number;
