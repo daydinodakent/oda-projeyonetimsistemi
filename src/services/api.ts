@@ -7,10 +7,12 @@ import {
   ProjeSiniriRecord,
   Bina3DRecord,
   AltyapiHattiRecord,
+  AltyapiTipiRecord,
   BlokRecord,
   RuhsatRecord,
   WbsGorevRecord,
   DokumanRecord,
+  SahaFotografRecord,
   VarlikRecord,
   BakimKaydiRecord,
   BildirimRecord,
@@ -133,6 +135,19 @@ const veriDurumlariSeed: VeriDurumuRecord[] = [
   { id: 'İnşaat', notes: 'Sahada inşaat/uygulama aşamasında', row_status: 1, create_uid: 1, create_date: '2026-01-01', write_uid: 1, write_date: '2026-08-27', code: 'insaat', name: 'İnşaat' },
   { id: 'İşletme', notes: 'Tamamlanmış, işletmede', row_status: 1, create_uid: 1, create_date: '2026-01-01', write_uid: 1, write_date: '2026-08-27', code: 'isletme', name: 'İşletme' },
   { id: 'İptal', notes: 'İptal edilmiş / geçersiz kayıt', row_status: 1, create_uid: 1, create_date: '2026-01-01', write_uid: 1, write_date: '2026-08-27', code: 'iptal', name: 'İptal' }
+];
+
+// Altyapı Tipleri (tb_altyapi_tipi) — tb_altyapi_hatlari.line_type sütununun
+// FK ile bağlandığı liste; her tipin haritada çizilirken kullanılan kendi
+// rengi vardır (bkz. sutunlarSeed'deki relation_table='tb_altyapi_tipi' ve
+// KrokiMapModule.tsx'in her altyapı objesine eklediği 'line_color').
+const altyapiTipleriSeed: AltyapiTipiRecord[] = [
+  { id: 'icmesuyu', notes: 'İçmesuyu şebeke hattı', row_status: 1, create_uid: 1, create_date: '2026-01-01', write_uid: 1, write_date: '2026-08-27', code: 'icmesuyu', name: 'İçmesuyu', color: '#3b82f6' },
+  { id: 'atiksu', notes: 'Atıksu (kanalizasyon) hattı', row_status: 1, create_uid: 1, create_date: '2026-01-01', write_uid: 1, write_date: '2026-08-27', code: 'atiksu', name: 'Atıksu', color: '#92400e' },
+  { id: 'yagmursuyu', notes: 'Yağmursuyu drenaj hattı', row_status: 1, create_uid: 1, create_date: '2026-01-01', write_uid: 1, write_date: '2026-08-27', code: 'yagmursuyu', name: 'Yağmursuyu', color: '#06b6d4' },
+  { id: 'dogalgaz', notes: 'Doğalgaz dağıtım hattı', row_status: 1, create_uid: 1, create_date: '2026-01-01', write_uid: 1, write_date: '2026-08-27', code: 'dogalgaz', name: 'Doğalgaz', color: '#eab308' },
+  { id: 'elektrik', notes: 'Elektrik (AG/OG) kablo hattı', row_status: 1, create_uid: 1, create_date: '2026-01-01', write_uid: 1, write_date: '2026-08-27', code: 'elektrik', name: 'Elektrik', color: '#ef4444' },
+  { id: 'fiber', notes: 'Fiber optik / telekom hattı', row_status: 1, create_uid: 1, create_date: '2026-01-01', write_uid: 1, write_date: '2026-08-27', code: 'fiber', name: 'Fiber Hat', color: '#a855f7' }
 ];
 
 const rollerSeed: RolRecord[] = [
@@ -489,7 +504,7 @@ const sutunlarSeed: TabloSutunRecord[] = [
   { table_name: 'tb_altyapi_hatlari', column_name: 'write_date', data_type: 'timestamp', is_nullable: true, is_standard: true, is_hidden: true, display_name: 'Güncelleme Tarihi' },
   { table_name: 'tb_altyapi_hatlari', column_name: 'name', data_type: 'varchar(255)', is_nullable: false, description: 'Kayıt adı', is_hidden: false, display_name: 'Ad' },
   { table_name: 'tb_altyapi_hatlari', column_name: 'project_id', data_type: 'varchar(50)', is_nullable: false, description: 'Proje ID', relation_table: 'tb_projeler', relation_column: 'id', relation_display_column: 'name', is_hidden: false, display_name: 'Proje' },
-  { table_name: 'tb_altyapi_hatlari', column_name: 'line_type', data_type: 'varchar(50)', is_nullable: false, description: 'Hat türü (elektrik, su, gaz, telekom vb.)', is_hidden: false, display_name: 'Hat Türü' },
+  { table_name: 'tb_altyapi_hatlari', column_name: 'line_type', data_type: 'varchar(50)', is_nullable: false, description: 'Altyapı tipi — haritada bu tipe ait renkle çizilir', is_hidden: false, display_name: 'Altyapı Tipi', relation_table: 'tb_altyapi_tipi', relation_column: 'id', relation_display_column: 'name' },
   { table_name: 'tb_altyapi_hatlari', column_name: 'network_name', data_type: 'varchar(255)', is_nullable: false, description: 'Şebeke tanımı', is_hidden: false, display_name: 'Şebeke Adı' },
   { table_name: 'tb_altyapi_hatlari', column_name: 'pipe_or_cable_spec', data_type: 'varchar(255)', is_nullable: false, description: 'Kablo veya boru kesit spesifikasyonu', is_hidden: false, display_name: 'Kablo/Boru Özelliği' },
   { table_name: 'tb_altyapi_hatlari', column_name: 'depth_meters', data_type: 'numeric(6,2)', is_nullable: false, description: 'Gömü derinliği (m)', is_hidden: false, display_name: 'Gömü Derinliği (m)' },
@@ -617,6 +632,40 @@ export async function updateVeriDurumu(id: number | string, item: Partial<VeriDu
 export async function deleteVeriDurumu(id: number | string): Promise<boolean> {
   await ensureSeeded('tb_data_status', veriDurumlariSeed);
   return apiSoftDelete('tb_data_status', id);
+}
+
+// 2c. TABLO ADI (tb_altyapi_tipi)
+export async function getAltyapiTipleri(): Promise<AltyapiTipiRecord[]> {
+  await ensureSeeded('tb_altyapi_tipi', altyapiTipleriSeed);
+  return apiList<AltyapiTipiRecord>('tb_altyapi_tipi');
+}
+export async function getAltyapiTipiById(id: number | string): Promise<AltyapiTipiRecord | null> {
+  await ensureSeeded('tb_altyapi_tipi', altyapiTipleriSeed);
+  return apiGet<AltyapiTipiRecord>('tb_altyapi_tipi', id);
+}
+export async function createAltyapiTipi(item: Partial<AltyapiTipiRecord>): Promise<AltyapiTipiRecord> {
+  await ensureSeeded('tb_altyapi_tipi', altyapiTipleriSeed);
+  const newItem: AltyapiTipiRecord = {
+    id: item.id || `altyapi_tipi_${Date.now()}`,
+    notes: item.notes || null,
+    row_status: 1,
+    create_uid: 1,
+    create_date: new Date().toISOString(),
+    write_uid: 1,
+    write_date: new Date().toISOString(),
+    code: item.code || `altyapi_tipi_${Date.now()}`,
+    name: item.name || 'Yeni Altyapı Tipi',
+    color: item.color || '#3fc2ac'
+  };
+  return apiCreate('tb_altyapi_tipi', newItem);
+}
+export async function updateAltyapiTipi(id: number | string, item: Partial<AltyapiTipiRecord>): Promise<AltyapiTipiRecord> {
+  await ensureSeeded('tb_altyapi_tipi', altyapiTipleriSeed);
+  return apiUpdate<AltyapiTipiRecord>('tb_altyapi_tipi', id, { ...item, write_date: new Date().toISOString() });
+}
+export async function deleteAltyapiTipi(id: number | string): Promise<boolean> {
+  await ensureSeeded('tb_altyapi_tipi', altyapiTipleriSeed);
+  return apiSoftDelete('tb_altyapi_tipi', id);
 }
 
 // 3. TABLO ADI (tb_kullanici_rolleri)
@@ -986,9 +1035,7 @@ export async function createDokuman(item: Partial<DokumanRecord>): Promise<Dokum
     approval_status: item.approval_status || 'Approved',
     approver: item.approver || 'BIM Koordinatörü',
     doc_type: item.doc_type,
-    file_data_url: item.file_data_url || null,
-    lat: item.lat ?? null,
-    lng: item.lng ?? null
+    file_data_url: item.file_data_url || null
   };
   return apiCreate('tb_dokumanlar', newItem);
 }
@@ -999,6 +1046,37 @@ export async function updateDokuman(id: number | string, item: Partial<DokumanRe
 export async function deleteDokuman(id: number | string): Promise<boolean> {
   await ensureSeeded('tb_dokumanlar', dokumanlarSeed);
   return apiSoftDelete('tb_dokumanlar', id);
+}
+
+// 11c. TABLO ADI (tb_saha_fotograflari) — bkz. SahaFotografRecord tip tanımı;
+// gerçek bir GeoPackage nokta katmanı (server/db.js SPATIAL_TABLES).
+export async function getSahaFotograflari(): Promise<SahaFotografRecord[]> {
+  await ensureSeeded('tb_saha_fotograflari', []);
+  return apiList<SahaFotografRecord>('tb_saha_fotograflari');
+}
+export async function createSahaFotografi(item: Partial<SahaFotografRecord>): Promise<SahaFotografRecord> {
+  await ensureSeeded('tb_saha_fotograflari', []);
+  const newItem: SahaFotografRecord = {
+    id: item.id || `saha-${Date.now()}`,
+    notes: item.notes || null,
+    row_status: 1,
+    create_uid: 1,
+    create_date: new Date().toISOString(),
+    write_uid: 1,
+    write_date: new Date().toISOString(),
+    project_id: item.project_id || 'IGA-ETAP-1',
+    name: item.name || 'Saha Fotoğrafı',
+    file_size: item.file_size || '0 KB',
+    upload_date: item.upload_date || new Date().toISOString().slice(0, 10),
+    file_data_url: item.file_data_url || null,
+    srid: 4326,
+    the_geom: item.the_geom
+  };
+  return apiCreate('tb_saha_fotograflari', newItem);
+}
+export async function deleteSahaFotografi(id: number | string): Promise<boolean> {
+  await ensureSeeded('tb_saha_fotograflari', []);
+  return apiSoftDelete('tb_saha_fotograflari', id);
 }
 
 // 12. TABLO ADI (tb_varliklar)

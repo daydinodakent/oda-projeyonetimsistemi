@@ -102,11 +102,22 @@ export interface Bina3DRecord extends BaseEntity {
   };
 }
 
+// 6b. Altyapı Tipleri (LISTE) — tb_altyapi_hatlari.line_type sütununun FK
+// ile bağlandığı ortak altyapı türü listesi (bkz. tb_altyapi_tipi). Her
+// türün haritada çizilirken kullanılan kendi rengi vardır (bkz.
+// KrokiMapModule.tsx'in altyapı objelerine eklediği 'line_color' özniteliği
+// ve Kroki'deki visibleFeaturesForRender → __layerColor override'ı).
+export interface AltyapiTipiRecord extends BaseEntity {
+  name: string;
+  code: string;
+  color: string; // hex renk, ör. '#3b82f6'
+}
+
 // 7. Altyapı Hatları (GEOMETRI - LINESTRING)
 export interface AltyapiHattiRecord extends BaseEntity {
   name: string;
   project_id: string;
-  line_type: 'elektrik' | 'su' | 'gaz' | 'yakit' | 'telekom' | 'drenaj';
+  line_type: 'icmesuyu' | 'atiksu' | 'yagmursuyu' | 'dogalgaz' | 'elektrik' | 'fiber';
   network_name: string;
   pipe_or_cable_spec: string;
   depth_meters: number;
@@ -191,12 +202,28 @@ export interface DokumanRecord extends BaseEntity {
   // ortamında gerçek bir dosya sunucusu olmadığından önizleme bu şekilde
   // sağlanır. Büyük/ikili dosyalarda (cad/bim vb.) boş bırakılır.
   file_data_url?: string | null;
-  // Harita > Saha sekmesinden eklenen coğrafi (konumlu) fotoğraflar için:
-  // fotoğrafın EXIF GPS verisinden otomatik okunan ya da kullanıcının
-  // haritada tıklayarak elle belirlediği konum. Belirli bir obje/feature'a
-  // değil doğrudan projeye bağlı, bağımsız bir harita pin'i olarak gösterilir.
-  lat?: number | null;
-  lng?: number | null;
+}
+
+// 11b. Saha Fotoğrafları (GEOMETRI - POINT) — Harita > Saha sekmesinden
+// eklenen, belirli bir obje/feature'a değil doğrudan projeye bağlı, konumlu
+// (EXIF GPS ile otomatik ya da haritada tıklanarak elle belirlenen) galeri
+// fotoğrafları. tb_dokumanlar'dan AYRI, gerçek bir GeoPackage nokta katmanı
+// olarak saklanır (bkz. server/db.js SPATIAL_TABLES) — böylece .gpkg dosyası
+// QGIS gibi bir GIS aracında açıldığında bu fotoğraflar da gerçek bir
+// coğrafi katman olarak görünür.
+export interface SahaFotografRecord extends BaseEntity {
+  project_id: string;
+  name: string;
+  notes?: string | null;
+  file_size: string;
+  upload_date: string;
+  // bkz. DokumanRecord.file_data_url — aynı base64 önizleme yaklaşımı.
+  file_data_url?: string | null;
+  srid: number;
+  the_geom?: {
+    tip: 'Point';
+    coordinates: [number, number];
+  };
 }
 
 // 12. Varlıklar (DATA)

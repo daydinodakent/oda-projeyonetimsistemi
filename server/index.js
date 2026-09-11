@@ -13,13 +13,30 @@
 // seedIfEmpty fonksiyonlarını gerçek bir PostgreSQL/PostGIS istemcisiyle
 // (pg) değiştiren eşdeğer bir modül yazıp burada import edilmesi yeterlidir
 // — aşağıdaki route katmanı değişmeden kalır.
+//
+// PRODUCTION DAĞITIMI (build alıp başka bir sunucuya/domain'e koyma):
+// Geliştirmede `/api` istekleri Vite'ın kendi dev sunucusu tarafından bu
+// sürece proxy'lenir (bkz. vite.config.ts) — ama `vite build` ile üretilen
+// STATİK dosyalar (dist/) başka bir web sunucusuna (nginx, Apache, sadece
+// statik dosya barındıran herhangi bir hosting) konduğunda o proxy artık
+// yoktur ve tarayıcının `/api/...` istekleri karşılıksız kalır (harita hiç
+// veri yüklemez). Bunu KÖKTEN çözmek için bu SUNUCU, kendi API rotalarının
+// yanı sıra `dist/` içindeki derlenmiş frontend'i de AYNI süreçte/portta
+// sunar (bkz. aşağıdaki express.static + SPA fallback) — böylece deploy tek
+// bir adımdır: `npm run build && npm start` (veya pm2 ile `node server/index.js`),
+// ayrıca bir reverse-proxy/ayrı port yapılandırmasına GEREK KALMAZ; ister o
+// portu doğrudan (ör. pys.odakent.com.tr:4001) yayınlayın, ister isterseniz
+// yine de kendi domain'inizin 80/443'üne nginx ile bağlayın — her iki
+// durumda da `/api` ve statik dosyalar zaten aynı origin'den gelir.
 import express from 'express';
 import { listRecords, getRecord, putRecord, seedIfEmpty } from './db.js';
 import { buildGeoPackageBuffer } from './gpkg.js';
 import path from 'node:path';
+import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const DIST_DIR = path.join(__dirname, '..', 'dist');
 
 const app = express();
 app.use(express.json({ limit: '25mb' })); // doküman önizlemeleri (base64) için yüksek limit
@@ -51,6 +68,10 @@ const GPKG_LAYERS = [
   {
     tableName: 'tb_altyapi_hatlari', description: 'Altyapı Hatları', geomType: 'LINESTRING',
     columns: ['name', 'project_id', 'line_type', 'network_name', 'pipe_or_cable_spec', 'depth_meters', 'voltage_or_pressure', 'total_length_meters', 'status', 'veri_durumu'],
+  },
+  {
+    tableName: 'tb_saha_fotograflari', description: 'Saha Fotoğrafları', geomType: 'POINT',
+    columns: ['name', 'project_id', 'notes', 'upload_date'],
   },
 ];
 
@@ -114,7 +135,28 @@ app.post('/api/:table/seed', (req, res) => {
   res.json({ seeded, count: listRecords(req.params.table).length });
 });
 
+// --- Derlenmiş frontend'i (dist/) aynı süreçten sun ---
+// NOT: tüm /api rotalarından SONRA tanımlanmalıdır — aksi halde bu, "/api/..."
+// isteklerini de statik dosya olarak eşleştirmeye çalışıp 404 döndürürdü.
+// `dist/` henüz build alınmamışsa (ör. `npm run dev:full` ile sadece API
+// geliştirme modunda çalıştırılıyorsa) bu middleware'ler sessizce hiçbir şey
+// yapmaz — sadece `npm run build` sonrası (production) devreye girer.
+const distExists = fs.existsSync(path.join(DIST_DIR, 'index.html'));
+if (distExists) {
+  app.use(express.static(DIST_DIR));
+  // SPA fallback: bilinmeyen (client-side) bir yola doğrudan gidilirse veya
+  // sayfa yenilenirse de her zaman index.html döner — "/api" ile başlayan
+  // yollar zaten yukarıdaki rotalarca ele alınmış olduğundan buraya hiç
+  // düşmez.
+  app.get(/^(?!\/api).*/, (req, res) => {
+    res.sendFile(path.join(DIST_DIR, 'index.html'));
+  });
+}
+
 const PORT = process.env.ODA_API_PORT || 4001;
 app.listen(PORT, () => {
   console.log(`[oda-pys-api] http://localhost:${PORT} (GeoPackage: server/data/oda_pys.gpkg)`);
+  console.log(distExists
+    ? `[oda-pys-api] dist/ bulundu — frontend de aynı porttan sunuluyor (production).`
+    : `[oda-pys-api] dist/ bulunamadı — sadece API modunda çalışıyor (geliştirme, bkz. npm run dev:full).`);
 });

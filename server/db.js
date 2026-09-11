@@ -83,6 +83,9 @@ const SPATIAL_TABLES = {
   tb_proje_sinirlari: { geomType: 'POLYGON', description: 'Proje Sınırları' },
   tb_binalar_3d: { geomType: 'POLYGON', description: 'Binalar 3D' },
   tb_altyapi_hatlari: { geomType: 'LINESTRING', description: 'Altyapı Hatları' },
+  // Harita > Saha sekmesinden eklenen konumlu galeri fotoğrafları — gerçek
+  // bir GeoPackage nokta katmanı (bkz. src/types/index.ts SahaFotografRecord).
+  tb_saha_fotograflari: { geomType: 'POINT', description: 'Saha Fotoğrafları' },
 };
 
 const insertContentsStmt = db.prepare(

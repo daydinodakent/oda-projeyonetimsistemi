@@ -1784,7 +1784,10 @@ export default function App() {
             ))}
 
             {/* 3. CENTER AREA CONTENT */}
-            <main className="flex-1 min-w-0 flex flex-col gap-3 panel-transition p-4 overflow-y-auto h-full">
+            {/* Harita penceresi için padding kullanıcı isteğiyle %70 azaltıldı
+                (p-4=16px → ~4.8px); diğer sekmeler (gantt/kpis/dashboard)
+                orijinal p-4 dolgusunu korur. */}
+            <main className={`flex-1 min-w-0 flex flex-col gap-3 panel-transition overflow-y-auto h-full ${centerTab === 'map' ? 'p-[4.8px]' : 'p-4'}`}>
               
 
 
@@ -1803,7 +1806,8 @@ export default function App() {
                 )}
 
                 {centerTab === 'map' && (
-                  <div className="w-full h-[calc(100vh-170px)] min-h-[500px] bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl overflow-hidden shadow-2xl relative animate-fade-in">
+                  // Köşe yuvarlaklığı kullanıcı isteğiyle %90 azaltıldı (rounded-2xl=16px → ~1.6px).
+                  <div className="w-full h-[calc(100vh-170px)] min-h-[500px] bg-[var(--bg-secondary)] border border-[var(--border)] rounded-[1.6px] overflow-hidden shadow-2xl relative animate-fade-in">
                     <KrokiMapModule activeProjectId={selectedProjectId} />
                   </div>
                 )}
