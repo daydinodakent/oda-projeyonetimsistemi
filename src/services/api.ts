@@ -1069,6 +1069,7 @@ export async function createSahaFotografi(item: Partial<SahaFotografRecord>): Pr
     file_size: item.file_size || '0 KB',
     upload_date: item.upload_date || new Date().toISOString().slice(0, 10),
     file_data_url: item.file_data_url || null,
+    doc_type: item.doc_type || 'resim',
     srid: 4326,
     the_geom: item.the_geom
   };

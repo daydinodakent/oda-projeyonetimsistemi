@@ -219,6 +219,10 @@ export interface SahaFotografRecord extends BaseEntity {
   upload_date: string;
   // bkz. DokumanRecord.file_data_url — aynı base64 önizleme yaklaşımı.
   file_data_url?: string | null;
+  // Dosya türü: resim, video, cad, gis, bim, diğer (pdf/docx/xlsx vb. 'diger'
+  // altında sınıflanır) — bkz. DokumanRecord.doc_type ile aynı taksonomi.
+  // Saha artık yalnızca fotoğraf değil, konumlu her türlü saha dosyasını kabul eder.
+  doc_type?: 'resim' | 'video' | 'cad' | 'gis' | 'bim' | 'diger';
   srid: number;
   the_geom?: {
     tip: 'Point';

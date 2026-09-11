@@ -70,6 +70,7 @@ async function sendSahaPhotosToIframe(iframeWindow: Window, projectId?: string) 
         name: p.name,
         notes: p.notes,
         file_data_url: p.file_data_url,
+        doc_type: p.doc_type || 'resim',
         lng: p.the_geom!.coordinates[0],
         lat: p.the_geom!.coordinates[1]
       }));
@@ -401,6 +402,7 @@ const KrokiMapModule: React.FC<KrokiMapModuleProps> = ({ activeProjectId }) => {
             upload_date: new Date().toISOString().slice(0, 10),
             file_data_url: photo.dataUrl || null,
             notes: photo.notes || null,
+            doc_type: photo.docType || 'resim',
             the_geom: { tip: 'Point', coordinates: [photo.lng, photo.lat] }
           });
         }

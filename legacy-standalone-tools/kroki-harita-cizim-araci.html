@@ -340,6 +340,10 @@
   }
   .saha-photo-thumb-wrap{flex:0 0 auto;width:56px;height:56px;border-radius:2px;overflow:hidden;background:var(--bg-deep);}
   .saha-photo-thumb{width:100%;height:100%;object-fit:cover;display:block;}
+  /* Fotoğraf dışındaki saha dosyaları (video/cad/gis/bim/diğer) için küçük
+     resim yerine gösterilen renkli, tür etiketli simge — pending kart, kayıtlı
+     liste satırı ve filmstrip'te ortak kullanılır (bkz. sahaThumbHtml). */
+  .saha-type-thumb{width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:9.5px;font-weight:700;letter-spacing:.2px;border-radius:2px;}
   .saha-photo-info{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:4px;}
   .saha-photo-name{font-size:12px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .saha-gps-badge{font-size:10px;display:inline-flex;align-items:center;gap:3px;width:fit-content;padding:1px 6px;border-radius:8px;}
@@ -365,7 +369,8 @@
   .saha-saved-coord{font-family:var(--font-mono);font-size:10px;color:var(--text-dim);}
   /* Haritadaki saha fotoğrafı pin popup'ı */
   .saha-popup{max-width:180px;}
-  .saha-popup-img{width:100%;border-radius:2px;display:block;margin-bottom:6px;}
+  .saha-popup-img{width:100%;border-radius:2px;display:block;margin-bottom:6px;cursor:zoom-in;}
+  .saha-popup-img.saha-type-thumb{height:80px;font-size:13px;}
   .saha-popup-name{font-size:12px;font-weight:600;color:#0f1e29;}
   .saha-popup-notes{font-size:11px;color:#3c4c56;margin-top:3px;white-space:pre-wrap;}
   .saha-popup-coord{font-family:var(--font-mono);font-size:10px;color:#6b7684;margin-top:4px;}
@@ -413,6 +418,21 @@
   }
   #sahaLightbox.hidden{display:none;}
   #sahaLightboxImg{max-width:min(82vw,900px);max-height:70vh;object-fit:contain;border-radius:4px;box-shadow:0 10px 40px rgba(0,0,0,.6);}
+  #sahaLightboxImg.hidden{display:none;}
+  /* Fotoğraf dışındaki saha dosyaları için — video/PDF gerçek bir viewer'la,
+     diğer türler (cad/gis/bim/diğer, tarayıcıda önizlenemeyen) bir bilgi
+     kartı + indirme düğmesiyle gösterilir (bkz. renderLightbox). */
+  #sahaLightboxVideo{max-width:min(82vw,900px);max-height:70vh;border-radius:4px;box-shadow:0 10px 40px rgba(0,0,0,.6);background:#000;}
+  #sahaLightboxVideo.hidden{display:none;}
+  #sahaLightboxPdf{width:min(82vw,900px);height:70vh;border:none;border-radius:4px;background:#fff;box-shadow:0 10px 40px rgba(0,0,0,.6);}
+  #sahaLightboxPdf.hidden{display:none;}
+  #sahaLightboxFallback{
+    width:min(82vw,420px);padding:32px 24px;border-radius:8px;background:var(--bg-panel);
+    border:1px solid var(--line);display:flex;flex-direction:column;align-items:center;gap:12px;
+  }
+  #sahaLightboxFallback.hidden{display:none;}
+  #sahaLightboxFallbackBadge{padding:4px 12px;border-radius:10px;font-size:12px;font-weight:700;color:#fff;}
+  #sahaLightboxFallbackText{color:var(--text-dim);font-size:12.5px;text-align:center;}
   #sahaLightboxCaption{text-align:center;max-width:80vw;}
   #sahaLightboxName{color:#fff;font-size:14px;font-weight:600;}
   #sahaLightboxNotes{color:#b7c3cc;font-size:12.5px;margin-top:4px;white-space:pre-wrap;}
@@ -1290,11 +1310,11 @@
        kullanıcı haritada tıklayarak elle bir pin ile konumlandırır. Kaydedilen
        fotoğraflar haritada pin olarak gösterilir (bkz. ensureSahaPhotoLayer). -->
   <div class="module-page" data-module-page="saha" style="display:none;">
-    <span class="field-label" style="margin-bottom:0;">Saha Fotoğrafları <span style="font-weight:400;">— konumlu galeri: EXIF GPS varsa otomatik, yoksa haritada pinleyin</span></span>
+    <span class="field-label" style="margin-bottom:0;">Saha Dosyaları <span style="font-weight:400;">— konumlu galeri: fotoğraf/video/PDF/CAD/GIS/BİM ve diğer dosyalar; EXIF GPS varsa otomatik, yoksa haritada pinleyin</span></span>
 
-    <input type="file" id="sahaPhotoInput" accept="image/*" multiple style="display:none;">
+    <input type="file" id="sahaPhotoInput" accept="image/*,video/*,application/pdf,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.dwg,.dxf,.skp,.rvt,.ifc,.shp,.geojson,.json,.kml,.kmz,.gpkg,.nwd,.nwc" multiple style="display:none;">
     <div class="btn-row">
-      <div class="btn primary" id="btnSahaAddPhoto" style="flex:1;">+ Fotoğraf Ekle</div>
+      <div class="btn primary" id="btnSahaAddPhoto" style="flex:1;">+ Dosya Ekle</div>
     </div>
 
     <div id="sahaPendingList"></div>
@@ -1304,10 +1324,10 @@
     </div>
 
     <div class="hint" id="sahaEmptyHint" style="border:1px dashed var(--line);border-radius:2px;padding:14px;margin-top:0;">
-      Henüz saha fotoğrafı eklenmedi. Eklediğiniz fotoğraf EXIF konum verisi içeriyorsa konumu otomatik okunur; içermiyorsa "Haritada Konumla" ile bir pin bırakırsınız.
+      Henüz saha dosyası eklenmedi. Fotoğraf EXIF konum verisi içeriyorsa konumu otomatik okunur; diğer tüm dosya türlerinde (video/PDF/CAD/GIS/BİM/diğer) "Haritada Konumla" ile bir pin bırakırsınız.
     </div>
 
-    <span class="field-label" style="margin-bottom:0;margin-top:4px;">Kayıtlı Saha Fotoğrafları <span id="sahaSavedCount" style="font-weight:400;color:var(--text-dim);">(0)</span></span>
+    <span class="field-label" style="margin-bottom:0;margin-top:4px;">Kayıtlı Saha Dosyaları <span id="sahaSavedCount" style="font-weight:400;color:var(--text-dim);">(0)</span></span>
     <div id="sahaSavedList"></div>
   </div>
 </div>
@@ -1723,6 +1743,13 @@
   <button id="sahaLightboxClose" class="saha-lightbox-close" title="Kapat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
   <button id="sahaLightboxPrev" class="saha-lightbox-nav prev" title="Önceki"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>
   <img id="sahaLightboxImg" src="">
+  <video id="sahaLightboxVideo" class="hidden" controls></video>
+  <iframe id="sahaLightboxPdf" class="hidden"></iframe>
+  <div id="sahaLightboxFallback" class="hidden">
+    <div id="sahaLightboxFallbackBadge"></div>
+    <div id="sahaLightboxFallbackText">Bu dosya türü için tarayıcıda önizleme mevcut değil.</div>
+    <a id="sahaLightboxDownload" class="btn primary" download>İndir</a>
+  </div>
   <button id="sahaLightboxNext" class="saha-lightbox-nav next" title="Sonraki"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></button>
   <div id="sahaLightboxCaption">
     <div id="sahaLightboxName"></div>
@@ -4204,33 +4231,56 @@
     });
   }
 
+  // Saha artık yalnızca fotoğraf değil, her türlü dosyayı (video/pdf/cad/gis/
+  // bim/diğer) kabul eder — yalnızca JPEG/görsel dosyalarda EXIF GPS/yeniden
+  // boyutlandırma uygulanır; diğer türlerde dosya doğrudan (yeniden
+  // boyutlandırılmadan) data URL'e çevrilir ve konum EXIF'ten okunamayacağı
+  // için her zaman "Haritada Konumla" ile elle atanır.
   function sahaAddFiles(fileList){
     Array.prototype.forEach.call(fileList, function(file){
-      if (!/^image\//.test(file.type)) return;
-      var reader = new FileReader();
-      reader.onload = function(){
-        var exif = null;
-        try{ exif = parseJpegExif(reader.result); }catch(e){ /* EXIF ayrıştırılamadı — konumsuz devam edilir */ }
-        var orientation = (exif && exif.orientation) || 1;
-        sahaLoadImageResized(file, orientation).then(function(dataUrl){
-          var gps = exif && exif.gps;
-          sahaPendingPhotos.push({
-            uid: 'sp-' + (sahaPendingUidCounter++),
-            file: file,
-            name: file.name,
-            dataUrl: dataUrl,
-            lat: gps ? gps.lat : null,
-            lng: gps ? gps.lng : null,
-            hasGps: !!gps,
-            notes: ''
+      var docType = guessDocType(file.name);
+      if (docType === 'resim' && /^image\//.test(file.type)){
+        var reader = new FileReader();
+        reader.onload = function(){
+          var exif = null;
+          try{ exif = parseJpegExif(reader.result); }catch(e){ /* EXIF ayrıştırılamadı — konumsuz devam edilir */ }
+          var orientation = (exif && exif.orientation) || 1;
+          sahaLoadImageResized(file, orientation).then(function(dataUrl){
+            var gps = exif && exif.gps;
+            sahaPendingPhotos.push({
+              uid: 'sp-' + (sahaPendingUidCounter++),
+              file: file,
+              name: file.name,
+              docType: 'resim',
+              dataUrl: dataUrl,
+              lat: gps ? gps.lat : null,
+              lng: gps ? gps.lng : null,
+              hasGps: !!gps,
+              notes: ''
+            });
+            renderSahaPendingList();
+          }).catch(function(err){
+            showToast(file.name + ' işlenemedi: ' + err.message);
           });
-          renderSahaPendingList();
-        }).catch(function(err){
-          showToast(file.name + ' işlenemedi: ' + err.message);
+        };
+        reader.onerror = function(){ showToast(file.name + ' okunamadı.'); };
+        reader.readAsArrayBuffer(file);
+        return;
+      }
+      readFileAsDataUrl(file).then(function(dataUrl){
+        sahaPendingPhotos.push({
+          uid: 'sp-' + (sahaPendingUidCounter++),
+          file: file,
+          name: file.name,
+          docType: docType,
+          dataUrl: dataUrl,
+          lat: null,
+          lng: null,
+          hasGps: false,
+          notes: ''
         });
-      };
-      reader.onerror = function(){ showToast(file.name + ' okunamadı.'); };
-      reader.readAsArrayBuffer(file);
+        renderSahaPendingList();
+      });
     });
   }
 
@@ -4267,7 +4317,7 @@
         ? '<span class="saha-gps-badge ' + (p.hasGps ? 'auto' : 'manual') + '">' + (p.hasGps ? '📍 Konum bulundu (EXIF)' : '📍 Elle konumlandırıldı') + '</span>'
         : '<span class="saha-gps-badge missing">⚠ Konum yok</span>';
       card.innerHTML =
-        '<div class="saha-photo-thumb-wrap"><img class="saha-photo-thumb" src="' + p.dataUrl + '"></div>' +
+        '<div class="saha-photo-thumb-wrap">' + sahaThumbHtml(p.docType, p.dataUrl, 'saha-photo-thumb') + '</div>' +
         '<div class="saha-photo-info">' +
           '<div class="saha-photo-name" title="' + p.name.replace(/"/g,'&quot;') + '">' + p.name.replace(/</g,'&lt;') + '</div>' +
           badgeHtml +
@@ -4302,14 +4352,14 @@
   });
   document.getElementById('btnSahaSavePending').addEventListener('click', function(){
     var ready = sahaPendingPhotos.filter(function(p){ return p.lat != null && p.lng != null; });
-    if (!ready.length){ showToast('Kaydetmeden önce en az bir fotoğrafa konum atayın (EXIF yoksa "Haritada Konumla").'); return; }
+    if (!ready.length){ showToast('Kaydetmeden önce en az bir dosyaya konum atayın (EXIF yoksa "Haritada Konumla").'); return; }
     var payload = ready.map(function(p){
-      return { name: p.name, sizeLabel: formatFileSize(p.file.size), dataUrl: p.dataUrl, lat: p.lat, lng: p.lng, notes: p.notes || null };
+      return { name: p.name, sizeLabel: formatFileSize(p.file.size), dataUrl: p.dataUrl, docType: p.docType, lat: p.lat, lng: p.lng, notes: p.notes || null };
     });
     window.parent.postMessage({ type: 'kroki:add-saha-photos', photos: payload }, '*');
     sahaPendingPhotos = sahaPendingPhotos.filter(function(p){ return p.lat == null; });
     renderSahaPendingList();
-    showToast(payload.length + ' fotoğraf kaydedildi.');
+    showToast(payload.length + ' dosya kaydedildi.');
   });
 
   // Harita üzerinde saha fotoğrafı pin'i — düz nokta/emoji yerine, fotoğrafın
@@ -4330,6 +4380,20 @@
     var s = String(id), hash = 0;
     for (var i = 0; i < s.length; i++) hash = (hash * 31 + s.charCodeAt(i)) >>> 0;
     return SAHA_PASTEL_COLORS[hash % SAHA_PASTEL_COLORS.length];
+  }
+  // Dosya adının uzantısına göre PDF olup olmadığını belirler — doc_type
+  // taksonomisinde PDF ayrı bir tür değil ('diger' altında sınıflanır) ama
+  // tarayıcının yerleşik PDF görüntüleyicisiyle gerçek bir önizleme sunulabildiği
+  // için popup/lightbox içeriği bu kontrolle ayrıca ele alınır.
+  function sahaIsPdfName(name){ return /\.pdf$/i.test(String(name || '')); }
+  // Saha dosyası küçük resmi: fotoğrafsa gerçek <img>, değilse (video/cad/gis/
+  // bim/diğer) DOC_TYPE_ICON_COLOR/LABELS'a göre renklendirilmiş kısa tür
+  // etiketli bir simge — pending kart, kayıtlı liste satırı ve filmstrip'te ortak.
+  function sahaThumbHtml(docType, dataUrl, extraClass){
+    if (docType === 'resim' || !docType) return '<img class="' + (extraClass || '') + '" src="' + (dataUrl || '') + '">';
+    var color = DOC_TYPE_ICON_COLOR[docType] || DOC_TYPE_ICON_COLOR.diger;
+    var label = (DOC_TYPE_LABELS[docType] || 'Dosya').slice(0, 3).toUpperCase();
+    return '<div class="saha-type-thumb ' + (extraClass || '') + '" style="background:' + color + '">' + label + '</div>';
   }
 
   // dataUrl'deki fotoğrafı yükleyip SAHA_ICON_SIZE x SAHA_ICON_SIZE bir
@@ -4366,16 +4430,44 @@
       img.src = dataUrl;
     });
   }
-  // photos listesindeki her fotoğraf için (henüz kayıtlı değilse) bir çember
-  // simge üretip map.addImage() ile kaydeder — hepsi hazır olunca resolve olur.
+  // Fotoğraf DIŞINDAKİ saha dosyaları (video/cad/gis/bim/diğer) için pin
+  // simgesi: dolgu rengi dosya türüne (DOC_TYPE_ICON_COLOR), halka rengi ise
+  // (sahaBuildCircleIcon ile aynı desende) objenin kendi pastel rengine göre —
+  // içinde kısa tür kısaltması (VID/CAD/GIS/BIM/DIĞ) yazan bir daire üretir.
+  function sahaBuildTypeIcon(docType, ringColor){
+    return new Promise(function(resolve){
+      var size = SAHA_ICON_SIZE;
+      var canvas = document.createElement('canvas');
+      canvas.width = size; canvas.height = size;
+      var ctx = canvas.getContext('2d');
+      var r = size / 2;
+      ctx.beginPath();
+      ctx.arc(r, r, r - 3, 0, Math.PI * 2);
+      ctx.fillStyle = DOC_TYPE_ICON_COLOR[docType] || DOC_TYPE_ICON_COLOR.diger;
+      ctx.fill();
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = ringColor || '#ffffff';
+      ctx.stroke();
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold ' + Math.round(size * 0.26) + 'px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText((DOC_TYPE_LABELS[docType] || 'Dosya').slice(0, 3).toUpperCase(), r, r + 1);
+      resolve(ctx.getImageData(0, 0, size, size));
+    });
+  }
+  // photos listesindeki her dosya için (henüz kayıtlı değilse) bir pin simgesi
+  // üretip map.addImage() ile kaydeder — hepsi hazır olunca resolve olur.
   function ensureSahaPhotoIcons(photos){
-    var jobs = photos.filter(function(p){ return p.file_data_url && !sahaRegisteredIconIds['saha-photo-' + p.id]; })
+    var jobs = photos.filter(function(p){ return !sahaRegisteredIconIds['saha-photo-' + p.id]; })
       .map(function(p){
         var iconId = 'saha-photo-' + p.id;
-        return sahaBuildCircleIcon(p.file_data_url, sahaColorForId(p.id)).then(function(imgData){
+        var isImage = (p.doc_type === 'resim' || !p.doc_type) && p.file_data_url;
+        var builder = isImage ? sahaBuildCircleIcon(p.file_data_url, sahaColorForId(p.id)) : sahaBuildTypeIcon(p.doc_type, sahaColorForId(p.id));
+        return builder.then(function(imgData){
           if (!map.hasImage(iconId)) map.addImage(iconId, imgData);
           sahaRegisteredIconIds[iconId] = true;
-        }).catch(function(){ /* bozuk/okunamayan görsel — bu fotoğraf simgesiz kalır */ });
+        }).catch(function(){ /* bozuk/okunamayan görsel — bu dosya simgesiz kalır */ });
       });
     return Promise.all(jobs);
   }
@@ -4400,7 +4492,7 @@
       .setLngLat([p.lng, p.lat])
       .setHTML(
         '<div class="saha-popup">' +
-          (p.file_data_url ? '<img src="' + p.file_data_url + '" class="saha-popup-img" title="Tam ekran için tıklayın">' : '') +
+          sahaThumbHtml(p.doc_type, p.file_data_url, 'saha-popup-img') +
           '<div class="saha-popup-name">' + String(p.name || '').replace(/</g,'&lt;') + '</div>' +
           (p.notes ? '<div class="saha-popup-notes">' + String(p.notes).replace(/</g,'&lt;') + '</div>' : '') +
           '<div class="saha-popup-coord">' + Number(p.lat).toFixed(6) + ', ' + Number(p.lng).toFixed(6) + '</div>' +
@@ -4414,17 +4506,23 @@
       if (sahaActivePopup === popup) sahaActivePopup = null;
       sahaHideLeaderLine();
     });
-    // Popup içindeki fotoğrafa tıklanınca tam ekran görüntüleyici açılır.
+    // Popup içindeki küçük resme/simgeye tıklanınca tam ekran görüntüleyici
+    // açılır — fotoğrafsa büyük halini, video/pdf ise ilgili viewer'ı,
+    // cad/gis/bim/diğer gibi tarayıcıda önizlenemeyen türlerde indirme
+    // kartını gösterir (bkz. sahaOpenLightbox → renderLightbox).
     var imgEl = popup.getElement().querySelector('.saha-popup-img');
     if (imgEl) imgEl.addEventListener('click', function(){ sahaOpenLightbox(p); });
   }
 
-  // Tam ekran görüntüleyici (lightbox) — hem Saha fotoğrafı popup'ındaki
-  // fotoğrafa hem de Bilgi (Info) balonundaki doküman önizleme resmine
-  // çift tıklanınca açılır (bkz. sahaOpenLightbox / openInfoDocLightbox).
-  // İçeride birden fazla öğe varsa ok tuşlarıyla/ok düğmeleriyle gezinilebilir;
-  // öğeler {src, name, notes, coord} şeklinde normalize edilir — coord yoksa
-  // (dokümanların konumu olmadığından) o satır gizlenir.
+  // Tam ekran görüntüleyici (lightbox) — hem Saha dosyası popup'ındaki
+  // küçük resme/simgeye hem de Bilgi (Info) balonundaki doküman önizleme
+  // resmine çift tıklanınca açılır (bkz. sahaOpenLightbox / openInfoDocLightbox).
+  // Öğeler {src, name, notes, coord, kind, docType} şeklinde normalize edilir:
+  // kind='image' (varsayılan, geriye dönük uyumluluk için) gerçek <img>, 'video'
+  // <video controls>, 'pdf' tarayıcının yerleşik PDF görüntüleyicisiyle <iframe>,
+  // 'other' (cad/gis/bim/diğer — tarayıcıda önizlenemeyen ikili türler) tür
+  // rozeti + indirme düğmesi içeren bir bilgi kartı gösterir. coord/notes
+  // yoksa (dokümanların konumu olmadığından) o satırlar gizlenir.
   var lightboxItems = [];
   var lightboxIndex = -1;
   function openLightbox(items, startIndex){
@@ -4435,13 +4533,36 @@
   }
   function closeLightbox(){
     document.getElementById('sahaLightbox').classList.add('hidden');
+    var videoEl = document.getElementById('sahaLightboxVideo');
+    videoEl.pause(); videoEl.removeAttribute('src'); videoEl.load();
+    document.getElementById('sahaLightboxPdf').src = 'about:blank';
     lightboxItems = [];
     lightboxIndex = -1;
   }
   function renderLightbox(){
     if (lightboxIndex < 0 || lightboxIndex >= lightboxItems.length) return;
     var it = lightboxItems[lightboxIndex];
-    document.getElementById('sahaLightboxImg').src = it.src || '';
+    var kind = it.kind || 'image';
+    var imgEl = document.getElementById('sahaLightboxImg');
+    var videoEl = document.getElementById('sahaLightboxVideo');
+    var pdfEl = document.getElementById('sahaLightboxPdf');
+    var fallbackEl = document.getElementById('sahaLightboxFallback');
+    imgEl.classList.toggle('hidden', kind !== 'image');
+    videoEl.classList.toggle('hidden', kind !== 'video');
+    pdfEl.classList.toggle('hidden', kind !== 'pdf');
+    fallbackEl.classList.toggle('hidden', kind !== 'other');
+    imgEl.src = kind === 'image' ? (it.src || '') : '';
+    if (kind === 'video'){ videoEl.src = it.src || ''; videoEl.load(); }
+    else { videoEl.pause(); videoEl.removeAttribute('src'); videoEl.load(); }
+    pdfEl.src = kind === 'pdf' ? (it.src || 'about:blank') : 'about:blank';
+    if (kind === 'other'){
+      var badge = document.getElementById('sahaLightboxFallbackBadge');
+      badge.textContent = DOC_TYPE_LABELS[it.docType] || 'Dosya';
+      badge.style.background = DOC_TYPE_ICON_COLOR[it.docType] || DOC_TYPE_ICON_COLOR.diger;
+      var dl = document.getElementById('sahaLightboxDownload');
+      dl.style.display = it.src ? '' : 'none';
+      if (it.src){ dl.href = it.src; dl.setAttribute('download', it.name || 'dosya'); }
+    }
     document.getElementById('sahaLightboxName').textContent = it.name || '';
     var notesEl = document.getElementById('sahaLightboxNotes');
     notesEl.textContent = it.notes || '';
@@ -4453,10 +4574,19 @@
     document.getElementById('sahaLightboxPrev').classList.toggle('hidden', !multi);
     document.getElementById('sahaLightboxNext').classList.toggle('hidden', !multi);
   }
+  // Bir saha dosyasının lightbox'ta hangi "tür" (kind) ile gösterileceğini
+  // belirler: gerçek görüntüleyici olan resim/video/pdf, ya da tarayıcıda
+  // önizlenemeyen (cad/gis/bim/diğer-pdf-olmayan) türler için 'other'.
+  function sahaLightboxKind(p){
+    if (p.doc_type === 'resim' || !p.doc_type) return 'image';
+    if (p.doc_type === 'video') return 'video';
+    if (sahaIsPdfName(p.name)) return 'pdf';
+    return 'other';
+  }
   function sahaOpenLightbox(p){
     var items = sahaPhotos.map(function(x){
-      return { src: x.file_data_url || '', name: x.name || '', notes: x.notes || '',
-        coord: Number(x.lat).toFixed(6) + ', ' + Number(x.lng).toFixed(6) };
+      return { src: x.file_data_url || '', name: x.name || '', notes: x.notes || '', docType: x.doc_type,
+        kind: sahaLightboxKind(x), coord: Number(x.lat).toFixed(6) + ', ' + Number(x.lng).toFixed(6) };
     });
     var idx = sahaPhotos.findIndex(function(x){ return String(x.id) === String(p.id); });
     openLightbox(items, idx === -1 ? 0 : idx);
@@ -4549,7 +4679,7 @@
       item.className = 'saha-filmstrip-item' + (String(p.id) === String(sahaLeaderTargetId) ? ' active' : '');
       item.setAttribute('data-id', p.id);
       item.innerHTML =
-        '<div class="saha-filmstrip-thumb-wrap" style="border-color:' + sahaColorForId(p.id) + '"><img src="' + (p.file_data_url || '') + '"></div>' +
+        '<div class="saha-filmstrip-thumb-wrap" style="border-color:' + sahaColorForId(p.id) + '">' + sahaThumbHtml(p.doc_type, p.file_data_url) + '</div>' +
         '<span class="saha-filmstrip-name">' + String(p.name || '').replace(/</g,'&lt;') + '</span>';
       item.addEventListener('click', function(){
         document.querySelectorAll('.saha-filmstrip-item.active').forEach(function(el){ el.classList.remove('active'); });
@@ -4633,7 +4763,7 @@
       var row = document.createElement('div');
       row.className = 'saha-saved-row';
       row.innerHTML =
-        '<img class="saha-saved-thumb" src="' + (p.file_data_url || '') + '">' +
+        sahaThumbHtml(p.doc_type, p.file_data_url, 'saha-saved-thumb') +
         '<div class="saha-saved-info">' +
           '<div class="saha-saved-name" title="' + String(p.name || '').replace(/"/g,'&quot;') + '">' + String(p.name || '').replace(/</g,'&lt;') + '</div>' +
           '<div class="saha-saved-coord">' + Number(p.lat).toFixed(5) + ', ' + Number(p.lng).toFixed(5) + '</div>' +

@@ -70,8 +70,8 @@ const GPKG_LAYERS = [
     columns: ['name', 'project_id', 'line_type', 'network_name', 'pipe_or_cable_spec', 'depth_meters', 'voltage_or_pressure', 'total_length_meters', 'status', 'veri_durumu'],
   },
   {
-    tableName: 'tb_saha_fotograflari', description: 'Saha Fotoğrafları', geomType: 'POINT',
-    columns: ['name', 'project_id', 'notes', 'upload_date'],
+    tableName: 'tb_saha_fotograflari', description: 'Saha Dosyaları', geomType: 'POINT',
+    columns: ['name', 'project_id', 'notes', 'upload_date', 'doc_type'],
   },
 ];
 
