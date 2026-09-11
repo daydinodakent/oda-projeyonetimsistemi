@@ -17,7 +17,7 @@ export function formatDistance(m: number): string {
 }
 
 export function labelRotationForBearing(bearingDeg: number): number {
-  let angle = 90 - bearingDeg;
+  let angle = bearingDeg - 90;
   angle = ((angle + 180) % 360 + 360) % 360 - 180;
   if (angle > 90 || angle < -90) {
     angle += 180;

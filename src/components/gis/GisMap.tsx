@@ -57,7 +57,8 @@ import {
   featuresToKML,
   featuresToDXF,
   buildShapefileBuffers,
-  buildDBF
+  buildDBF,
+  labelRotationForBearing
 } from './utils/gisUtils';
 
 const STYLES = [
@@ -682,7 +683,7 @@ export const GisMap: React.FC = () => {
                     properties: {
                       label: dist < 1000 ? `${dist.toFixed(1)}m` : `${(dist/1000).toFixed(2)}km`,
                       isArea: false,
-                      rotation: 90 - bearing
+                      rotation: labelRotationForBearing(bearing)
                     }
                   });
                 }

@@ -19,7 +19,7 @@ export function formatDistance(m) {
 // Kenarın gerçek pusula açısına göre, metin başı aşağı olmayacak şekilde
 // çizgiye tam paralel döndürme açısı üretir (text-rotate, 0°=doğu-batı, saat yönü).
 export function labelRotationForBearing(bearingDeg) {
-  let angle = 90 - bearingDeg;
+  let angle = bearingDeg - 90;
   angle = ((angle + 180) % 360 + 360) % 360 - 180;
   if (angle > 90 || angle < -90) {
     angle += 180;
