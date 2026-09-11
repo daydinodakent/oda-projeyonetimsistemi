@@ -29,6 +29,13 @@ export interface RiskRecord extends BaseEntity {
   code: string;
 }
 
+// 2b. Veri Durumları (LISTE) — tüm CBS/PostGIS tablolarındaki "veri_durumu"
+// sütununun bağlandığı ortak durum listesi (bkz. tb_data_status).
+export interface VeriDurumuRecord extends BaseEntity {
+  name: string;
+  code: string;
+}
+
 // 3. Kullanıcı Rolleri (LISTE)
 export interface RolRecord extends BaseEntity {
   name: string;
@@ -61,6 +68,7 @@ export interface ProjeRecord extends BaseEntity {
 
 // 5. Proje Sınırları (GEOMETRI - POLYGON)
 export interface ProjeSiniriRecord extends BaseEntity {
+  name: string;
   project_id: string;
   project_name: string;
   ada_parsel: string;
@@ -75,6 +83,7 @@ export interface ProjeSiniriRecord extends BaseEntity {
 
 // 6. 3D Binalar (GEOMETRI - POLYGON)
 export interface Bina3DRecord extends BaseEntity {
+  name: string;
   project_id: string;
   block_name: string;
   building_type: string;
@@ -85,14 +94,17 @@ export interface Bina3DRecord extends BaseEntity {
   footprint_area_sqm: number;
   srid: number;
   veri_durumu?: 'Planlanan' | 'İnşaat' | 'İşletme' | 'İptal';
+  // Standart (kapalı, dış halka [[...]] içinde sarılmış) GeoJSON Polygon
+  // formatı — ProjeSiniriRecord.the_geom ile aynı (bkz. Bina3DRecord).
   the_geom?: {
     tip: 'Polygon';
-    coordinates: [number, number][];
+    coordinates: number[][][];
   };
 }
 
 // 7. Altyapı Hatları (GEOMETRI - LINESTRING)
 export interface AltyapiHattiRecord extends BaseEntity {
+  name: string;
   project_id: string;
   line_type: 'elektrik' | 'su' | 'gaz' | 'yakit' | 'telekom' | 'drenaj';
   network_name: string;
@@ -162,12 +174,23 @@ export interface DokumanRecord extends BaseEntity {
   project_id: string;
   block_id?: string | null;
   task_id?: string | null;
+  // Haritadaki (Kroki CBS aracı) bir objeye ("obje" = herhangi bir GIS
+  // şekli — bina, altyapı hattı, proje sınırı vb.) doğrudan eklenen
+  // dokümanlar için: o objenin harita üzerindeki kararlı feature id'si.
+  feature_id?: string | null;
   name: string;
   version: string;
   file_size: string;
   upload_date: string;
   approval_status?: 'Approved' | 'Pending' | 'Rejected';
   approver?: string;
+  // Doküman türü: resim, video, cad, gis, bim, diğer — harita üzerinden
+  // obje bazlı doküman ekleme formundan gelir.
+  doc_type?: 'resim' | 'video' | 'cad' | 'gis' | 'bim' | 'diger';
+  // Küçük resimler için tarayıcıda üretilmiş data URL (base64) — mock/demo
+  // ortamında gerçek bir dosya sunucusu olmadığından önizleme bu şekilde
+  // sağlanır. Büyük/ikili dosyalarda (cad/bim vb.) boş bırakılır.
+  file_data_url?: string | null;
 }
 
 // 12. Varlıklar (DATA)
@@ -228,6 +251,10 @@ export interface YetkiRecord extends BaseEntity {
   can_write: boolean;
   can_delete: boolean;
   can_admin: boolean;
+  // Haritadaki bir objeye (bkz. DokumanRecord.feature_id) doküman ekleme izni.
+  can_doc_add: boolean;
+  // Haritadaki bir objeye eklenmiş dokümanları silme/düzenleme izni.
+  can_doc_manage: boolean;
 }
 
 // 17. Veritabanı Şema & Sütun Meta Tanımları
@@ -239,4 +266,19 @@ export interface TabloSutunRecord {
   column_default?: string;
   description?: string;
   is_standard?: boolean;
+  // Formlarda ve bilgi balonunda gösterilecek Türkçe, baş harfleri büyük etiket.
+  display_name?: string;
+  // true ise bu sütun Info / Veri Girişi / Güncelleme formlarında gösterilmez.
+  // Sistem (is_standard) ve geometri sütunları için varsayılan olarak true'dur.
+  is_hidden?: boolean;
+  // true ise sütun formlarda GÖRÜNÜR ama pasif (salt okunur) — geometriden
+  // otomatik hesaplanan alanlar (örn. area_sqm) için kullanılır.
+  readonly?: boolean;
+  // Yabancı anahtar ilişkisi (FK): bu sütun, relation_table tablosunun
+  // relation_column'una referans verir; veri girişinde bir combobox olarak
+  // gösterilir ve seçenekler relation_table'ın relation_display_column
+  // alanıyla (örn. "name") listelenir.
+  relation_table?: string;
+  relation_column?: string;
+  relation_display_column?: string;
 }

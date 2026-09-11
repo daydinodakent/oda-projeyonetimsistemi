@@ -149,7 +149,7 @@ export default function LaborProcurementView({ project, theme, onClose }: LaborP
       <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 border-b border-[var(--border)] mb-6 gap-4 pr-10">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="px-2 py-0.5 rounded bg-emerald-600/20 text-emerald-400 text-[9px] font-black uppercase tracking-wider">İş Gücü & Tedarik Portalı</span>
+            <span className="px-2 py-0.5 rounded bg-emerald-600/20 text-emerald-400 text-[10px] font-black uppercase tracking-wider">İş Gücü & Tedarik Portalı</span>
             <span className="text-xs text-[var(--text-secondary)]">{project.name}</span>
           </div>
           <h2 className="text-xl font-black tracking-tight text-[var(--text-primary)] flex items-center gap-2">
@@ -162,19 +162,19 @@ export default function LaborProcurementView({ project, theme, onClose }: LaborP
       {/* Aggregate Overview statistics cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div className="p-4 bg-[var(--bg-primary)] border border-[var(--border)] rounded-xl">
-          <span className="text-[9px] font-black text-[var(--text-secondary)] block mb-1 uppercase tracking-wider">TOPLAM SAHA ELEMAN SAYISI (Mavi Yaka)</span>
+          <span className="text-[10px] font-black text-[var(--text-secondary)] block mb-1 uppercase tracking-wider">TOPLAM SAHA ELEMAN SAYISI (Mavi Yaka)</span>
           <span className="text-3xl font-black tracking-tight text-emerald-400">{totalOnsiteWorkers} Personel</span>
           <span className="text-[10px] text-[var(--text-secondary)] block mt-1">Aktif 5 Taşeron Ekibi Bünyesinde</span>
         </div>
 
         <div className="p-4 bg-[var(--bg-primary)] border border-[var(--border)] rounded-xl">
-          <span className="text-[9px] font-black text-[var(--text-secondary)] block mb-1 uppercase tracking-wider">KADROLU MÜHENDİS & TEKNİK PERSONEL</span>
+          <span className="text-[10px] font-black text-[var(--text-secondary)] block mb-1 uppercase tracking-wider">KADROLU MÜHENDİS & TEKNİK PERSONEL</span>
           <span className="text-3xl font-black tracking-tight text-blue-400">{staffList.length} Aktif</span>
           <span className="text-[10px] text-[var(--text-secondary)] block mt-1">Şantiye Şefi, ÇSG ve Saha Kontrol Birimleri</span>
         </div>
 
         <div className="p-4 bg-[var(--bg-primary)] border border-[var(--border)] rounded-xl">
-          <span className="text-[9px] font-black text-[var(--text-secondary)] block mb-1 uppercase tracking-wider">ÇSG UYGUNLUK & GÜVENLİK SKORU</span>
+          <span className="text-[10px] font-black text-[var(--text-secondary)] block mb-1 uppercase tracking-wider">ÇSG UYGUNLUK & GÜVENLİK SKORU</span>
           <span className="text-3xl font-black tracking-tight text-amber-400">99.8%</span>
           <span className="text-[10px] text-emerald-500 block mt-1 flex items-center gap-1 font-bold">
             <ShieldCheck className="w-3.5 h-3.5" /> Sıfır İş Kazası Hedefi Sürdürülüyor
@@ -197,7 +197,7 @@ export default function LaborProcurementView({ project, theme, onClose }: LaborP
               </span>
               <button
                 onClick={() => setShowStaffForm(!showStaffForm)}
-                className="px-2.5 py-1 text-[9px] font-black uppercase tracking-wider bg-blue-600/15 border border-blue-500/30 text-blue-400 hover:bg-blue-600/30 transition rounded-lg cursor-pointer flex items-center gap-1"
+                className="px-2.5 py-1 text-[10px] font-black uppercase tracking-wider bg-blue-600/15 border border-blue-500/30 text-blue-400 hover:bg-blue-600/30 transition rounded-lg cursor-pointer flex items-center gap-1"
               >
                 <UserPlus className="w-3 h-3" />
                 <span>Personel Ekle</span>
@@ -208,7 +208,7 @@ export default function LaborProcurementView({ project, theme, onClose }: LaborP
               <form onSubmit={handleAddStaff} className="p-4 bg-[var(--bg-secondary)] border border-blue-500/20 rounded-lg mb-4 space-y-3 animate-slide-up">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-[9px] font-bold text-[var(--text-secondary)] block mb-1">Ad Soyad</label>
+                    <label className="text-[10px] font-bold text-[var(--text-secondary)] block mb-1">Ad Soyad</label>
                     <input 
                       type="text" 
                       required 
@@ -219,7 +219,7 @@ export default function LaborProcurementView({ project, theme, onClose }: LaborP
                     />
                   </div>
                   <div>
-                    <label className="text-[9px] font-bold text-[var(--text-secondary)] block mb-1">Rol / Görev</label>
+                    <label className="text-[10px] font-bold text-[var(--text-secondary)] block mb-1">Rol / Görev</label>
                     <input 
                       type="text" 
                       required 
@@ -233,7 +233,7 @@ export default function LaborProcurementView({ project, theme, onClose }: LaborP
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-[9px] font-bold text-[var(--text-secondary)] block mb-1">Görev Yeri (Blok)</label>
+                    <label className="text-[10px] font-bold text-[var(--text-secondary)] block mb-1">Görev Yeri (Blok)</label>
                     <select
                       value={newStaff.blockName}
                       onChange={e => setNewStaff({...newStaff, blockName: e.target.value})}
@@ -246,7 +246,7 @@ export default function LaborProcurementView({ project, theme, onClose }: LaborP
                     </select>
                   </div>
                   <div>
-                    <label className="text-[9px] font-bold text-[var(--text-secondary)] block mb-1">Telefon No</label>
+                    <label className="text-[10px] font-bold text-[var(--text-secondary)] block mb-1">Telefon No</label>
                     <input 
                       type="text" 
                       value={newStaff.phone} 
@@ -258,8 +258,8 @@ export default function LaborProcurementView({ project, theme, onClose }: LaborP
                 </div>
 
                 <div className="flex justify-end gap-2 pt-2">
-                  <button type="button" onClick={() => setShowStaffForm(false)} className="px-3 py-1 bg-[var(--bg-primary)] hover:bg-[var(--bg-secondary)] border border-[var(--border)] text-[9px] font-bold uppercase rounded-md text-[var(--text-secondary)]">İptal</button>
-                  <button type="submit" className="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-[9px] font-bold uppercase rounded-md text-white">Kaydet</button>
+                  <button type="button" onClick={() => setShowStaffForm(false)} className="px-3 py-1 bg-[var(--bg-primary)] hover:bg-[var(--bg-secondary)] border border-[var(--border)] text-[10px] font-bold uppercase rounded-md text-[var(--text-secondary)]">İptal</button>
+                  <button type="submit" className="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-[10px] font-bold uppercase rounded-md text-white">Kaydet</button>
                 </div>
               </form>
             )}
@@ -274,16 +274,16 @@ export default function LaborProcurementView({ project, theme, onClose }: LaborP
                     <div>
                       <div className="text-[11px] font-bold text-[var(--text-primary)] flex items-center gap-2">
                         <span>{s.name}</span>
-                        <span className="text-[8px] font-mono bg-[var(--bg-primary)] border border-[var(--border)] text-[var(--text-secondary)] px-1 py-0.5 rounded uppercase">{s.id}</span>
+                        <span className="text-[10px] font-mono bg-[var(--bg-primary)] border border-[var(--border)] text-[var(--text-secondary)] px-1 py-0.5 rounded uppercase">{s.id}</span>
                       </div>
-                      <div className="text-[9.5px] text-[var(--text-secondary)] font-medium">{s.role} • <span className="text-slate-500">{s.blockName}</span></div>
+                      <div className="text-[10px] text-[var(--text-secondary)] font-medium">{s.role} • <span className="text-slate-500">{s.blockName}</span></div>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-3">
                     <div className="text-right">
-                      <span className="text-[9px] text-slate-500 block">{s.phone}</span>
-                      <span className={`text-[8.5px] font-black px-1.5 py-0.5 rounded ${
+                      <span className="text-[10px] text-slate-500 block">{s.phone}</span>
+                      <span className={`text-[10px] font-black px-1.5 py-0.5 rounded ${
                         s.status === 'Aktif' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'
                       }`}>{s.status}</span>
                     </div>
@@ -310,7 +310,7 @@ export default function LaborProcurementView({ project, theme, onClose }: LaborP
               </span>
               <button
                 onClick={() => setShowMaterialForm(!showMaterialForm)}
-                className="px-2.5 py-1 text-[9px] font-black uppercase tracking-wider bg-indigo-600/15 border border-indigo-500/30 text-indigo-400 hover:bg-indigo-600/30 transition rounded-lg cursor-pointer flex items-center gap-1"
+                className="px-2.5 py-1 text-[10px] font-black uppercase tracking-wider bg-indigo-600/15 border border-indigo-500/30 text-indigo-400 hover:bg-indigo-600/30 transition rounded-lg cursor-pointer flex items-center gap-1"
               >
                 <Plus className="w-3 h-3" />
                 <span>Sipariş Gir</span>
@@ -321,7 +321,7 @@ export default function LaborProcurementView({ project, theme, onClose }: LaborP
               <form onSubmit={handleAddMaterial} className="p-4 bg-[var(--bg-secondary)] border border-indigo-500/20 rounded-lg mb-4 space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-[9px] font-bold text-[var(--text-secondary)] block mb-1">Malzeme Cinsi</label>
+                    <label className="text-[10px] font-bold text-[var(--text-secondary)] block mb-1">Malzeme Cinsi</label>
                     <input 
                       type="text" 
                       required 
@@ -332,7 +332,7 @@ export default function LaborProcurementView({ project, theme, onClose }: LaborP
                     />
                   </div>
                   <div>
-                    <label className="text-[9px] font-bold text-[var(--text-secondary)] block mb-1">Miktar / Birim</label>
+                    <label className="text-[10px] font-bold text-[var(--text-secondary)] block mb-1">Miktar / Birim</label>
                     <input 
                       type="text" 
                       required 
@@ -346,7 +346,7 @@ export default function LaborProcurementView({ project, theme, onClose }: LaborP
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-[9px] font-bold text-[var(--text-secondary)] block mb-1">Tedarikçi Firma</label>
+                    <label className="text-[10px] font-bold text-[var(--text-secondary)] block mb-1">Tedarikçi Firma</label>
                     <input 
                       type="text" 
                       required 
@@ -357,7 +357,7 @@ export default function LaborProcurementView({ project, theme, onClose }: LaborP
                     />
                   </div>
                   <div>
-                    <label className="text-[9px] font-bold text-[var(--text-secondary)] block mb-1">Öngörülen Sevk Tarihi</label>
+                    <label className="text-[10px] font-bold text-[var(--text-secondary)] block mb-1">Öngörülen Sevk Tarihi</label>
                     <input 
                       type="date" 
                       required 
@@ -369,8 +369,8 @@ export default function LaborProcurementView({ project, theme, onClose }: LaborP
                 </div>
 
                 <div className="flex justify-end gap-2 pt-2">
-                  <button type="button" onClick={() => setShowMaterialForm(false)} className="px-3 py-1 bg-[var(--bg-primary)] hover:bg-[var(--bg-secondary)] border border-[var(--border)] text-[9px] font-bold uppercase rounded-md text-[var(--text-secondary)]">İptal</button>
-                  <button type="submit" className="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-[9px] font-bold uppercase rounded-md text-white">Kaydet</button>
+                  <button type="button" onClick={() => setShowMaterialForm(false)} className="px-3 py-1 bg-[var(--bg-primary)] hover:bg-[var(--bg-secondary)] border border-[var(--border)] text-[10px] font-bold uppercase rounded-md text-[var(--text-secondary)]">İptal</button>
+                  <button type="submit" className="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-[10px] font-bold uppercase rounded-md text-white">Kaydet</button>
                 </div>
               </form>
             )}
@@ -385,17 +385,17 @@ export default function LaborProcurementView({ project, theme, onClose }: LaborP
                     <div>
                       <div className="flex items-center gap-1.5">
                         <span className="text-[11px] font-bold text-[var(--text-primary)] block">{m.materialName}</span>
-                        <span className="text-[8px] font-mono bg-[var(--bg-primary)] border border-[var(--border)] text-[var(--text-secondary)] px-1 rounded uppercase">{m.id}</span>
+                        <span className="text-[10px] font-mono bg-[var(--bg-primary)] border border-[var(--border)] text-[var(--text-secondary)] px-1 rounded uppercase">{m.id}</span>
                       </div>
-                      <span className="text-[9.5px] text-[var(--text-secondary)] font-medium">{m.quantity} • {m.supplierName}</span>
+                      <span className="text-[10px] text-[var(--text-secondary)] font-medium">{m.quantity} • {m.supplierName}</span>
                     </div>
                   </div>
 
                   <div className="text-right">
-                    <span className="text-[9px] text-[var(--text-secondary)] block mb-0.5 flex items-center gap-1 justify-end">
+                    <span className="text-[10px] text-[var(--text-secondary)] block mb-0.5 flex items-center gap-1 justify-end">
                       <Clock className="w-3 h-3 text-[var(--text-secondary)]" /> <span className="font-mono">{m.deliveryDate}</span>
                     </span>
-                    <span className={`text-[8px] font-black px-1.5 py-0.5 rounded uppercase ${
+                    <span className={`text-[10px] font-black px-1.5 py-0.5 rounded uppercase ${
                       m.status === 'Teslim Edildi' 
                         ? 'bg-emerald-500/10 text-emerald-400' 
                         : m.status === 'Yolda' 
@@ -421,7 +421,7 @@ export default function LaborProcurementView({ project, theme, onClose }: LaborP
                 </span>
                 <button
                   onClick={() => setShowSubForm(!showSubForm)}
-                  className="px-2.5 py-1 text-[9px] font-black uppercase tracking-wider bg-emerald-600/15 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-600/30 transition rounded-lg cursor-pointer flex items-center gap-1"
+                  className="px-2.5 py-1 text-[10px] font-black uppercase tracking-wider bg-emerald-600/15 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-600/30 transition rounded-lg cursor-pointer flex items-center gap-1"
                 >
                   <Plus className="w-3 h-3" />
                   <span>Taşeron Ekle</span>
@@ -432,7 +432,7 @@ export default function LaborProcurementView({ project, theme, onClose }: LaborP
                 <form onSubmit={handleAddSub} className="p-4 bg-[var(--bg-secondary)] border border-emerald-500/20 rounded-lg mb-4 space-y-3">
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-[9px] font-bold text-[var(--text-secondary)] block mb-1">Taşeron Şirket Ünvanı</label>
+                      <label className="text-[10px] font-bold text-[var(--text-secondary)] block mb-1">Taşeron Şirket Ünvanı</label>
                       <input 
                         type="text" 
                         required 
@@ -443,7 +443,7 @@ export default function LaborProcurementView({ project, theme, onClose }: LaborP
                       />
                     </div>
                     <div>
-                      <label className="text-[9px] font-bold text-[var(--text-secondary)] block mb-1">Uzmanlık Alanı</label>
+                      <label className="text-[10px] font-bold text-[var(--text-secondary)] block mb-1">Uzmanlık Alanı</label>
                       <input 
                         type="text" 
                         required 
@@ -457,7 +457,7 @@ export default function LaborProcurementView({ project, theme, onClose }: LaborP
 
                   <div className="grid grid-cols-3 gap-3">
                     <div>
-                      <label className="text-[9px] font-bold text-[var(--text-secondary)] block mb-1">Saha Mevcudu</label>
+                      <label className="text-[10px] font-bold text-[var(--text-secondary)] block mb-1">Saha Mevcudu</label>
                       <input 
                         type="number" 
                         required 
@@ -467,7 +467,7 @@ export default function LaborProcurementView({ project, theme, onClose }: LaborP
                       />
                     </div>
                     <div>
-                      <label className="text-[9px] font-bold text-[var(--text-secondary)] block mb-1">İrtibat Kişisi</label>
+                      <label className="text-[10px] font-bold text-[var(--text-secondary)] block mb-1">İrtibat Kişisi</label>
                       <input 
                         type="text" 
                         required 
@@ -478,7 +478,7 @@ export default function LaborProcurementView({ project, theme, onClose }: LaborP
                       />
                     </div>
                     <div>
-                      <label className="text-[9px] font-bold text-[var(--text-secondary)] block mb-1">İSG Derecesi</label>
+                      <label className="text-[10px] font-bold text-[var(--text-secondary)] block mb-1">İSG Derecesi</label>
                       <select
                         value={newSub.safetyRating}
                         onChange={e => setNewSub({...newSub, safetyRating: e.target.value as any})}
@@ -492,8 +492,8 @@ export default function LaborProcurementView({ project, theme, onClose }: LaborP
                   </div>
 
                   <div className="flex justify-end gap-2 pt-2">
-                    <button type="button" onClick={() => setShowSubForm(false)} className="px-3 py-1 bg-[var(--bg-primary)] hover:bg-[var(--bg-secondary)] border border-[var(--border)] text-[9px] font-bold uppercase rounded-md text-[var(--text-secondary)]">İptal</button>
-                    <button type="submit" className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-[9px] font-bold uppercase rounded-md text-white">Kaydet</button>
+                    <button type="button" onClick={() => setShowSubForm(false)} className="px-3 py-1 bg-[var(--bg-primary)] hover:bg-[var(--bg-secondary)] border border-[var(--border)] text-[10px] font-bold uppercase rounded-md text-[var(--text-secondary)]">İptal</button>
+                    <button type="submit" className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-[10px] font-bold uppercase rounded-md text-white">Kaydet</button>
                   </div>
                 </form>
               )}
@@ -508,16 +508,16 @@ export default function LaborProcurementView({ project, theme, onClose }: LaborP
                       <div className="min-w-0">
                         <div className="text-[11px] font-bold text-[var(--text-primary)] flex items-center gap-1.5">
                           <span className="truncate">{sub.companyName}</span>
-                          <span className="text-[8px] font-mono bg-[var(--bg-primary)] border border-[var(--border)] text-[var(--text-secondary)] px-1 py-0.5 rounded flex-shrink-0">{sub.id}</span>
+                          <span className="text-[10px] font-mono bg-[var(--bg-primary)] border border-[var(--border)] text-[var(--text-secondary)] px-1 py-0.5 rounded flex-shrink-0">{sub.id}</span>
                         </div>
-                        <span className="text-[9.5px] text-[var(--text-secondary)] block">{sub.specialty} • Temsilci: {sub.contactPerson}</span>
+                        <span className="text-[10px] text-[var(--text-secondary)] block">{sub.specialty} • Temsilci: {sub.contactPerson}</span>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-3 flex-shrink-0">
                       <div className="text-right">
                         <span className="text-[11px] font-extrabold text-[var(--text-primary)] block">{sub.activeHeadcount} Kişi</span>
-                        <span className="text-[8px] text-[var(--text-secondary)]">İSG: <span className="font-extrabold text-emerald-400">{sub.safetyRating}</span></span>
+                        <span className="text-[10px] text-[var(--text-secondary)]">İSG: <span className="font-extrabold text-emerald-400">{sub.safetyRating}</span></span>
                       </div>
                       
                       <button 
@@ -534,11 +534,11 @@ export default function LaborProcurementView({ project, theme, onClose }: LaborP
             </div>
 
             <div className="mt-6 pt-4 border-t border-[var(--border)] flex items-center justify-between">
-              <span className="text-[9.5px] text-[var(--text-secondary)] flex items-center gap-1">
+              <span className="text-[10px] text-[var(--text-secondary)] flex items-center gap-1">
                 <ShieldCheck className="w-4 h-4 text-emerald-500" />
                 <span>Taşeron evrak ve SGK girişleri onaylanmıştır.</span>
               </span>
-              <span className="text-[9px] text-[var(--text-secondary)] font-mono">Ağustos 2026 Güncellemesi</span>
+              <span className="text-[10px] text-[var(--text-secondary)] font-mono">Ağustos 2026 Güncellemesi</span>
             </div>
           </div>
         </div>

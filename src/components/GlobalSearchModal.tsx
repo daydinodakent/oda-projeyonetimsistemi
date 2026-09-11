@@ -549,7 +549,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
                           {highlightMatch(item.title, query)}
                         </h4>
                         {item.badge && (
-                          <span className={`text-[9px] px-1.5 py-0.5 rounded font-black border uppercase tracking-wider shrink-0 ${
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded font-black border uppercase tracking-wider shrink-0 ${
                             item.badgeColor || 'bg-slate-800 text-slate-300 border-slate-700'
                           }`}>
                             {item.badge}
@@ -595,7 +595,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
               <kbd className="px-1 py-0.5 font-mono text-slate-400 bg-slate-800 rounded border border-slate-700">ENTER</kbd> Seç & Git
             </span>
           </div>
-          <span className="text-[9px] text-slate-500 font-mono">
+          <span className="text-[10px] text-slate-500 font-mono">
             {filteredResults.length} sonuç listelendi
           </span>
         </div>

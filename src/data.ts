@@ -8,8 +8,8 @@ export const initialProjects: Project[] = [
     id: 'IGA-ETAP-1',
     code: 'IGA-ETAP-1',
     name: 'IGA CITY 1. Etap - Terminal & Ticaret Merkezi',
-    location: 'Arnavutköy (İGA Doğu Bölgesi)',
-    coordinates: [28.7680, 41.2680], // [Lng, Lat]
+    location: 'Arnavutköy (İGA Batı Bölgesi)',
+    coordinates: [28.6850, 41.2950], // [Lng, Lat]
     adaParcel: '4102 / 1',
     area: '185.000 m²',
     riskLevel: 'Düşük',
@@ -160,8 +160,8 @@ export const initialProjects: Project[] = [
     id: 'IGA-ETAP-2',
     code: 'IGA-ETAP-2',
     name: 'IGA CITY 2. Etap - Oteller & Kongre Kompleksi',
-    location: 'Arnavutköy (İGA Doğu - Fuar Vadisi)',
-    coordinates: [28.7860, 41.2720],
+    location: 'Arnavutköy (İGA Batı - Fuar Vadisi)',
+    coordinates: [28.6250, 41.2700],
     adaParcel: '4105 / 4',
     area: '240.000 m²',
     riskLevel: 'Orta',
@@ -293,8 +293,8 @@ export const initialProjects: Project[] = [
     id: 'IGA-ETAP-3',
     code: 'IGA-ETAP-3',
     name: 'IGA CITY 3. Etap - Lojistik & Kargo Parkı',
-    location: 'Arnavutköy (İGA Doğu - Kargo Hattı)',
-    coordinates: [28.7650, 41.2510],
+    location: 'Arnavutköy (İGA Batı - Kargo Hattı)',
+    coordinates: [28.6700, 41.2300],
     adaParcel: '4110 / 12',
     area: '320.000 m²',
     riskLevel: 'Düşük',
@@ -409,8 +409,8 @@ export const initialProjects: Project[] = [
     id: 'IGA-ETAP-4',
     code: 'IGA-ETAP-4',
     name: 'IGA CITY 4. Etap - Havacılık Akademisi & Teknopark',
-    location: 'Arnavutköy (İGA Doğu - Ar-Ge Kampüsü)',
-    coordinates: [28.7880, 41.2530],
+    location: 'Arnavutköy (İGA Batı - Ar-Ge Kampüsü)',
+    coordinates: [28.6100, 41.3050],
     adaParcel: '4118 / 8',
     area: '210.000 m²',
     riskLevel: 'Düşük',
@@ -521,416 +521,145 @@ export const initialProjects: Project[] = [
   }
 ];
 
+// ---------------------------------------------------------------------
 // Database Katman Tabloları (PostGIS Table Mock Definitions)
-export const gisBoundaryRecords: GISBoundaryRecord[] = initialProjects.flatMap((p) => {
-  const [lng, lat] = p.coordinates || [28.7680, 41.2680];
-  const adaNum = p.adaParcel.split(' / ')[0] || '4100';
-  
-  const parselSpecs = [
-    { id: '1', name: 'Merkez Bölge', offset: [-0.002, -0.0015, 0.002, 0.0015], area: 42000, parsel: '1' },
-    { id: '2', name: 'Kuzeydoğu Gelişim Alanı', offset: [0.002, 0.0015, 0.0055, 0.0035], area: 36000, parsel: '2' },
-    { id: '3', name: 'Kuzeybatı Rezerv Sahası', offset: [-0.0055, 0.0015, -0.002, 0.0035], area: 38000, parsel: '3' },
-    { id: '4', name: 'Güneydoğu Lojistik Ring', offset: [0.002, -0.0035, 0.0055, -0.0015], area: 40000, parsel: '4' },
-    { id: '5', name: 'Güneybatı Altyapı Koridoru', offset: [-0.0055, -0.0035, -0.002, -0.0015], area: 39000, parsel: '5' }
-  ];
+// Proje sınırları (1/proje), binalar (10/proje, ızgara düzeninde) ve
+// altyapı hatları (o 10 binayı birbirine bağlayan 10 hat/proje) her
+// projenin kendi merkezi (Project.coordinates) etrafında programatik
+// olarak üretilir. Böylece her proje kendine ait, çakışmayan bir coğrafi
+// alana sahip olur ve "Üst panelde proje seçilince haritada o proje
+// sınırına zoom" özelliği (KrokiMapModule.tsx → kroki:zoom-to-project)
+// gisBoundaryRecords'taki tek satırı doğrudan kullanabilir.
+// ---------------------------------------------------------------------
 
-  return parselSpecs.map((spec) => ({
-    id: `bnd-${p.id}-${spec.id}`,
+const BOUNDARY_HALF_LNG = 0.011;
+const BOUNDARY_HALF_LAT = 0.009;
+
+export const gisBoundaryRecords: GISBoundaryRecord[] = initialProjects.map((p) => {
+  const [lng, lat] = p.coordinates;
+  const widthMeters = BOUNDARY_HALF_LNG * 2 * 111320 * Math.cos(lat * Math.PI / 180);
+  const heightMeters = BOUNDARY_HALF_LAT * 2 * 110540;
+  return {
+    id: `bnd-${p.id}`,
     table_name: 'tb_proje_sinirlari',
     project_id: p.id,
-    project_name: `${p.name} - ${spec.name}`,
-    ada_parsel: `${adaNum} / ${spec.parsel}`,
-    area_sqm: spec.area,
+    project_name: p.name,
+    ada_parsel: p.adaParcel,
+    area_sqm: Math.round(widthMeters * heightMeters),
     srid: 4326,
     geojson: {
       type: 'Polygon',
       coordinates: [[
-        [lng + spec.offset[0], lat + spec.offset[1]],
-        [lng + spec.offset[2], lat + spec.offset[1]],
-        [lng + spec.offset[2], lat + spec.offset[3]],
-        [lng + spec.offset[0], lat + spec.offset[3]],
-        [lng + spec.offset[0], lat + spec.offset[1]]
+        [lng - BOUNDARY_HALF_LNG, lat - BOUNDARY_HALF_LAT],
+        [lng + BOUNDARY_HALF_LNG, lat - BOUNDARY_HALF_LAT],
+        [lng + BOUNDARY_HALF_LNG, lat + BOUNDARY_HALF_LAT],
+        [lng - BOUNDARY_HALF_LNG, lat + BOUNDARY_HALF_LAT],
+        [lng - BOUNDARY_HALF_LNG, lat - BOUNDARY_HALF_LAT]
       ]]
     }
-  }));
+  };
 });
 
-export const gisBuildingRecords: GISBuildingRecord[] = initialProjects.flatMap((p) => 
-  p.blocks.map((b) => ({
-    id: `bld-${b.id}`,
-    table_name: 'tb_binalar_3d',
-    project_id: p.id,
-    block_name: b.name,
-    building_type: b.height > 100 ? 'Gökdelen / Kule' : b.height > 50 ? 'Yüksek Yapı' : 'Orta / Alçak Yapı',
-    height_meters: b.height,
-    floors_count: b.floors,
-    construction_progress: b.progress,
-    structural_status: b.status,
-    footprint_area_sqm: Math.round(b.floors * 850),
-    srid: 4326,
-    coordinates: b.coordinates
-  }))
-);
-
-export const gisInfrastructureRecords: GISInfrastructureRecord[] = [
-  // IGA ETAP 1 ALTYAPI HATLAR
-  {
-    id: 'infra-iga1-elec',
-    table_name: 'tb_altyapi_hatlari',
-    project_id: 'IGA-ETAP-1',
-    line_type: 'elektrik',
-    network_name: 'TEİAŞ 154kV/34.5kV İGA Doğu Trafo Besleme Ringi',
-    pipe_or_cable_spec: '3x(1x240/25) mm² XLPE Yeraltı Kablosu',
-    depth_meters: 1.8,
-    voltage_or_pressure: '34.5 kV',
-    total_length_meters: 1450,
-    status: 'Faal',
-    coordinates: [
-      [28.7630, 41.2710],
-      [28.7660, 41.2695],
-      [28.7690, 41.2690],
-      [28.7725, 41.2675]
-    ]
-  },
-  {
-    id: 'infra-iga1-water',
-    table_name: 'tb_altyapi_hatlari',
-    project_id: 'IGA-ETAP-1',
-    line_type: 'su',
-    network_name: 'İSKİ Terkos-İGA Ana İsale & Yangın Hidrant Hattı',
-    pipe_or_cable_spec: 'Ø800 mm Duktil Font Boru',
-    depth_meters: 2.2,
-    voltage_or_pressure: '16 Bar (PN16)',
-    total_length_meters: 1680,
-    status: 'Faal',
-    coordinates: [
-      [28.7625, 41.2660],
-      [28.7655, 41.2665],
-      [28.7690, 41.2670],
-      [28.7730, 41.2675]
-    ]
-  },
-  {
-    id: 'infra-iga1-gas',
-    table_name: 'tb_altyapi_hatlari',
-    project_id: 'IGA-ETAP-1',
-    line_type: 'gaz',
-    network_name: 'İGDAŞ Doğalgaz Yüksek Basınç Çelik Dağıtım Hattı',
-    pipe_or_cable_spec: 'Ø300 mm Çelik Boru (API 5L X52)',
-    depth_meters: 2.0,
-    voltage_or_pressure: '12-19 Bar',
-    total_length_meters: 1200,
-    status: 'Faal',
-    coordinates: [
-      [28.7645, 41.2715],
-      [28.7675, 41.2705],
-      [28.7700, 41.2675]
-    ]
-  },
-  {
-    id: 'infra-iga1-fuel',
-    table_name: 'tb_altyapi_hatlari',
-    project_id: 'IGA-ETAP-1',
-    line_type: 'yakit',
-    network_name: 'İGA Jet A-1 Havacılık Yakıtı Hidrant İkmal Hattı',
-    pipe_or_cable_spec: 'Ø450 mm Özel Paslanmaz Çelik Boru',
-    depth_meters: 2.5,
-    voltage_or_pressure: '20 Bar',
-    total_length_meters: 1900,
-    status: 'Faal',
-    coordinates: [
-      [28.7620, 41.2690],
-      [28.7640, 41.2675],
-      [28.7680, 41.2660],
-      [28.7720, 41.2645]
-    ]
-  },
-  {
-    id: 'infra-iga1-telecom',
-    table_name: 'tb_altyapi_hatlari',
-    project_id: 'IGA-ETAP-1',
-    line_type: 'telekom',
-    network_name: 'İGA Akıllı Şehir Yedekli Fiber Optik Omurga',
-    pipe_or_cable_spec: '288 Core Single Mode Zırhlı Fiber',
-    depth_meters: 1.2,
-    voltage_or_pressure: 'Optik Sinyal',
-    total_length_meters: 2100,
-    status: 'Faal',
-    coordinates: [
-      [28.7635, 41.2712],
-      [28.7665, 41.2698],
-      [28.7705, 41.2685],
-      [28.7735, 41.2665]
-    ]
-  },
-
-  // IGA ETAP 2 ALTYAPI HATLAR (Oteller & Fuar)
-  {
-    id: 'infra-iga2-elec',
-    table_name: 'tb_altyapi_hatlari',
-    project_id: 'IGA-ETAP-2',
-    line_type: 'elektrik',
-    network_name: 'İGA Kongre & Oteller Bölgesi Enerji Dağıtım Şebekesi',
-    pipe_or_cable_spec: '3x(1x185/25) mm² XLPE Kablo',
-    depth_meters: 1.6,
-    voltage_or_pressure: '34.5 kV',
-    total_length_meters: 1350,
-    status: 'İnşaat Halinde',
-    coordinates: [
-      [28.7815, 41.2750],
-      [28.7845, 41.2735],
-      [28.7875, 41.2730],
-      [28.7905, 41.2710]
-    ]
-  },
-  {
-    id: 'infra-iga2-water',
-    table_name: 'tb_altyapi_hatlari',
-    project_id: 'IGA-ETAP-2',
-    line_type: 'su',
-    network_name: 'İSKİ İçme Suyu & Fuar Şebeke Hattı',
-    pipe_or_cable_spec: 'Ø600 mm Duktil Font Boru',
-    depth_meters: 2.0,
-    voltage_or_pressure: '10 Bar',
-    total_length_meters: 1520,
-    status: 'İnşaat Halinde',
-    coordinates: [
-      [28.7810, 41.2715],
-      [28.7840, 41.2720],
-      [28.7870, 41.2718],
-      [28.7910, 41.2705]
-    ]
-  },
-  {
-    id: 'infra-iga2-drain',
-    table_name: 'tb_altyapi_hatlari',
-    project_id: 'IGA-ETAP-2',
-    line_type: 'drenaj',
-    network_name: 'Yağmur Suyu Drenaj & Taşkın Önleme Kollektörü',
-    pipe_or_cable_spec: 'Ø1200 mm Koruge Boru',
-    depth_meters: 3.2,
-    voltage_or_pressure: 'Gravite Akış',
-    total_length_meters: 1800,
-    status: 'İnşaat Halinde',
-    coordinates: [
-      [28.7820, 41.2760],
-      [28.7850, 41.2740],
-      [28.7885, 41.2720],
-      [28.7915, 41.2690]
-    ]
-  },
-  {
-    id: 'infra-iga2-gas',
-    table_name: 'tb_altyapi_hatlari',
-    project_id: 'IGA-ETAP-2',
-    line_type: 'gaz',
-    network_name: 'İGDAŞ Oteller Bölgesi Doğalgaz Çelik Besleme Hattı',
-    pipe_or_cable_spec: 'Ø200 mm Çelik Boru',
-    depth_meters: 1.8,
-    voltage_or_pressure: '4 Bar',
-    total_length_meters: 1100,
-    status: 'İnşaat Halinde',
-    coordinates: [
-      [28.7830, 41.2755],
-      [28.7860, 41.2740],
-      [28.7890, 41.2730]
-    ]
-  },
-  {
-    id: 'infra-iga2-telecom',
-    table_name: 'tb_altyapi_hatlari',
-    project_id: 'IGA-ETAP-2',
-    line_type: 'telekom',
-    network_name: 'Turkcell & Türk Telekom Kongre Vadisi Fiber Altyapısı',
-    pipe_or_cable_spec: '144 Core SM Fiber Optik Kablo',
-    depth_meters: 1.1,
-    voltage_or_pressure: 'Sinyal Hattı',
-    total_length_meters: 1250,
-    status: 'İnşaat Halinde',
-    coordinates: [
-      [28.7825, 41.2710],
-      [28.7855, 41.2705],
-      [28.7885, 41.2690]
-    ]
-  },
-  
-  // IGA ETAP 3 ALTYAPI HATLAR (Kargo & Lojistik)
-  {
-    id: 'infra-iga3-elec',
-    table_name: 'tb_altyapi_hatlari',
-    project_id: 'IGA-ETAP-3',
-    line_type: 'elektrik',
-    network_name: 'Lojistik Parkı & Soğuk Hava Depoları Yüksek Güç Trafo Hattı',
-    pipe_or_cable_spec: '3x(1x300/25) mm² XLPE Kablo',
-    depth_meters: 1.8,
-    voltage_or_pressure: '34.5 kV',
-    total_length_meters: 1600,
-    status: 'Faal',
-    coordinates: [
-      [28.7600, 41.2540],
-      [28.7635, 41.2525],
-      [28.7670, 41.2515],
-      [28.7705, 41.2495]
-    ]
-  },
-  {
-    id: 'infra-iga3-water',
-    table_name: 'tb_altyapi_hatlari',
-    project_id: 'IGA-ETAP-3',
-    line_type: 'su',
-    network_name: 'Kargo Köyü Yangın Söndürme & Sprinkler Ana Besleme Hattı',
-    pipe_or_cable_spec: 'Ø500 mm Çelik Yangın Borusu',
-    depth_meters: 2.2,
-    voltage_or_pressure: '16 Bar',
-    total_length_meters: 1400,
-    status: 'Faal',
-    coordinates: [
-      [28.7605, 41.2510],
-      [28.7640, 41.2515],
-      [28.7675, 41.2510],
-      [28.7700, 41.2485]
-    ]
-  },
-  {
-    id: 'infra-iga3-gas',
-    table_name: 'tb_altyapi_hatlari',
-    project_id: 'IGA-ETAP-3',
-    line_type: 'gaz',
-    network_name: 'Kargo Hangarları Endüstriyel Gaz Hattı',
-    pipe_or_cable_spec: 'Ø250 mm Polietilen Boru',
-    depth_meters: 1.7,
-    voltage_or_pressure: '2 Bar',
-    total_length_meters: 950,
-    status: 'Faal',
-    coordinates: [
-      [28.7610, 41.2520],
-      [28.7645, 41.2505],
-      [28.7680, 41.2495]
-    ]
-  },
-  {
-    id: 'infra-iga3-drain',
-    table_name: 'tb_altyapi_hatlari',
-    project_id: 'IGA-ETAP-3',
-    line_type: 'drenaj',
-    network_name: 'Kargo Apronu Yüksek Debili Drenaj Kanal Hattı',
-    pipe_or_cable_spec: 'Ø1000 mm Betonarme Büz',
-    depth_meters: 2.5,
-    voltage_or_pressure: 'Cazibeli Akış',
-    total_length_meters: 1300,
-    status: 'Faal',
-    coordinates: [
-      [28.7620, 41.2530],
-      [28.7655, 41.2510],
-      [28.7690, 41.2485]
-    ]
-  },
-  {
-    id: 'infra-iga3-telecom',
-    table_name: 'tb_altyapi_hatlari',
-    project_id: 'IGA-ETAP-3',
-    line_type: 'telekom',
-    network_name: 'Lojistik Optik Ring Omurga Şebekesi',
-    pipe_or_cable_spec: '288 Core Fiber Optik',
-    depth_meters: 1.2,
-    voltage_or_pressure: 'Sinyal Hattı',
-    total_length_meters: 1100,
-    status: 'Faal',
-    coordinates: [
-      [28.7600, 41.2495],
-      [28.7635, 41.2490],
-      [28.7670, 41.2475]
-    ]
-  },
-
-  // IGA ETAP 4 ALTYAPI HATLAR (Akademi & Teknopark)
-  {
-    id: 'infra-iga4-telecom',
-    table_name: 'tb_altyapi_hatlari',
-    project_id: 'IGA-ETAP-4',
-    line_type: 'telekom',
-    network_name: 'Akademi & Simülatör Merkezi Süper Hızlı Veri Hattı',
-    pipe_or_cable_spec: '576 Core Fiber Optik Kablo',
-    depth_meters: 1.2,
-    voltage_or_pressure: '100 Gbps Backbone',
-    total_length_meters: 1750,
-    status: 'Planlanan',
-    coordinates: [
-      [28.7835, 41.2560],
-      [28.7870, 41.2545],
-      [28.7905, 41.2535],
-      [28.7935, 41.2510]
-    ]
-  },
-  {
-    id: 'infra-iga4-elec',
-    table_name: 'tb_altyapi_hatlari',
-    project_id: 'IGA-ETAP-4',
-    line_type: 'elektrik',
-    network_name: 'Teknopark Ar-Ge Kampüsü Ring Şebekesi',
-    pipe_or_cable_spec: '3x(1x240/25) mm² XLPE',
-    depth_meters: 1.6,
-    voltage_or_pressure: '34.5 kV',
-    total_length_meters: 1300,
-    status: 'Planlanan',
-    coordinates: [
-      [28.7840, 41.2530],
-      [28.7875, 41.2535],
-      [28.7910, 41.2525]
-    ]
-  },
-  {
-    id: 'infra-iga4-water',
-    table_name: 'tb_altyapi_hatlari',
-    project_id: 'IGA-ETAP-4',
-    line_type: 'su',
-    network_name: 'Kampüs Temiz Su Şebekesi',
-    pipe_or_cable_spec: 'Ø300 mm Düktil Font Boru',
-    depth_meters: 1.9,
-    voltage_or_pressure: '6 Bar',
-    total_length_meters: 1050,
-    status: 'Planlanan',
-    coordinates: [
-      [28.7820, 41.2540],
-      [28.7855, 41.2530],
-      [28.7890, 41.2515]
-    ]
-  },
-  {
-    id: 'infra-iga4-gas',
-    table_name: 'tb_altyapi_hatlari',
-    project_id: 'IGA-ETAP-4',
-    line_type: 'gaz',
-    network_name: 'Akademi Isınma & İklimlendirme Gaz Hattı',
-    pipe_or_cable_spec: 'Ø150 mm Polietilen Boru',
-    depth_meters: 1.5,
-    voltage_or_pressure: '1 Bar',
-    total_length_meters: 900,
-    status: 'Planlanan',
-    coordinates: [
-      [28.7845, 41.2550],
-      [28.7880, 41.2540],
-      [28.7915, 41.2515]
-    ]
-  },
-  {
-    id: 'infra-iga4-drain',
-    table_name: 'tb_altyapi_hatlari',
-    project_id: 'IGA-ETAP-4',
-    line_type: 'drenaj',
-    network_name: 'Teknopark Çevre Yağmur Suyu Toplama Hattı',
-    pipe_or_cable_spec: 'Ø600 mm Koruge Boru',
-    depth_meters: 2.2,
-    voltage_or_pressure: 'Cazibeli Akış',
-    total_length_meters: 1200,
-    status: 'Planlanan',
-    coordinates: [
-      [28.7830, 41.2520],
-      [28.7865, 41.2510],
-      [28.7900, 41.2490]
-    ]
-  }
+// 10 bina/proje — 2 satır x 5 sütunluk bir ızgarada, proje sınırının içinde.
+const BUILDING_GRID_OFFSETS: [number, number][] = [
+  [-0.008, 0.003], [-0.004, 0.003], [0, 0.003], [0.004, 0.003], [0.008, 0.003],
+  [-0.008, -0.003], [-0.004, -0.003], [0, -0.003], [0.004, -0.003], [0.008, -0.003]
 ];
+const BUILDING_HALF = 0.0007;
+const BUILDING_PROFILES: { height: number; floors: number; progress: number; status: string }[] = [
+  { height: 180, floors: 45, progress: 85, status: 'İnce Yapı' },
+  { height: 45,  floors: 11, progress: 60, status: 'Kaba Yapı' },
+  { height: 90,  floors: 22, progress: 72, status: 'İnce Yapı' },
+  { height: 150, floors: 38, progress: 90, status: 'Tamamlandı' },
+  { height: 60,  floors: 15, progress: 55, status: 'Kaba Yapı' },
+  { height: 120, floors: 30, progress: 78, status: 'İnce Yapı' },
+  { height: 200, floors: 50, progress: 40, status: 'Temel' },
+  { height: 75,  floors: 19, progress: 65, status: 'Kaba Yapı' },
+  { height: 110, floors: 28, progress: 82, status: 'İnce Yapı' },
+  { height: 35,  floors: 9,  progress: 95, status: 'Tamamlandı' }
+];
+
+export const gisBuildingRecords: GISBuildingRecord[] = initialProjects.flatMap((p) => {
+  const [lng, lat] = p.coordinates;
+  return BUILDING_GRID_OFFSETS.map((offset, i) => {
+    const cx = lng + offset[0], cy = lat + offset[1];
+    const prof = BUILDING_PROFILES[i];
+    return {
+      id: `bld-${p.id}-${i + 1}`,
+      table_name: 'tb_binalar_3d',
+      project_id: p.id,
+      block_name: `${p.code} — Blok ${String.fromCharCode(65 + Math.floor(i / 5))}${(i % 5) + 1}`,
+      building_type: prof.height > 100 ? 'Gökdelen / Kule' : prof.height > 50 ? 'Yüksek Yapı' : 'Orta / Alçak Yapı',
+      height_meters: prof.height,
+      floors_count: prof.floors,
+      construction_progress: prof.progress,
+      structural_status: prof.status,
+      footprint_area_sqm: Math.round(Math.pow(BUILDING_HALF * 2 * 111000, 2)),
+      srid: 4326,
+      coordinates: [
+        [cx - BUILDING_HALF, cy - BUILDING_HALF],
+        [cx + BUILDING_HALF, cy - BUILDING_HALF],
+        [cx + BUILDING_HALF, cy + BUILDING_HALF],
+        [cx - BUILDING_HALF, cy + BUILDING_HALF]
+      ] as [number, number][]
+    };
+  });
+});
+
+// 10 altyapı hattı/proje — yukarıdaki 10 binayı birbirine bağlayan bir
+// şebeke (her satırın kendi içinde 4'er yatay bağlantı + iki satırı
+// birleştiren 2 dikey bağlantı = 10 kenar), elektrik/su/gaz/telekom/drenaj
+// arasında dönüşümlü tiplendirilmiş. Hat durumu projenin genel ilerlemesine
+// göre belirlenir (orijinal veri setindeki Etap1/3 Faal, Etap2 İnşaat
+// Halinde, Etap4 Planlanan örüntüsüyle tutarlı).
+const INFRA_EDGES: [number, number][] = [
+  [0, 1], [1, 2], [2, 3], [3, 4],   // 1. sıra binalarını birbirine bağlar
+  [5, 6], [6, 7], [7, 8], [8, 9],   // 2. sıra binalarını birbirine bağlar
+  [0, 5], [4, 9]                     // iki sırayı dikey olarak bağlar
+];
+const INFRA_TYPE_CYCLE: GISInfrastructureRecord['line_type'][] = ['elektrik', 'su', 'gaz', 'telekom', 'drenaj'];
+const INFRA_SPEC_BY_TYPE: Record<string, { spec: string; depth: number; voltage: string }> = {
+  elektrik: { spec: '3x(1x240/25) mm² XLPE Yeraltı Kablosu', depth: 1.8, voltage: '34.5 kV' },
+  su:       { spec: 'Ø400 mm Duktil Font Boru', depth: 2.0, voltage: '12 Bar' },
+  gaz:      { spec: 'Ø200 mm Polietilen Boru', depth: 1.6, voltage: '4 Bar' },
+  telekom:  { spec: '144 Core Single Mode Fiber Optik', depth: 1.1, voltage: 'Optik Sinyal' },
+  drenaj:   { spec: 'Ø800 mm Koruge Boru', depth: 2.4, voltage: 'Cazibeli Akış' }
+};
+function statusForProgress(progress: number): GISInfrastructureRecord['status'] {
+  if (progress >= 70) return 'Faal';
+  if (progress >= 40) return 'İnşaat Halinde';
+  return 'Planlanan';
+}
+
+export const gisInfrastructureRecords: GISInfrastructureRecord[] = initialProjects.flatMap((p) => {
+  const [lng, lat] = p.coordinates;
+  const status = statusForProgress(p.overallProgress);
+  return INFRA_EDGES.map((edge, i) => {
+    const a = BUILDING_GRID_OFFSETS[edge[0]];
+    const b = BUILDING_GRID_OFFSETS[edge[1]];
+    const from: [number, number] = [lng + a[0], lat + a[1]];
+    const to: [number, number] = [lng + b[0], lat + b[1]];
+    const type = INFRA_TYPE_CYCLE[i % INFRA_TYPE_CYCLE.length];
+    const specInfo = INFRA_SPEC_BY_TYPE[type];
+    const lengthMeters = Math.round(Math.hypot(
+      (to[0] - from[0]) * 111320 * Math.cos(lat * Math.PI / 180),
+      (to[1] - from[1]) * 110540
+    ));
+    return {
+      id: `infra-${p.id}-${i + 1}`,
+      table_name: 'tb_altyapi_hatlari',
+      project_id: p.id,
+      line_type: type,
+      network_name: `${p.code} — Bina ${edge[0] + 1} / Bina ${edge[1] + 1} Arası ${type.charAt(0).toUpperCase() + type.slice(1)} Hattı`,
+      pipe_or_cable_spec: specInfo.spec,
+      depth_meters: specInfo.depth,
+      voltage_or_pressure: specInfo.voltage,
+      total_length_meters: lengthMeters,
+      status,
+      coordinates: [from, to]
+    };
+  });
+});
 
 export const initialWbsTasks: Record<string, WBSTask[]> = {
   'IGA-ETAP-1': [

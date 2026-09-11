@@ -55,7 +55,7 @@ export default function ExecutiveDashboardView({ projects, notifications, theme,
       <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 border-b border-[var(--border)] mb-6 gap-4 pr-10">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="px-2 py-0.5 rounded bg-blue-600/20 text-blue-400 text-[9px] font-black uppercase tracking-wider">PORTFÖY ANALİZİ</span>
+            <span className="px-2 py-0.5 rounded bg-blue-600/20 text-blue-400 text-[10px] font-black uppercase tracking-wider">PORTFÖY ANALİZİ</span>
             <span className="text-xs text-[var(--text-secondary)]">one map • one timeline • one truth</span>
           </div>
           <h2 className="text-xl font-black tracking-tight text-[var(--text-primary)] flex items-center gap-2">
@@ -71,7 +71,7 @@ export default function ExecutiveDashboardView({ projects, notifications, theme,
               <button
                 key={r.id}
                 onClick={() => setSelectedRegion(r.id)}
-                className={`px-3 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-lg transition duration-200 cursor-pointer ${
+                className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-lg transition duration-200 cursor-pointer ${
                   selectedRegion === r.id 
                     ? 'bg-indigo-600/20 border border-indigo-500/30 text-indigo-400' 
                     : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
@@ -95,7 +95,7 @@ export default function ExecutiveDashboardView({ projects, notifications, theme,
           <div className="absolute right-4 top-4 text-indigo-500/20 group-hover:text-indigo-500/35 transition duration-300">
             <DollarSign className="w-10 h-10" />
           </div>
-          <span className="text-[9px] font-bold text-[var(--text-secondary)] block mb-1 uppercase tracking-wider">KONSOLİDE PORTFÖY DEĞERİ</span>
+          <span className="text-[10px] font-bold text-[var(--text-secondary)] block mb-1 uppercase tracking-wider">KONSOLİDE PORTFÖY DEĞERİ</span>
           <span className="text-2xl font-black tracking-tight text-[var(--text-primary)] drop-shadow-[0_0_10px_rgba(99,102,241,0.25)]">₺{(totalBudget / 1000).toFixed(2)}B</span>
           <span className="text-[10px] text-[var(--text-secondary)] block mt-1">4 Ana Havalimanı Kompleks Etabı</span>
           <div className="absolute bottom-0 inset-x-0 h-1 bg-gradient-to-r from-indigo-500 to-indigo-600 opacity-80" />
@@ -113,8 +113,8 @@ export default function ExecutiveDashboardView({ projects, notifications, theme,
             <TrendingUp className="w-10 h-10" />
           </div>
           <div className="flex items-center justify-between mb-1">
-            <span className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-wider">MALİYET PERFORMANS (CPI)</span>
-            <span className="text-[8px] font-mono font-bold text-slate-400">Hedef: 1.00</span>
+            <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-wider">MALİYET PERFORMANS (CPI)</span>
+            <span className="text-[10px] font-mono font-bold text-slate-400">Hedef: 1.00</span>
           </div>
           <div className="flex items-baseline gap-2">
             <span className={`text-2xl font-black tracking-tight font-mono ${
@@ -124,7 +124,7 @@ export default function ExecutiveDashboardView({ projects, notifications, theme,
             }`}>
               {averageCpi.toFixed(2)}
             </span>
-            <span className={`text-[8.5px] font-black uppercase px-1.5 py-0.2 rounded ${
+            <span className={`text-[10px] font-black uppercase px-1.5 py-0.5 rounded ${
               averageCpi >= 1.00 ? 'bg-emerald-500/15 text-emerald-400' : 'bg-red-500/15 text-red-500'
             }`}>
               {averageCpi >= 1.00 ? 'Hedefte' : 'Eşik Altı'}
@@ -153,8 +153,8 @@ export default function ExecutiveDashboardView({ projects, notifications, theme,
             <Activity className="w-10 h-10" />
           </div>
           <div className="flex items-center justify-between mb-1">
-            <span className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-wider">PROGRAM PERFORMANS (SPI)</span>
-            <span className="text-[8px] font-mono font-bold text-slate-400">Hedef: 1.00</span>
+            <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-wider">PROGRAM PERFORMANS (SPI)</span>
+            <span className="text-[10px] font-mono font-bold text-slate-400">Hedef: 1.00</span>
           </div>
           <div className="flex items-baseline gap-2">
             <span className={`text-2xl font-black tracking-tight font-mono ${
@@ -164,7 +164,7 @@ export default function ExecutiveDashboardView({ projects, notifications, theme,
             }`}>
               {averageSpi.toFixed(2)}
             </span>
-            <span className={`text-[8.5px] font-black uppercase px-1.5 py-0.2 rounded ${
+            <span className={`text-[10px] font-black uppercase px-1.5 py-0.5 rounded ${
               averageSpi >= 1.00 ? 'bg-cyan-500/15 text-cyan-400' : 'bg-red-500/15 text-red-500'
             }`}>
               {averageSpi >= 1.00 ? 'Hedefte' : 'Eşik Altı'}
@@ -190,7 +190,7 @@ export default function ExecutiveDashboardView({ projects, notifications, theme,
           <div className="absolute right-4 top-4 text-amber-500/20 group-hover:text-amber-500/35 transition duration-300">
             <CheckCircle className="w-10 h-10" />
           </div>
-          <span className="text-[9px] font-bold text-[var(--text-secondary)] block mb-1 uppercase tracking-wider">SAHA RİSK & UYGUNLUK TAAHHÜDÜ</span>
+          <span className="text-[10px] font-bold text-[var(--text-secondary)] block mb-1 uppercase tracking-wider">SAHA RİSK & UYGUNLUK TAAHHÜDÜ</span>
           <span className="text-2xl font-black tracking-tight text-amber-400 drop-shadow-[0_0_12px_rgba(245,158,11,0.3)]">98.4%</span>
           <span className="text-[10px] text-[var(--text-secondary)] block mt-1">İş Gücü Güvenliği & ÇSG Tam Puan</span>
           <div className="absolute bottom-0 inset-x-0 h-1 bg-gradient-to-r from-amber-500 to-amber-600 opacity-80" />
@@ -244,11 +244,11 @@ export default function ExecutiveDashboardView({ projects, notifications, theme,
                   <div key={p.id} className="p-2.5 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg flex items-center justify-between">
                     <div>
                       <span className="text-[10px] font-black text-[var(--text-primary)] font-mono">{p.code}</span>
-                      <span className="text-[9px] text-[var(--text-secondary)] block">{p.name.substring(0, 30)}...</span>
+                      <span className="text-[10px] text-[var(--text-secondary)] block">{p.name.substring(0, 30)}...</span>
                     </div>
                     <div className="text-right">
                       <span className="text-[11px] font-extrabold text-blue-400 block">%{p.overallProgress}</span>
-                      <span className={`text-[8px] font-black px-1.5 py-0.5 rounded ${
+                      <span className={`text-[10px] font-black px-1.5 py-0.5 rounded ${
                         isUnder ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'
                       }`}>
                         {isUnder ? 'GÜVENLİ' : 'BÜTÇE AŞIMI'}
@@ -260,7 +260,7 @@ export default function ExecutiveDashboardView({ projects, notifications, theme,
             </div>
           </div>
 
-          <div className="pt-4 border-t border-[var(--border)] mt-4 text-[9px] text-[var(--text-secondary)] flex items-center gap-1 justify-center">
+          <div className="pt-4 border-t border-[var(--border)] mt-4 text-[10px] text-[var(--text-secondary)] flex items-center gap-1 justify-center">
             <ShieldAlert className="w-3.5 h-3.5 text-blue-500/60" />
             <span>Tüm veriler saniyede bir güncellenmektedir.</span>
           </div>
@@ -274,7 +274,7 @@ export default function ExecutiveDashboardView({ projects, notifications, theme,
         <div className="overflow-x-auto">
           <table className="w-full text-left text-[10px]">
             <thead>
-              <tr className="border-b border-[var(--border)] text-[var(--text-secondary)] uppercase font-black tracking-widest text-[8.5px]">
+              <tr className="border-b border-[var(--border)] text-[var(--text-secondary)] uppercase font-black tracking-widest text-[10px]">
                 <th className="pb-2">PROJE TANIMI</th>
                 <th className="pb-2">TOPLAM BÜTÇE</th>
                 <th className="pb-2">ÖDENEN HAKEDİŞ</th>
@@ -288,14 +288,14 @@ export default function ExecutiveDashboardView({ projects, notifications, theme,
                 <tr key={p.id} className="hover:bg-[var(--bg-secondary)]/50 transition">
                   <td className="py-2.5 font-bold text-[var(--text-primary)]">
                     <div>{p.name}</div>
-                    <span className="text-[8.5px] text-[var(--text-secondary)] font-mono tracking-wider bg-[var(--bg-secondary)] border border-[var(--border)] px-1 py-0.5 rounded">{p.id}</span>
+                    <span className="text-[10px] text-[var(--text-secondary)] font-mono tracking-wider bg-[var(--bg-secondary)] border border-[var(--border)] px-1 py-0.5 rounded">{p.id}</span>
                   </td>
                   <td className="py-2.5 text-[var(--text-secondary)]">₺{p.budget} Milyon</td>
                   <td className="py-2.5 text-[var(--text-secondary)]">₺{p.spent} Milyon</td>
                   <td className="py-2.5 text-[var(--text-secondary)]">₺{p.earnedValue} Milyon</td>
                   <td className="py-2.5 text-[var(--text-secondary)]">Ağustos 2026</td>
                   <td className="py-2.5 text-right">
-                    <span className="text-[9px] font-black text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-full border border-emerald-500/20 uppercase tracking-widest">AKTİF</span>
+                    <span className="text-[10px] font-black text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-full border border-emerald-500/20 uppercase tracking-widest">AKTİF</span>
                   </td>
                 </tr>
               ))}

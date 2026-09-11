@@ -107,22 +107,22 @@ export default function CEODashboard({ projects, notifications, onSelectProject,
         {/* Level 1: CEO High Level KPI Cards */}
         <div className="grid grid-cols-2 gap-2">
           <div className="card p-3 rounded-xl flex flex-col justify-between">
-            <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Aktif Proje</span>
+            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Aktif Proje</span>
             <span className="text-xl font-extrabold text-blue-400 mt-1">{activeProjectsCount} Adet</span>
           </div>
 
           <div className="card p-3 rounded-xl flex flex-col justify-between">
-            <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Bütçe Sapması</span>
+            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Bütçe Sapması</span>
             <span className="text-xl font-extrabold text-emerald-400 mt-1">%-42.1</span>
           </div>
 
           <div className="card p-3 rounded-xl flex flex-col justify-between">
-            <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Kritik Gecikme</span>
+            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Kritik Gecikme</span>
             <span className="text-xl font-extrabold text-red-500 mt-1">{criticalDelaysCount} Şantiye</span>
           </div>
 
           <div className="card p-3 rounded-xl flex flex-col justify-between">
-            <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Aktif Risk / İhlal</span>
+            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Aktif Risk / İhlal</span>
             <span className="text-xl font-extrabold text-amber-500 mt-1">{openRisksCount} Adet</span>
           </div>
         </div>
@@ -157,10 +157,10 @@ export default function CEODashboard({ projects, notifications, onSelectProject,
               );
             })}
 
-            <span className="absolute bottom-1 right-2 text-[8px] text-slate-500 font-bold uppercase tracking-wider">İnteraktif CBS</span>
+            <span className="absolute bottom-1 right-2 text-[10px] text-slate-500 font-bold uppercase tracking-wider">İnteraktif CBS</span>
           </div>
 
-          <div className="flex justify-between mt-2 text-[8px] text-slate-400 font-bold">
+          <div className="flex justify-between mt-2 text-[10px] text-slate-400 font-bold">
             <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-emerald-500 inline-block"></span> Planlama</span>
             <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-amber-500 inline-block"></span> Riskli Yapı</span>
             <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-red-500 inline-block"></span> Gecikmeli</span>
@@ -178,7 +178,7 @@ export default function CEODashboard({ projects, notifications, onSelectProject,
             </button>
 
             <div>
-              <span className="text-[9px] text-blue-400 font-bold uppercase tracking-wider block">{selectedMobileProject.location}</span>
+              <span className="text-[10px] text-blue-400 font-bold uppercase tracking-wider block">{selectedMobileProject.location}</span>
               <h4 className="text-xs font-extrabold text-white">{selectedMobileProject.name}</h4>
             </div>
 
@@ -200,7 +200,7 @@ export default function CEODashboard({ projects, notifications, onSelectProject,
                   onSelectProject(selectedMobileProject.id);
                   onSetView('plan');
                 }}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 py-1.5 rounded-lg text-[9px] font-bold text-center flex items-center justify-center gap-1"
+                className="flex-1 bg-blue-600 hover:bg-blue-700 py-1.5 rounded-lg text-[10px] font-bold text-center flex items-center justify-center gap-1"
                 id="ceo-btn-drill-plan"
               >
                 <span>Plan WBS</span>
@@ -211,7 +211,7 @@ export default function CEODashboard({ projects, notifications, onSelectProject,
                   onSelectProject(selectedMobileProject.id);
                   onSetView('insaat');
                 }}
-                className="flex-1 bg-amber-600 hover:bg-amber-700 py-1.5 rounded-lg text-[9px] font-bold text-center flex items-center justify-center gap-1"
+                className="flex-1 bg-amber-600 hover:bg-amber-700 py-1.5 rounded-lg text-[10px] font-bold text-center flex items-center justify-center gap-1"
                 id="ceo-btn-drill-insaat"
               >
                 <span>4D İnşaat</span>
@@ -225,12 +225,12 @@ export default function CEODashboard({ projects, notifications, onSelectProject,
         <div className="card p-3 rounded-xl space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wide">Akıllı Sapma Alarmları</span>
-            <span className="px-1.5 py-0.2 bg-red-600/20 text-red-400 text-[8px] font-bold rounded">Sapma Limit: %{alertThreshold}</span>
+            <span className="px-1.5 py-0.5 bg-red-600/20 text-red-400 text-[10px] font-bold rounded">Sapma Limit: %{alertThreshold}</span>
           </div>
 
           {/* Threshold alert slider */}
           <div className="flex items-center gap-2">
-            <span className="text-[8px] text-slate-500 font-bold">MIN (%5)</span>
+            <span className="text-[10px] text-slate-500 font-bold">MIN (%5)</span>
             <input 
               type="range" 
               min="5" 
@@ -239,7 +239,7 @@ export default function CEODashboard({ projects, notifications, onSelectProject,
               onChange={(e) => setAlertThreshold(Number(e.target.value))}
               className="flex-1 h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500 focus:outline-none"
             />
-            <span className="text-[8px] text-slate-500 font-bold">MAX (%30)</span>
+            <span className="text-[10px] text-slate-500 font-bold">MAX (%30)</span>
           </div>
 
           <div className="space-y-2 max-h-[150px] overflow-y-auto" style={{ scrollbarWidth: 'none' }}>
@@ -266,7 +266,7 @@ export default function CEODashboard({ projects, notifications, onSelectProject,
               <MessageSquare className="w-3.5 h-3.5 text-blue-500" />
               CEO Hızlı Sesli/Yazılı Sorgu
             </span>
-            <span className="text-[8px] text-blue-500 font-bold uppercase">Dynamic AI</span>
+            <span className="text-[10px] text-blue-500 font-bold uppercase">Dynamic AI</span>
           </div>
 
           <form onSubmit={handleVoiceQuerySubmit} className="flex gap-1.5">
@@ -299,7 +299,7 @@ export default function CEODashboard({ projects, notifications, onSelectProject,
       <div className="px-6 py-4 bg-[#0d1527] flex justify-between items-center border-t border-slate-800">
         <button 
           onClick={() => setSelectedMobileProject(projects[0])}
-          className="text-[9px] font-bold text-slate-400 hover:text-white flex flex-col items-center gap-1"
+          className="text-[10px] font-bold text-slate-400 hover:text-white flex flex-col items-center gap-1"
         >
           <Smartphone className="w-4 h-4 text-slate-400" />
           <span>Ana Sayfa</span>
@@ -309,7 +309,7 @@ export default function CEODashboard({ projects, notifications, onSelectProject,
             onSelectProject(projects[0].id);
             onSetView('plan');
           }}
-          className="text-[9px] font-bold text-slate-400 hover:text-white flex flex-col items-center gap-1"
+          className="text-[10px] font-bold text-slate-400 hover:text-white flex flex-col items-center gap-1"
         >
           <Calendar className="w-4 h-4 text-slate-400" />
           <span>İş Programı</span>
@@ -319,7 +319,7 @@ export default function CEODashboard({ projects, notifications, onSelectProject,
             onSelectProject(projects[0].id);
             onSetView('insaat');
           }}
-          className="text-[9px] font-bold text-slate-400 hover:text-white flex flex-col items-center gap-1"
+          className="text-[10px] font-bold text-slate-400 hover:text-white flex flex-col items-center gap-1"
         >
           <Shield className="w-4 h-4 text-slate-400" />
           <span>Saha Ruhsat</span>

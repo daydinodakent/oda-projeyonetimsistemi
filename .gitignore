@@ -7,5 +7,6 @@ coverage/
 .env*
 !.env.example
 
-# Personal Claude Code overrides (e.g. auto-commit hook) — not shared with the team
-.claude/settings.local.json
+# Yerel dosya veritabanı (server/db.js) — kalıcı ama makineye özgü çalışma
+# zamanı verisi, kaynak kontrolüne dahil edilmez.
+server/data/

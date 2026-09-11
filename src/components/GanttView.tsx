@@ -401,7 +401,7 @@ export default function GanttView({ project, tasks, onUpdateTasks, theme, onClos
         {/* Superuser & Filters */}
         <div className="flex items-center gap-2 flex-wrap">
           {/* Active Phase Filter Toggle */}
-          <div className="flex rounded-none border border-border-ui p-0.5 bg-surface-subtle text-[9px] font-bold">
+          <div className="flex rounded-none border border-border-ui p-0.5 bg-surface-subtle text-[10px] font-bold">
             <button
               onClick={() => setActivePhase('all')}
               className={`px-2.5 py-1 rounded-none transition-colors cursor-pointer ${activePhase === 'all' ? 'bg-indigo-600 text-white' : 'text-content-muted hover:text-content-main'}`}
@@ -469,7 +469,7 @@ export default function GanttView({ project, tasks, onUpdateTasks, theme, onClos
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
-              <label className="text-[9px] font-black uppercase text-[var(--text-secondary)] block mb-1">Görev Adı</label>
+              <label className="text-[10px] font-black uppercase text-[var(--text-secondary)] block mb-1">Görev Adı</label>
               <input
                 type="text"
                 required
@@ -481,7 +481,7 @@ export default function GanttView({ project, tasks, onUpdateTasks, theme, onClos
             </div>
             
             <div>
-              <label className="text-[9px] font-black uppercase text-[var(--text-secondary)] block mb-1">Süreç Kategorisi</label>
+              <label className="text-[10px] font-black uppercase text-[var(--text-secondary)] block mb-1">Süreç Kategorisi</label>
               <select
                 value={newForm.phase}
                 onChange={e => setNewForm({...newForm, phase: e.target.value as any})}
@@ -494,7 +494,7 @@ export default function GanttView({ project, tasks, onUpdateTasks, theme, onClos
             </div>
 
             <div>
-              <label className="text-[9px] font-black uppercase text-[var(--text-secondary)] block mb-1">Sorumlu Mühendis / Mimar</label>
+              <label className="text-[10px] font-black uppercase text-[var(--text-secondary)] block mb-1">Sorumlu Mühendis / Mimar</label>
               <input
                 type="text"
                 required
@@ -506,7 +506,7 @@ export default function GanttView({ project, tasks, onUpdateTasks, theme, onClos
             </div>
 
             <div>
-              <label className="text-[9px] font-black uppercase text-[var(--text-secondary)] block mb-1">Yüklenici / Taşeron Firma</label>
+              <label className="text-[10px] font-black uppercase text-[var(--text-secondary)] block mb-1">Yüklenici / Taşeron Firma</label>
               <input
                 type="text"
                 placeholder="Örn: Kalyon Yapı A.Ş."
@@ -517,7 +517,7 @@ export default function GanttView({ project, tasks, onUpdateTasks, theme, onClos
             </div>
 
             <div>
-              <label className="text-[9px] font-black uppercase text-[var(--text-secondary)] block mb-1">Başlangıç Tarihi (Ağustos 2026)</label>
+              <label className="text-[10px] font-black uppercase text-[var(--text-secondary)] block mb-1">Başlangıç Tarihi (Ağustos 2026)</label>
               <input
                 type="date"
                 value={newForm.startDate}
@@ -527,7 +527,7 @@ export default function GanttView({ project, tasks, onUpdateTasks, theme, onClos
             </div>
 
             <div>
-              <label className="text-[9px] font-black uppercase text-[var(--text-secondary)] block mb-1">Bitiş Tarihi (Ağustos 2026)</label>
+              <label className="text-[10px] font-black uppercase text-[var(--text-secondary)] block mb-1">Bitiş Tarihi (Ağustos 2026)</label>
               <input
                 type="date"
                 value={newForm.endDate}
@@ -537,7 +537,7 @@ export default function GanttView({ project, tasks, onUpdateTasks, theme, onClos
             </div>
 
             <div>
-              <label className="text-[9px] font-black uppercase text-[var(--text-secondary)] block mb-1">Maliyet Etkisi (Milyon TL)</label>
+              <label className="text-[10px] font-black uppercase text-[var(--text-secondary)] block mb-1">Maliyet Etkisi (Milyon TL)</label>
               <input
                 type="number"
                 step="0.1"
@@ -548,7 +548,7 @@ export default function GanttView({ project, tasks, onUpdateTasks, theme, onClos
             </div>
 
             <div>
-              <label className="text-[9px] font-black uppercase text-[var(--text-secondary)] block mb-1">Öncelikli Görev Bağlantısı</label>
+              <label className="text-[10px] font-black uppercase text-[var(--text-secondary)] block mb-1">Öncelikli Görev Bağlantısı</label>
               <select
                 value={newForm.dependencies}
                 onChange={e => setNewForm({...newForm, dependencies: e.target.value})}
@@ -562,7 +562,7 @@ export default function GanttView({ project, tasks, onUpdateTasks, theme, onClos
             </div>
 
             <div>
-              <label className="text-[9px] font-black uppercase text-[var(--text-secondary)] block mb-1">Sistem Statüsü</label>
+              <label className="text-[10px] font-black uppercase text-[var(--text-secondary)] block mb-1">Sistem Statüsü</label>
               <select
                 value={newForm.status}
                 onChange={e => setNewForm({...newForm, status: e.target.value as any})}
@@ -604,7 +604,7 @@ export default function GanttView({ project, tasks, onUpdateTasks, theme, onClos
             <div className="flex justify-between items-center mb-1">
               <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
                 GÖREV YÖNETİM MATRİSİ
-                <span className="text-[9px] text-indigo-400 font-mono font-bold bg-indigo-500/10 px-1 py-0.2 rounded border border-indigo-500/20">
+                <span className="text-[10px] text-indigo-400 font-mono font-bold bg-indigo-500/10 px-1 py-0.5 rounded border border-indigo-500/20">
                   {Math.round(leftPanelWidth)}%
                 </span>
               </div>
@@ -655,7 +655,7 @@ export default function GanttView({ project, tasks, onUpdateTasks, theme, onClos
                         
                         <div className="grid grid-cols-2 gap-2">
                           <div>
-                            <span className="text-[8px] text-slate-400 block uppercase font-bold">Yüklenici</span>
+                            <span className="text-[10px] text-slate-400 block uppercase font-bold">Yüklenici</span>
                             <input
                               type="text"
                               value={editFormData.contractor || ''}
@@ -664,7 +664,7 @@ export default function GanttView({ project, tasks, onUpdateTasks, theme, onClos
                             />
                           </div>
                           <div>
-                            <span className="text-[8px] text-slate-400 block uppercase font-bold">Sorumlu</span>
+                            <span className="text-[10px] text-slate-400 block uppercase font-bold">Sorumlu</span>
                             <input
                               type="text"
                               value={editFormData.responsible || ''}
@@ -676,7 +676,7 @@ export default function GanttView({ project, tasks, onUpdateTasks, theme, onClos
 
                         <div className="grid grid-cols-2 gap-2">
                           <div>
-                            <span className="text-[8px] text-slate-400 block uppercase font-bold">Bütçe (mTL)</span>
+                            <span className="text-[10px] text-slate-400 block uppercase font-bold">Bütçe (mTL)</span>
                             <input
                               type="number"
                               step="0.1"
@@ -686,7 +686,7 @@ export default function GanttView({ project, tasks, onUpdateTasks, theme, onClos
                             />
                           </div>
                           <div>
-                            <span className="text-[8px] text-slate-400 block uppercase font-bold">Durum</span>
+                            <span className="text-[10px] text-slate-400 block uppercase font-bold">Durum</span>
                             <select
                               value={editFormData.status}
                               onChange={e => setEditFormData({...editFormData, status: e.target.value as any})}
@@ -704,7 +704,7 @@ export default function GanttView({ project, tasks, onUpdateTasks, theme, onClos
                         {/* Drag and slide progress state */}
                         <div className="space-y-1">
                           <div className="flex justify-between items-center">
-                            <span className="text-[8px] text-slate-400 block uppercase font-bold">İlerleme Oranı</span>
+                            <span className="text-[10px] text-slate-400 block uppercase font-bold">İlerleme Oranı</span>
                             <span className="text-[10px] font-bold text-amber-400">{editFormData.progress}%</span>
                           </div>
                           <input
@@ -721,14 +721,14 @@ export default function GanttView({ project, tasks, onUpdateTasks, theme, onClos
                           <button
                             type="button"
                             onClick={cancelEdit}
-                            className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-[9px] font-bold"
+                            className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-[10px] font-bold"
                           >
                             İptal
                           </button>
                           <button
                             type="button"
                             onClick={() => saveEdit(task.id)}
-                            className="px-2.5 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded text-[9px] font-black"
+                            className="px-2.5 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded text-[10px] font-black"
                           >
                             Kaydet
                           </button>
@@ -737,7 +737,7 @@ export default function GanttView({ project, tasks, onUpdateTasks, theme, onClos
                     ) : (
                       <div className="space-y-2">
                         <div className="flex justify-between items-start gap-1">
-                          <span className={`text-[8px] font-black uppercase tracking-wider px-1.5 py-0.2 rounded shrink-0 ${
+                          <span className={`text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded shrink-0 ${
                             task.phase === 'planlama' 
                               ? 'bg-blue-600/15 text-blue-400' 
                               : task.phase === 'insaat' 
@@ -778,7 +778,7 @@ export default function GanttView({ project, tasks, onUpdateTasks, theme, onClos
                             <Clock className="w-3 h-3 text-slate-500" />
                             <span>{task.startDate} / {task.endDate.split('-')[2]}</span>
                           </div>
-                          <div className="col-span-2 text-[9px] truncate">
+                          <div className="col-span-2 text-[10px] truncate">
                             Taşeron: <span className="text-slate-300 font-sans">{task.contractor}</span>
                           </div>
                         </div>
@@ -797,7 +797,7 @@ export default function GanttView({ project, tasks, onUpdateTasks, theme, onClos
                               style={{ width: `${task.progress}%` }} 
                             />
                           </div>
-                          <span className="text-[9.5px] font-bold text-slate-300 w-7 text-right">
+                          <span className="text-[10px] font-bold text-slate-300 w-7 text-right">
                             {task.progress}%
                           </span>
                         </div>
@@ -857,7 +857,7 @@ export default function GanttView({ project, tasks, onUpdateTasks, theme, onClos
                 <button
                   type="button"
                   onClick={() => setIsLeftPanelOpen(true)}
-                  className="px-2.5 py-1 text-[9px] font-black uppercase text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 rounded border border-emerald-500/20 transition cursor-pointer flex items-center gap-1 shrink-0"
+                  className="px-2.5 py-1 text-[10px] font-black uppercase text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 rounded border border-emerald-500/20 transition cursor-pointer flex items-center gap-1 shrink-0"
                   title="Sol Matris Paneli Göster"
                 >
                   <ChevronRight className="w-3 h-3" />
@@ -868,7 +868,7 @@ export default function GanttView({ project, tasks, onUpdateTasks, theme, onClos
                 AĞUSTOS 2026 GANTT ZAMAN ÇİZELGESİ DIZILIMI
               </span>
             </div>
-            <span className="text-[9px] font-bold text-blue-400 font-mono flex items-center gap-1">
+            <span className="text-[10px] font-bold text-blue-400 font-mono flex items-center gap-1">
               <span className="w-2 h-2 rounded-full bg-blue-500 animate-ping"></span>
               Güncel Tarih: 28 Ağustos 2026
             </span>
@@ -878,7 +878,7 @@ export default function GanttView({ project, tasks, onUpdateTasks, theme, onClos
             <div className="min-w-[550px] space-y-2 h-full">
               
               {/* Timeline Days Header */}
-              <div className="grid grid-cols-31 border-b border-[var(--border)] pb-2 text-[8px] font-black text-slate-500 font-mono text-center">
+              <div className="grid grid-cols-31 border-b border-[var(--border)] pb-2 text-[10px] font-black text-slate-500 font-mono text-center">
                 {daysInAugust.map(day => {
                   const isHoveredDay = dragOverDay?.day === day;
                   return (
@@ -1041,7 +1041,7 @@ export default function GanttView({ project, tasks, onUpdateTasks, theme, onClos
                               />
 
                               {/* Combined Text Labels */}
-                              <div className="relative z-10 text-[8px] font-black text-white truncate max-w-full drop-shadow-sm flex items-center justify-between w-full gap-1.5 pointer-events-none">
+                              <div className="relative z-10 text-[10px] font-black text-white truncate max-w-full drop-shadow-sm flex items-center justify-between w-full gap-1.5 pointer-events-none">
                                 <span className="flex items-center gap-1 shrink-0">
                                   {isDelayed && (
                                     <span className="relative flex h-1.5 w-1.5">
@@ -1065,7 +1065,7 @@ export default function GanttView({ project, tasks, onUpdateTasks, theme, onClos
                         {/* Drag-and-drop live preview ghost bar */}
                         {draggedTaskId === task.id && dragOverDay && (
                           <div 
-                            className="absolute h-[26px] rounded-lg border-2 border-dashed border-indigo-500/60 bg-indigo-500/20 shadow-[0_0_15px_rgba(99,102,241,0.35)] z-30 pointer-events-none flex items-center justify-between px-2.5 text-[8px] font-black text-indigo-300 font-sans tracking-wide"
+                            className="absolute h-[26px] rounded-lg border-2 border-dashed border-indigo-500/60 bg-indigo-500/20 shadow-[0_0_15px_rgba(99,102,241,0.35)] z-30 pointer-events-none flex items-center justify-between px-2.5 text-[10px] font-black text-indigo-300 font-sans tracking-wide"
                             style={{
                               left: `${((dragOverDay.day - 1) / 31) * 100}%`,
                               width: `${width}%`
@@ -1075,7 +1075,7 @@ export default function GanttView({ project, tasks, onUpdateTasks, theme, onClos
                               <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
                               YENİ BAŞLANGIÇ: {dragOverDay.day} AĞUSTOS
                             </span>
-                            <span className="opacity-70 font-mono text-[7px] bg-slate-900 px-1 py-0.2 rounded border border-slate-700">
+                            <span className="opacity-70 font-mono text-[10px] bg-slate-900 px-1 py-0.5 rounded border border-slate-700">
                               BIRAKIN
                             </span>
                           </div>
@@ -1103,7 +1103,7 @@ export default function GanttView({ project, tasks, onUpdateTasks, theme, onClos
                             }`} />
 
                             <div className="flex items-center justify-between border-b border-[var(--border)] pb-1.5">
-                              <span className="font-extrabold text-[9px] text-blue-400 tracking-wider uppercase">HIZLI DÜZENLEME</span>
+                              <span className="font-extrabold text-[10px] text-blue-400 tracking-wider uppercase">HIZLI DÜZENLEME</span>
                               <button 
                                 onClick={() => setQuickEditTaskId(null)}
                                 className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition cursor-pointer p-0.5 rounded-md hover:bg-[var(--bg-primary)]"
@@ -1113,7 +1113,7 @@ export default function GanttView({ project, tasks, onUpdateTasks, theme, onClos
                             </div>
 
                             <div className="space-y-1">
-                              <label className="text-[9px] font-black text-[var(--text-secondary)] uppercase tracking-wider block">Görev Adı</label>
+                              <label className="text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-wider block">Görev Adı</label>
                               <input 
                                 type="text"
                                 value={quickEditName}
@@ -1125,7 +1125,7 @@ export default function GanttView({ project, tasks, onUpdateTasks, theme, onClos
 
                             <div className="space-y-1">
                               <div className="flex justify-between items-center">
-                                <label className="text-[9px] font-black text-[var(--text-secondary)] uppercase tracking-wider">İlerleme</label>
+                                <label className="text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-wider">İlerleme</label>
                                 <span className="text-[10px] font-mono font-black text-blue-400">{quickEditProgress}%</span>
                               </div>
                               <input 
@@ -1145,7 +1145,7 @@ export default function GanttView({ project, tasks, onUpdateTasks, theme, onClos
                                     key={val}
                                     type="button"
                                     onClick={() => setQuickEditProgress(val)}
-                                    className={`px-1.5 py-0.5 rounded text-[8px] font-mono font-black transition-all cursor-pointer ${
+                                    className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-black transition-all cursor-pointer ${
                                       quickEditProgress === val 
                                         ? 'bg-blue-600 text-white' 
                                         : 'bg-[var(--bg-primary)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] border border-[var(--border)]'
@@ -1183,7 +1183,7 @@ export default function GanttView({ project, tasks, onUpdateTasks, theme, onClos
           </div>
           
           {/* Gantt Footer Legend */}
-          <div className="mt-auto border-t border-[var(--border)] pt-3 flex items-center justify-between text-[8px] font-bold text-slate-400 font-mono">
+          <div className="mt-auto border-t border-[var(--border)] pt-3 flex items-center justify-between text-[10px] font-bold text-slate-400 font-mono">
             <div className="flex gap-4">
               <span className="flex items-center gap-1">
                 <span className="w-2.5 h-2.5 rounded bg-blue-600/30 border border-blue-500" /> Planlama
@@ -1211,10 +1211,10 @@ export default function GanttView({ project, tasks, onUpdateTasks, theme, onClos
         <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-[var(--border)] mb-4 gap-3">
           <div>
             <div className="flex items-center gap-1.5 mb-1">
-              <span className="px-1.5 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[8.5px] font-black uppercase tracking-wider">
+              <span className="px-1.5 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[10px] font-black uppercase tracking-wider">
                 Recharts İnteraktif Motoru
               </span>
-              <span className="text-[9px] text-slate-500 font-bold font-mono">Gerçek Zamanlı Senkronizasyon</span>
+              <span className="text-[10px] text-slate-500 font-bold font-mono">Gerçek Zamanlı Senkronizasyon</span>
             </div>
             <h4 className="text-xs font-black uppercase tracking-widest text-[var(--text-primary)] flex items-center gap-1.5">
               <Activity className="w-4 h-4 text-indigo-500 animate-pulse" />
@@ -1223,7 +1223,7 @@ export default function GanttView({ project, tasks, onUpdateTasks, theme, onClos
           </div>
 
           {/* Tab Selector */}
-          <div className="flex rounded-lg border border-[var(--border)] p-0.5 bg-[var(--bg-primary)] text-[9px] font-bold">
+          <div className="flex rounded-lg border border-[var(--border)] p-0.5 bg-[var(--bg-primary)] text-[10px] font-bold">
             <button
               type="button"
               onClick={() => setAnalyticsTab('tasks')}
@@ -1253,7 +1253,7 @@ export default function GanttView({ project, tasks, onUpdateTasks, theme, onClos
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
           {/* 1. Chart Canvas */}
           <div className="lg:col-span-8 bg-[var(--bg-primary)] border border-[var(--border)] rounded-xl p-3.5 relative min-h-[280px]">
-            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-3">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-3">
               {analyticsTab === 'tasks' ? 'GÖREV MALİYETLERİ (mTL) VE FİZİKİ İLERLEME ORANLARI (%)' : 'SÜREÇ AŞAMALARI KÜMÜLATİF MALİYET VE ORTALAMA İLERLEME'}
             </span>
 
@@ -1333,7 +1333,7 @@ export default function GanttView({ project, tasks, onUpdateTasks, theme, onClos
               </ResponsiveContainer>
             </div>
 
-            <p className="text-[8px] text-slate-500 font-mono text-center mt-1">
+            <p className="text-[10px] text-slate-500 font-mono text-center mt-1">
               * {analyticsTab === 'tasks' ? 'Detayları görmek için grafik üzerindeki sütunlara tıklayabilirsiniz.' : 'Süreçlerin toplam bütçe ve ağırlıklı ilerleme performansları.'}
             </p>
           </div>
@@ -1348,7 +1348,7 @@ export default function GanttView({ project, tasks, onUpdateTasks, theme, onClos
               return (
                 <div className="p-3 bg-[var(--bg-primary)] border border-[var(--border)] rounded-xl flex-1 flex flex-col justify-between">
                   <div>
-                    <span className="text-[8px] font-black text-indigo-400 uppercase tracking-widest block mb-1">
+                    <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest block mb-1">
                       SEÇİLİ GÖREV DETAYLARI
                     </span>
                     <strong className="text-[11px] text-[var(--text-primary)] block leading-tight mb-2 truncate" title={selectedTask.name}>
@@ -1356,7 +1356,7 @@ export default function GanttView({ project, tasks, onUpdateTasks, theme, onClos
                     </strong>
 
                     {/* Metadata specs */}
-                    <div className="space-y-1.5 text-[9.5px]">
+                    <div className="space-y-1.5 text-[10px]">
                       <div className="flex justify-between">
                         <span className="text-slate-400">Yüklenici:</span>
                         <span className="font-extrabold text-[var(--text-primary)]">{selectedTask.contractor || 'Kalyon Yapı'}</span>
@@ -1371,7 +1371,7 @@ export default function GanttView({ project, tasks, onUpdateTasks, theme, onClos
                       </div>
                       <div className="flex justify-between">
                         <span className="text-slate-400">Statü:</span>
-                        <span className="px-1.5 py-0.2 text-[8px] font-black bg-blue-500/10 text-blue-400 rounded-none border border-blue-500/20">
+                        <span className="px-1.5 py-0.5 text-[10px] font-black bg-blue-500/10 text-blue-400 rounded-none border border-blue-500/20">
                           {selectedTask.status}
                         </span>
                       </div>
@@ -1380,7 +1380,7 @@ export default function GanttView({ project, tasks, onUpdateTasks, theme, onClos
 
                   {/* Dynamic Simulator Widget */}
                   <div className="border-t border-[var(--border)] pt-2.5 mt-2.5 space-y-2">
-                    <div className="flex justify-between items-center text-[9px]">
+                    <div className="flex justify-between items-center text-[10px]">
                       <span className="font-black text-amber-500 uppercase tracking-wider flex items-center gap-1">
                         <Sliders className="w-3 h-3 text-amber-500" />
                         Canlı Simülatör
@@ -1403,7 +1403,7 @@ export default function GanttView({ project, tasks, onUpdateTasks, theme, onClos
                       }}
                       className="w-full accent-indigo-500 cursor-pointer h-1 bg-slate-800 rounded-lg appearance-none"
                     />
-                    <p className="text-[8px] text-slate-500 leading-tight">
+                    <p className="text-[10px] text-slate-500 leading-tight">
                       * Kaydırıcıyı hareket ettirerek fiziki ilerleme oranını eş zamanlı simüle edip zaman çizelgesiyle senkronize edebilirsiniz.
                     </p>
                   </div>
@@ -1412,14 +1412,14 @@ export default function GanttView({ project, tasks, onUpdateTasks, theme, onClos
             })() : (
               <div className="p-3 bg-[var(--bg-primary)] border border-[var(--border)] rounded-xl flex-1 flex flex-col justify-between">
                 <div>
-                  <span className="text-[8px] font-black text-emerald-400 uppercase tracking-widest block mb-1">
+                  <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest block mb-1">
                     GENEL AŞAMA ANALİZLERİ
                   </span>
-                  <p className="text-[9.5px] text-slate-400 leading-relaxed mb-3">
+                  <p className="text-[10px] text-slate-400 leading-relaxed mb-3">
                     Proje kapsamındaki 3 ana fazın (Planlama, İnşaat ve İşletme) konsolide bütçe dağılımları ve ağırlıklı fiziki tamamlanma yüzdeleri.
                   </p>
 
-                  <div className="space-y-2 text-[9.5px]">
+                  <div className="space-y-2 text-[10px]">
                     <div className="p-2 bg-[var(--bg-secondary)] border border-[var(--border)] rounded">
                       <div className="flex justify-between mb-0.5">
                         <span className="font-bold text-blue-400">📐 Planlama Fazı</span>
@@ -1452,7 +1452,7 @@ export default function GanttView({ project, tasks, onUpdateTasks, theme, onClos
                   </div>
                 </div>
 
-                <div className="text-[8px] text-slate-500 text-center border-t border-[var(--border)] pt-2 mt-2">
+                <div className="text-[10px] text-slate-500 text-center border-t border-[var(--border)] pt-2 mt-2">
                   <span>Süreç kümülatif bütçeleri otomatik hesaplanmaktadır.</span>
                 </div>
               </div>
@@ -1460,11 +1460,11 @@ export default function GanttView({ project, tasks, onUpdateTasks, theme, onClos
 
             {/* Overall Project Health Meter */}
             <div className="p-2.5 bg-indigo-600/10 border border-indigo-500/20 text-[var(--text-primary)] rounded-xl space-y-1">
-              <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-wider text-indigo-400">
+              <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-wider text-indigo-400">
                 <span>PORTFÖY SAĞLIK SKORU</span>
                 <span className="font-mono text-emerald-400">9.4 / 10</span>
               </div>
-              <p className="text-[8.5px] text-slate-400 leading-tight">
+              <p className="text-[10px] text-slate-400 leading-tight">
                 Konsolide bütçe uyumluluğu ve fiziki ilerleme hızına dayalı algoritmik indeks derecelendirmesi.
               </p>
             </div>
@@ -1539,32 +1539,32 @@ export default function GanttView({ project, tasks, onUpdateTasks, theme, onClos
         {/* Header Section */}
         <div className="flex items-center justify-between border-b-2 border-slate-900 pb-4 mb-4">
           <div>
-            <span className="text-[9px] font-bold text-slate-500 block tracking-widest">T.C. SPATIAL ERP & ALTYAPI COĞRAFİ SİSTEMLERİ</span>
+            <span className="text-[10px] font-bold text-slate-500 block tracking-widest">T.C. SPATIAL ERP & ALTYAPI COĞRAFİ SİSTEMLERİ</span>
             <h1 className="text-lg font-black text-slate-900 tracking-tight uppercase">ALTYAPI PROJE VE YATIRIM KONTROL DAİRESİ</h1>
             <p className="text-xs text-slate-600 font-bold mt-0.5">{project.name.toUpperCase()} • RESMİ İŞ-ZAMAN PLANI RAPORU</p>
           </div>
           <div className="text-right">
             <span className="text-[10px] font-mono block text-slate-800 font-bold">Rapor Tarihi: 28 Ağustos 2026</span>
-            <span className="text-[9px] bg-slate-100 text-slate-800 px-2 py-0.5 rounded font-black border border-slate-200 uppercase tracking-wider">A4 LANDSCAPE FORMAT</span>
+            <span className="text-[10px] bg-slate-100 text-slate-800 px-2 py-0.5 rounded font-black border border-slate-200 uppercase tracking-wider">A4 LANDSCAPE FORMAT</span>
           </div>
         </div>
 
         {/* Aggregate Stats Row */}
         <div className="grid grid-cols-4 gap-4 p-4 bg-slate-50 border border-slate-200 rounded-lg mb-6">
           <div>
-            <span className="text-[8px] font-black text-slate-500 block uppercase tracking-wider">Toplam Görev</span>
+            <span className="text-[10px] font-black text-slate-500 block uppercase tracking-wider">Toplam Görev</span>
             <span className="text-sm font-black text-slate-900">{ganttTasks.length} Adet</span>
           </div>
           <div>
-            <span className="text-[8px] font-black text-slate-500 block uppercase tracking-wider">Planlama Fazı</span>
+            <span className="text-[10px] font-black text-slate-500 block uppercase tracking-wider">Planlama Fazı</span>
             <span className="text-sm font-black text-blue-700">{ganttTasks.filter(t => t.phase === 'planlama').length} Görev</span>
           </div>
           <div>
-            <span className="text-[8px] font-black text-slate-500 block uppercase tracking-wider">İnşaat Fazı</span>
+            <span className="text-[10px] font-black text-slate-500 block uppercase tracking-wider">İnşaat Fazı</span>
             <span className="text-sm font-black text-amber-700">{ganttTasks.filter(t => t.phase === 'insaat').length} Görev</span>
           </div>
           <div>
-            <span className="text-[8px] font-black text-slate-500 block uppercase tracking-wider">İşletme Fazı</span>
+            <span className="text-[10px] font-black text-slate-500 block uppercase tracking-wider">İşletme Fazı</span>
             <span className="text-sm font-black text-emerald-700">{ganttTasks.filter(t => t.phase === 'isletme').length} Görev</span>
           </div>
         </div>
@@ -1599,11 +1599,11 @@ export default function GanttView({ project, tasks, onUpdateTasks, theme, onClos
                     <div className="print-progress-bg flex-1">
                       <div className="print-progress-fill" style={{ width: `${task.progress}%` }} />
                     </div>
-                    <span className="font-mono font-black text-[9px] text-slate-900">{task.progress}%</span>
+                    <span className="font-mono font-black text-[10px] text-slate-900">{task.progress}%</span>
                   </div>
                 </td>
                 <td>
-                  <span className="font-black text-[9px] text-slate-900 uppercase">{task.status}</span>
+                  <span className="font-black text-[10px] text-slate-900 uppercase">{task.status}</span>
                 </td>
               </tr>
             ))}
@@ -1615,21 +1615,21 @@ export default function GanttView({ project, tasks, onUpdateTasks, theme, onClos
           <div>
             <p className="text-[10px] font-black text-slate-800 uppercase tracking-wider mb-8">Hazırlayan</p>
             <p className="text-[11px] font-bold text-slate-900">Alper Yılmaz</p>
-            <p className="text-[9px] text-slate-500">Şantiye Şefi</p>
+            <p className="text-[10px] text-slate-500">Şantiye Şefi</p>
           </div>
           <div>
             <p className="text-[10px] font-black text-slate-800 uppercase tracking-wider mb-8">Kontrol Eden</p>
             <p className="text-[11px] font-bold text-slate-900">Mustafa Kaya</p>
-            <p className="text-[9px] text-slate-500">HSE Baş Mühendisi</p>
+            <p className="text-[10px] text-slate-500">HSE Baş Mühendisi</p>
           </div>
           <div>
             <p className="text-[10px] font-black text-slate-800 uppercase tracking-wider mb-8">Onaylayan</p>
             <p className="text-[11px] font-bold text-slate-900">Deniz Aydın</p>
-            <p className="text-[9px] text-slate-500">Proje Kontrol Direktörü</p>
+            <p className="text-[10px] text-slate-500">Proje Kontrol Direktörü</p>
           </div>
         </div>
 
-        <div className="text-center mt-12 pt-4 border-t border-slate-100 text-[8px] font-mono text-slate-400">
+        <div className="text-center mt-12 pt-4 border-t border-slate-100 text-[10px] font-mono text-slate-400">
           Bu belge, Spatial ERP Altyapı Coğrafi Bilgi Sistemi tarafından dijital olarak imzalanmıştır.
         </div>
       </div>

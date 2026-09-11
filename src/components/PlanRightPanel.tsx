@@ -122,17 +122,17 @@ export default function PlanRightPanel({ project }: PlanRightPanelProps) {
     <div className="space-y-2.5">
       {/* 1. PROJE GENEL METRİKLERİ */}
       <div className="card py-1.5 rounded-none bg-transparent border-0 shadow-none px-0">
-        <span className="text-[10px] font-black uppercase tracking-wider text-[var(--text-primary)] block mb-2">
+        <span className="section-eyebrow block mb-2">
           Proje Fizibilite Göstergeleri
         </span>
 
         <div className="grid grid-cols-2 gap-2 mb-2">
           <div className="p-2 bg-[var(--bg-primary)] border border-[var(--border)] rounded-none">
-            <span className="text-[9px] text-[var(--text-secondary)] block uppercase font-bold leading-none mb-1">Toplam Alan</span>
+            <span className="micro-label block leading-none mb-1">Toplam Alan</span>
             <strong className="text-[11px] text-[var(--text-primary)] font-black">{project.area}</strong>
           </div>
           <div className="p-2 bg-[var(--bg-primary)] border border-[var(--border)] rounded-none">
-            <span className="text-[9px] text-[var(--text-secondary)] block uppercase font-bold leading-none mb-1">Bütçe (BAC)</span>
+            <span className="micro-label block leading-none mb-1">Bütçe (BAC)</span>
             <strong className="text-[11px] text-emerald-500 font-black">₺{project.budget}M</strong>
           </div>
         </div>
@@ -151,7 +151,7 @@ export default function PlanRightPanel({ project }: PlanRightPanelProps) {
           </div>
           <div className="flex justify-between items-center text-[11px]">
             <span className="text-[var(--text-secondary)] font-bold">Risk Profil Derecesi:</span>
-            <span className={`px-1.5 py-0.5 rounded-none text-[8.5px] font-extrabold ${
+            <span className={`px-1.5 py-0.5 rounded-none text-[10px] font-extrabold ${
               project.riskLevel === 'Düşük' 
                ? 'bg-emerald-500/15 text-emerald-500' 
                 : project.riskLevel === 'Orta' 
@@ -174,15 +174,15 @@ export default function PlanRightPanel({ project }: PlanRightPanelProps) {
             <div className="w-5 h-5 rounded bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500">
               <Box className="w-3 h-3" />
             </div>
-            <span className="text-[9px] font-black uppercase tracking-wider text-slate-200">Tahmini İnşaat Hacmi</span>
+            <span className="text-[11px] font-black uppercase tracking-wider text-slate-200">Tahmini İnşaat Hacmi</span>
           </div>
-          <span className="text-[8px] font-mono font-bold text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded animate-pulse">
+          <span className="text-[10px] font-mono font-bold text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded animate-pulse">
             CANLI SYNC
           </span>
         </div>
 
         <div className="space-y-0.5">
-          <span className="text-[8.5px] text-slate-400 font-bold block uppercase tracking-wider">Toplam Kübik Hacim</span>
+          <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Toplam Kübik Hacim</span>
           <div className="flex items-baseline gap-1">
             <span className="text-xl font-black font-mono tracking-tight text-white">
               {totalVolume > 0 ? Math.round(totalVolume).toLocaleString('tr-TR') : '0'}
@@ -193,7 +193,7 @@ export default function PlanRightPanel({ project }: PlanRightPanelProps) {
 
         {/* Ortalama Kat Yüksekliği Parametresi Kontrolü */}
         <div className="bg-slate-950/50 p-2 border border-slate-800/80 rounded space-y-1.5 font-mono">
-          <div className="flex justify-between items-center text-[8.5px]">
+          <div className="flex justify-between items-center text-[10px]">
             <span className="text-slate-400 font-bold flex items-center gap-1">
               <Ruler className="w-2.5 h-2.5 text-slate-500" /> Ort. Kat Yüksekliği:
             </span>
@@ -208,7 +208,7 @@ export default function PlanRightPanel({ project }: PlanRightPanelProps) {
             onChange={(e) => setAvgFloorHeight(parseFloat(e.target.value))}
             className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-500"
           />
-          <div className="flex justify-between text-[7px] text-slate-500">
+          <div className="flex justify-between text-[10px] text-slate-500">
             <span>2.5m</span>
             <span>3.5m (Standart)</span>
             <span>4.5m</span>
@@ -216,13 +216,13 @@ export default function PlanRightPanel({ project }: PlanRightPanelProps) {
         </div>
 
         {/* Poligon Taban Detay Özetleri */}
-        <div className="grid grid-cols-2 gap-2 text-[8.5px] font-mono">
+        <div className="grid grid-cols-2 gap-2 text-[10px] font-mono">
           <div className="p-1.5 bg-slate-950/40 rounded border border-slate-800/50 flex flex-col">
-            <span className="text-slate-500 block uppercase font-bold text-[7px]">Çizilen Poligon</span>
+            <span className="text-slate-500 block uppercase font-bold text-[10px]">Çizilen Poligon</span>
             <span className="text-slate-200 font-extrabold mt-0.5">{currentProjectBuildings.length} Adet</span>
           </div>
           <div className="p-1.5 bg-slate-950/40 rounded border border-slate-800/50 flex flex-col">
-            <span className="text-slate-500 block uppercase font-bold text-[7px]">Toplam Taban Alanı</span>
+            <span className="text-slate-500 block uppercase font-bold text-[10px]">Toplam Taban Alanı</span>
             <span className="text-slate-200 font-extrabold mt-0.5">
               {totalArea > 0 ? Math.round(totalArea).toLocaleString('tr-TR') : '0'} m²
             </span>
@@ -233,12 +233,12 @@ export default function PlanRightPanel({ project }: PlanRightPanelProps) {
       {/* 2. RUHSAT & İZİNLER TABLOSU */}
       <div className="card py-1.5 rounded-none bg-transparent border-0 shadow-none px-0 border-t border-[var(--border)] pt-2.5">
         <div className="flex justify-between items-center mb-2">
-          <span className="text-[10px] font-black uppercase tracking-wider text-[var(--text-primary)] flex items-center gap-1.5">
+          <span className="section-eyebrow flex items-center gap-1.5">
             <FileCheck className="w-3.5 h-3.5 text-blue-500" />
             Yasal İzinler & Ruhsatlar
           </span>
           <div className="flex items-center gap-1.5">
-            <span className="text-[9px] text-blue-500 font-bold">({permits.length} Evrak)</span>
+            <span className="text-[10px] text-blue-500 font-bold">({permits.length} Evrak)</span>
             <button
               onClick={() => setIsEditingPermits(true)}
               className="p-1 hover:bg-slate-800 rounded transition cursor-pointer text-slate-400 hover:text-white flex items-center justify-center shrink-0"
@@ -251,16 +251,16 @@ export default function PlanRightPanel({ project }: PlanRightPanelProps) {
 
         <div className="space-y-1.5 max-h-[140px] overflow-y-auto pr-1" style={{ scrollbarWidth: 'none' }}>
           {permits.map((permit) => (
-            <div key={permit.id} className="p-2 bg-[var(--bg-primary)] border border-[var(--border)] rounded-none text-[9.5px] space-y-1">
+            <div key={permit.id} className="p-2 bg-[var(--bg-primary)] border border-[var(--border)] rounded-none text-[10px] space-y-1">
               <div className="flex justify-between items-start gap-1">
                 <span className="font-bold text-[var(--text-primary)] leading-normal truncate block w-[120px]" title={permit.name}>
                   {permit.name}
                 </span>
-                <span className={`px-1.5 py-0.2 rounded-none border text-[8px] font-extrabold ${permitStatusColors[permit.status]}`}>
+                <span className={`px-1.5 py-0.5 rounded-none border text-[10px] font-extrabold ${permitStatusColors[permit.status]}`}>
                   {permit.status}
                 </span>
               </div>
-              <div className="flex justify-between text-[8px] text-[var(--text-secondary)] pt-0.5">
+              <div className="flex justify-between text-[10px] text-[var(--text-secondary)] pt-0.5">
                 <span>Kurum: <strong>{permit.authority}</strong></span>
                 <span>Bitiş: <strong className="text-red-400 font-mono">{permit.expiryDate}</strong></span>
               </div>
@@ -272,12 +272,12 @@ export default function PlanRightPanel({ project }: PlanRightPanelProps) {
       {/* 3. KAYNAK & BÜTÇE GRUBU */}
       <div className="card py-1.5 rounded-none bg-transparent border-0 shadow-none px-0 border-t border-[var(--border)] pt-2.5">
         <div className="flex justify-between items-center mb-2">
-          <span className="text-[10px] font-black uppercase tracking-wider text-[var(--text-primary)] flex items-center gap-1.5">
+          <span className="section-eyebrow flex items-center gap-1.5">
             <DollarSign className="w-3.5 h-3.5 text-amber-500" />
             Kaynak & Bütçe Yönetimi
           </span>
           <div className="flex items-center gap-1.5">
-            <span className="text-[8.5px] text-amber-500 font-black bg-amber-500/10 px-1.5 py-0.5 rounded uppercase">
+            <span className="text-[10px] text-amber-500 font-black bg-amber-500/10 px-1.5 py-0.5 rounded uppercase">
               Çakışma Var (%{subcontractorCap})
             </span>
             <button
@@ -291,13 +291,13 @@ export default function PlanRightPanel({ project }: PlanRightPanelProps) {
         </div>
 
         <div className="space-y-2">
-          <p className="text-[9px] text-[var(--text-secondary)] leading-relaxed">
+          <p className="text-[10px] text-[var(--text-secondary)] leading-relaxed">
             Şantiyede görevli alt yüklenici, makine-ekipman ve birim fiyat planlaması.
           </p>
 
           {/* Alt Yüklenici Detayı */}
           <div className="p-2 bg-[var(--bg-primary)] border border-[var(--border)] rounded-none space-y-1.5">
-            <div className="flex justify-between items-center text-[9px]">
+            <div className="flex justify-between items-center text-[10px]">
               <span className="font-bold text-[var(--text-primary)]">Kalyon Altyapı A.Ş.</span>
               <span className="text-amber-500 font-extrabold">Kapasite: %{subcontractorCap}</span>
             </div>
@@ -308,24 +308,24 @@ export default function PlanRightPanel({ project }: PlanRightPanelProps) {
 
           {/* Kaynak Çakışma Alert */}
           <div className="p-2 bg-amber-500/10 border border-amber-500/20 text-[var(--text-primary)] rounded-none space-y-0.5">
-            <div className="flex items-center gap-1 text-amber-500 font-extrabold text-[8.5px] uppercase tracking-wider">
+            <div className="flex items-center gap-1 text-amber-500 font-extrabold text-[10px] uppercase tracking-wider">
               <AlertTriangle className="w-3 h-3 shrink-0" />
               <span>KAYNAK ÇAKIŞMA ALARMI</span>
             </div>
-            <p className="text-[9px] text-[var(--text-secondary)] leading-tight">
+            <p className="text-[10px] text-[var(--text-secondary)] leading-tight">
               <strong>CAT-390 Ağır Ekskavatör</strong>, kümülatif olarak Sektör-A ve Sektör-B kazılarına ortak atanmış durumda.
             </p>
           </div>
 
           {/* Maliyet Özetleri */}
-          <div className="grid grid-cols-2 gap-1.5 text-[9px]">
+          <div className="grid grid-cols-2 gap-1.5 text-[10px]">
             <div className="p-2 bg-[var(--bg-primary)] rounded-none border border-[var(--border)]">
-              <span className="text-[8px] text-[var(--text-secondary)] block uppercase font-bold">PLANLANAN MALİYET</span>
-              <span className="font-mono font-black text-[var(--text-primary)] text-[10.5px]">{plannedCost}</span>
+              <span className="micro-label block">PLANLANAN MALİYET</span>
+              <span className="font-mono font-black text-[var(--text-primary)] text-[10px]">{plannedCost}</span>
             </div>
             <div className="p-2 bg-[var(--bg-primary)] rounded-none border border-[var(--border)]">
-              <span className="text-[8px] text-[var(--text-secondary)] block uppercase font-bold">GERÇEKLEŞEN BÜTÇE</span>
-              <span className="font-mono font-black text-[var(--text-primary)] text-[10.5px]">{actualCost}</span>
+              <span className="micro-label block">GERÇEKLEŞEN BÜTÇE</span>
+              <span className="font-mono font-black text-[var(--text-primary)] text-[10px]">{actualCost}</span>
             </div>
           </div>
         </div>
@@ -334,32 +334,32 @@ export default function PlanRightPanel({ project }: PlanRightPanelProps) {
       {/* 4. EVM & SAPMA RAPORU */}
       <div className="card py-1.5 rounded-none bg-transparent border-0 shadow-none px-0 border-t border-[var(--border)] pt-2.5">
         <div className="flex justify-between items-center mb-2">
-          <span className="text-[10px] font-black uppercase tracking-wider text-[var(--text-primary)] flex items-center gap-1.5">
+          <span className="section-eyebrow flex items-center gap-1.5">
             <Activity className="w-3.5 h-3.5 text-emerald-500" />
             EVM & Sapma Raporu
           </span>
-          <span className="text-[8.5px] font-black text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded uppercase">
+          <span className="text-[10px] font-black text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded uppercase">
             CPI: 1.05 | SPI: 0.98
           </span>
         </div>
 
         <div className="space-y-2">
-          <p className="text-[9px] text-[var(--text-secondary)] leading-relaxed">
+          <p className="text-[10px] text-[var(--text-secondary)] leading-relaxed">
             Kazanılmış Değer Analizi (Earned Value Management) kümülatif SAPMA özetleri.
           </p>
 
           {/* EVM Metrics PV, EV, AC */}
-          <div className="grid grid-cols-3 gap-1 text-center text-[9px]">
+          <div className="grid grid-cols-3 gap-1 text-center text-[10px]">
             <div className="p-1.5 bg-[var(--bg-primary)] rounded-none border border-[var(--border)]">
-              <span className="text-[8px] text-[var(--text-secondary)] uppercase block font-bold">PV</span>
+              <span className="micro-label block">PV</span>
               <span className="font-mono font-black text-[var(--text-primary)] text-[10px]">₺{project.plannedSpent}M</span>
             </div>
             <div className="p-1.5 bg-[var(--bg-primary)] rounded-none border border-[var(--border)]">
-              <span className="text-[8px] text-[var(--text-secondary)] uppercase block font-bold">EV</span>
+              <span className="micro-label block">EV</span>
               <span className="font-mono font-black text-[var(--text-primary)] text-[10px]">₺{project.earnedValue}M</span>
             </div>
             <div className="p-1.5 bg-[var(--bg-primary)] rounded-none border border-[var(--border)]">
-              <span className="text-[8px] text-[var(--text-secondary)] uppercase block font-bold">AC</span>
+              <span className="micro-label block">AC</span>
               <span className="font-mono font-black text-[var(--text-primary)] text-[10px]">₺{project.spent}M</span>
             </div>
           </div>
@@ -368,16 +368,16 @@ export default function PlanRightPanel({ project }: PlanRightPanelProps) {
           <div className="grid grid-cols-2 gap-1.5">
             <div className="p-2 bg-gradient-to-r from-red-500/10 to-transparent rounded-none border border-red-500/20">
               <div className="flex justify-between items-center mb-0.5">
-                <span className="text-[8.5px] text-[var(--text-secondary)] font-bold">SPI (Süreç)</span>
-                <span className="text-[7.5px] font-black text-red-500 uppercase">Gecikme</span>
+                <span className="text-[10px] text-[var(--text-secondary)] font-bold">SPI (Süreç)</span>
+                <span className="text-[10px] font-black text-red-500 uppercase">Gecikme</span>
               </div>
               <span className="text-[11px] font-black text-red-500">0.98</span>
             </div>
 
             <div className="p-2 bg-gradient-to-r from-emerald-500/10 to-transparent rounded-none border border-emerald-500/20">
               <div className="flex justify-between items-center mb-0.5">
-                <span className="text-[8.5px] text-[var(--text-secondary)] font-bold">CPI (Maliyet)</span>
-                <span className="text-[7.5px] font-black text-emerald-400 uppercase">Karda</span>
+                <span className="text-[10px] text-[var(--text-secondary)] font-bold">CPI (Maliyet)</span>
+                <span className="text-[10px] font-black text-emerald-400 uppercase">Karda</span>
               </div>
               <span className="text-[11px] font-black text-emerald-500">1.05</span>
             </div>
@@ -385,7 +385,7 @@ export default function PlanRightPanel({ project }: PlanRightPanelProps) {
 
           {/* Map Color Mode Selector */}
           <div className="space-y-1.5 border-t border-[var(--border)] pt-2.5">
-            <span className="text-[8px] font-black text-[var(--text-secondary)] uppercase block tracking-wider">HARİTA TEMATİK ISI KATMANI</span>
+            <span className="text-[10px] font-black text-[var(--text-secondary)] uppercase block tracking-wider">HARİTA TEMATİK ISI KATMANI</span>
             <div className="flex flex-col gap-1">
               <button
                 onClick={() => {
@@ -398,7 +398,7 @@ export default function PlanRightPanel({ project }: PlanRightPanelProps) {
                     : 'bg-transparent border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                 }`}
               >
-                <span className="text-[9.5px]">İlerleme Yüzdesi Isı Haritası</span>
+                <span className="text-[10px]">İlerleme Yüzdesi Isı Haritası</span>
                 <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
               </button>
               <button
@@ -412,7 +412,7 @@ export default function PlanRightPanel({ project }: PlanRightPanelProps) {
                     : 'bg-transparent border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                 }`}
               >
-                <span className="text-[9.5px]">Maliyet Sapması Isı Haritası</span>
+                <span className="text-[10px]">Maliyet Sapması Isı Haritası</span>
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
               </button>
             </div>
@@ -420,7 +420,7 @@ export default function PlanRightPanel({ project }: PlanRightPanelProps) {
 
           {/* Local FeedBack Toast Banner */}
           {toastMessage && (
-            <div className="p-1.5 bg-slate-950 text-white text-[9px] rounded border border-slate-800 animate-fade-in flex justify-between items-center">
+            <div className="p-1.5 bg-slate-950 text-white text-[10px] rounded border border-slate-800 animate-fade-in flex justify-between items-center">
               <span>{toastMessage}</span>
               <button onClick={() => setToastMessage(null)} className="text-slate-500 hover:text-white font-bold ml-1">✕</button>
             </div>
@@ -450,7 +450,7 @@ export default function PlanRightPanel({ project }: PlanRightPanelProps) {
               {permits.map((p, idx) => (
                 <div key={p.id} className="p-3 bg-slate-900/60 border border-slate-800 rounded-xl space-y-2">
                   <div className="space-y-1">
-                    <label className="block text-[8px] text-slate-400 font-bold uppercase">EVRAK / İZİN ADI</label>
+                    <label className="block text-[10px] text-slate-400 font-bold uppercase">EVRAK / İZİN ADI</label>
                     <input
                       type="text"
                       value={p.name}
@@ -464,7 +464,7 @@ export default function PlanRightPanel({ project }: PlanRightPanelProps) {
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-1">
-                      <label className="block text-[8px] text-slate-400 font-bold uppercase">KURUM / MERCİ</label>
+                      <label className="block text-[10px] text-slate-400 font-bold uppercase">KURUM / MERCİ</label>
                       <input
                         type="text"
                         value={p.authority}
@@ -477,7 +477,7 @@ export default function PlanRightPanel({ project }: PlanRightPanelProps) {
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="block text-[8px] text-slate-400 font-bold uppercase">DURUM</label>
+                      <label className="block text-[10px] text-slate-400 font-bold uppercase">DURUM</label>
                       <select
                         value={p.status}
                         onChange={(e) => {
@@ -531,7 +531,7 @@ export default function PlanRightPanel({ project }: PlanRightPanelProps) {
 
             <div className="space-y-3 pt-2 text-left">
               <div className="space-y-1">
-                <label className="block text-[8px] text-slate-400 font-bold uppercase">ALT YÜKLENİCİ KAPASİTE ORANI (%)</label>
+                <label className="block text-[10px] text-slate-400 font-bold uppercase">ALT YÜKLENİCİ KAPASİTE ORANI (%)</label>
                 <input
                   type="number"
                   min="0"
@@ -544,7 +544,7 @@ export default function PlanRightPanel({ project }: PlanRightPanelProps) {
 
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
-                  <label className="block text-[8px] text-slate-400 font-bold uppercase">PLANLANAN MALİYET</label>
+                  <label className="block text-[10px] text-slate-400 font-bold uppercase">PLANLANAN MALİYET</label>
                   <input
                     type="text"
                     value={plannedCost}
@@ -553,7 +553,7 @@ export default function PlanRightPanel({ project }: PlanRightPanelProps) {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="block text-[8px] text-slate-400 font-bold uppercase">GERÇEKLEŞEN BÜTÇE</label>
+                  <label className="block text-[10px] text-slate-400 font-bold uppercase">GERÇEKLEŞEN BÜTÇE</label>
                   <input
                     type="text"
                     value={actualCost}

@@ -496,7 +496,7 @@ export default function InsaatView({
         <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl p-5 shadow-sm flex flex-col gap-4 animate-fade-in">
           <div className="flex items-center justify-between pb-3 border-b border-[var(--border)]">
             <div>
-              <span className="text-[9px] font-black tracking-widest bg-red-500/10 text-red-500 px-2 py-0.5 rounded uppercase block w-max mb-1">CEO Portföy Özeti</span>
+              <span className="text-[10px] font-black tracking-widest bg-red-500/10 text-red-500 px-2 py-0.5 rounded uppercase block w-max mb-1">CEO Portföy Özeti</span>
               <h3 className="text-sm font-black text-[var(--text-primary)] uppercase flex items-center gap-1.5">
                 <span>DİNAMİK KAZANILAN DEĞER (EVM) VE FİNANSAL SAPMALAR</span>
                 <button 
@@ -508,29 +508,29 @@ export default function InsaatView({
                 </button>
               </h3>
             </div>
-            <span className="px-2 py-0.5 bg-[#e67e22]/10 text-[#e67e22] text-[8px] font-black rounded uppercase border border-[#e67e22]/20">CBS Senkron</span>
+            <span className="px-2 py-0.5 bg-[#e67e22]/10 text-[#e67e22] text-[10px] font-black rounded uppercase border border-[#e67e22]/20">CBS Senkron</span>
           </div>
 
           {/* EVM Scorecards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div className="p-3 bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg">
-              <span className="text-[9px] text-[var(--text-secondary)] block mb-0.5 font-semibold">Proje Durumu</span>
+              <span className="text-[10px] text-[var(--text-secondary)] block mb-0.5 font-semibold">Proje Durumu</span>
               <span className="text-xs font-extrabold text-[var(--text-primary)] uppercase">{localProject.status}</span>
             </div>
             <div className="p-3 bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg">
-              <span className="text-[9px] text-[var(--text-secondary)] block mb-0.5 font-semibold">Zaman İndeksi (SPI)</span>
+              <span className="text-[10px] text-[var(--text-secondary)] block mb-0.5 font-semibold">Zaman İndeksi (SPI)</span>
               <span className={`text-xs font-black ${localProject.earnedValue >= localProject.plannedSpent ? 'text-emerald-500' : 'text-red-500'}`}>
                 {(localProject.plannedSpent > 0 ? (localProject.earnedValue / localProject.plannedSpent) : 1.00).toFixed(2)}
               </span>
             </div>
             <div className="p-3 bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg">
-              <span className="text-[9px] text-[var(--text-secondary)] block mb-0.5 font-semibold">Maliyet İndeksi (CPI)</span>
+              <span className="text-[10px] text-[var(--text-secondary)] block mb-0.5 font-semibold">Maliyet İndeksi (CPI)</span>
               <span className={`text-xs font-black ${localProject.earnedValue >= localProject.spent ? 'text-emerald-500' : 'text-red-500'}`}>
                 {(localProject.spent > 0 ? (localProject.earnedValue / localProject.spent) : 1.02).toFixed(2)}
               </span>
             </div>
             <div className="p-3 bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg">
-              <span className="text-[9px] text-[var(--text-secondary)] block mb-0.5 font-semibold">Kazanılan Değer</span>
+              <span className="text-[10px] text-[var(--text-secondary)] block mb-0.5 font-semibold">Kazanılan Değer</span>
               <span className="text-xs font-black text-indigo-500">₺{localProject.earnedValue}M</span>
             </div>
           </div>
@@ -687,7 +687,7 @@ export default function InsaatView({
                             <Pencil className="w-3 h-3" />
                           </button>
                         </h4>
-                        <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                           isExpired 
                             ? 'bg-red-600 text-white' 
                             : isExpiringSoon 
@@ -708,7 +708,7 @@ export default function InsaatView({
                     </div>
 
                     <div className="mt-4 pt-2.5 border-t border-[var(--border)] flex justify-between items-center">
-                      <span className="text-[9px] text-slate-400 truncate max-w-[150px]">{p.documentUrl}</span>
+                      <span className="text-[10px] text-slate-400 truncate max-w-[150px]">{p.documentUrl}</span>
                       <div className="flex gap-1.5">
                         <button 
                           onClick={() => setEditingPermit(p)}
@@ -810,7 +810,7 @@ export default function InsaatView({
                     <div className="space-y-1.5">
                       {/* Target bar */}
                       <div>
-                        <div className="flex justify-between text-[9px] text-slate-400">
+                        <div className="flex justify-between text-[10px] text-slate-400">
                           <span>Hedeflenen (İş Programı):</span>
                           <span>%100</span>
                         </div>
@@ -821,7 +821,7 @@ export default function InsaatView({
 
                       {/* Actual completed bar */}
                       <div>
-                        <div className="flex justify-between text-[9px] text-[var(--text-secondary)]">
+                        <div className="flex justify-between text-[10px] text-[var(--text-secondary)]">
                           <span>Gerçekleşen (Metraj / Hakediş):</span>
                           <span className="font-black text-emerald-500">%{task.progress}</span>
                         </div>
@@ -1172,7 +1172,7 @@ export default function InsaatView({
                     <div>
                       {/* Level indicators */}
                       <div className="flex justify-between items-center mb-1">
-                        <span className={`text-[8px] font-black px-1.5 py-0.5 rounded border uppercase tracking-wider ${
+                        <span className={`text-[10px] font-black px-1.5 py-0.5 rounded border uppercase tracking-wider ${
                           isGiderildi
                             ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
                             : isHigh
@@ -1181,7 +1181,7 @@ export default function InsaatView({
                         }`}>
                           {isGiderildi ? 'ÇÖZÜLDÜ' : isHigh ? '🔴 YÜKSEK' : '🟡 ORTA'}
                         </span>
-                        <span className="text-[9px] text-slate-500 font-mono font-bold">{alert.time}</span>
+                        <span className="text-[10px] text-slate-500 font-mono font-bold">{alert.time}</span>
                       </div>
                       
                       <h5 className="font-extrabold text-[var(--text-primary)] text-xs truncate uppercase tracking-wide">
@@ -1192,9 +1192,9 @@ export default function InsaatView({
                       </p>
                     </div>
 
-                    <div className="flex items-center justify-between text-[8.5px] mt-2 border-t border-[var(--border)]/30 pt-1.5 text-slate-400 font-mono">
+                    <div className="flex items-center justify-between text-[10px] mt-2 border-t border-[var(--border)]/30 pt-1.5 text-slate-400 font-mono">
                       <span className="truncate max-w-[110px]">📍 {alert.zone}</span>
-                      <span className="text-[9px] text-blue-400 font-bold group-hover:underline">Detay ➔</span>
+                      <span className="text-[10px] text-blue-400 font-bold group-hover:underline">Detay ➔</span>
                     </div>
 
                     {/* Accent Color Side Strip */}
@@ -1349,7 +1349,7 @@ export default function InsaatView({
                     <div key={eq.name} className="bg-[var(--bg-primary)] border border-[var(--border)] rounded-xl p-3 flex flex-col justify-between hover:border-blue-500/30 transition shadow-sm">
                       <div className="flex items-center justify-between">
                         <span className="text-[16px]">{eq.icon}</span>
-                        <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded border uppercase ${eq.badgeColor}`}>
+                        <span className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded border uppercase ${eq.badgeColor}`}>
                           {eq.status}
                         </span>
                       </div>
@@ -1357,7 +1357,7 @@ export default function InsaatView({
                         <span className="text-[10px] text-[var(--text-secondary)] font-extrabold block uppercase">{eq.name}</span>
                         <div className="flex items-baseline gap-1 mt-1">
                           <span className="text-lg font-black text-[var(--text-primary)] font-mono">{displayHour}</span>
-                          <span className="text-[9px] text-slate-500 font-bold">Saat</span>
+                          <span className="text-[10px] text-slate-500 font-bold">Saat</span>
                         </div>
                       </div>
                       <div className="w-full bg-[var(--border)] h-1 rounded-full mt-2 overflow-hidden">
@@ -1379,7 +1379,7 @@ export default function InsaatView({
                   <Clock className="w-3.5 h-3.5 text-indigo-400" />
                   Saha Bölge Geçiş Logu
                 </span>
-                <span className="text-[9px] text-indigo-400 font-mono font-bold animate-pulse">CANLI</span>
+                <span className="text-[10px] text-indigo-400 font-mono font-bold animate-pulse">CANLI</span>
               </div>
               
               <div className="space-y-1.5 max-h-[110px] overflow-y-auto scrollbar-thin pr-1 text-[10px]">
@@ -1399,7 +1399,7 @@ export default function InsaatView({
                         <span className="text-slate-500 font-mono font-bold shrink-0">{tr.time}</span>
                         <span className="text-[var(--text-primary)] font-bold truncate max-w-[80px]">{tr.object.split(' ')[0]}</span>
                       </div>
-                      <div className="flex items-center gap-1 font-mono text-[9px] shrink-0">
+                      <div className="flex items-center gap-1 font-mono text-[10px] shrink-0">
                         <span className="bg-slate-950 px-1.5 py-0.5 rounded text-slate-400 border border-[var(--border)]">{tr.from}</span>
                         <span className="text-slate-500">→</span>
                         <span className="bg-blue-950 px-1.5 py-0.5 rounded text-blue-400 border border-blue-900/30 font-bold">{tr.to}</span>
@@ -1429,8 +1429,8 @@ export default function InsaatView({
 
                 {/* Filter & Status controls */}
                 <div className="flex items-center gap-2">
-                  <span className="text-[9px] text-[var(--text-secondary)] font-extrabold uppercase tracking-wider">FİLTRE:</span>
-                  <div className="flex bg-[var(--bg-primary)] p-0.5 rounded-lg border border-[var(--border)] font-bold text-[9px]">
+                  <span className="text-[10px] text-[var(--text-secondary)] font-extrabold uppercase tracking-wider">FİLTRE:</span>
+                  <div className="flex bg-[var(--bg-primary)] p-0.5 rounded-lg border border-[var(--border)] font-bold text-[10px]">
                     {(['all', 'high', 'medium'] as const).map((filterOpt) => (
                       <button
                         key={filterOpt}
@@ -1474,10 +1474,10 @@ export default function InsaatView({
 
                 {/* Blueprint Overlay Header Info */}
                 <div className="relative z-10 flex justify-between pointer-events-none">
-                  <span className="text-[9px] font-mono text-slate-500 font-black tracking-wider uppercase bg-slate-900/80 backdrop-blur px-2 py-0.5 rounded border border-white/5">
+                  <span className="text-[10px] font-mono text-slate-500 font-black tracking-wider uppercase bg-slate-900/80 backdrop-blur px-2 py-0.5 rounded border border-white/5">
                     🏗️ PLAN REFERANS: ODA-SL-2026_V4
                   </span>
-                  <span className="text-[9px] font-mono text-blue-400 font-black tracking-wider uppercase bg-blue-950/60 backdrop-blur px-2 py-0.5 rounded border border-blue-900/30 animate-pulse">
+                  <span className="text-[10px] font-mono text-blue-400 font-black tracking-wider uppercase bg-blue-950/60 backdrop-blur px-2 py-0.5 rounded border border-blue-900/30 animate-pulse">
                     🛰️ CANLI TELEMETRİ OKUMA
                   </span>
                 </div>
@@ -1516,13 +1516,13 @@ export default function InsaatView({
                                 ? 'bg-white border-2 scale-125 border-slate-900 ring-4 ' + (isHigh ? 'ring-red-500 text-red-600' : 'ring-yellow-500 text-yellow-600')
                                 : (isHigh ? 'bg-red-600 border border-red-400 text-white hover:bg-red-500' : 'bg-yellow-500 border border-yellow-300 text-slate-950 hover:bg-yellow-400')
                           }`}>
-                            <span className="text-[9px] font-black font-mono">
+                            <span className="text-[10px] font-black font-mono">
                               {isGiderildi ? '✓' : alert.level === 'high' ? '!' : '?'}
                             </span>
                           </div>
 
                           {/* Float mini tooltip box on hover */}
-                          <div className="absolute left-1/2 -translate-x-1/2 bottom-6 bg-slate-950/95 text-white text-[9px] font-extrabold px-2 py-1 rounded border border-white/15 shadow-2xl opacity-0 group-hover/pin:opacity-100 transition pointer-events-none whitespace-nowrap z-50">
+                          <div className="absolute left-1/2 -translate-x-1/2 bottom-6 bg-slate-950/95 text-white text-[10px] font-extrabold px-2 py-1 rounded border border-white/15 shadow-2xl opacity-0 group-hover/pin:opacity-100 transition pointer-events-none whitespace-nowrap z-50">
                             {alert.title} <span className="text-slate-400">({alert.zone})</span>
                           </div>
                         </button>
@@ -1532,7 +1532,7 @@ export default function InsaatView({
 
                 {/* Map Grid Legend scale overlay */}
                 <div className="relative z-10 flex justify-between items-end mt-auto pointer-events-none">
-                  <div className="bg-slate-900/80 backdrop-blur border border-white/5 rounded px-2 py-1 text-[8px] font-mono text-slate-500 flex items-center gap-2">
+                  <div className="bg-slate-900/80 backdrop-blur border border-white/5 rounded px-2 py-1 text-[10px] font-mono text-slate-500 flex items-center gap-2">
                     <div className="flex items-center gap-1">
                       <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
                       <span>Yüksek Risk</span>
@@ -1546,7 +1546,7 @@ export default function InsaatView({
                       <span>Çözüldü</span>
                     </div>
                   </div>
-                  <span className="text-[8px] font-mono text-slate-600">Ölçek: 1:250 | Grid: UTM 35N</span>
+                  <span className="text-[10px] font-mono text-slate-600">Ölçek: 1:250 | Grid: UTM 35N</span>
                 </div>
               </div>
 
@@ -1570,7 +1570,7 @@ export default function InsaatView({
                   }`}>
                     <div className="flex items-center justify-between border-b border-[var(--border)] pb-2 mb-2">
                       <div className="flex items-center gap-2">
-                        <span className={`text-[9px] font-black px-2 py-0.5 rounded border uppercase ${
+                        <span className={`text-[10px] font-black px-2 py-0.5 rounded border uppercase ${
                           isGiderildi
                             ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
                             : isHigh
@@ -1581,7 +1581,7 @@ export default function InsaatView({
                         </span>
                         <h5 className="font-extrabold text-[var(--text-primary)] text-xs uppercase">{activeAlert.title}</h5>
                       </div>
-                      <span className="text-slate-500 font-mono text-[9px] font-bold">Zaman: {activeAlert.time} | Bölge: {activeAlert.zone}</span>
+                      <span className="text-slate-500 font-mono text-[10px] font-bold">Zaman: {activeAlert.time} | Bölge: {activeAlert.zone}</span>
                     </div>
 
                     <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed mb-3">
@@ -1634,7 +1634,7 @@ export default function InsaatView({
                   <AlertOctagon className="w-4 h-4 text-amber-500 animate-pulse" />
                   İSG Son Uyarı Özetleri
                 </span>
-                <span className="text-[9px] font-bold bg-red-500/10 border border-red-500/20 text-red-400 px-2 py-0.5 rounded animate-pulse uppercase">
+                <span className="text-[10px] font-bold bg-red-500/10 border border-red-500/20 text-red-400 px-2 py-0.5 rounded animate-pulse uppercase">
                   {isgAlerts.filter(a => a.status === 'Açık').length} AKTİF
                 </span>
               </div>
@@ -1676,7 +1676,7 @@ export default function InsaatView({
                             {alert.title}
                           </span>
                         </div>
-                        <span className="text-[8px] text-slate-500 font-mono shrink-0 font-bold">
+                        <span className="text-[10px] text-slate-500 font-mono shrink-0 font-bold">
                           {alert.time}
                         </span>
                       </div>
@@ -1687,12 +1687,12 @@ export default function InsaatView({
                       </p>
 
                       {/* Card Footer tags */}
-                      <div className="flex items-center justify-between mt-1 pt-1.5 border-t border-[var(--border)]/50 text-[9px]">
+                      <div className="flex items-center justify-between mt-1 pt-1.5 border-t border-[var(--border)]/50 text-[10px]">
                         <span className="text-slate-400 font-mono truncate max-w-[120px]">
                           📍 {alert.zone}
                         </span>
                         
-                        <span className={`font-black uppercase text-[8px] px-1.5 py-0.5 rounded border ${
+                        <span className={`font-black uppercase text-[10px] px-1.5 py-0.5 rounded border ${
                           isGiderildi
                             ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
                             : isHigh
@@ -1802,7 +1802,7 @@ export default function InsaatView({
                             <div className="w-12 h-12 rounded-full bg-blue-600/90 flex items-center justify-center text-white border border-blue-400/40 shadow-lg group-hover:scale-110 transition duration-300">
                               <Play className="w-5 h-5 fill-current ml-0.5" />
                             </div>
-                            <span className="absolute bottom-3 right-3 bg-red-600 text-white font-extrabold text-[8px] tracking-widest px-1.5 py-0.5 rounded animate-pulse">
+                            <span className="absolute bottom-3 right-3 bg-red-600 text-white font-extrabold text-[10px] tracking-widest px-1.5 py-0.5 rounded animate-pulse">
                               AI CANLI ANALİZ
                             </span>
                           </div>
@@ -1820,10 +1820,10 @@ export default function InsaatView({
 
                         {/* Top Date & Category Tags */}
                         <div className="absolute top-3 left-3 flex flex-col gap-1.5 items-start z-10">
-                          <span className="bg-slate-900/80 backdrop-blur-md text-white text-[9px] font-mono font-bold px-2.5 py-0.5 rounded-md border border-white/10 shadow-md">
+                          <span className="bg-slate-900/80 backdrop-blur-md text-white text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-md border border-white/10 shadow-md">
                             📅 {photo.date}
                           </span>
-                          <span className={`text-white text-[9px] font-extrabold px-2 py-0.5 rounded shadow-sm uppercase ${
+                          <span className={`text-white text-[10px] font-extrabold px-2 py-0.5 rounded shadow-sm uppercase ${
                             isVideo ? 'bg-blue-600' : 'bg-emerald-600'
                           }`}>
                             {photo.category}
@@ -1860,26 +1860,26 @@ export default function InsaatView({
 
                           {/* Metadata Tags */}
                           <div className="flex flex-wrap gap-1.5 mt-3">
-                            <span className="bg-[var(--bg-primary)] border border-[var(--border)] text-[var(--text-secondary)] text-[9px] font-bold px-2 py-0.5 rounded flex items-center gap-1 shadow-sm">
+                            <span className="bg-[var(--bg-primary)] border border-[var(--border)] text-[var(--text-secondary)] text-[10px] font-bold px-2 py-0.5 rounded flex items-center gap-1 shadow-sm">
                               <span>☁️</span>
                               <span>{photo.weather}</span>
                             </span>
-                            <span className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[9px] font-bold px-2 py-0.5 rounded flex items-center gap-1 shadow-sm">
+                            <span className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded flex items-center gap-1 shadow-sm">
                               <span>👷</span>
                               <span>{photo.workingGroup}</span>
                             </span>
 
                             {/* AI Detected Objects labels */}
                             {isVideo && photo.aiDetectedObjects && (
-                              <span className="bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[9px] font-bold px-2 py-0.5 rounded flex items-center gap-1 shadow-sm">
+                              <span className="bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[10px] font-bold px-2 py-0.5 rounded flex items-center gap-1 shadow-sm">
                                 <span>🤖 AI:</span>
-                                <span className="font-mono font-bold text-[8px] uppercase">{photo.aiDetectedObjects.join(', ')}</span>
+                                <span className="font-mono font-bold text-[10px] uppercase">{photo.aiDetectedObjects.join(', ')}</span>
                               </span>
                             )}
                           </div>
                         </div>
 
-                        <div className="pt-3 border-t border-[var(--border)] flex justify-between items-center text-[9px] font-mono text-slate-500">
+                        <div className="pt-3 border-t border-[var(--border)] flex justify-between items-center text-[10px] font-mono text-slate-500">
                           <span className="truncate max-w-[130px]" title={`Çeken: ${photo.takenBy}`}>
                             👤 {photo.takenBy.split(' ')[0]}
                           </span>
@@ -1995,7 +1995,7 @@ export default function InsaatView({
                     <span className="font-extrabold text-[var(--text-primary)] block text-[11px]">{cc.name}</span>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-[9px] text-[var(--text-secondary)] mb-0.5">Tahsis Edilen Bütçe (Milyon ₺)</label>
+                        <label className="block text-[10px] text-[var(--text-secondary)] mb-0.5">Tahsis Edilen Bütçe (Milyon ₺)</label>
                         <input 
                           type="number" 
                           value={cc.butce} 
@@ -2008,7 +2008,7 @@ export default function InsaatView({
                         />
                       </div>
                       <div>
-                        <label className="block text-[9px] text-[var(--text-secondary)] mb-0.5 font-bold font-bold font-bold">Harcanan / Ödenen (Milyon ₺)</label>
+                        <label className="block text-[10px] text-[var(--text-secondary)] mb-0.5 font-bold font-bold font-bold">Harcanan / Ödenen (Milyon ₺)</label>
                         <input 
                           type="number" 
                           value={cc.harcanan} 
@@ -2207,7 +2207,7 @@ export default function InsaatView({
                   placeholder="https://images.unsplash.com/..."
                   className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-xl p-2.5 text-[var(--text-primary)] focus:outline-none focus:border-emerald-500/50 font-mono text-[10px]"
                 />
-                <p className="text-[9px] text-slate-500 mt-1">İpucu: Test için Unsplash veya herhangi bir görsel linki kullanabilirsiniz.</p>
+                <p className="text-[10px] text-slate-500 mt-1">İpucu: Test için Unsplash veya herhangi bir görsel linki kullanabilirsiniz.</p>
               </div>
 
               <div>
@@ -2335,24 +2335,24 @@ export default function InsaatView({
                   
                   {/* Real-time AI Bounding Boxes simulator overlays */}
                   <div className="absolute top-[22%] left-[28%] w-[22%] h-[22%] border-2 border-emerald-500 rounded bg-emerald-500/10 z-10 pointer-events-none animate-pulse">
-                    <span className="absolute -top-5 left-0 bg-emerald-600 text-white font-mono text-[8px] font-black px-1.5 py-0.5 rounded shadow whitespace-nowrap">
+                    <span className="absolute -top-5 left-0 bg-emerald-600 text-white font-mono text-[10px] font-black px-1.5 py-0.5 rounded shadow whitespace-nowrap">
                       🚜 EKSKAVATÖR #1 (%96.2)
                     </span>
                   </div>
 
                   <div className="absolute top-[12%] right-[18%] w-[18%] h-[32%] border-2 border-yellow-500 rounded bg-yellow-500/10 z-10 pointer-events-none">
-                    <span className="absolute -top-5 left-0 bg-yellow-600 text-white font-mono text-[8px] font-black px-1.5 py-0.5 rounded shadow whitespace-nowrap">
+                    <span className="absolute -top-5 left-0 bg-yellow-600 text-white font-mono text-[10px] font-black px-1.5 py-0.5 rounded shadow whitespace-nowrap">
                       🏗️ KULE VİNÇ #3 (%94.1)
                     </span>
                   </div>
 
                   <div className="absolute bottom-[35%] left-[12%] w-[10%] h-[10%] border-2 border-blue-500 rounded bg-blue-500/10 z-10 pointer-events-none animate-pulse">
-                    <span className="absolute -top-5 left-0 bg-blue-600 text-white font-mono text-[8px] font-black px-1.5 py-0.5 rounded shadow whitespace-nowrap">
+                    <span className="absolute -top-5 left-0 bg-blue-600 text-white font-mono text-[10px] font-black px-1.5 py-0.5 rounded shadow whitespace-nowrap">
                       🪖 BARET OK (%99.4)
                     </span>
                   </div>
 
-                  <div className="absolute bottom-4 left-4 bg-slate-900/90 backdrop-blur border border-white/10 px-3 py-1.5 rounded-lg z-20 pointer-events-none text-[9px] font-mono flex items-center gap-2">
+                  <div className="absolute bottom-4 left-4 bg-slate-900/90 backdrop-blur border border-white/10 px-3 py-1.5 rounded-lg z-20 pointer-events-none text-[10px] font-mono flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
                     <span className="text-red-400 font-bold">AI VIDEO FEED PROCESSING</span>
                   </div>
@@ -2391,10 +2391,10 @@ export default function InsaatView({
           <div className="w-full md:w-[350px] bg-slate-900 border-t md:border-t-0 md:border-l border-white/10 p-6 flex flex-col justify-between shrink-0">
             <div className="space-y-4 max-h-[90vh] overflow-y-auto pr-1">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="bg-emerald-600 text-white text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded">
+                <span className="bg-emerald-600 text-white text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded">
                   {journalPhotos[fullscreenPhotoIndex].category}
                 </span>
-                <span className="bg-blue-600 text-white text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded">
+                <span className="bg-blue-600 text-white text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded">
                   {journalPhotos[fullscreenPhotoIndex].workingGroup}
                 </span>
                 <span className="text-xs text-slate-400 font-mono font-bold">
@@ -2420,10 +2420,10 @@ export default function InsaatView({
               {journalPhotos[fullscreenPhotoIndex].type === 'video' && (
                 <div className="space-y-3 bg-slate-950/60 p-3 rounded-xl border border-white/5 text-[10px]">
                   <div>
-                    <span className="text-blue-400 font-extrabold uppercase tracking-wider text-[9px] block mb-1.5">🤖 AI NESNE TELEMETRİSİ:</span>
+                    <span className="text-blue-400 font-extrabold uppercase tracking-wider text-[10px] block mb-1.5">🤖 AI NESNE TELEMETRİSİ:</span>
                     <div className="flex flex-wrap gap-1">
                       {journalPhotos[fullscreenPhotoIndex].aiDetectedObjects?.map(obj => (
-                        <span key={obj} className="bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded text-[8px] font-extrabold border border-blue-500/20 uppercase">
+                        <span key={obj} className="bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded text-[10px] font-extrabold border border-blue-500/20 uppercase">
                           {obj}
                         </span>
                       ))}
@@ -2432,10 +2432,10 @@ export default function InsaatView({
 
                   {journalPhotos[fullscreenPhotoIndex].workingHours && (
                     <div>
-                      <span className="text-slate-400 font-extrabold uppercase tracking-wider text-[9px] block mb-1">⏰ EKİPMAN SÜRELERİ:</span>
+                      <span className="text-slate-400 font-extrabold uppercase tracking-wider text-[10px] block mb-1">⏰ EKİPMAN SÜRELERİ:</span>
                       <div className="space-y-1">
                         {Object.entries(journalPhotos[fullscreenPhotoIndex].workingHours).map(([key, val]) => (
-                          <div key={key} className="flex justify-between items-center text-[9px]">
+                          <div key={key} className="flex justify-between items-center text-[10px]">
                             <span className="text-slate-400">{key}:</span>
                             <span className="text-white font-mono font-bold">{val} Saat</span>
                           </div>
@@ -2446,10 +2446,10 @@ export default function InsaatView({
 
                   {journalPhotos[fullscreenPhotoIndex].zoneTransitions && (
                     <div>
-                      <span className="text-slate-400 font-extrabold uppercase tracking-wider text-[9px] block mb-1">🔄 ALAN TRANSİT HAREKETLERİ:</span>
+                      <span className="text-slate-400 font-extrabold uppercase tracking-wider text-[10px] block mb-1">🔄 ALAN TRANSİT HAREKETLERİ:</span>
                       <div className="space-y-1 max-h-[80px] overflow-y-auto scrollbar-thin">
                         {journalPhotos[fullscreenPhotoIndex].zoneTransitions.map((tr, i) => (
-                          <div key={i} className="flex justify-between items-center text-[8px] bg-slate-900 border border-white/5 p-1 rounded font-mono">
+                          <div key={i} className="flex justify-between items-center text-[10px] bg-slate-900 border border-white/5 p-1 rounded font-mono">
                             <span className="text-slate-500">{tr.time}</span>
                             <span className="text-slate-300 font-bold truncate max-w-[60px]">{tr.object.split(' ')[0]}</span>
                             <span className="text-blue-400 font-bold">{tr.from} ➔ {tr.to}</span>
@@ -2478,7 +2478,7 @@ export default function InsaatView({
             </div>
 
             <div className="pt-4 border-t border-white/10 mt-6 flex flex-col gap-2">
-              <p className="text-[9px] text-slate-400 text-center">Şantiye Günlüğü, entegre CBS ve BIM katmanlarıyla eşzamanlı güncellenmektedir.</p>
+              <p className="text-[10px] text-slate-400 text-center">Şantiye Günlüğü, entegre CBS ve BIM katmanlarıyla eşzamanlı güncellenmektedir.</p>
               <button
                 onClick={() => setFullscreenPhotoIndex(null)}
                 className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl text-xs transition uppercase cursor-pointer text-center"

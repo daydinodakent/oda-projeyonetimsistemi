@@ -212,7 +212,7 @@ export default function IsletmeView({
         <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl p-5 shadow-sm flex flex-col gap-4 animate-fade-in">
           <div className="flex items-center justify-between pb-3 border-b border-[var(--border)]">
             <div>
-              <span className="text-[9px] font-black tracking-widest bg-red-500/10 text-red-500 px-2 py-0.5 rounded uppercase block w-max mb-1">CEO Portföy Özeti</span>
+              <span className="text-[10px] font-black tracking-widest bg-red-500/10 text-red-500 px-2 py-0.5 rounded uppercase block w-max mb-1">CEO Portföy Özeti</span>
               <h3 className="text-sm font-black text-[var(--text-primary)] uppercase flex items-center gap-1.5">
                 <span>DİNAMİK KAZANILAN DEĞER (EVM) VE FİNANSAL SAPMALAR</span>
                 <button 
@@ -224,29 +224,29 @@ export default function IsletmeView({
                 </button>
               </h3>
             </div>
-            <span className="px-2 py-0.5 bg-[#e67e22]/10 text-[#e67e22] text-[8px] font-black rounded uppercase border border-[#e67e22]/20">CBS Senkron</span>
+            <span className="px-2 py-0.5 bg-[#e67e22]/10 text-[#e67e22] text-[10px] font-black rounded uppercase border border-[#e67e22]/20">CBS Senkron</span>
           </div>
 
           {/* EVM Scorecards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div className="p-3 bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg">
-              <span className="text-[9px] text-[var(--text-secondary)] block mb-0.5 font-semibold">Proje Durumu</span>
+              <span className="text-[10px] text-[var(--text-secondary)] block mb-0.5 font-semibold">Proje Durumu</span>
               <span className="text-xs font-extrabold text-[var(--text-primary)] uppercase">{localProject.status}</span>
             </div>
             <div className="p-3 bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg">
-              <span className="text-[9px] text-[var(--text-secondary)] block mb-0.5 font-semibold">Zaman İndeksi (SPI)</span>
+              <span className="text-[10px] text-[var(--text-secondary)] block mb-0.5 font-semibold">Zaman İndeksi (SPI)</span>
               <span className={`text-xs font-black ${localProject.earnedValue >= localProject.plannedSpent ? 'text-emerald-500' : 'text-red-500'}`}>
                 {(localProject.plannedSpent > 0 ? (localProject.earnedValue / localProject.plannedSpent) : 1.00).toFixed(2)}
               </span>
             </div>
             <div className="p-3 bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg">
-              <span className="text-[9px] text-[var(--text-secondary)] block mb-0.5 font-semibold">Maliyet İndeksi (CPI)</span>
+              <span className="text-[10px] text-[var(--text-secondary)] block mb-0.5 font-semibold">Maliyet İndeksi (CPI)</span>
               <span className={`text-xs font-black ${localProject.earnedValue >= localProject.spent ? 'text-emerald-500' : 'text-red-500'}`}>
                 {(localProject.spent > 0 ? (localProject.earnedValue / localProject.spent) : 1.02).toFixed(2)}
               </span>
             </div>
             <div className="p-3 bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg">
-              <span className="text-[9px] text-[var(--text-secondary)] block mb-0.5 font-semibold">Kazanılan Değer</span>
+              <span className="text-[10px] text-[var(--text-secondary)] block mb-0.5 font-semibold">Kazanılan Değer</span>
               <span className="text-xs font-black text-indigo-500">₺{localProject.earnedValue}M</span>
             </div>
           </div>
@@ -408,7 +408,7 @@ export default function IsletmeView({
                             <Pencil className="w-3 h-3" />
                           </button>
                         </h4>
-                        <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                           isFaulty 
                             ? 'bg-red-500 text-white' 
                             : isMaintPending 
@@ -430,7 +430,7 @@ export default function IsletmeView({
                     </div>
 
                     <div className="flex flex-col justify-between items-end border-l border-[var(--border)] pl-3 shrink-0">
-                      <span className="text-[9px] font-bold text-slate-400">ID: <span className="font-mono">{asset.id.split('-').pop()?.toUpperCase()}</span></span>
+                      <span className="text-[10px] font-bold text-slate-400">ID: <span className="font-mono">{asset.id.split('-').pop()?.toUpperCase()}</span></span>
                       <div className="flex flex-col gap-1 items-end">
                         <button 
                           onClick={() => setEditingAsset(asset)}
@@ -510,7 +510,7 @@ export default function IsletmeView({
 
                         {/* Info bubble below step */}
                         <div className="mt-3 p-3 rounded-xl bg-[var(--bg-primary)]/80 border border-[var(--border)] w-full text-left transition-all duration-300 group-hover/node:border-indigo-500/50 group-hover/node:shadow-lg group-hover/node:shadow-indigo-500/5">
-                          <div className="text-[9px] font-black uppercase text-indigo-400 tracking-wider flex justify-between items-center">
+                          <div className="text-[10px] font-black uppercase text-indigo-400 tracking-wider flex justify-between items-center">
                             <span>{log.type.split(' ')[0]}</span>
                             <span className={`w-1.5 h-1.5 rounded-full ${log.status === 'Açık' ? 'bg-red-500 animate-pulse' : 'bg-emerald-500'}`} />
                           </div>
@@ -520,7 +520,7 @@ export default function IsletmeView({
                           <p className="text-[10px] text-[var(--text-secondary)] mt-1 line-clamp-2 h-[30px]" title={log.description}>
                             {log.description}
                           </p>
-                          <div className="mt-2 pt-1.5 border-t border-[var(--border)] flex justify-between items-center text-[8px] font-mono text-slate-500">
+                          <div className="mt-2 pt-1.5 border-t border-[var(--border)] flex justify-between items-center text-[10px] font-mono text-slate-500">
                             <span>👤 {log.technician.split(' ')[0]}</span>
                             <span className="text-emerald-500 font-bold">₺{log.cost.toLocaleString('tr-TR')} TL</span>
                           </div>
@@ -579,7 +579,7 @@ export default function IsletmeView({
                     </div>
 
                     <div className="flex flex-col justify-between items-end h-full pl-2 border-l border-[var(--border)] shrink-0 self-stretch min-h-[70px]">
-                      <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                         isOpen ? 'bg-red-500/10 text-red-500 border border-red-500/20' : 'bg-emerald-500/10 text-emerald-500'
                       }`}>
                         {isOpen ? 'Müdahale Bekliyor' : 'Tamamlandı'}
@@ -1047,7 +1047,7 @@ export default function IsletmeView({
                     <span className="font-extrabold text-[var(--text-primary)] block text-[11px]">{tItem.year} Projeksiyonu</span>
                     <div className="grid grid-cols-3 gap-3">
                       <div>
-                        <label className="block text-[9px] text-[var(--text-secondary)] mb-0.5">İnşaat Maliyeti (₺M)</label>
+                        <label className="block text-[10px] text-[var(--text-secondary)] mb-0.5">İnşaat Maliyeti (₺M)</label>
                         <input 
                           type="number" 
                           value={tItem.insaat} 
@@ -1060,7 +1060,7 @@ export default function IsletmeView({
                         />
                       </div>
                       <div>
-                        <label className="block text-[9px] text-[var(--text-secondary)] mb-0.5 font-bold font-bold">İşletme & Bakım (₺M)</label>
+                        <label className="block text-[10px] text-[var(--text-secondary)] mb-0.5 font-bold font-bold">İşletme & Bakım (₺M)</label>
                         <input 
                           type="number" 
                           value={tItem.isletme} 
@@ -1073,7 +1073,7 @@ export default function IsletmeView({
                         />
                       </div>
                       <div>
-                        <label className="block text-[9px] text-[var(--text-secondary)] mb-0.5">Enerji Giderleri (₺M)</label>
+                        <label className="block text-[10px] text-[var(--text-secondary)] mb-0.5">Enerji Giderleri (₺M)</label>
                         <input 
                           type="number" 
                           value={tItem.enerji} 

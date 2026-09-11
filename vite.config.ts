@@ -20,6 +20,16 @@ export default defineConfig(() => {
       hmr: process.env.DISABLE_HMR !== 'true',
       // Disable file watching when DISABLE_HMR is true to save CPU during agent edits.
       watch: process.env.DISABLE_HMR === 'true' ? null : {},
+      // src/services/api.ts artık bir yerel dosya veritabanı sunucusuna
+      // (server/index.js, bkz. server/db.js) '/api/...' üzerinden bağlanır —
+      // bu proxy sayesinde tarayıcı aynı origin'den (localhost:3000) çağırır,
+      // CORS/port bilmeye gerek kalmaz.
+      proxy: {
+        '/api': {
+          target: 'http://localhost:4001',
+          changeOrigin: true,
+        },
+      },
     },
   };
 });

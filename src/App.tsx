@@ -609,9 +609,9 @@ export default function App() {
         <button
           onClick={() => setShowProjectComboDropdown(!showProjectComboDropdown)}
           className={`flex items-center justify-between gap-2 bg-[#111112] hover:bg-[#202022] border border-[#2d2d30] rounded-xl text-[#dfdfe2] focus:outline-none cursor-pointer transition select-none ${
-            isCompact 
-              ? 'pl-7 pr-8 py-1.5 text-[10px] font-extrabold max-w-[220px] rounded-lg' 
-              : 'pl-8 pr-10 py-1.5 text-[11px] font-black tracking-wide uppercase min-w-[210px] max-w-[340px]'
+            isCompact
+              ? 'pl-7 pr-8 py-1.5 text-[10px] font-extrabold max-w-[286px] rounded-lg'
+              : 'pl-8 pr-10 py-1.5 text-[11px] font-black tracking-wide uppercase min-w-[210px] max-w-[442px]'
           }`}
           title="CBS Sahaları ve Projeler"
         >
@@ -655,7 +655,7 @@ export default function App() {
                     setNewProjectCode('');
                     setShowAddProjectModal(true);
                   }}
-                  className="px-2.5 py-1 text-[9.5px] font-black text-amber-400 hover:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-lg transition-all flex items-center gap-1 cursor-pointer"
+                  className="px-2.5 py-1 text-[10px] font-black text-amber-400 hover:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-lg transition-all flex items-center gap-1 cursor-pointer"
                   title="Yeni Proje Ekle (Süper Yetkili)"
                 >
                   <Plus className="w-3 h-3" />
@@ -691,7 +691,7 @@ export default function App() {
                             {proj.name.replace(/-/g, ' ').toUpperCase()}
                           </span>
                         </div>
-                        <span className="text-[9.5px] text-slate-400 font-bold block leading-none pl-3.5">
+                        <span className="text-[10px] text-slate-400 font-bold block leading-none pl-3.5">
                           {proj.location || 'Genel'} • Tamamlanma: %{proj.overallProgress || 0}
                         </span>
                       </div>
@@ -741,7 +741,7 @@ export default function App() {
                 <div className="flex items-center gap-1.5">
                   <span className="text-sm font-black text-white">Bildirim Merkezi</span>
                   {unreadNotifications.length > 0 && (
-                    <span className="bg-[#7f1d1d]/85 text-[#f87171] text-[9.5px] px-1.5 py-0.5 rounded-full font-black border border-[#ef4444]/25">
+                    <span className="bg-[#7f1d1d]/85 text-[#f87171] text-[10px] px-1.5 py-0.5 rounded-full font-black border border-[#ef4444]/25">
                       {unreadNotifications.length} Yeni
                     </span>
                   )}
@@ -780,7 +780,7 @@ export default function App() {
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
             <button
               onClick={() => setNotifFilter('all')}
-              className={`text-[9.5px] font-black px-3.5 py-1.5 rounded-full transition whitespace-nowrap cursor-pointer ${
+              className={`text-[10px] font-black px-3.5 py-1.5 rounded-full transition whitespace-nowrap cursor-pointer ${
                 notifFilter === 'all'
                   ? 'bg-[#0091ff] text-white shadow'
                   : 'bg-[#131926] hover:bg-[#1c2438] border border-[#20293a] text-slate-300'
@@ -791,7 +791,7 @@ export default function App() {
 
             <button
               onClick={() => setNotifFilter('unread')}
-              className={`text-[9.5px] font-black px-3.5 py-1.5 rounded-full transition flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+              className={`text-[10px] font-black px-3.5 py-1.5 rounded-full transition flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
                 notifFilter === 'unread'
                   ? 'bg-[#0091ff] text-white shadow'
                   : 'bg-[#131926] hover:bg-[#1c2438] border border-[#20293a] text-slate-300'
@@ -799,7 +799,7 @@ export default function App() {
             >
               <span>Okunmamış</span>
               {unreadNotifications.length > 0 && (
-                <span className="bg-red-500 text-white text-[9px] w-4.5 h-4.5 rounded-full flex items-center justify-center font-bold">
+                <span className="bg-red-500 text-white text-[10px] w-4.5 h-4.5 rounded-full flex items-center justify-center font-bold">
                   {unreadNotifications.length}
                 </span>
               )}
@@ -807,7 +807,7 @@ export default function App() {
 
             <button
               onClick={() => setNotifFilter('files')}
-              className={`text-[9.5px] font-black px-3.5 py-1.5 rounded-full transition flex items-center gap-1 whitespace-nowrap cursor-pointer ${
+              className={`text-[10px] font-black px-3.5 py-1.5 rounded-full transition flex items-center gap-1 whitespace-nowrap cursor-pointer ${
                 notifFilter === 'files'
                   ? 'bg-[#0091ff] text-white shadow'
                   : 'bg-[#131926] hover:bg-[#1c2438] border border-[#20293a] text-slate-300'
@@ -819,7 +819,7 @@ export default function App() {
 
             <button
               onClick={() => setNotifFilter('ncr')}
-              className={`text-[9.5px] font-black px-3.5 py-1.5 rounded-full transition flex items-center gap-1 whitespace-nowrap cursor-pointer ${
+              className={`text-[10px] font-black px-3.5 py-1.5 rounded-full transition flex items-center gap-1 whitespace-nowrap cursor-pointer ${
                 notifFilter === 'ncr'
                   ? 'bg-[#0091ff] text-white shadow'
                   : 'bg-[#131926] hover:bg-[#1c2438] border border-[#20293a] text-slate-300'
@@ -875,9 +875,9 @@ export default function App() {
                   {/* Right text box */}
                   <div className="flex-1 min-w-0 flex flex-col gap-1">
                     {/* Breadcrumb Path & Level badge */}
-                    <div className="flex justify-between items-center text-[9px] uppercase font-extrabold tracking-wider">
+                    <div className="flex justify-between items-center text-[10px] uppercase font-extrabold tracking-wider">
                       <span className="text-slate-400">{notif.path || 'SİSTEM / UYARI'}</span>
-                      <span className={`px-1.5 py-0.5 rounded text-[8px] font-black border ${
+                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-black border ${
                         notif.badgeType === 'danger'
                           ? 'bg-red-500/15 border-red-500/30 text-red-400'
                           : notif.badgeType === 'warning'
@@ -889,12 +889,12 @@ export default function App() {
                     </div>
 
                     {/* Title */}
-                    <h4 className="text-[11.5px] font-bold text-white leading-tight">
+                    <h4 className="text-[11px] font-bold text-white leading-tight">
                       {notif.title || notif.message}
                     </h4>
 
                     {/* Description message */}
-                    <p className="text-[10.5px] text-slate-300 leading-relaxed font-semibold">
+                    <p className="text-[10px] text-slate-300 leading-relaxed font-semibold">
                       {notif.message}
                     </p>
 
@@ -902,7 +902,7 @@ export default function App() {
                     {notif.tags && notif.tags.length > 0 && (
                       <div className="flex flex-wrap gap-1.5 mt-1">
                         {notif.tags.map((tag, tIdx) => (
-                          <span key={tIdx} className="bg-[#1a2333] border border-[#2b3a54] text-slate-400 text-[9px] px-2 py-0.5 rounded font-black tracking-tight">
+                          <span key={tIdx} className="bg-[#1a2333] border border-[#2b3a54] text-slate-400 text-[10px] px-2 py-0.5 rounded font-black tracking-tight">
                             {tag}
                           </span>
                         ))}
@@ -914,7 +914,7 @@ export default function App() {
 
                     {/* Footer: Date and inline actions */}
                     <div className="flex justify-between items-center mt-0.5">
-                      <div className="flex items-center gap-1.5 text-[9.5px] text-slate-400 font-bold">
+                      <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-bold">
                         <Clock className="w-3.5 h-3.5 text-slate-500" />
                         <span>{notif.date}</span>
                       </div>
@@ -923,7 +923,7 @@ export default function App() {
                         {notif.actionText && (
                           <a 
                             href={notif.actionLink || '#'} 
-                            className="flex items-center gap-1 text-[9.5px] font-bold text-sky-400 bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/20 px-2 py-0.5 rounded transition cursor-pointer"
+                            className="flex items-center gap-1 text-[10px] font-bold text-sky-400 bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/20 px-2 py-0.5 rounded transition cursor-pointer"
                           >
                             <span>{notif.actionText}</span>
                             <ArrowUpRight className="w-3 h-3" />
@@ -978,10 +978,10 @@ export default function App() {
               </div>
               <div className="hidden sm:block">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-sm font-black tracking-wider text-white uppercase leading-none">ODA+PROJE YS</span>
-                  <span className="px-1.5 py-0.5 bg-[#008f9c]/20 border border-[#00f5d4]/30 text-[#00f5d4] text-[8px] font-black rounded tracking-widest uppercase">PLATFORM</span>
+                  <span className="app-header-brand tracking-wider leading-none">ODA+PROJE YS</span>
+                  <span className="px-1.5 py-0.5 bg-[#008f9c]/20 border border-[#00f5d4]/30 text-[#00f5d4] text-[10px] font-black rounded tracking-widest uppercase">PLATFORM</span>
                 </div>
-                <span className="text-[9px] text-[#a1a1a6] font-bold block leading-none mt-1">Bütünleşik Kurumsal Yönetim Sistemi</span>
+                <span className="app-header-subtitle block leading-none mt-1">Bütünleşik Kurumsal Yönetim Sistemi</span>
               </div>
             </div>
 
@@ -1088,7 +1088,7 @@ export default function App() {
                   
                   {/* Warning badge on top of user button */}
                   {unreadNotifications.length > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[8px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center border-2 border-[#1c1c1e] animate-pulse">
+                    <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center border-2 border-[#1c1c1e] animate-pulse">
                       {unreadNotifications.length}
                     </span>
                   )}
@@ -1107,7 +1107,7 @@ export default function App() {
                       {/* User Info Header */}
                       <div className="px-1 py-1.5 border-b border-[#2c2c2e]/60">
                         <div className="text-xs font-black text-white text-left">Ayhan Yılmaz</div>
-                        <div className="text-[9px] font-bold text-amber-500/80 mt-0.5 text-left">Süper Kullanıcı (Super User)</div>
+                        <div className="text-[10px] font-bold text-amber-500/80 mt-0.5 text-left">Süper Kullanıcı (Super User)</div>
                       </div>
 
                       {/* Menu List representing the 4 buttons */}
@@ -1128,7 +1128,7 @@ export default function App() {
                           <UserCheck className="w-3.5 h-3.5" />
                           <div className="flex-1">
                             <div>Admin Paneli</div>
-                            <div className="text-[8px] text-slate-500 font-medium lowercase tracking-normal">PostgreSQL & PostGIS</div>
+                            <div className="text-[10px] text-slate-500 font-medium lowercase tracking-normal">PostgreSQL & PostGIS</div>
                           </div>
                         </button>
 
@@ -1142,7 +1142,7 @@ export default function App() {
                           <HelpCircle className="w-3.5 h-3.5" />
                           <div className="flex-1">
                             <div>Destek ve Yardım</div>
-                            <div className="text-[8px] text-slate-500 font-medium lowercase tracking-normal">Kılavuz ve SSS</div>
+                            <div className="text-[10px] text-slate-500 font-medium lowercase tracking-normal">Kılavuz ve SSS</div>
                           </div>
                         </button>
 
@@ -1156,7 +1156,7 @@ export default function App() {
                           {theme === 'dark' ? <Sun className="w-3.5 h-3.5 text-amber-400" /> : <Moon className="w-3.5 h-3.5 text-indigo-400" />}
                           <div className="flex-1">
                             <div>Tema Değiştir</div>
-                            <div className="text-[8px] text-slate-500 font-medium lowercase tracking-normal">
+                            <div className="text-[10px] text-slate-500 font-medium lowercase tracking-normal">
                               {theme === 'dark' ? 'Açık Temaya Geç' : 'Koyu Temaya Geç'}
                             </div>
                           </div>
@@ -1179,12 +1179,12 @@ export default function App() {
                             <div className="flex items-center gap-1.5">
                               <span>Bildirimler</span>
                               {unreadNotifications.length > 0 && (
-                                <span className="bg-red-500 text-white text-[8px] font-black px-1.5 rounded-full">
+                                <span className="bg-red-500 text-white text-[10px] font-black px-1.5 rounded-full">
                                   {unreadNotifications.length}
                                 </span>
                               )}
                             </div>
-                            <div className="text-[8px] text-slate-500 font-medium lowercase tracking-normal">Dosyalar ve NCR</div>
+                            <div className="text-[10px] text-slate-500 font-medium lowercase tracking-normal">Dosyalar ve NCR</div>
                           </div>
                         </button>
                       </div>
@@ -1222,7 +1222,7 @@ export default function App() {
                   {/* Harita Butonu */}
                   <button
                     onClick={() => setCenterTab(prev => prev === 'map' ? 'kpis' : 'map')}
-                    className={`px-4 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-md transition duration-200 cursor-pointer flex items-center gap-1.5 ${
+                    className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-md transition duration-200 cursor-pointer flex items-center gap-1.5 ${
                       centerTab === 'map'
                         ? 'bg-sky-500/15 border border-sky-500/30 text-sky-400 shadow-sm font-black'
                         : 'text-slate-400 hover:text-white hover:bg-slate-800/50 border border-transparent font-extrabold'
@@ -1236,7 +1236,7 @@ export default function App() {
                   {/* Dinamik KPI Butonu */}
                   <button
                     onClick={() => setCenterTab('kpis')}
-                    className={`px-3 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-md transition duration-200 cursor-pointer flex items-center gap-1.5 ${
+                    className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-md transition duration-200 cursor-pointer flex items-center gap-1.5 ${
                       centerTab === 'kpis'
                         ? 'bg-amber-600/15 border border-amber-500/30 text-amber-400 shadow-sm font-black'
                         : 'text-slate-400 hover:text-white hover:bg-slate-800/50 border border-transparent font-extrabold'
@@ -1327,7 +1327,7 @@ export default function App() {
                     <Layers className="w-4 h-4 text-cyan-400" />
                   </div>
                 </div>
-                <span className="text-xs font-black tracking-wider text-white uppercase leading-none">ODA+PROJE YS</span>
+                <span className="app-header-brand text-xs tracking-wider leading-none">ODA+PROJE YS</span>
               </div>
 
               {/* Compact project select dropdown */}
@@ -1387,7 +1387,7 @@ export default function App() {
                 <div className="flex items-center gap-1">
                   <button
                     onClick={() => { setCenterTab('map'); setCeoPocketMode(false); }}
-                    className={`px-2 py-0.5 text-[9px] font-black uppercase tracking-wider rounded transition duration-200 cursor-pointer flex items-center gap-1 ${
+                    className={`px-2 py-0.5 text-[10px] font-black uppercase tracking-wider rounded transition duration-200 cursor-pointer flex items-center gap-1 ${
                       centerTab === 'map' && !ceoPocketMode
                         ? 'bg-sky-500/15 border border-sky-500/30 text-sky-400 shadow-sm font-black'
                         : 'text-slate-400 hover:text-white hover:bg-slate-800/50 border border-transparent font-bold'
@@ -1398,7 +1398,7 @@ export default function App() {
                   </button>
                   <button
                     onClick={() => { setCenterTab('kpis'); setCeoPocketMode(false); }}
-                    className={`px-2 py-0.5 text-[9px] font-black uppercase tracking-wider rounded transition duration-200 cursor-pointer flex items-center gap-1 ${
+                    className={`px-2 py-0.5 text-[10px] font-black uppercase tracking-wider rounded transition duration-200 cursor-pointer flex items-center gap-1 ${
                       centerTab === 'kpis' && !ceoPocketMode
                         ? 'bg-amber-600/15 border border-amber-500/30 text-amber-400 shadow-sm font-black'
                         : 'text-slate-400 hover:text-white hover:bg-slate-800/50 border border-transparent font-bold'
@@ -1431,14 +1431,14 @@ export default function App() {
               <div className="relative flex items-center">
                 <button 
                   onClick={() => setShowCompactProfileDropdown(prev => !prev)}
-                  className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-[9px] text-white font-black shrink-0 relative cursor-pointer"
+                  className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-[10px] text-white font-black shrink-0 relative cursor-pointer"
                   title="Kullanıcı Menüsü"
                 >
                   AY
                   
                   {/* Warning badge on top of user button */}
                   {unreadNotifications.length > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[7px] w-3 h-3 rounded-full flex items-center justify-center border border-[#141416] animate-pulse">
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-3 h-3 rounded-full flex items-center justify-center border border-[#141416] animate-pulse">
                       {unreadNotifications.length}
                     </span>
                   )}
@@ -1457,7 +1457,7 @@ export default function App() {
                       {/* User Info Header */}
                       <div className="px-1 py-1 border-b border-[#2c2c2e]/60">
                         <div className="text-[11px] font-black text-white text-left">Ayhan Yılmaz</div>
-                        <div className="text-[8px] font-bold text-amber-500/80 mt-0.5 text-left">Süper Kullanıcı</div>
+                        <div className="text-[10px] font-bold text-amber-500/80 mt-0.5 text-left">Süper Kullanıcı</div>
                       </div>
 
                       {/* Menu List representing the 4 buttons */}
@@ -1469,7 +1469,7 @@ export default function App() {
                             setCeoPocketMode(false);
                             setShowCompactProfileDropdown(false);
                           }}
-                          className={`w-full px-2 py-1.5 text-left rounded-md text-[9px] font-extrabold uppercase tracking-wide transition flex items-center gap-2 cursor-pointer ${
+                          className={`w-full px-2 py-1.5 text-left rounded-md text-[10px] font-extrabold uppercase tracking-wide transition flex items-center gap-2 cursor-pointer ${
                             centerTab === 'admin' && !ceoPocketMode
                               ? 'bg-sky-500/10 text-sky-400 border border-sky-500/10'
                               : 'text-slate-300 hover:bg-slate-800/60 border border-transparent'
@@ -1484,7 +1484,7 @@ export default function App() {
                           onClick={() => {
                             setShowCompactProfileDropdown(false);
                           }}
-                          className="w-full px-2 py-1.5 text-left rounded-md text-[9px] font-extrabold uppercase tracking-wide text-slate-300 hover:bg-slate-800/60 transition flex items-center gap-2 cursor-pointer border border-transparent"
+                          className="w-full px-2 py-1.5 text-left rounded-md text-[10px] font-extrabold uppercase tracking-wide text-slate-300 hover:bg-slate-800/60 transition flex items-center gap-2 cursor-pointer border border-transparent"
                         >
                           <HelpCircle className="w-3 h-3" />
                           <span>Destek ve Yardım</span>
@@ -1495,7 +1495,7 @@ export default function App() {
                           onClick={() => {
                             toggleTheme();
                           }}
-                          className="w-full px-2 py-1.5 text-left rounded-md text-[9px] font-extrabold uppercase tracking-wide text-slate-300 hover:bg-slate-800/60 transition flex items-center gap-2 cursor-pointer border border-transparent"
+                          className="w-full px-2 py-1.5 text-left rounded-md text-[10px] font-extrabold uppercase tracking-wide text-slate-300 hover:bg-slate-800/60 transition flex items-center gap-2 cursor-pointer border border-transparent"
                         >
                           {theme === 'dark' ? <Sun className="w-3 h-3 text-amber-400" /> : <Moon className="w-3 h-3 text-indigo-400" />}
                           <span>Tema Değiştir</span>
@@ -1507,7 +1507,7 @@ export default function App() {
                             setShowNotificationList(prev => !prev);
                             setShowCompactProfileDropdown(false);
                           }}
-                          className={`w-full px-2 py-1.5 text-left rounded-md text-[9px] font-extrabold uppercase tracking-wide transition flex items-center gap-2 cursor-pointer relative ${
+                          className={`w-full px-2 py-1.5 text-left rounded-md text-[10px] font-extrabold uppercase tracking-wide transition flex items-center gap-2 cursor-pointer relative ${
                             showNotificationList
                               ? 'bg-sky-500/10 text-sky-400 border border-sky-500/10'
                               : 'text-slate-300 hover:bg-slate-800/60 border border-transparent'
@@ -1517,7 +1517,7 @@ export default function App() {
                           <div className="flex-1 flex items-center justify-between">
                             <span>Bildirimler</span>
                             {unreadNotifications.length > 0 && (
-                              <span className="bg-red-500 text-white text-[8px] font-black px-1 rounded-full">
+                              <span className="bg-red-500 text-white text-[10px] font-black px-1 rounded-full">
                                 {unreadNotifications.length}
                               </span>
                             )}
@@ -1618,13 +1618,13 @@ export default function App() {
                     <div className="flex flex-col gap-2 mb-3 border-b border-[var(--border)] pb-3">
                       <div className="flex items-center justify-between gap-1.5">
                         {/* Permit status */}
-                        <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-[#141f2d] border border-[#1e3a5f] text-[#4d97ff] text-[8.5px] font-extrabold uppercase tracking-wider flex-1 justify-center">
+                        <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-[#141f2d] border border-[#1e3a5f] text-[#4d97ff] text-[10px] font-extrabold uppercase tracking-wider flex-1 justify-center">
                           <svg className="w-3 h-3 text-[#4d97ff]" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path></svg>
                           <span>Ruhsat: {activeProject.permitStatus || 'ALINDI'}</span>
                         </div>
 
                         {/* Progress status */}
-                        <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-[#2f2214] border border-[#4a371c] text-[#f59e0b] text-[8.5px] font-extrabold uppercase tracking-wider flex-1 justify-center">
+                        <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-[#2f2214] border border-[#4a371c] text-[#f59e0b] text-[10px] font-extrabold uppercase tracking-wider flex-1 justify-center">
                           <svg className="w-3 h-3 text-[#f59e0b]" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
                           <span>İlerleme: %{activeProject.overallProgress}</span>
                         </div>
@@ -1632,7 +1632,7 @@ export default function App() {
 
                       <div className="flex items-center justify-between gap-1.5">
                         {/* Budget status */}
-                        <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#0f2619] border border-[#14532d] text-[#4ade80] text-[8.5px] font-extrabold uppercase tracking-wider flex-1 justify-center">
+                        <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#0f2619] border border-[#14532d] text-[#4ade80] text-[10px] font-extrabold uppercase tracking-wider flex-1 justify-center">
                           <CheckCircle className="w-3 h-3 text-[#4ade80]" />
                           <span>Bütçe: {activeProject.budgetStatus || 'TAMAM'}</span>
                         </div>
@@ -1640,7 +1640,7 @@ export default function App() {
                         {/* Gold status edit pencil */}
                         <button 
                           onClick={handleOpenEditStatus}
-                          className="px-2.5 py-1.5 bg-[#3e3422] hover:bg-[#4a3e28] border border-[#f59e0b]/30 text-[#f59e0b] transition rounded-lg flex items-center justify-center gap-1.5 text-[8px] font-bold cursor-pointer shadow-sm hover:border-[#f59e0b]/50 shrink-0" 
+                          className="px-2.5 py-1.5 bg-[#3e3422] hover:bg-[#4a3e28] border border-[#f59e0b]/30 text-[#f59e0b] transition rounded-lg flex items-center justify-center gap-1.5 text-[10px] font-bold cursor-pointer shadow-sm hover:border-[#f59e0b]/50 shrink-0" 
                           title="Durumu Düzenle"
                         >
                           <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
@@ -1676,7 +1676,7 @@ export default function App() {
                   <>
                     {/* Active Selected Project ID Card */}
                     <div className="bg-[var(--bg-secondary)] border border-[var(--border)] p-4 rounded-md shadow-sm transition-all duration-300">
-                      <span className="text-[9px] font-extrabold text-blue-500 uppercase tracking-widest block mb-1">Aktif Saha Tanımı</span>
+                      <span className="text-[10px] font-extrabold text-blue-500 uppercase tracking-widest block mb-1">Aktif Saha Tanımı</span>
                       <h3 className="text-sm font-extrabold text-[var(--text-primary)] tracking-tight line-clamp-2">{activeProject.name}</h3>
                       
                       <div className="space-y-2 mt-3 text-xs text-[var(--text-secondary)]">
@@ -1726,11 +1726,11 @@ export default function App() {
                           >
                             <div className="min-w-0">
                               <span className="text-[11px] font-bold block truncate">{block.name.split('] ')[1] || block.name}</span>
-                              <span className="text-[8px] text-slate-400 block">
+                              <span className="text-[10px] text-slate-400 block">
                                 {block.floors} Kat | Yükseklik: {block.height}m
                               </span>
                             </div>
-                            <span className="text-[9px] font-bold text-emerald-500 bg-emerald-500/15 px-1 py-0.2 rounded shrink-0">
+                            <span className="text-[10px] font-bold text-emerald-500 bg-emerald-500/15 px-1 py-0.5 rounded shrink-0">
                               %{block.progress}
                             </span>
                           </button>
@@ -1752,11 +1752,11 @@ export default function App() {
                       
                       <div className="grid grid-cols-2 gap-3 text-xs">
                         <div className="p-2.5 bg-[var(--bg-primary)] border border-[var(--border)] rounded-md">
-                          <span className="text-[9px] text-[var(--text-secondary)] block">Toplam Bütçe</span>
+                          <span className="text-[10px] text-[var(--text-secondary)] block">Toplam Bütçe</span>
                           <span className="text-xs font-black text-[var(--text-primary)]">₺{activeProject.budget}M</span>
                         </div>
                         <div className="p-2.5 bg-[var(--bg-primary)] border border-[var(--border)] rounded-md">
-                          <span className="text-[9px] text-[var(--text-secondary)] block">Ödenen Hakediş</span>
+                          <span className="text-[10px] text-[var(--text-secondary)] block">Ödenen Hakediş</span>
                           <span className="text-xs font-black text-emerald-500">₺{activeProject.spent}M</span>
                         </div>
                       </div>
@@ -1804,7 +1804,7 @@ export default function App() {
 
                 {centerTab === 'map' && (
                   <div className="w-full h-[calc(100vh-170px)] min-h-[500px] bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl overflow-hidden shadow-2xl relative animate-fade-in">
-                    <KrokiMapModule />
+                    <KrokiMapModule activeProjectId={selectedProjectId} />
                   </div>
                 )}
 
@@ -1878,7 +1878,7 @@ export default function App() {
                         <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 animate-fade-in">
                           {/* Department/Project Filter Dropdown */}
                           <div className="flex flex-col gap-1 min-w-[170px] flex-1 sm:flex-initial">
-                            <label className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-wider">ÇALIŞMA GRUBU</label>
+                            <label className="micro-label">ÇALIŞMA GRUBU</label>
                             <select
                               value={kpiDepartment}
                               onChange={(e) => setKpiDepartment(e.target.value)}
@@ -1894,7 +1894,7 @@ export default function App() {
 
                           {/* Date Range Picker: Start Date */}
                           <div className="flex flex-col gap-1 min-w-[125px] flex-1 sm:flex-initial">
-                            <label className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-wider">BAŞLANGIÇ TARİHİ</label>
+                            <label className="micro-label">BAŞLANGIÇ TARİHİ</label>
                             <input
                               type="date"
                               value={kpiStartDate}
@@ -1907,7 +1907,7 @@ export default function App() {
 
                           {/* Date Range Picker: End Date */}
                           <div className="flex flex-col gap-1 min-w-[125px] flex-1 sm:flex-initial">
-                            <label className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-wider">BİTİŞ TARİHİ</label>
+                            <label className="micro-label">BİTİŞ TARİHİ</label>
                             <input
                               type="date"
                               value={kpiEndDate}
@@ -1931,7 +1931,7 @@ export default function App() {
                                 📈 KÜMÜLATİF PERFORMANS ENDEKSLERİ (SPI & CPI TRENDİ)
                               </span>
                               <div className="flex items-center gap-3">
-                                <span className="text-[9px] text-slate-500 font-bold font-mono hidden sm:inline">Hedef Eşik: 1.00</span>
+                                <span className="text-[10px] text-slate-500 font-bold font-mono hidden sm:inline">Hedef Eşik: 1.00</span>
                                 <button
                                   onClick={() => downloadChartAsPng('spi-cpi-trend-chart', 'SPI_CPI_Trend_Raporu')}
                                   className="p-1.5 bg-[#1e293b]/50 hover:bg-slate-700/60 border border-[var(--border)] rounded-md text-cyan-400 hover:text-white transition-all cursor-pointer flex items-center justify-center"
@@ -2058,7 +2058,7 @@ export default function App() {
                             </div>
 
                             {/* Quick Insight badge based on currently selected filter */}
-                            <div className="p-2 bg-slate-500/5 border border-[var(--border)] rounded-lg text-[9.5px] text-[var(--text-secondary)] mt-2">
+                            <div className="p-2 bg-slate-500/5 border border-[var(--border)] rounded-lg text-[10px] text-[var(--text-secondary)] mt-2">
                               <strong>Anlık Bulgular:</strong> {kpiDepartment === 'all' && "Küresel bazda hakediş huzu SPI 1.08 ile programın önündedir."}
                               {kpiDepartment === 'insaat' && "🏗️ Kaba inşaat imalatları beton kalıplama hızıyla verimliliği %92'ye ulaştırmıştır."}
                               {kpiDepartment === 'elektrik' && "⚡ Kablolama ve trafo montajları bütçeyi koruyarak CPI endeksini 1.04'e yükseltmiştir."}
@@ -2150,14 +2150,14 @@ export default function App() {
                         <div className="relative overflow-hidden bg-gradient-to-br from-[#1e40af] to-[#3b82f6] text-white p-4 rounded-xl border border-white/10 flex flex-col justify-between min-h-[90px]">
                           <div className="absolute top-0 right-0 w-16 h-16 bg-white/5 rounded-full -mr-4 -mt-4"></div>
                           <div className="flex justify-between items-start">
-                            <span className="text-[9px] font-black uppercase tracking-wider text-blue-100">Planlama Portföy Bütçesi</span>
+                            <span className="text-[10px] font-black uppercase tracking-wider text-blue-100">Planlama Portföy Bütçesi</span>
                             <span className="p-1 bg-white/10 rounded text-white"><DollarSign className="w-3.5 h-3.5" /></span>
                           </div>
                           <div className="mt-2">
                             <span className="text-lg font-black tracking-tight flex items-center">
                               <AnimatedNumber value={7.35} prefix="₺" suffix=" Milyar" />
                             </span>
-                            <span className="text-[9px] text-blue-200 block mt-0.5">Sözleşmeli Fizibilite Toplamı</span>
+                            <span className="text-[10px] text-blue-200 block mt-0.5">Sözleşmeli Fizibilite Toplamı</span>
                           </div>
                         </div>
 
@@ -2165,14 +2165,14 @@ export default function App() {
                         <div className="relative overflow-hidden bg-gradient-to-br from-[#065f46] to-[#10b981] text-white p-4 rounded-xl border border-white/10 flex flex-col justify-between min-h-[90px]">
                           <div className="absolute top-0 right-0 w-16 h-16 bg-white/5 rounded-full -mr-4 -mt-4"></div>
                           <div className="flex justify-between items-start">
-                            <span className="text-[9px] font-black uppercase tracking-wider text-emerald-100">Ortalama Plan İlerlemesi</span>
+                            <span className="text-[10px] font-black uppercase tracking-wider text-emerald-100">Ortalama Plan İlerlemesi</span>
                             <span className="p-1 bg-white/10 rounded text-white"><TrendingUp className="w-3.5 h-3.5" /></span>
                           </div>
                           <div className="mt-2">
                             <span className="text-lg font-black tracking-tight flex items-center">
                               <AnimatedNumber value={52.6} prefix="%" />
                             </span>
-                            <span className="text-[9px] text-emerald-200 block mt-0.5">Aşamalı Milestone Gerçekleşmesi</span>
+                            <span className="text-[10px] text-emerald-200 block mt-0.5">Aşamalı Milestone Gerçekleşmesi</span>
                           </div>
                         </div>
 
@@ -2180,14 +2180,14 @@ export default function App() {
                         <div className="relative overflow-hidden bg-gradient-to-br from-[#5b21b6] to-[#8b5cf6] text-white p-4 rounded-xl border border-white/10 flex flex-col justify-between min-h-[90px]">
                           <div className="absolute top-0 right-0 w-16 h-16 bg-white/5 rounded-full -mr-4 -mt-4"></div>
                           <div className="flex justify-between items-start">
-                            <span className="text-[9px] font-black uppercase tracking-wider text-purple-100">CDE Planlama Belgeleri</span>
+                            <span className="text-[10px] font-black uppercase tracking-wider text-purple-100">CDE Planlama Belgeleri</span>
                             <span className="p-1 bg-white/10 rounded text-white"><FileText className="w-3.5 h-3.5" /></span>
                           </div>
                           <div className="mt-2">
                             <span className="text-lg font-black tracking-tight flex items-center">
                               <AnimatedNumber value={36} suffix=" Doküman" />
                             </span>
-                            <span className="text-[9px] text-purple-200 block mt-0.5">Onay Sürecindeki Pafta & Şartname</span>
+                            <span className="text-[10px] text-purple-200 block mt-0.5">Onay Sürecindeki Pafta & Şartname</span>
                           </div>
                         </div>
 
@@ -2195,14 +2195,14 @@ export default function App() {
                         <div className="relative overflow-hidden bg-gradient-to-br from-[#b45309] to-[#f59e0b] text-white p-4 rounded-xl border border-white/10 flex flex-col justify-between min-h-[90px]">
                           <div className="absolute top-0 right-0 w-16 h-16 bg-white/5 rounded-full -mr-4 -mt-4"></div>
                           <div className="flex justify-between items-start">
-                            <span className="text-[9px] font-black uppercase tracking-wider text-amber-100">İmar & Ruhsat Çakışması</span>
+                            <span className="text-[10px] font-black uppercase tracking-wider text-amber-100">İmar & Ruhsat Çakışması</span>
                             <span className="p-1 bg-white/10 rounded text-white"><AlertTriangle className="w-3.5 h-3.5 animate-pulse" /></span>
                           </div>
                           <div className="mt-2">
                             <span className="text-lg font-black tracking-tight flex items-center">
                               <AnimatedNumber value={2} suffix=" Risk Bloke" />
                             </span>
-                            <span className="text-[9px] text-amber-200 block mt-0.5">Süre & İmar Kritik Aşama Alarmları</span>
+                            <span className="text-[10px] text-amber-200 block mt-0.5">Süre & İmar Kritik Aşama Alarmları</span>
                           </div>
                         </div>
                       </>
@@ -2214,14 +2214,14 @@ export default function App() {
                         <div className="relative overflow-hidden bg-gradient-to-br from-[#0369a1] to-[#0ea5e9] text-white p-4 rounded-xl border border-white/10 flex flex-col justify-between min-h-[90px]">
                           <div className="absolute top-0 right-0 w-16 h-16 bg-white/5 rounded-full -mr-4 -mt-4"></div>
                           <div className="flex justify-between items-start">
-                            <span className="text-[9px] font-black uppercase tracking-wider text-sky-100">Aktif Şantiye Bütçesi</span>
+                            <span className="text-[10px] font-black uppercase tracking-wider text-sky-100">Aktif Şantiye Bütçesi</span>
                             <span className="p-1 bg-white/10 rounded text-white"><DollarSign className="w-3.5 h-3.5" /></span>
                           </div>
                           <div className="mt-2">
                             <span className="text-lg font-black tracking-tight flex items-center">
                               <AnimatedNumber value={4.12} prefix="₺" suffix=" Milyar" />
                             </span>
-                            <span className="text-[9px] text-sky-200 block mt-0.5">Saha Yapım Aşaması Yatırımı</span>
+                            <span className="text-[10px] text-sky-200 block mt-0.5">Saha Yapım Aşaması Yatırımı</span>
                           </div>
                         </div>
 
@@ -2229,14 +2229,14 @@ export default function App() {
                         <div className="relative overflow-hidden bg-gradient-to-br from-[#047857] to-[#10b981] text-white p-4 rounded-xl shadow border border-white/10 flex flex-col justify-between min-h-[90px]">
                           <div className="absolute top-0 right-0 w-16 h-16 bg-white/5 rounded-full -mr-4 -mt-4"></div>
                           <div className="flex justify-between items-start">
-                            <span className="text-[9px] font-black uppercase tracking-wider text-emerald-100">Şantiyeler Fiziki İlerleme</span>
+                            <span className="text-[10px] font-black uppercase tracking-wider text-emerald-100">Şantiyeler Fiziki İlerleme</span>
                             <span className="p-1 bg-white/10 rounded text-white"><TrendingUp className="w-3.5 h-3.5" /></span>
                           </div>
                           <div className="mt-2">
                             <span className="text-lg font-black tracking-tight flex items-center">
                               <AnimatedNumber value={45.8} prefix="%" />
                             </span>
-                            <span className="text-[9px] text-emerald-200 block mt-0.5">Saha İmalat Ağırlıklı Ortalama</span>
+                            <span className="text-[10px] text-emerald-200 block mt-0.5">Saha İmalat Ağırlıklı Ortalama</span>
                           </div>
                         </div>
 
@@ -2244,14 +2244,14 @@ export default function App() {
                         <div className="relative overflow-hidden bg-gradient-to-br from-[#b45309] to-[#d97706] text-white p-4 rounded-xl border border-white/10 flex flex-col justify-between min-h-[90px]">
                           <div className="absolute top-0 right-0 w-16 h-16 bg-white/5 rounded-full -mr-4 -mt-4"></div>
                           <div className="flex justify-between items-start">
-                            <span className="text-[9px] font-black uppercase tracking-wider text-amber-100">Yasal Ruhsat & İzinler</span>
+                            <span className="text-[10px] font-black uppercase tracking-wider text-amber-100">Yasal Ruhsat & İzinler</span>
                             <span className="p-1 bg-white/10 rounded text-white"><FileCheck className="w-3.5 h-3.5" /></span>
                           </div>
                           <div className="mt-2">
                             <span className="text-lg font-black tracking-tight flex items-center">
                               <AnimatedNumber value={12} suffix=" Aktif Onay" />
                             </span>
-                            <span className="text-[9px] text-amber-200 block mt-0.5">Belediye & Bakanlık Ruhsatları</span>
+                            <span className="text-[10px] text-amber-200 block mt-0.5">Belediye & Bakanlık Ruhsatları</span>
                           </div>
                         </div>
 
@@ -2259,14 +2259,14 @@ export default function App() {
                         <div className="relative overflow-hidden bg-[#ef4444] text-white p-4 rounded-xl border border-white/10 flex flex-col justify-between min-h-[90px]">
                           <div className="absolute top-0 right-0 w-16 h-16 bg-white/5 rounded-full -mr-4 -mt-4"></div>
                           <div className="flex justify-between items-start">
-                            <span className="text-[9px] font-black uppercase tracking-wider text-red-100">Şantiye İSG & Güvenlik</span>
+                            <span className="text-[10px] font-black uppercase tracking-wider text-red-100">Şantiye İSG & Güvenlik</span>
                             <span className="p-1 bg-white/10 rounded text-white"><AlertTriangle className="w-3.5 h-3.5 animate-pulse" /></span>
                           </div>
                           <div className="mt-2">
                             <span className="text-lg font-black tracking-tight flex items-center">
                               <AnimatedNumber value={0} suffix=" Aktif Uyarı" />
                             </span>
-                            <span className="text-[9px] text-red-200 block mt-0.5">Güvenli Çalışma Günü: 480+</span>
+                            <span className="text-[10px] text-red-200 block mt-0.5">Güvenli Çalışma Günü: 480+</span>
                           </div>
                         </div>
                       </>
@@ -2278,14 +2278,14 @@ export default function App() {
                         <div className="relative overflow-hidden bg-gradient-to-br from-[#0d9488] to-[#14b8a6] text-white p-4 rounded-xl border border-white/10 flex flex-col justify-between min-h-[90px]">
                           <div className="absolute top-0 right-0 w-16 h-16 bg-white/5 rounded-full -mr-4 -mt-4"></div>
                           <div className="flex justify-between items-start">
-                            <span className="text-[9px] font-black uppercase tracking-wider text-teal-100">Yıllık Operasyonel OPEX</span>
+                            <span className="text-[10px] font-black uppercase tracking-wider text-teal-100">Yıllık Operasyonel OPEX</span>
                             <span className="p-1 bg-white/10 rounded text-white"><DollarSign className="w-3.5 h-3.5" /></span>
                           </div>
                           <div className="mt-2">
                             <span className="text-lg font-black tracking-tight flex items-center">
                               <AnimatedNumber value={1.85} prefix="₺" suffix=" Milyar" />
                             </span>
-                            <span className="text-[9px] text-teal-200 block mt-0.5">Yıllık Tesis & Hizmet Bütçesi</span>
+                            <span className="text-[10px] text-teal-200 block mt-0.5">Yıllık Tesis & Hizmet Bütçesi</span>
                           </div>
                         </div>
 
@@ -2293,14 +2293,14 @@ export default function App() {
                         <div className="relative overflow-hidden bg-gradient-to-br from-[#047857] to-[#10b981] text-white p-4 rounded-xl border border-white/10 flex flex-col justify-between min-h-[90px]">
                           <div className="absolute top-0 right-0 w-16 h-16 bg-white/5 rounded-full -mr-4 -mt-4"></div>
                           <div className="flex justify-between items-start">
-                            <span className="text-[9px] font-black uppercase tracking-wider text-emerald-100">Faal Tesis Envanteri</span>
+                            <span className="text-[10px] font-black uppercase tracking-wider text-emerald-100">Faal Tesis Envanteri</span>
                             <span className="p-1 bg-white/10 rounded text-white"><Compass className="w-3.5 h-3.5" /></span>
                           </div>
                           <div className="mt-2">
                             <span className="text-lg font-black tracking-tight flex items-center">
                               <AnimatedNumber value={28} suffix=" Tesis" />
                             </span>
-                            <span className="text-[9px] text-emerald-200 block mt-0.5">Kabulü Yapılmış Aktif Yapılar</span>
+                            <span className="text-[10px] text-emerald-200 block mt-0.5">Kabulü Yapılmış Aktif Yapılar</span>
                           </div>
                         </div>
 
@@ -2308,14 +2308,14 @@ export default function App() {
                         <div className="relative overflow-hidden bg-gradient-to-br from-[#c2410c] to-[#f97316] text-white p-4 rounded-xl border border-white/10 flex flex-col justify-between min-h-[90px]">
                           <div className="absolute top-0 right-0 w-16 h-16 bg-white/5 rounded-full -mr-4 -mt-4"></div>
                           <div className="flex justify-between items-start">
-                            <span className="text-[9px] font-black uppercase tracking-wider text-orange-100">Faal Bakım Talepleri</span>
+                            <span className="text-[10px] font-black uppercase tracking-wider text-orange-100">Faal Bakım Talepleri</span>
                             <span className="p-1 bg-white/10 rounded text-white"><Wrench className="w-3.5 h-3.5" /></span>
                           </div>
                           <div className="mt-2">
                             <span className="text-lg font-black tracking-tight flex items-center">
                               <AnimatedNumber value={4} suffix=" İş Emri" />
                             </span>
-                            <span className="text-[9px] text-orange-200 block mt-0.5">SLA Süresindeki Müdahaleler</span>
+                            <span className="text-[10px] text-orange-200 block mt-0.5">SLA Süresindeki Müdahaleler</span>
                           </div>
                         </div>
 
@@ -2323,14 +2323,14 @@ export default function App() {
                         <div className="relative overflow-hidden bg-gradient-to-br from-[#1e3a8a] to-[#2563eb] text-white p-4 rounded-xl border border-white/10 flex flex-col justify-between min-h-[90px]">
                           <div className="absolute top-0 right-0 w-16 h-16 bg-white/5 rounded-full -mr-4 -mt-4"></div>
                           <div className="flex justify-between items-start">
-                            <span className="text-[9px] font-black uppercase tracking-wider text-blue-100">Kritik Varlık Sağlık Skoru</span>
+                            <span className="text-[10px] font-black uppercase tracking-wider text-blue-100">Kritik Varlık Sağlık Skoru</span>
                             <span className="p-1 bg-white/10 rounded text-white"><Cpu className="w-3.5 h-3.5" /></span>
                           </div>
                           <div className="mt-2">
                             <span className="text-lg font-black tracking-tight flex items-center">
                               <AnimatedNumber value={98.4} prefix="%" />
                             </span>
-                            <span className="text-[9px] text-blue-200 block mt-0.5">MTBF Sağlık Katsayısı</span>
+                            <span className="text-[10px] text-blue-200 block mt-0.5">MTBF Sağlık Katsayısı</span>
                           </div>
                         </div>
                       </>
@@ -2389,7 +2389,7 @@ export default function App() {
                           <Activity className="w-3.5 h-3.5 text-red-500 animate-pulse" />
                           Canlı Alarm Günlüğü
                         </span>
-                        <span className="px-1.5 py-0.2 bg-red-600/15 text-red-500 text-[8px] font-extrabold rounded">REALTIME</span>
+                        <span className="px-1.5 py-0.5 bg-red-600/15 text-red-500 text-[10px] font-extrabold rounded">REALTIME</span>
                       </div>
 
                       <div className="space-y-2 max-h-[160px] overflow-y-auto pr-1" style={{ scrollbarWidth: 'none' }}>
@@ -2407,7 +2407,7 @@ export default function App() {
                             <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
                             <div>
                               <p className="font-bold leading-normal">{notif.message}</p>
-                              <span className="text-[8px] opacity-70 block mt-0.5">{notif.date}</span>
+                              <span className="text-[10px] opacity-70 block mt-0.5">{notif.date}</span>
                             </div>
                           </div>
                         ))}
@@ -2429,12 +2429,12 @@ export default function App() {
                               <div className="font-bold text-[var(--text-primary)] truncate" title={doc.name}>
                                 {doc.name.split(' (')[0]}
                               </div>
-                              <p className="text-[8px] text-[var(--text-secondary)] mt-0.5">Versiyon: {doc.version} | {doc.fileSize}</p>
+                              <p className="text-[10px] text-[var(--text-secondary)] mt-0.5">Versiyon: {doc.version} | {doc.fileSize}</p>
                               
                               {/* Approval workflow states */}
                               <div className="mt-2 space-y-1">
                                 {doc.approvalWorkflow.map((wf, idx) => (
-                                  <div key={idx} className="flex justify-between text-[8px]">
+                                  <div key={idx} className="flex justify-between text-[10px]">
                                     <span className="text-slate-400">{wf.step}:</span>
                                     <span className={wf.status === 'Approved' ? 'text-emerald-500 font-bold' : 'text-amber-500 font-bold'}>
                                       {wf.status === 'Approved' ? 'Onaylı' : 'Bekliyor'}
@@ -2445,7 +2445,7 @@ export default function App() {
 
                               <button 
                                 onClick={() => handleApproveDocument(doc.id)}
-                                className="mt-2.5 w-full bg-emerald-600 text-white font-black text-[9px] py-1 rounded hover:bg-emerald-700 transition cursor-pointer flex items-center justify-center gap-1"
+                                className="mt-2.5 w-full bg-emerald-600 text-white font-black text-[10px] py-1 rounded hover:bg-emerald-700 transition cursor-pointer flex items-center justify-center gap-1"
                               >
                                 <Check className="w-3 h-3" />
                                 <span>CEO Adına Onayla & İmzala</span>
@@ -2454,7 +2454,7 @@ export default function App() {
                         ))}
 
                         {documents.filter(d => d.approvalWorkflow.some(step => step.status === 'Pending')).length === 0 && (
-                          <div className="text-[9px] text-slate-500 italic text-center py-4">
+                          <div className="text-[10px] text-slate-500 italic text-center py-4">
                             Onay bekleyen teknik dosya bulunmamaktadır.
                           </div>
                         )}
@@ -2472,21 +2472,21 @@ export default function App() {
                           <span className="absolute left-[-2px] top-1.5 w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
                           <div>
                             <strong className="text-[var(--text-primary)]">Bugün 10:15</strong>
-                            <p className="text-[9px] text-[var(--text-secondary)] mt-0.5">Ataköy Metro B-Kule ince imalat hakedişi onaylandı ve banka talimatı kesildi.</p>
+                            <p className="text-[10px] text-[var(--text-secondary)] mt-0.5">Ataköy Metro B-Kule ince imalat hakedişi onaylandı ve banka talimatı kesildi.</p>
                           </div>
                         </div>
                         <div className="flex gap-2 relative pl-3 before:absolute before:left-0 before:top-1 before:bottom-0 before:w-[1px] before:bg-[var(--border)]">
                           <span className="absolute left-[-2px] top-1.5 w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
                           <div>
                             <strong className="text-[var(--text-primary)]">Bugün 09:30</strong>
-                            <p className="text-[9px] text-[var(--text-secondary)] mt-0.5">Ankara Çankaya Akıllı Kuleler şantiyesine yeni bağlantı ruhsat izin başvurusu tescillendi.</p>
+                            <p className="text-[10px] text-[var(--text-secondary)] mt-0.5">Ankara Çankaya Akıllı Kuleler şantiyesine yeni bağlantı ruhsat izin başvurusu tescillendi.</p>
                           </div>
                         </div>
                         <div className="flex gap-2 relative pl-3">
                           <span className="absolute left-[-2px] top-1.5 w-1.5 h-1.5 bg-amber-500 rounded-full"></span>
                           <div>
                             <strong className="text-[var(--text-primary)]">Dün 16:40</strong>
-                            <p className="text-[9px] text-[var(--text-secondary)] mt-0.5">Ataköy C-Blok hidrofor pompa istasyonunda basınç sensör arıza bildirimi yapıldı.</p>
+                            <p className="text-[10px] text-[var(--text-secondary)] mt-0.5">Ataköy C-Blok hidrofor pompa istasyonunda basınç sensör arıza bildirimi yapıldı.</p>
                           </div>
                         </div>
                       </div>
@@ -2704,43 +2704,43 @@ export default function App() {
       {/* ACCESS REQUEST PERMISSION MODAL */}
       {showPermissionModal && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[10000] flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-[#0b0f19] border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-[420px] overflow-hidden shadow-2xl animate-fade-in text-slate-800 dark:text-slate-200 p-6 relative">
-            
+          <div className="bg-white dark:bg-[#0b0f19] border border-slate-200 dark:border-slate-800 rounded-xl w-full max-w-[210px] overflow-hidden shadow-2xl animate-fade-in text-slate-600 dark:text-slate-300 p-3 relative">
+
             {/* Header */}
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-black tracking-tight text-slate-900 dark:text-white">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-xs font-normal tracking-tight text-slate-600 dark:text-slate-300">
                 Access request
               </h3>
-              <button 
+              <button
                 onClick={() => setShowPermissionModal(false)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-white transition p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-white transition p-0.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
                 aria-label="Close"
               >
-                <X className="w-5 h-5" />
+                <X className="w-2.5 h-2.5" />
               </button>
             </div>
 
             {/* Description */}
-            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mb-6">
+            <p className="text-[9px] text-slate-600 dark:text-slate-300 leading-relaxed mb-3">
               The app requests access to the following permissions:
             </p>
 
             {/* Permission Toggles */}
-            <div className="space-y-3 mb-6">
+            <div className="space-y-1.5 mb-3">
               {/* Camera Row */}
-              <div className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-[#111625] border border-slate-100 dark:border-slate-800/80 rounded-2xl transition">
-                <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">Camera</span>
+              <div className="flex items-center justify-between p-1.5 bg-slate-50 dark:bg-[#111625] border border-slate-100 dark:border-slate-800/80 rounded-lg transition">
+                <span className="text-[10px] font-normal text-slate-600 dark:text-slate-300">Camera</span>
                 <button
                   type="button"
                   onClick={() => setPermCamera(!permCamera)}
-                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                  className={`relative inline-flex h-3 w-6 shrink-0 cursor-pointer rounded-full border border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
                     permCamera ? 'bg-slate-900 dark:bg-white' : 'bg-slate-200 dark:bg-slate-800'
                   }`}
                 >
                   <span
-                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full shadow-lg ring-0 transition duration-200 ease-in-out ${
-                      permCamera 
-                        ? 'translate-x-5 bg-white dark:bg-slate-900' 
+                    className={`pointer-events-none inline-block h-2.5 w-2.5 transform rounded-full shadow-lg ring-0 transition duration-200 ease-in-out ${
+                      permCamera
+                        ? 'translate-x-3 bg-white dark:bg-slate-900'
                         : 'translate-x-0 bg-white dark:bg-slate-400'
                     }`}
                   />
@@ -2748,19 +2748,19 @@ export default function App() {
               </div>
 
               {/* Microphone Row */}
-              <div className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-[#111625] border border-slate-100 dark:border-slate-800/80 rounded-2xl transition">
-                <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">Microphone</span>
+              <div className="flex items-center justify-between p-1.5 bg-slate-50 dark:bg-[#111625] border border-slate-100 dark:border-slate-800/80 rounded-lg transition">
+                <span className="text-[10px] font-normal text-slate-600 dark:text-slate-300">Microphone</span>
                 <button
                   type="button"
                   onClick={() => setPermMicrophone(!permMicrophone)}
-                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                  className={`relative inline-flex h-3 w-6 shrink-0 cursor-pointer rounded-full border border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
                     permMicrophone ? 'bg-slate-900 dark:bg-white' : 'bg-slate-200 dark:bg-slate-800'
                   }`}
                 >
                   <span
-                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full shadow-lg ring-0 transition duration-200 ease-in-out ${
-                      permMicrophone 
-                        ? 'translate-x-5 bg-white dark:bg-slate-900' 
+                    className={`pointer-events-none inline-block h-2.5 w-2.5 transform rounded-full shadow-lg ring-0 transition duration-200 ease-in-out ${
+                      permMicrophone
+                        ? 'translate-x-3 bg-white dark:bg-slate-900'
                         : 'translate-x-0 bg-white dark:bg-slate-400'
                     }`}
                   />
@@ -2769,26 +2769,26 @@ export default function App() {
             </div>
 
             {/* "Daha sorma" & Apply Action Bar */}
-            <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800/60 mt-4">
-              
-              {/* "Daha sorma" Checkbox with Red Highlight Option */}
-              <label className="flex items-center gap-2 cursor-pointer group select-none">
+            <div className="flex items-center justify-between pt-1 border-t border-slate-100 dark:border-slate-800/60 mt-2">
+
+              {/* "Daha sorma" Checkbox */}
+              <label className="flex items-center gap-1 cursor-pointer group select-none">
                 <input
                   type="checkbox"
                   checked={permDontAsk}
                   onChange={(e) => setPermDontAsk(e.target.checked)}
                   className="sr-only"
                 />
-                <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
-                  permDontAsk 
-                    ? 'bg-red-500 border-red-500 dark:bg-red-600 dark:border-red-600 text-white' 
-                    : 'border-red-500/70 hover:border-red-500 dark:border-red-500/80 dark:hover:border-red-500 bg-red-50 dark:bg-red-950/20'
+                <div className={`w-2.5 h-2.5 rounded border flex items-center justify-center transition-all ${
+                  permDontAsk
+                    ? 'bg-slate-500 border-slate-500 dark:bg-slate-400 dark:border-slate-400 text-white'
+                    : 'border-slate-400/70 hover:border-slate-500 dark:border-slate-500/80 dark:hover:border-slate-400 bg-slate-50 dark:bg-slate-800/20'
                 }`}
                 title="Daha sorma"
                 >
-                  {permDontAsk && <Check className="w-3.5 h-3.5 stroke-[3] text-white" />}
+                  {permDontAsk && <Check className="w-2 h-2 stroke-[3] text-white" />}
                 </div>
-                <span className="text-xs font-black text-red-600 dark:text-red-400 group-hover:underline transition">
+                <span className="text-[9px] font-normal text-slate-600 dark:text-slate-300 group-hover:underline transition">
                   Daha sorma
                 </span>
               </label>
@@ -2802,7 +2802,7 @@ export default function App() {
                   }
                   setShowPermissionModal(false);
                 }}
-                className="px-5 py-2.5 rounded-2xl bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-950 text-xs font-black transition shadow-lg shadow-slate-950/10 dark:shadow-white/5 cursor-pointer"
+                className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-950 text-[9px] font-normal transition shadow-lg shadow-slate-950/10 dark:shadow-white/5 cursor-pointer"
               >
                 Apply
               </button>

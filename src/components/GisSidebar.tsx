@@ -484,7 +484,7 @@ export const GisSidebar: React.FC<GisSidebarProps> = ({
       {/* Brand & Mini Navigation Panel Left Bar */}
       <div className="absolute top-0 bottom-0 left-0 w-[64px] bg-[#0a1620] border-r border-[#1a2f3c] flex flex-col items-center py-4 z-30 shrink-0">
         <div className="text-center pb-4 mb-4 border-b border-[#1a2f3c] w-full px-1">
-          <span className="text-[9px] font-mono tracking-widest text-[#7f9aa8]">KROKİ</span>
+          <span className="text-[10px] font-mono tracking-widest text-[#7f9aa8]">KROKİ</span>
           <b className="block font-black text-xs text-white tracking-tighter mt-0.5">CBS</b>
         </div>
 
@@ -516,7 +516,7 @@ export const GisSidebar: React.FC<GisSidebarProps> = ({
 
         {/* Brand footer */}
         <div className="pt-4 border-t border-[#1a2f3c] w-full text-center">
-          <span className="text-[8px] font-mono text-[#7f9aa8]">V5.12</span>
+          <span className="text-[10px] font-mono text-[#7f9aa8]">V5.12</span>
         </div>
       </div>
 

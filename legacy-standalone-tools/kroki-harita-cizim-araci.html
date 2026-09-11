@@ -31,7 +31,21 @@
   }
   *{box-sizing:border-box;}
   html,body{margin:0;height:100%;background:var(--bg-deep);font-family:var(--font-ui);color:var(--text);overflow:hidden;}
+  /* İnce, estetik scrollbar — panel/liste/modal içindeki TÜM kaydırılabilir
+     alanlara uygulanır (Firefox + WebKit/Chromium). */
+  *{scrollbar-width:thin;scrollbar-color:var(--line) transparent;}
+  *::-webkit-scrollbar{width:7px;height:7px;}
+  *::-webkit-scrollbar-track{background:transparent;}
+  *::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px;}
+  *::-webkit-scrollbar-thumb:hover{background:var(--amber-dim);}
   #map{position:absolute;inset:0;}
+  /* "Seç" modunda boş bir noktadan sürükleyerek pencere (kutu) ile toplu
+     seçim yaparken gösterilen ekran-uzayı dikdörtgeni. */
+  .select-box-rect{
+    display:none;position:absolute;z-index:5;pointer-events:none;
+    border:1.5px dashed var(--teal);background:rgba(63,194,172,.12);
+  }
+  .select-box-rect.show{display:block;}
   .maplibregl-ctrl-attrib{font-size:10px;}
   .maplibregl-ctrl-bottom-right{margin-bottom:34px;margin-right:56px;}
 
@@ -103,6 +117,18 @@
   .subtabpage{display:none;}
   .subtabpage.active{display:flex;flex-direction:column;gap:14px;flex:1;overflow-y:auto;padding:14px;}
 
+  /* Editör > Güncelle panelindeki iç alt-sekmeler (Genel / Geometri) — üstteki
+     .subtabs ile aynı görünüm, ama bağımsız bir grup olarak (kendi JS'iyle)
+     çalışır, böylece Harita modülündeki CBS/Kurumsal Altlık sekmeleriyle karışmaz. */
+  .edit-subtabs{display:flex;border-bottom:1px solid var(--line);margin-bottom:14px;}
+  .edit-subtab{
+    flex:1;padding:8px 0;text-align:center;font-size:12px;font-weight:600;
+    color:var(--text-dim);cursor:pointer;border-bottom:2px solid transparent;
+  }
+  .edit-subtab.active{color:var(--text);border-bottom-color:var(--amber);}
+  .edit-subtabpage{display:none;flex-direction:column;gap:16px;}
+  .edit-subtabpage.active{display:flex;}
+
   /* ---------- Araç ızgarası (Editör) ---------- */
   .tool-grid{display:flex;flex-wrap:wrap;gap:6px;}
   .tool{
@@ -169,6 +195,34 @@
   .layer-icon-btn:hover{background:#213e4e;color:var(--text);}
   .layer-icon-btn.del:hover{background:#3a1c18;color:var(--danger);}
   .layer-icon-btn svg{width:13px;height:13px;}
+
+  /* ---------- Split buton (CBS Haritası yanı: Kaydet / İmport / Export) ---------- */
+  .split-btn{display:flex;flex:0 0 auto;height:30px;border:1px solid var(--amber);border-radius:2px;overflow:visible;position:relative;}
+  .split-btn-main{
+    display:flex;align-items:center;gap:5px;padding:0 9px;height:100%;
+    background:transparent;border:none;color:var(--amber);cursor:pointer;
+    font-family:var(--font-ui);font-size:11.5px;font-weight:600;white-space:nowrap;
+  }
+  .split-btn-main:hover{background:var(--amber-dim);}
+  .split-btn-main svg{width:13px;height:13px;flex:0 0 auto;}
+  .split-btn-arrow{
+    display:flex;align-items:center;justify-content:center;width:22px;height:100%;
+    background:transparent;border:none;border-left:1px solid var(--amber);color:var(--amber);cursor:pointer;
+  }
+  .split-btn-arrow:hover{background:var(--amber-dim);}
+  .split-btn-arrow svg{width:11px;height:11px;}
+  .split-btn-menu{
+    display:none;flex-direction:column;gap:2px;position:absolute;top:34px;right:0;z-index:10;
+    min-width:150px;background:var(--bg-panel-raise);border:1px solid var(--line);border-radius:2px;
+    box-shadow:0 8px 20px rgba(0,0,0,.4);padding:4px;
+  }
+  .split-btn-menu.show{display:flex;}
+  .split-btn-menu-item{
+    display:flex;align-items:center;gap:8px;padding:8px 10px;cursor:pointer;font-size:12.5px;
+    color:var(--text);border-radius:2px;
+  }
+  .split-btn-menu-item:hover{background:#1a3444;}
+  .split-btn-menu-item svg{width:14px;height:14px;flex:0 0 auto;color:var(--text-dim);}
 
   /* ---------- 3B poligon kat ayarları (Editör içine gömülü) ---------- */
   #floor3dPanel{
@@ -302,6 +356,8 @@
   .btn:hover{border-color:var(--teal);color:var(--teal);}
   .btn.primary{background:var(--amber-dim);border-color:var(--amber);color:var(--amber);}
   .btn.primary:hover{color:#fff;}
+  .btn.primary.danger{background:rgba(224,104,90,.15);border-color:var(--danger);color:var(--danger);}
+  .btn.primary.danger:hover{background:var(--danger);color:#fff;}
 
   /* ---------- Taslak çizim kontrolleri (mobil için) ---------- */
   #draftControls{
@@ -357,12 +413,15 @@
     font-family:var(--font-mono);font-size:11px;color:var(--text-dim);
   }
   #statusbar .div{width:1px;height:12px;background:var(--line);}
+  #statusbar span{display:inline-flex;align-items:center;gap:5px;}
+  .status-icon{width:12px;height:12px;flex:0 0 auto;color:var(--text-dim);}
   .status-snap-btn{
-    background:transparent;border:1px solid var(--line);color:var(--text-dim);
+    background:transparent;border:none;color:#6b7684;
     font-family:var(--font-mono);font-size:11px;padding:2px 8px;border-radius:2px;cursor:pointer;
+    display:inline-flex;align-items:center;gap:5px;
   }
-  .status-snap-btn b{color:inherit;font-weight:500;}
-  .status-snap-btn.active{border-color:var(--amber);color:var(--amber);}
+  .status-snap-btn .status-icon{color:inherit;}
+  .status-snap-btn.active{color:#e02424;}
   #snapTolerancePopover{
     position:absolute;bottom:34px;right:14px;z-index:8;display:none;
     background:var(--bg-panel);border:1px solid var(--line);border-radius:var(--radius);
@@ -378,6 +437,16 @@
     opacity:0;pointer-events:none;transition:all .18s ease;max-width:80vw;text-align:center;
   }
   #toast.show{opacity:1;transform:translate(-50%,0);}
+
+  /* İnşaat İlerlemesi (%) tooltip'i — fareyle üzerine gelinen objede bu
+     sütun doluysa (bkz. updateProgressTooltip), fareyi takip eder. */
+  #progressTooltip{
+    display:none;position:fixed;z-index:25;pointer-events:none;
+    background:#132632;border:1px solid var(--line);color:var(--text);
+    padding:4px 9px;border-radius:2px;font-size:11px;font-family:var(--font-mono);
+    box-shadow:0 4px 14px rgba(0,0,0,.4);white-space:nowrap;
+  }
+  #progressTooltip b{color:var(--amber);}
 
   /* ---------- Dosya yükleniyor göstergesi ---------- */
   #loadingIndicator{
@@ -402,14 +471,14 @@
     padding:4px;backdrop-filter:blur(6px);
   }
   #clusterTop{top:14px;}
-  #clusterBasemap{top:125px;}
+  #clusterBasemap{top:66px;}
   #basemapPopover{
     position:absolute;top:166px;right:14px;z-index:6;display:none;flex-direction:column;gap:8px;
     background:rgba(15,30,41,.95);border:1px solid var(--line);border-radius:var(--radius);
     padding:10px;backdrop-filter:blur(6px);min-width:120px;
   }
   #basemapPopover.show{display:flex;}
-  #clusterMeasure{top:174px;}
+  #clusterMeasure{top:115px;}
   #measureToolsPopover{
     position:absolute;top:215px;right:14px;z-index:6;display:none;flex-direction:column;
     background:rgba(15,30,41,.95);border:1px solid var(--line);border-radius:var(--radius);
@@ -418,6 +487,23 @@
   #measureToolsPopover.show{display:flex;}
   #measureToolsPopover .tool span{font-size:8px;}
   #basemapPopover .style-row{flex-direction:column;}
+  /* "3B Görünüm" (btnCompass) — kümenin diğer butonlarından belirgin şekilde
+     daha büyük ve durumu canlı yansıtan (dinamik) bir tasarım: ibre haritanın
+     mevcut bearing'ine göre döner (gerçek bir pusula gibi), 3B görünüm
+     etkinken yumuşak bir "nabız" (pulse) parıltısıyla vurgulanır. */
+  #clusterTop #btnCompass svg{
+    width:23px;height:23px;
+  }
+  #clusterTop #btnCompass .compass-needle{
+    transform-origin:12px 12px;transition:transform .35s cubic-bezier(.34,1.4,.64,1);
+  }
+  #clusterTop #btnCompass.active{
+    animation:btnCompassPulse 2s ease-in-out infinite;
+  }
+  @keyframes btnCompassPulse{
+    0%, 100%{ box-shadow:inset 0 0 0 1px rgba(212,175,55,.45), 0 0 0 0 rgba(212,175,55,.38); }
+    50%{ box-shadow:inset 0 0 0 1px rgba(212,175,55,.7), 0 0 0 7px rgba(212,175,55,0); }
+  }
   #basemapPopover .style-btn{width:100%;text-align:center;}
 
   /* Sağ alt küme: dikey grup (pin/kaydırma/yenile) alttaki yatay gruple (yakınlaştır/ev/uzaklaştır/bilgi) aynı sağ kenara hizalanır */
@@ -432,10 +518,11 @@
   .map-cluster button{
     width:27px;height:27px;background:transparent;border:none;color:var(--offwhite);
     cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:2px;position:relative;
+    padding:0;
   }
-  .map-cluster button svg{width:14px;height:14px;}
+  .map-cluster button svg{width:14px;height:14px;flex:0 0 auto;}
   .map-cluster button:hover{background:var(--bg-panel-raise);color:var(--text);}
-  .map-cluster button.active{color:var(--gold);}
+  .map-cluster button.active{color:var(--gold);background:rgba(212,175,55,.16);box-shadow:inset 0 0 0 1px rgba(212,175,55,.4);}
   .map-cluster .sep{height:1px;background:var(--line);margin:2px 4px;}
   .map-cluster button[data-tip]::after{
     content:attr(data-tip);position:absolute;right:110%;top:50%;transform:translateY(-50%);
@@ -454,14 +541,51 @@
   #btnInfo.active{background:#e6c667;color:#101c26;box-shadow:0 0 0 2px rgba(212,175,55,.35);}
   #btnInfo svg{width:14px;height:14px;}
 
+  /* Bilgi balonu artık haritada tıklanan objenin ÜZERİNDE, harita ile birlikte
+     kayan bir konuşma balonu (speech-bubble) olarak açılır — sabit köşe paneli
+     değil. Konumu updateInfoPopoverPosition() ile map 'move'/'resize'
+     olaylarında güncellenir (bkz. JS). */
   #infoPopover{
-    position:absolute;bottom:38px;right:60px;z-index:8;width:230px;
+    position:fixed;left:0;top:0;z-index:20;
     background:var(--bg-panel);border:1px solid var(--line);border-radius:var(--radius);
-    padding:14px;font-size:12px;line-height:1.6;color:var(--text-dim);display:none;
+    font-size:12px;line-height:1.6;color:var(--text-dim);display:none;
     box-shadow:0 4px 18px rgba(0,0,0,.4);
+    align-items:stretch;
+    transform:translate(-50%,calc(-100% - 12px));
   }
-  #infoPopover.show{display:block;}
+  #infoPopover.show{display:flex;}
+  #infoPopover::after{
+    content:'';position:absolute;left:50%;bottom:-8px;transform:translateX(-50%);
+    width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;
+    border-top:8px solid var(--bg-panel);
+  }
   #infoPopover b{color:var(--text);}
+  #infoPopoverMain{width:230px;padding:14px;}
+  /* Doküman paneli: info penceresinin SAĞINDA açılır (yalnızca objeye ait
+     doküman varken görünür) — üstte liste, hemen altında seçili dokümanın
+     önizlemesi ("view"). */
+  #infoDocsPanel{
+    display:none;width:210px;padding:14px;border-left:1px solid var(--line);
+    flex-direction:column;gap:8px;max-height:360px;
+  }
+  #infoDocsPanel.show{display:flex;}
+  #infoDocsList{display:flex;flex-direction:column;gap:4px;overflow-y:auto;max-height:140px;}
+  .info-doc-row{
+    display:flex;align-items:center;gap:6px;padding:5px 7px;border-radius:2px;
+    background:var(--bg-panel-raise);border:1px solid transparent;cursor:pointer;font-size:11px;
+  }
+  .info-doc-row:hover{border-color:var(--line);}
+  .info-doc-row.active{border-color:var(--teal);color:var(--text);}
+  .info-doc-row .doc-type-badge{
+    flex:0 0 auto;font-size:9px;font-weight:700;letter-spacing:.02em;text-transform:uppercase;
+    color:#101c26;background:var(--teal);border-radius:2px;padding:1px 4px;
+  }
+  .info-doc-row .doc-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  #infoDocsPreview{
+    border-top:1px dashed var(--line);padding-top:8px;font-size:11px;
+    display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;
+  }
+  #infoDocsPreview img{max-width:100%;max-height:140px;border-radius:2px;border:1px solid var(--line);}
 
   /* ---------- Genel modal (Yeni Katman / Veri Girişi) ---------- */
   .modal-overlay{
@@ -482,6 +606,45 @@
   .modal-box input[type="text"]:focus, .modal-box textarea:focus{outline:none;border-color:var(--amber);}
   .modal-actions{display:flex;gap:8px;margin-top:16px;}
   .modal-actions .btn{flex:1;}
+  /* Uzun formlar (Veri Girişi / Öznitelik Düzenle): başlık + kapat (X) sabit,
+     içerik kaydırılabilir, Vazgeç/Kaydet alt satırı HER ZAMAN görünür kalır. */
+  .modal-box.tall{display:flex;flex-direction:column;padding:0;}
+  .modal-box.tall .modal-header{
+    flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:16px 18px 0 18px;
+  }
+  .modal-box.tall .modal-header .modal-title{margin-bottom:0;}
+  .modal-close-x{
+    flex:0 0 auto;width:24px;height:24px;border-radius:2px;background:transparent;border:none;
+    color:var(--text-dim);cursor:pointer;display:flex;align-items:center;justify-content:center;
+  }
+  .modal-close-x:hover{color:var(--text);background:var(--bg-panel-raise);}
+  .modal-close-x svg{width:15px;height:15px;}
+  .modal-box.tall .modal-body{flex:1 1 auto;overflow-y:auto;padding:14px 18px 4px 18px;min-height:0;}
+  .modal-box.tall .modal-actions{
+    flex:0 0 auto;margin-top:0;padding:12px 18px;border-top:1px solid var(--line);background:var(--bg-panel);
+  }
+  .modal-box.tall .modal-actions .btn.icon-only{flex:0 0 auto;width:36px;padding:0;display:flex;align-items:center;justify-content:center;position:relative;}
+  .modal-box.tall .modal-actions .btn.icon-only svg{width:16px;height:16px;}
+  .modal-box.tall .modal-actions .btn.icon-only .doc-badge{
+    position:absolute;top:-5px;right:-5px;min-width:15px;height:15px;padding:0 3px;border-radius:8px;
+    background:var(--amber);color:#101c26;font-size:9px;font-weight:800;line-height:15px;text-align:center;
+  }
+  .modal-box.tall .modal-actions .btn.icon-only.active{border-color:var(--amber);color:var(--amber);background:var(--amber-dim);}
+  /* Öznitelik Düzenle > "3B yap" ile açılan küçük, bağımsız ayarlar penceresi
+     — attrEditModal'ın (z-index:30) ÜZERİNDE, onun yanında açılır; sürüklenerek
+     taşınabilir (bkz. JS: positionAttr3DPopoverNextToModal, sürükleme kodu).
+     Ana forma göre ~%30 daha küçük (width/padding oranlı küçültülmüş). */
+  #attr3DPopover{
+    display:none;position:fixed;top:0;left:0;z-index:60;
+    width:196px;background:var(--bg-panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:11px;box-shadow:0 10px 30px rgba(0,0,0,.5);
+  }
+  #attr3DPopover.show{display:block;}
+  #attr3DPopover .modal-title{cursor:move;user-select:none;font-size:12px;}
+  #attr3DPopover .field-label{font-size:9.5px;}
+  #attr3DPopover .btn{padding:6px 8px;font-size:11px;}
+  #attr3DPopover input[type="range"]{margin-top:2px;}
   .geom-type-row{display:flex;gap:6px;}
   .geom-type-btn{
     flex:1;padding:10px 0;text-align:center;font-size:12px;font-weight:600;
@@ -573,9 +736,24 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;color:var(--text-dim);flex:0 0 auto;"><path d="M6 9l6 6 6-6"/></svg>
           </div>
           <div id="mapSelectDropList" class="active-layer-drop-list" style="position:absolute;top:38px;left:0;right:40px;"></div>
-          <button class="layer-icon-btn" id="btnAddContent" title="Vektör / Raster ekle" style="color:var(--amber);border:1px solid var(--amber);flex:0 0 auto;width:30px;height:30px;">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-          </button>
+          <div class="split-btn" id="mapSplitBtn">
+            <button class="split-btn-main" id="btnMapSave" title="Kaydet (oturumu tarayıcıda sakla)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
+            </button>
+            <button class="split-btn-arrow" id="btnMapSplitToggle" title="Diğer seçenekler">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 9l6 6 6-6"/></svg>
+            </button>
+            <div id="mapSplitMenu" class="split-btn-menu">
+              <div class="split-btn-menu-item" id="btnMapImport">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 21h16"/></svg>
+                <span>Import</span>
+              </div>
+              <div class="split-btn-menu-item" id="btnMapExport">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 15V3"/><path d="M7 8l5-5 5 5"/><path d="M4 21h16"/></svg>
+                <span>Export (GeoPackage)</span>
+              </div>
+            </div>
+          </div>
           <div id="addContentPopover" class="active-layer-drop-list" style="position:absolute;top:38px;right:0;min-width:200px;"></div>
         </div>
       </div>
@@ -623,30 +801,12 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 5v14M5 12h14"/></svg>
           <span>Obje</span>
         </button>
-        <button class="tool" id="btnAddDocument" data-tip="Seçili objeye resim/video/doküman ekle" style="width:auto;flex:1;">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21.4 11.3l-8.5 8.5a5 5 0 0 1-7.1-7.1l8.5-8.5a3.5 3.5 0 0 1 5 5l-8.4 8.4a2 2 0 0 1-2.8-2.8l7.8-7.8"/></svg>
+        <button class="tool" id="btnAddDocument" data-tip="Haritadaki bir objeye doküman (resim/video/cad/gis/bim) ekle" style="width:auto;flex:1;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M12 12v6M9 15h6"/></svg>
           <span>Doküman</span>
         </button>
       </div>
       <div class="field-label" id="activeLayerGeomHint" style="margin-top:6px;margin-bottom:0;"></div>
-
-      <div id="quickShapeGroup" style="display:none;margin-top:12px;">
-        <span class="field-label">Hızlı ekle (form olmadan — sadece Poligon katmanlarda)</span>
-        <div class="tool-grid">
-          <button class="tool" data-mode="rectangle" data-tip="Dikdörtgen">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="6" width="16" height="12" rx="1"/></svg>
-            <span>D.gen</span>
-          </button>
-          <button class="tool" data-mode="circle" data-tip="Çember">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8"/></svg>
-            <span>Çember</span>
-          </button>
-          <label class="tool" id="quick3DToggle" data-tip="3 Boyutlu (kat adedi/yüksekliği ile)" style="cursor:pointer;">
-            <input type="checkbox" id="quick3DCheckbox" style="width:15px;height:15px;accent-color:var(--amber);cursor:pointer;">
-            <span>3B</span>
-          </label>
-        </div>
-      </div>
     </div>
 
     <div>
@@ -655,9 +815,9 @@
         Sil
       </span>
       <div class="tool-row">
-        <button class="tool danger" id="btnClearAll" data-tip="Tüm şekilleri sil" style="width:auto;flex:1;">
+        <button class="tool danger" id="btnClearAll" data-tip="Seçili şekli sil" style="width:auto;flex:1;">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>
-          <span>Tümünü sil</span>
+          <span>Seçileni Sil</span>
         </button>
       </div>
     </div>
@@ -668,9 +828,9 @@
         Güncelle
       </span>
       <div class="tool-row">
-        <button class="tool active" data-mode="select" data-tip="Seç / Düzenle" style="width:auto;flex:1;">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 3l14 7-6 2-2 6-6-15z"/></svg>
-          <span>Seç</span>
+        <button class="tool" id="btnAttrEdit" data-tip="Haritada bir objeye tıklayıp öznitelik/doküman bilgilerini güncelle" style="width:auto;flex:1;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 3h6v4H9z"/><path d="M9 7v13a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2V7"/><path d="M9 12h6"/></svg>
+          <span>Öznitelik</span>
         </button>
         <button class="tool" id="btnUndo" data-tip="Geri al (Ctrl+Z)" style="width:auto;flex:1;">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 7L4 12l5 5"/><path d="M4 12h11a5 5 0 0 1 0 10h-1"/></svg>
@@ -697,33 +857,14 @@
       Düzenlemek için bir şekil seçin — Seç aracıyla haritada tıklayın ya da Harita modülündeki listeden bir satıra dokunun.
     </div>
 
-    <div id="editControls" style="display:none;flex-direction:column;gap:16px;">
+    <div id="editControls" style="display:none;flex-direction:column;gap:0;">
 
-      <div class="edit-block" data-types="Point,LineString,Polygon">
-        <span class="field-label">Dokümanlar</span>
-        <div id="docListContainer" style="display:flex;flex-direction:column;gap:6px;"></div>
+      <div class="edit-subtabs">
+        <div class="edit-subtab" data-editsubtab="geometri">Geometri</div>
+        <div class="edit-subtab active" data-editsubtab="genel">Genel</div>
       </div>
 
-      <div class="edit-block" data-types="Polygon">
-        <span class="field-label">3 boyut</span>
-        <div class="btn-row">
-          <div class="btn" id="btnToggle3D">3B'ye çevir</div>
-        </div>
-      </div>
-
-      <div class="edit-block" data-types="Polygon" data-requires="extrude">
-        <div style="display:flex;justify-content:space-between;align-items:baseline;">
-          <span class="field-label" style="margin-bottom:0;">Kat adedi</span>
-          <span class="field-label" id="floorsVal" style="margin-bottom:0;font-family:var(--font-mono);color:var(--text);">1</span>
-        </div>
-        <input type="range" id="floorsSlider" min="1" max="100" value="1" step="1" style="width:100%;">
-        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:10px;">
-          <span class="field-label" style="margin-bottom:0;">Kat yüksekliği</span>
-          <span class="field-label" id="floorHeightVal" style="margin-bottom:0;font-family:var(--font-mono);color:var(--text);">30 m</span>
-        </div>
-        <input type="range" id="floorHeightSlider" min="0.5" max="20" value="3" step="0.1" style="width:100%;">
-        <div class="field-label" id="totalHeightVal" style="margin-top:8px;margin-bottom:0;">Toplam yükseklik: 30 m</div>
-      </div>
+      <div class="edit-subtabpage active" data-editsubpage="genel">
 
       <div class="edit-block" data-types="LineString">
         <span class="field-label">Boru (tüp)</span>
@@ -738,22 +879,6 @@
           <span class="field-label" id="diameterVal" style="margin-bottom:0;font-family:var(--font-mono);color:var(--text);">5 m</span>
         </div>
         <input type="range" id="diameterSlider" min="0.2" max="100" value="5" step="0.1" style="width:100%;">
-      </div>
-
-      <div class="edit-block" data-types="LineString,Polygon">
-        <div style="display:flex;justify-content:space-between;align-items:baseline;">
-          <span class="field-label" style="margin-bottom:0;">Döndür</span>
-          <span class="field-label" id="rotateVal" style="margin-bottom:0;font-family:var(--font-mono);color:var(--text);">0°</span>
-        </div>
-        <input type="range" id="rotateSlider" min="-180" max="180" value="0" step="1" style="width:100%;">
-      </div>
-
-      <div class="edit-block" data-types="LineString,Polygon">
-        <div style="display:flex;justify-content:space-between;align-items:baseline;">
-          <span class="field-label" style="margin-bottom:0;">Ölçekle</span>
-          <span class="field-label" id="scaleVal" style="margin-bottom:0;font-family:var(--font-mono);color:var(--text);">100%</span>
-        </div>
-        <input type="range" id="scaleSlider" min="20" max="300" value="100" step="1" style="width:100%;">
       </div>
 
       <div class="edit-block" data-types="Point,LineString,Polygon">
@@ -784,13 +909,80 @@
         </div>
       </div>
 
-    </div>
-  </div>
+      </div>
+
+      <div class="edit-subtabpage" data-editsubpage="geometri">
+
+      <div class="edit-block" data-types="Polygon">
+        <span class="field-label">3 boyut</span>
+        <div class="btn-row">
+          <div class="btn" id="btnToggle3D">3B'ye çevir</div>
+        </div>
+      </div>
+
+      <div class="edit-block" data-types="Polygon" data-requires="extrude">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;">
+          <span class="field-label" style="margin-bottom:0;">Kat adedi</span>
+          <span class="field-label" id="floorsVal" style="margin-bottom:0;font-family:var(--font-mono);color:var(--text);">1</span>
+        </div>
+        <input type="range" id="floorsSlider" min="1" max="100" value="1" step="1" style="width:100%;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:10px;">
+          <span class="field-label" style="margin-bottom:0;">Kat yüksekliği</span>
+          <span class="field-label" id="floorHeightVal" style="margin-bottom:0;font-family:var(--font-mono);color:var(--text);">30 m</span>
+        </div>
+        <input type="range" id="floorHeightSlider" min="0.5" max="20" value="3" step="0.1" style="width:100%;">
+        <div class="field-label" id="totalHeightVal" style="margin-top:8px;margin-bottom:0;">Toplam yükseklik: 30 m</div>
+      </div>
+
+      <div class="edit-block" data-types="LineString,Polygon">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;">
+          <span class="field-label" style="margin-bottom:0;">Döndür</span>
+          <span class="field-label" id="rotateVal" style="margin-bottom:0;font-family:var(--font-mono);color:var(--text);">0°</span>
+        </div>
+        <input type="range" id="rotateSlider" min="-180" max="180" value="0" step="1" style="width:100%;">
+      </div>
+
+      <div class="edit-block" data-types="LineString,Polygon">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;">
+          <span class="field-label" style="margin-bottom:0;">Ölçekle</span>
+          <span class="field-label" id="scaleVal" style="margin-bottom:0;font-family:var(--font-mono);color:var(--text);">100%</span>
+        </div>
+        <input type="range" id="scaleSlider" min="20" max="300" value="100" step="1" style="width:100%;">
+      </div>
+
+      </div>
+        </div>
+      </div>
 
   <!-- ================= ANALİZ MODÜLÜ ================= -->
   <div class="module-page" data-module-page="analiz" style="display:none;">
 
-    <div class="accordion open" data-accordion="shadow">
+    <div class="accordion open" data-accordion="fourd">
+      <div class="accordion-header">
+        <span class="field-label group-label" style="margin-bottom:0;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v16M12 13l2 2 4-4"/></svg>
+          4D Analizi (Zaman Bazlı İnşaat İlerlemesi)
+          <span class="info-tip" onclick="event.stopPropagation()" data-tip="3B (extrude) binaların o anki 'İnşaat İlerlemesi (%)' değeri, bugünü referans alan bir zaman çizelgesine yayılarak simüle edilir. Kaydırıcıyı geçmişe/geleceğe taşıdıkça binaların doluluk rengi (yeşil/mavi/turuncu) o tarihteki simüle ilerlemeye göre anlık günceller. Gerçek veriler değişmez, yalnızca görselleştirme geçicidir.">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.01"/></svg>
+          </span>
+        </span>
+        <svg class="accordion-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+      </div>
+      <div class="accordion-body">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:6px;">
+          <span class="field-label" style="margin-bottom:0;">Simülasyon Tarihi</span>
+          <span class="field-label" id="fourDDateLabel" style="margin-bottom:0;font-family:var(--font-mono);color:var(--text);">bugün</span>
+        </div>
+        <input type="range" id="fourDDaySlider" min="-365" max="365" step="1" value="0" style="width:100%;">
+        <div class="btn-row" style="margin-top:8px;">
+          <div class="btn primary" id="btnFourDPlay">▶ Oynat</div>
+          <div class="btn" id="btnFourDReset">Bugüne Dön</div>
+        </div>
+        <div class="field-label" id="fourDInfo" style="margin-top:8px;margin-bottom:0;"></div>
+      </div>
+    </div>
+
+    <div class="accordion" data-accordion="shadow">
       <div class="accordion-header">
         <span class="field-label group-label" style="margin-bottom:0;">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.4 1.4M17.6 17.6L19 19M19 5l-1.4 1.4M6.4 17.6L5 19"/></svg>
@@ -919,16 +1111,37 @@
   </div>
 </div>
 
+<!-- Sağ üst küme: 4 ayrı buton (Konumum/Tam ekran/3B görünüm/DEM) tek bir split
+     butonda birleştirildi — ana buton varsayılan olarak "3B Görünüm" (btnCompass),
+     ok tuşu diğer 3 aracı açılır menüde gösterir (bkz. CBS Haritası'ndaki aynı
+     Kaydet/İmport/Export split-buton deseni, .split-btn-menu paylaşılır). -->
 <div class="map-cluster" id="clusterTop">
-  <button id="btnGeolocate" data-tip="Konumumu bul">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
-  </button>
-  <button id="btnFullscreen" data-tip="Tam ekran">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 3H4v4M16 3h4v4M8 21H4v-4M16 21h4v-4"/></svg>
-  </button>
   <button id="btnCompass" data-tip="3B görünüm / Kuzeye döndür">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7l2.5 5-2.5-1.2L9.5 12z" fill="currentColor" stroke="none"/></svg>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+      <circle cx="12" cy="12" r="9"/>
+      <g class="compass-needle">
+        <path d="M12 4.2l2.6 7.8-2.6-1.3-2.6 1.3z" fill="currentColor" stroke="none"/>
+        <path d="M12 19.8l-2.6-7.8 2.6 1.3 2.6-1.3z" fill="currentColor" stroke="none" opacity=".35"/>
+      </g>
+    </svg>
   </button>
+  <button id="btnTopMenuToggle" data-tip="Diğer araçlar" style="height:13px;">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="width:10px;height:10px;"><path d="M6 9l6 6 6-6"/></svg>
+  </button>
+  <div class="split-btn-menu" id="topToolsMenu" style="top:100%;right:0;margin-top:4px;">
+    <div class="split-btn-menu-item" id="btnGeolocate">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+      <span>Konumumu Bul</span>
+    </div>
+    <div class="split-btn-menu-item" id="btnFullscreen">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 3H4v4M16 3h4v4M8 21H4v-4M16 21h4v-4"/></svg>
+      <span>Tam Ekran</span>
+    </div>
+    <div class="split-btn-menu-item" id="btnTerrainToggle">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 20l6-11 4 6 3-4 7 9z"/><path d="M2 20h20"/></svg>
+      <span>DEM Görünümü</span>
+    </div>
+  </div>
 </div>
 
 <div class="map-cluster" id="clusterBasemap">
@@ -958,6 +1171,10 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-dasharray="2.6 2.2"><path d="M12 3l8 6-3 10H7L4 9z"/></svg>
       <span>Alan</span>
     </button>
+    <button class="tool" data-mode="measure-point" data-tip="Haritaya tıklayarak X,Y koordinatı ekle">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="2.2" fill="currentColor" stroke="none"/><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/></svg>
+      <span>Nokta</span>
+    </button>
   </div>
   <div class="btn" id="btnClearMeasurements" style="margin-top:8px;">Ölçümleri Temizle</div>
   <div class="field-label" style="margin-top:6px;margin-bottom:0;">Sağ tık: etiketleri aç/kapat</div>
@@ -967,7 +1184,7 @@
   <button id="btnSelectMode" data-tip="Seç / Düzenle">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 3l14 7-6 2-2 6-6-15z"/></svg>
   </button>
-  <button id="btnPanMode" data-tip="Kaydırma (Seç modu)">
+  <button id="btnPanMode" class="active" data-tip="Kaydır (haritayı sürükleyerek gezin)">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 11V6a2 2 0 1 1 4 0M12 6a2 2 0 1 1 4 0v5M16 11V8a2 2 0 1 1 4 0v6c0 3.3-2.7 6-6 6h-2a6 6 0 0 1-5-2.7L4.5 13a1.8 1.8 0 0 1 2.8-2.2L8 11.5"/></svg>
   </button>
   <button id="btnRefresh" data-tip="Yenile">
@@ -994,8 +1211,15 @@
 <div id="treeContextMenu"></div>
 
 <div id="infoPopover">
-  <b>Bilgi</b><br>
-  Haritada bir objeye tıklayarak özniteliklerini görüntüleyin.
+  <div id="infoPopoverMain">
+    <b>Bilgi</b><br>
+    Haritada bir objeye tıklayarak özniteliklerini görüntüleyin.
+  </div>
+  <div id="infoDocsPanel">
+    <b style="color:var(--text);">Dokümanlar</b>
+    <div id="infoDocsList"></div>
+    <div id="infoDocsPreview"></div>
+  </div>
 </div>
 
 <div class="modal-overlay" id="layerModal">
@@ -1027,33 +1251,153 @@
 </div>
 
 <div class="modal-overlay" id="featureFormModal">
-  <div class="modal-box">
-    <div class="modal-title" id="featureFormTitle">Veri Girişi</div>
-    <label class="field-label">Ad</label>
-    <input type="text" id="ffName" placeholder="Ad / etiket">
-    <label class="field-label" style="margin-top:10px;">Açıklama</label>
-    <textarea id="ffDescription" rows="2" placeholder="Açıklama (opsiyonel)"></textarea>
-    <div id="ffCustomFields"></div>
-    <div class="btn" id="btnFFAddField" style="margin-top:10px;">+ Özel alan ekle</div>
+  <div class="modal-box tall" style="max-height:85vh;">
+    <div class="modal-header">
+      <div class="modal-title" id="featureFormTitle">
+        <span id="featureFormTitleIcon" style="display:inline-flex;width:15px;height:15px;vertical-align:-2px;margin-right:6px;color:var(--amber);"></span>
+        <span id="featureFormTitleText">Veri Girişi</span>
+      </div>
+      <button type="button" class="modal-close-x" id="btnFFClose" title="Kapat">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <div id="ffShapeSection" style="display:none;">
+        <span class="field-label" style="margin-top:0;">Şekil</span>
+        <div class="tool-grid" id="ffShapeButtons">
+          <button type="button" class="tool active" data-shape="polygon" data-tip="Serbest çizim (köşe köşe)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/></svg>
+            <span>Serbest</span>
+          </button>
+          <button type="button" class="tool" data-shape="rectangle" data-tip="Dikdörtgen">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="6" width="16" height="12" rx="1"/></svg>
+            <span>Dörtgen</span>
+          </button>
+          <button type="button" class="tool" data-shape="circle" data-tip="Çember">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8"/></svg>
+            <span>Çember</span>
+          </button>
+        </div>
+        <label style="display:flex;align-items:center;gap:7px;margin-top:10px;cursor:pointer;">
+          <input type="checkbox" id="ff3DCheckbox" style="width:16px;height:16px;cursor:pointer;">
+          <span class="field-label" style="margin:0;">3B (ekstrüzyonlu) çiz</span>
+        </label>
+        <div id="ff3DFields" style="display:none;gap:10px;margin-top:8px;">
+          <div style="flex:1;">
+            <label class="field-label" style="margin-top:0;">Kat Adedi</label>
+            <input type="number" id="ffFloors" min="1" step="1" value="1">
+          </div>
+          <div style="flex:1;">
+            <label class="field-label" style="margin-top:0;">Kat Yüksekliği (m)</label>
+            <input type="number" id="ffFloorHeight" min="0.5" step="0.1" value="3">
+          </div>
+        </div>
+      </div>
+
+      <div id="ffDynamicFields"></div>
+    </div>
+
     <div class="modal-actions">
+      <button type="button" class="btn icon-only" id="btnFFAddDoc" title="Doküman ekle">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 3v5h5"/><path d="M6 3h8l5 5v13H6z"/><path d="M9 13h6M9 17h6"/></svg>
+        <span class="doc-badge" id="ffDocBadge" style="display:none;">0</span>
+      </button>
       <div class="btn" id="btnFFCancel">Vazgeç</div>
       <div class="btn primary" id="btnFFSubmit">Ekle</div>
     </div>
   </div>
 </div>
 
-<div class="modal-overlay" id="documentModal">
+<div class="modal-overlay" id="docUploadModal">
   <div class="modal-box">
-    <div class="modal-title">Doküman Ekle</div>
-    <label class="field-label">Obje</label>
-    <select id="docObjectSelect" class="native-select"></select>
-    <label class="field-label" style="margin-top:10px;">Dosyalar (resim, video, diğer — çoklu seçilebilir)</label>
-    <input type="file" id="docFileInput" multiple accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.zip,.dwg">
-    <div id="docPendingList" style="margin-top:8px;display:flex;flex-direction:column;gap:4px;"></div>
+    <div class="modal-title" id="docUploadTitle">Dokümanları Ekle</div>
+    <div class="field-label" id="docUploadTargetLabel" style="margin-top:0;"></div>
+    <label class="field-label" style="margin-top:10px;">Dosya Seç (birden fazla seçilebilir)</label>
+    <input type="file" id="docUploadFileInput" multiple style="width:100%;background:var(--bg-panel-raise);border:1px solid var(--line);color:var(--text);border-radius:2px;padding:7px 8px;font-family:var(--font-mono);font-size:12px;">
+    <div id="docUploadStagedList" style="margin-top:10px;display:flex;flex-direction:column;gap:6px;max-height:260px;overflow-y:auto;"></div>
     <div class="modal-actions">
-      <div class="btn" id="btnDocCancel">Vazgeç</div>
-      <div class="btn primary" id="btnDocSubmit">Ekle</div>
+      <div class="btn" id="btnDocUploadCancel">Vazgeç</div>
+      <div class="btn primary" id="btnDocUploadSubmit">Dokümanları Kaydet</div>
     </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="attrEditModal">
+  <div class="modal-box tall" style="max-height:85vh;">
+    <div class="modal-header">
+      <div class="modal-title" id="attrEditTitle">
+        <span id="attrEditTitleIcon" style="display:inline-flex;width:15px;height:15px;vertical-align:-2px;margin-right:6px;color:var(--amber);"></span>
+        <span id="attrEditTitleText">Öznitelik Düzenle</span>
+      </div>
+      <button type="button" class="modal-close-x" id="btnAttrEditClose" title="Kapat">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <div id="attrEditDynamicFields"></div>
+
+      <div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--line);">
+        <span class="field-label" style="margin-top:0;">Dokümanlar</span>
+        <div id="attrEditDocsList" style="margin-top:8px;display:flex;flex-direction:column;gap:5px;"></div>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button type="button" class="btn icon-only" id="btnAttrEditAddDoc" title="Doküman ekle">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 3v5h5"/><path d="M6 3h8l5 5v13H6z"/><path d="M9 13h6M9 17h6"/></svg>
+      </button>
+      <button type="button" class="btn icon-only" id="btnAttrEditMake3D" title="3B yap" style="display:none;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5"/><path d="M12 12v9"/></svg>
+      </button>
+      <div class="btn" id="btnAttrEditCancel">Vazgeç</div>
+      <div class="btn primary" id="btnAttrEditSubmit">Kaydet</div>
+    </div>
+  </div>
+</div>
+
+<!-- Öznitelik Düzenle > "3B yap" — Editör > Geometri tabındaki 3B/Döndür/Ölçekle
+     araçlarının aynısını, obje seçilmeden de kullanılabilecek küçük ayrı bir
+     pencerede sunar (bkz. btnAttrEditMake3D, attr3D* elemanları). -->
+<div id="attr3DPopover">
+  <div class="modal-title" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;">
+    <span>3B Ayarları</span>
+    <button type="button" class="modal-close-x" id="btnAttr3DClose" title="Kapat">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </div>
+  <div class="btn-row">
+    <div class="btn" id="attr3DToggleBtn" style="flex:1;">3B'ye çevir</div>
+  </div>
+  <div style="margin-top:8px;">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;">
+      <span class="field-label" style="margin-bottom:0;">Kat adedi</span>
+      <span class="field-label" id="attr3DFloorsVal" style="margin-bottom:0;font-family:var(--font-mono);color:var(--text);">1</span>
+    </div>
+    <input type="range" id="attr3DFloorsSlider" min="1" max="100" value="1" step="1" style="width:100%;">
+  </div>
+  <div style="margin-top:7px;">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;">
+      <span class="field-label" style="margin-bottom:0;">Kat yüksekliği</span>
+      <span class="field-label" id="attr3DFloorHeightVal" style="margin-bottom:0;font-family:var(--font-mono);color:var(--text);">30 m</span>
+    </div>
+    <input type="range" id="attr3DFloorHeightSlider" min="0.5" max="20" value="3" step="0.1" style="width:100%;">
+  </div>
+  <div class="field-label" id="attr3DTotalHeightVal" style="margin-top:6px;margin-bottom:0;">Toplam yükseklik: 30 m</div>
+  <div style="margin-top:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;">
+      <span class="field-label" style="margin-bottom:0;">Döndür</span>
+      <span class="field-label" id="attr3DRotateVal" style="margin-bottom:0;font-family:var(--font-mono);color:var(--text);">0°</span>
+    </div>
+    <input type="range" id="attr3DRotateSlider" min="-180" max="180" value="0" step="1" style="width:100%;">
+  </div>
+  <div style="margin-top:7px;">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;">
+      <span class="field-label" style="margin-bottom:0;">Ölçekle</span>
+      <span class="field-label" id="attr3DScaleVal" style="margin-bottom:0;font-family:var(--font-mono);color:var(--text);">100%</span>
+    </div>
+    <input type="range" id="attr3DScaleSlider" min="20" max="300" value="100" step="1" style="width:100%;">
   </div>
 </div>
 
@@ -1104,15 +1448,15 @@
 </div>
 
 <div id="statusbar">
-  <span>koordinat <b id="stCoord" style="color:var(--teal)">—</b></span>
+  <span title="Koordinat"><svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg><b id="stCoord" style="color:var(--teal)">—</b></span>
   <div class="div"></div>
-  <span>yakınlaştırma <b id="stZoom">—</b></span>
+  <span title="Yakınlaştırma"><svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><b id="stZoom">—</b></span>
   <div class="div"></div>
-  <span>şekil sayısı <b id="stCount">0</b></span>
-  <div class="div"></div>
+  <span id="stCountWrap" title="Seçili obje sayısı" style="display:none;"><svg class="status-icon" id="stCountIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 3l14 7-6 2-2 6-6-15z"/></svg><b id="stCount">0</b></span>
+  <div class="div" id="stCountDiv" style="display:none;"></div>
   <span>mod <b id="stMode" style="color:var(--amber)">select</b></span>
   <div class="div"></div>
-  <button id="statusSnapBtn" class="status-snap-btn active" title="Snap (sol tık: aç/kapat, sağ tık: yakalama mesafesi)">Snap <b id="statusSnapState">Açık</b></button>
+  <button id="statusSnapBtn" class="status-snap-btn active" title="Snap (sol tık: aç/kapat, sağ tık: yakalama mesafesi)"><svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3v7a6 6 0 0 0 12 0V3"/><path d="M6 3h4M14 3h4"/></svg></button>
 </div>
 
 <div id="snapTolerancePopover">
@@ -1125,11 +1469,33 @@
   <span>Yükleniyor…</span>
 </div>
 
+<!-- İnşaat İlerlemesi (%) sütunu dolu olan objelerin üzerine gelindiğinde
+     (bkz. map 'mousemove' → updateProgressTooltip) beliren küçük tooltip. -->
+<div id="progressTooltip"></div>
+
 <div id="toast"></div>
+
+<!-- Tarayıcının yerleşik confirm()/prompt() penceresi yerine kullanılan,
+     DOM tabanlı onay/girdi modalı — bkz. customConfirm()/customPrompt(). -->
+<div class="modal-overlay" id="customDialogOverlay">
+  <div class="modal-box">
+    <div class="modal-title" id="customDialogTitle">Onay</div>
+    <div id="customDialogMessage" style="font-size:13px;color:var(--text-dim);line-height:1.5;"></div>
+    <input type="text" id="customDialogInput" style="display:none;margin-top:12px;">
+    <div class="modal-actions">
+      <div class="btn" id="customDialogCancel">İptal</div>
+      <div class="btn primary" id="customDialogOk">Tamam</div>
+    </div>
+  </div>
+</div>
 
 <script src="/vendor/maplibre-gl/5.12.0/maplibre-gl.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Turf.js/6.5.0/turf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<!-- sql.js: SQLite, WebAssembly'e derlenmiş halde tarayıcıda çalışır — gerçek,
+     spec-uyumlu bir GeoPackage (.gpkg) dosyası (aslında bir SQLite veritabanı)
+     üretebilmek için kullanılır (bkz. exportAllAsGeoPackage). -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.14.2/sql-wasm.js"></script>
 
 <script>
 (function(){
@@ -1164,21 +1530,88 @@
   // ---------------------------------------------------------------------
   // Harita stilleri (anahtar gerektirmeyen açık kaynak OpenFreeMap stilleri)
   // ---------------------------------------------------------------------
+  // Google Haritalar / Google Uydu: Google'ın resmi bir MapLibre vektör stil
+  // JSON'u yoktur, bu yüzden diğerleri gibi bir "url" değil, tek bir raster
+  // kaynak/katman içeren INLINE bir stil nesnesi ("style") kullanılır — bkz.
+  // aşağıdaki reapplyCustomLayersAfterStyleChange çağrısı, map.setStyle()
+  // hem bir URL string'ini hem de doğrudan bir stil nesnesini kabul eder.
+  // NOT: bu, Google'ın resmi/desteklenen bir ürünü olmayan genel bilinen
+  // (mt0-3.google.com/vt) raster fayans uç noktalarını kullanır; üretim
+  // ortamında resmi/faturalı Google Maps Platform anahtarı önerilir.
+  function googleRasterStyle(lyrs, attribution){
+    return {
+      version: 8,
+      sources: {
+        'google-raster-src': {
+          type: 'raster',
+          tiles: [0, 1, 2, 3].map(function(i){
+            return 'https://mt' + i + '.google.com/vt/lyrs=' + lyrs + '&x={x}&y={y}&z={z}&hl=tr';
+          }),
+          tileSize: 256,
+          attribution: attribution
+        }
+      },
+      layers: [
+        { id: 'google-raster-layer', type: 'raster', source: 'google-raster-src' }
+      ]
+    };
+  }
   var STYLES = [
     { id:'bright',   label:'Bright',    url:'https://tiles.openfreemap.org/styles/bright' },
     { id:'liberty',  label:'Liberty',   url:'https://tiles.openfreemap.org/styles/liberty' },
-    { id:'positron', label:'Positron',  url:'https://tiles.openfreemap.org/styles/positron' }
+    { id:'positron', label:'Positron',  url:'https://tiles.openfreemap.org/styles/positron' },
+    { id:'google-yollar', label:'Google Haritalar', style: googleRasterStyle('m', '© Google Maps') },
+    { id:'google-uydu',   label:'Google Uydu',      style: googleRasterStyle('y', '© Google Maps') }
   ];
   var currentStyleId = STYLES[0].id;
+
+  // "Açılış ekranı" — sağ alt köşedeki Ana Görünüm (Home) butonuna sağ
+  // tıklayıp "Açılış Ekranı Yap" seçilince, o anki harita sınırları
+  // (center/zoom/bearing/pitch) tarayıcının localStorage'ında saklanır ve
+  // bundan sonraki her açılışta haritanın başlangıç görünümü olarak kullanılır.
+  var KROKI_HOME_VIEW_STORAGE_KEY = 'kroki_home_view_v1';
+  function loadHomeView(){
+    try{
+      var raw = localStorage.getItem(KROKI_HOME_VIEW_STORAGE_KEY);
+      if (!raw) return null;
+      var v = JSON.parse(raw);
+      if (!v || !Array.isArray(v.center) || v.center.length !== 2) return null;
+      return v;
+    }catch(err){
+      console.error('Kaydedilmiş açılış ekranı okunamadı:', err);
+      return null;
+    }
+  }
+  var DEFAULT_VIEW = { center:[35.0, 39.0], zoom:5.4, bearing:0, pitch:0 };
+  var initialView = loadHomeView() || DEFAULT_VIEW;
 
   var map = new maplibregl.Map({
     container: 'map',
     style: STYLES[0].url,
-    center: [35.0, 39.0],
-    zoom: 5.4,
+    center: initialView.center,
+    zoom: initialView.zoom,
+    bearing: initialView.bearing || 0,
+    pitch: initialView.pitch || 0,
     attributionControl: { compact: false }
   });
-  var initialView = { center:[35.0, 39.0], zoom:5.4, bearing:0, pitch:0 };
+  // Bilgi balonu (#infoPopover) harita ile birlikte kaymalı — kamera her
+  // değiştiğinde (pan/zoom/rotate/pitch => 'move', pencere boyutu => 'resize')
+  // konumunu yeniden hesaplar (bkz. updateInfoPopoverPosition, handleInfoClick).
+  map.on('move', function(){ try{ updateInfoPopoverPosition(); }catch(err){ console.error('Bilgi balonu konumlandırılamadı:', err); } });
+  map.on('resize', function(){ try{ updateInfoPopoverPosition(); }catch(err){ console.error('Bilgi balonu konumlandırılamadı:', err); } });
+  // O anki görünümü açılış ekranı olarak kaydeder (bkz. btnHome sağ-tık menüsü).
+  function saveHomeView(){
+    var c = map.getCenter();
+    var view = { center:[c.lng, c.lat], zoom: map.getZoom(), bearing: map.getBearing(), pitch: map.getPitch() };
+    try{
+      localStorage.setItem(KROKI_HOME_VIEW_STORAGE_KEY, JSON.stringify(view));
+      initialView = view;
+      showToast('Açılış ekranı olarak kaydedildi — bir sonraki açılışta bu görünüm gelecek.');
+    }catch(err){
+      console.error('Açılış ekranı kaydedilemedi:', err);
+      showToast('Açılış ekranı kaydedilemedi.');
+    }
+  }
   map.doubleClickZoom.disable();
 
   // Ağ/kaynak yükleme hataları (örn. bir stil veya tile isteğinin geçici
@@ -1186,6 +1619,69 @@
   map.on('error', function(e){
     console.error('Harita hatası:', e && e.error ? e.error : e);
   });
+
+  // ---------------------------------------------------------------------
+  // Özel onay / girdi modalı — tarayıcının yerleşik confirm()/prompt()
+  // fonksiyonları bazı iframe/gömülü ortamlarda (ör. otomatik inceleme
+  // araçları, bazı gömülü tarayıcı motorları) sessizce reddedilip anında
+  // false/null döndürebiliyor; bu da "Sil", "Yeniden Adlandır" gibi
+  // eylemlerin hiçbir şey yapmıyormuş gibi görünmesine yol açıyordu. Bunun
+  // yerine DOM tabanlı, Promise döndüren kendi modalımızı kullanıyoruz —
+  // hem her ortamda güvenilir çalışır hem de uygulamanın görsel diliyle
+  // tutarlıdır.
+  function showCustomDialog(opts){
+    return new Promise(function(resolve){
+      var overlay = document.getElementById('customDialogOverlay');
+      var titleEl = document.getElementById('customDialogTitle');
+      var msgEl = document.getElementById('customDialogMessage');
+      var input = document.getElementById('customDialogInput');
+      var okBtn = document.getElementById('customDialogOk');
+      var cancelBtn = document.getElementById('customDialogCancel');
+
+      titleEl.textContent = opts.title || (opts.isPrompt ? 'Girdi' : 'Onay');
+      msgEl.textContent = opts.message || '';
+      okBtn.textContent = opts.okLabel || 'Tamam';
+      okBtn.classList.toggle('danger', !!opts.danger);
+      if (opts.isPrompt){
+        input.style.display = '';
+        input.value = opts.defaultValue || '';
+      } else {
+        input.style.display = 'none';
+      }
+      overlay.classList.add('show');
+      if (opts.isPrompt){ input.focus(); input.select(); }
+      else okBtn.focus();
+
+      var settled = false;
+      function finish(result){
+        if (settled) return;
+        settled = true;
+        overlay.classList.remove('show');
+        okBtn.removeEventListener('click', onOk);
+        cancelBtn.removeEventListener('click', onCancel);
+        overlay.removeEventListener('click', onOverlayClick);
+        document.removeEventListener('keydown', onKeyDown);
+        resolve(result);
+      }
+      function onOk(){ finish(opts.isPrompt ? input.value : true); }
+      function onCancel(){ finish(opts.isPrompt ? null : false); }
+      function onOverlayClick(e){ if (e.target === overlay) onCancel(); }
+      function onKeyDown(e){
+        if (e.key === 'Escape'){ e.preventDefault(); onCancel(); }
+        else if (e.key === 'Enter' && (!opts.isPrompt || document.activeElement === input)){ e.preventDefault(); onOk(); }
+      }
+      okBtn.addEventListener('click', onOk);
+      cancelBtn.addEventListener('click', onCancel);
+      overlay.addEventListener('click', onOverlayClick);
+      document.addEventListener('keydown', onKeyDown);
+    });
+  }
+  function customConfirm(message, options){
+    return showCustomDialog(Object.assign({ message: message, isPrompt: false }, options || {}));
+  }
+  function customPrompt(message, defaultValue){
+    return showCustomDialog({ message: message, isPrompt: true, defaultValue: defaultValue });
+  }
 
   function ensure3DView(){
     if (map.getPitch() < 10) map.easeTo({ pitch:55, bearing:-20, duration:500 });
@@ -1200,6 +1696,59 @@
     var b = document.getElementById('btnCompass');
     if (b) b.classList.toggle('active', map.getPitch() > 5);
   }
+
+  // "3B Görünüm" butonunu gerçek bir pusula gibi CANLI tutar: ibre her zaman
+  // kuzeyi gösterecek şekilde haritanın mevcut bearing'ine göre (ters yönde)
+  // döner — kullanıcı haritayı döndürdükçe buton da anında tepki verir.
+  var compassNeedleEl = null;
+  function syncCompassNeedle(){
+    if (!compassNeedleEl) compassNeedleEl = document.querySelector('#btnCompass .compass-needle');
+    if (compassNeedleEl) compassNeedleEl.style.transform = 'rotate(' + (-map.getBearing()) + 'deg)';
+  }
+  map.on('rotate', syncCompassNeedle);
+  syncCompassNeedle();
+
+  // Ekran eğildiğinde (pitch>0) gökyüzü görünümü varsayılan olarak (bir kez)
+  // otomatik açılır — kullanıcının ayrıca bir şey yapmasına gerek kalmaz.
+  function ensureSkyEnabled(){
+    if (skyAutoEnabled || typeof map.setSky !== 'function') return;
+    try{
+      map.setSky({
+        'sky-color': '#7EC0EE',
+        'sky-horizon-blend': 0.5,
+        'horizon-color': '#f0ece4',
+        'horizon-fog-blend': 0.5,
+        'fog-color': '#e9e4d8',
+        'fog-ground-blend': 0.6
+      });
+      skyAutoEnabled = true;
+    }catch(err){ /* bu stil/sürümde sky desteklenmiyor olabilir — sessizce yoksay */ }
+  }
+  map.on('pitch', function(){
+    if (map.getPitch() > 0) ensureSkyEnabled();
+  });
+
+  // DEM (arazi yükseklik modeli) — herkese açık AWS Terrarium karo setiyle
+  // 3B arazi yüzeyi gösterir (bkz. setupLayers'daki 'dem-source').
+  document.getElementById('btnTerrainToggle').addEventListener('click', function(){
+    var btn = this;
+    terrainActive = !terrainActive;
+    btn.classList.toggle('active', terrainActive);
+    if (terrainActive){
+      try{
+        map.setTerrain({ source: 'dem-source', exaggeration: 1.5 });
+        ensure3DView();
+        showToast('DEM (arazi yükseklik modeli) görünümü açıldı.');
+      }catch(err){
+        terrainActive = false;
+        btn.classList.remove('active');
+        showToast('DEM görünümü bu ortamda açılamadı.');
+      }
+    } else {
+      map.setTerrain(null);
+      showToast('DEM görünümü kapatıldı.');
+    }
+  });
 
   // ---------------------------------------------------------------------
   // Sağ üst / sağ alt harita kontrol kümeleri
@@ -1220,6 +1769,24 @@
   });
 
   document.getElementById('btnCompass').addEventListener('click', toggle3DView);
+
+  // Sağ üst split-buton: ok tuşu Konumum/Tam Ekran/DEM menüsünü açar/kapatır;
+  // menüden bir araç seçilince (kendi tıklama işleyicisi zaten çalıştıktan
+  // sonra) menü otomatik kapanır.
+  document.getElementById('btnTopMenuToggle').addEventListener('click', function(e){
+    e.stopPropagation();
+    document.getElementById('topToolsMenu').classList.toggle('show');
+  });
+  document.getElementById('topToolsMenu').addEventListener('click', function(e){
+    if (e.target.closest('.split-btn-menu-item')) this.classList.remove('show');
+  });
+  document.addEventListener('click', function(e){
+    var menu = document.getElementById('topToolsMenu');
+    var toggleBtn = document.getElementById('btnTopMenuToggle');
+    if (menu.classList.contains('show') && !menu.contains(e.target) && e.target !== toggleBtn && !toggleBtn.contains(e.target)){
+      menu.classList.remove('show');
+    }
+  });
 
   document.getElementById('btnBasemapToggle').addEventListener('click', function(e){
     e.stopPropagation();
@@ -1263,27 +1830,43 @@
   document.getElementById('btnZoomIn').addEventListener('click', function(){ map.zoomIn({ duration:200 }); });
   document.getElementById('btnZoomOut').addEventListener('click', function(){ map.zoomOut({ duration:200 }); });
   document.getElementById('btnHome').addEventListener('click', goHome);
+  document.getElementById('btnHome').addEventListener('contextmenu', function(e){
+    e.preventDefault(); e.stopPropagation();
+    showTreeContextMenu(e.clientX, e.clientY, [
+      { label:'Açılış Ekranı Yap', action:function(){ saveHomeView(); } }
+    ]);
+  });
 
+  // "Yenile" haritayı/altlığı yeniden yüklemez (bu, veritabanından gelen
+  // katmanların bir an için kaybolmuş gibi görünmesine yol açıyordu) — sadece
+  // ölçüm/taslak çizimlerini temizler: Mesafe/Alan ölçümleri (persistedMeasurements)
+  // ve Ölçümler klasörü+katmanı (Nokta/Koordinat ölçümleri) tamamen silinir.
+  // DB katmanları ve kullanıcının çizdiği diğer objeler hiç dokunulmadan kalır.
   document.getElementById('btnRefresh').addEventListener('click', function(){
-    var s = STYLES.find(function(x){ return x.id === currentStyleId; }) || STYLES[0];
-    map.setStyle(s.url);
-    map.once('style.load', function(){
-      setupLayers(); renderFeatures();
-      rasterOverlays.forEach(function(r){ addRasterLayer(r.id, r.url, r.coords); });
-    });
-    showToast('Harita yenilendi.');
+    if (draftCoords) cancelDraft();
+    clearPersistedMeasurements();
+    if (features.some(function(f){ return f.properties && f.properties.layerId === MEASURE_LAYER_ID; }) ||
+        layers.some(function(l){ return l.id === MEASURE_LAYER_ID; })){
+      features = features.filter(function(f){ return !(f.properties && f.properties.layerId === MEASURE_LAYER_ID); });
+      layers = layers.filter(function(l){ return l.id !== MEASURE_LAYER_ID; });
+      folders = folders.filter(function(fo){ return fo.id !== MEASURE_FOLDER_ID; });
+      if (activeLayerId === MEASURE_LAYER_ID) activeLayerId = layers[0] ? layers[0].id : null;
+      renderFeatures(); renderLayerTree(); refreshActiveLayerSelect();
+    }
+    showToast('Ölçüm ve taslak çizimler temizlendi.');
   });
 
-  document.getElementById('btnPanMode').addEventListener('click', function(){
-    setModule('editor');
-    setMode('select');
-    showToast('Seç/kaydırma moduna geçildi.');
-  });
-
+  // Sağ alt köşedeki Seç / Kaydır düğmeleri: ikisi de karşılıklı dışlayan
+  // (mutually exclusive) birer "mod" düğmesidir — hangisi aktifse .active
+  // sınıfıyla (altın renk + hafif dolgu) belirgin şekilde vurgulanır.
   document.getElementById('btnSelectMode').addEventListener('click', function(){
     setModule('editor');
     setMode('select');
-    showToast('Seç/kaydırma moduna geçildi.');
+    showToast('Seç / düzenle moduna geçildi.');
+  });
+  document.getElementById('btnPanMode').addEventListener('click', function(){
+    setMode('pan');
+    showToast('Kaydırma modu açık — haritayı sürükleyerek gezinebilirsiniz.');
   });
 
   // ---------------------------------------------------------------------
@@ -1293,15 +1876,21 @@
   document.getElementById('btnInfo').addEventListener('click', function(){
     infoMode = !infoMode;
     this.classList.toggle('active', infoMode);
+    if (infoMode){
+      docAttachMode = false;
+      document.getElementById('btnAddDocument').classList.remove('active');
+      attributeEditMode = false;
+      document.getElementById('btnAttrEdit').classList.remove('active');
+    }
     document.getElementById('infoPopover').classList.remove('show');
-    map.getCanvas().style.cursor = infoMode ? 'help' : (mode === 'select' ? 'pointer' : (isVertexDrawMode(mode) ? 'crosshair' : ''));
+    map.getCanvas().style.cursor = infoMode ? 'help' : (mode === 'select' ? 'default' : (isVertexDrawMode(mode) ? 'crosshair' : ''));
     showToast(infoMode ? 'Bilgi modu açık — haritada bir objeye tıklayın.' : 'Bilgi modu kapatıldı.');
   });
 
   document.getElementById('statusSnapBtn').addEventListener('click', function(){
     snapEnabled = !snapEnabled;
     this.classList.toggle('active', snapEnabled);
-    document.getElementById('statusSnapState').textContent = snapEnabled ? 'Açık' : 'Kapalı';
+    this.title = 'Snap: ' + (snapEnabled ? 'Açık' : 'Kapalı') + ' (sol tık: aç/kapat, sağ tık: yakalama mesafesi)';
     if (!snapEnabled) updateSnapMarker(null);
   });
   document.getElementById('statusSnapBtn').addEventListener('contextmenu', function(e){
@@ -1328,9 +1917,18 @@
   // Çizim durumu (state)
   // ---------------------------------------------------------------------
   var features = [];        // {id, type:'Feature', geometry, properties}
-  var selectedId = null;
-  var mode = 'select';
+  var selectedIds = [];     // toplu seçim — Ctrl+tık ile obje ekle/çıkar, pencere (kutu) ile toplu seç
+  var mode = 'pan';
   var infoMode = false;     // Bilgi modu: açıkken haritaya tıklamak objenin özniteliklerini gösterir
+  var docAttachMode = false; // Doküman ekleme modu: açıkken haritaya tıklamak, tıklanan objeye doküman ekleme formunu açar
+  var docAttachTargetFeature = null; // Doküman formu açıkken hedef obje
+  var docUploadStagedFiles = [];     // Doküman formunda kaydedilmeyi bekleyen dosyalar [{file, docType}]
+  var docUploadPendingMode = false;  // true ise docUploadModal, Veri Girişi formundan (henüz oluşturulmamış obje için) açılmıştır
+  var ffStagedDocFiles = [];         // Veri Girişi formunda "Doküman ekle" ile hazırlanan, obje çizilince eklenecek dosyalar
+  var featureDocumentsCache = {};    // { [featureId]: DokumanRecord[] } — üst pencereden (React) senkronize edilir
+  var activeInfoFeatureId = null;    // Bilgi paneli şu an hangi objeyi gösteriyor (doküman panelini canlı tutmak için)
+  var infoPopoverAnchorLngLat = null; // Bilgi balonunun harita üzerinde iğnelendiği nokta (bkz. updateInfoPopoverPosition)
+  var hoveredMidpoint = null; // Seç modunda, fare tek seçili objenin bir kenar orta noktasına yakınsa (bkz. findNearestMidpoint)
   var draftCoords = null;   // linestring / polygon çizerken tıklanan noktalar
   var measureFrozen = false; // Bitir sonrası ölçüm sonucu dondurulduğunda true
   var distFrozen = false;      // kullanıcı mesafe kutusuna yazdıysa true
@@ -1342,6 +1940,8 @@
   var persistedMeasurements = []; // tamamlanmış (dondurulmuş) ölçümler — { id, geometry, isArea }
   var snapEnabled = true;   // gelişmiş snap (uç/orta nokta/kenar) açık mı
   var snapTolerancePx = 14; // piksel cinsinden yakalama mesafesi
+  var terrainActive = false; // DEM (arazi yükseklik modeli) 3B görünümü açık mı (bkz. btnTerrainToggle)
+  var skyAutoEnabled = false; // ekran eğildiğinde (pitch>0) gökyüzü bir kez otomatik açıldı mı
 
   function addRasterLayer(id, url, coords){
     if (!map.getSource(id)) map.addSource(id, { type:'image', url: url, coordinates: coords });
@@ -1353,6 +1953,7 @@
   var cursorAngleInput = document.getElementById('cursorAngle');
   var idCounter = 0;
   var editBaseGeometry = null; // döndür/ölçekle işlemleri için seçim anındaki geometri
+  var attr3DBaseGeometry = null; // Öznitelik Düzenle > "3B Ayarları" penceresindeki döndür/ölçekle için taban geometri
 
   function uid(){ return 'f_' + (++idCounter) + '_' + Math.random().toString(36).slice(2,7); }
 
@@ -1438,6 +2039,22 @@
       map.addSource('persist-measure', { type:'geojson', data: fc([]) });
       map.addSource('persist-measure-fill', { type:'geojson', data: fc([]) });
       map.addSource('persist-measure-label', { type:'geojson', data: fc([]) });
+    }
+    // DEM (arazi yükseklik modeli) — anahtar gerektirmeyen, herkese açık AWS
+    // Terrarium karo seti (bkz. btnTerrainToggle). Stil değiştiğinde de bu
+    // kaynağın tekrar eklenmesi ve terrain AÇIKTI ise yeniden uygulanması
+    // gerekir (bkz. reapplyCustomLayersAfterStyleChange → reapply()).
+    if (!map.getSource('dem-source')){
+      map.addSource('dem-source', {
+        type: 'raster-dem',
+        tiles: ['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],
+        tileSize: 256,
+        encoding: 'terrarium',
+        maxzoom: 15
+      });
+    }
+    if (terrainActive){
+      try{ map.setTerrain({ source: 'dem-source', exaggeration: 1.5 }); }catch(err){ /* stil henüz hazır değilse yoksay */ }
     }
 
     function ensureLayer(id, def){
@@ -1591,7 +2208,7 @@
         ['<=', ['coalesce', ['get','floors'], 1], 1]
       ],
       paint:{
-        'fill-extrusion-color':'#3fc2ac',
+        'fill-extrusion-color':['coalesce', ['get','__extrusionColor'], '#3fc2ac'],
         'fill-extrusion-height':['coalesce', ['get','height'], 30],
         'fill-extrusion-base':['coalesce', ['get','base'], 0],
         'fill-extrusion-opacity':0.82
@@ -1600,7 +2217,7 @@
     ensureLayer('floor-extrusion', {
       id:'floor-extrusion', type:'fill-extrusion', source:'floors',
       paint:{
-        'fill-extrusion-color':['case', ['==', ['get','bandParity'], 0], '#3fc2ac', '#245952'],
+        'fill-extrusion-color':['coalesce', ['get','fillColor'], '#3fc2ac'],
         'fill-extrusion-height':['get','top'],
         'fill-extrusion-base':['get','base'],
         'fill-extrusion-opacity':0.88
@@ -1646,6 +2263,7 @@
     setupLayers();
     document.getElementById('stZoom').textContent = map.getZoom().toFixed(2);
     refreshPanel();
+    restoreSessionFromLocalStorage();
   });
 
   // ---------------------------------------------------------------------
@@ -2049,12 +2667,20 @@
       var floors = Math.max(1, parseInt(f.properties.floors, 10) || 1);
       if (floors <= 1) return; // tek kat: mevcut poly-extrusion katmanı zaten gösteriyor
       var floorH = f.properties.floorHeight || ((f.properties.height || 30) / floors);
+      // İnşaat İlerlemesi (%) alt kattan itibaren doldurulur — o katın üst
+      // sınırına kadar olan yüzde ilerlemeye ulaşıldıysa kat yeşile (İşletme
+      // rengi) döner, aksi halde Veri Durumu'na göre boyanır (bkz. extrusionStatusColor).
+      var progress = getEffectiveProgress(f);
+      var isSelected = selectedIds.indexOf(f.id) !== -1;
+      var statusColor = extrusionStatusColor(f.properties.veri_durumu);
       for (var i = 0; i < floors; i++){
+        var floorTopFraction = ((i + 1) / floors) * 100;
+        var filled = progress >= floorTopFraction;
         floorFeats.push({
           type:'Feature',
           id: f.id + '_floor' + i,
           geometry: f.geometry,
-          properties:{ parentId: f.id, floorIndex: i, base: i * floorH, top: (i + 1) * floorH, bandParity: i % 2 }
+          properties:{ parentId: f.id, floorIndex: i, base: i * floorH, top: (i + 1) * floorH, bandParity: i % 2, fillColor: isSelected ? SELECTION_COLOR : (filled ? EXTRUSION_PROGRESS_COLOR : statusColor) }
         });
       }
     });
@@ -2081,13 +2707,15 @@
   function renderVertices(){
     var src = map.getSource('vertices');
     if (!src) return;
-    var f = selectedId ? features.find(function(x){ return x.id === selectedId; }) : null;
+    // Köşe tutamaçları (sürükleyerek reshape) sadece TEK bir obje seçiliyken
+    // gösterilir — birden fazla obje seçiliyken köşe düzenleme anlamsızdır.
+    var f = (selectedIds.length === 1) ? features.find(function(x){ return x.id === selectedIds[0]; }) : null;
     src.setData(fc(f ? coordsToVertexFeatures(f) : []));
   }
 
   function refreshSelectedFilter(){
-    if (map.getLayer('selected-outline')) map.setFilter('selected-outline', ['==', ['id'], selectedId || '__none__']);
-    if (map.getLayer('selected-halo')) map.setFilter('selected-halo', ['all', ['==', ['id'], selectedId || '__none__'], ['==', ['geometry-type'], 'Point']]);
+    if (map.getLayer('selected-outline')) map.setFilter('selected-outline', ['in', ['id'], ['literal', selectedIds]]);
+    if (map.getLayer('selected-halo')) map.setFilter('selected-halo', ['all', ['in', ['id'], ['literal', selectedIds]], ['==', ['geometry-type'], 'Point']]);
   }
 
   function renderDraftPreview(previewFeatureOrArray){
@@ -2134,10 +2762,14 @@
     measureFrozen = false; clearMeasureSummary();
     if (mode === 'select' && newMode !== 'select') deselect();
     mode = newMode;
-    map.getCanvas().style.cursor = infoMode ? 'help' : ((mode === 'select') ? 'pointer' : 'crosshair');
+    map.getCanvas().style.cursor = infoMode ? 'help' : (mode === 'pan' ? 'grab' : (mode === 'select') ? 'default' : 'crosshair');
     if (isVertexDrawMode(mode) && typeof syncDraftStyleToActiveLayer === 'function') syncDraftStyleToActiveLayer();
     if (map.getLayer('vertex-layer')) map.setLayoutProperty('vertex-layer', 'visibility', mode === 'select' ? 'visible' : 'none');
     railButtons.forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-mode') === mode); });
+    var selBtn = document.getElementById('btnSelectMode');
+    var panBtn = document.getElementById('btnPanMode');
+    if (selBtn) selBtn.classList.toggle('active', mode === 'select');
+    if (panBtn) panBtn.classList.toggle('active', mode === 'pan');
     document.getElementById('stMode').textContent = mode;
     if (!isVertexDrawMode(mode)) hideCursorInput();
   }
@@ -2184,18 +2816,15 @@
   document.getElementById('floorHeightInput').addEventListener('input', syncFloorTotalPreview);
   syncFloorTotalPreview();
 
+  // Not: Bu buton eskiden TÜM şekilleri (tüm katmanlar dahil — veritabanı
+  // katmanları da dahil) tek seferde siliyordu; bu hem çok riskli hem de
+  // "Güncelle" bölümündeki tekil "Sil" ile karışıyordu. Artık sadece o an
+  // seçili olan (tek ya da toplu seçili) şekil(ler)i siler.
   document.getElementById('btnClearAll').addEventListener('click', function(){
-    var n = features.length;
-    if (!n) return;
-    if (confirm('Tüm çizimler silinsin mi? (' + n + ' şekil)')){
-      pushHistory();
-      features = [];
-      documents = [];
-      deselect();
-      renderFeatures();
-      renderVertices();
-      showToast('Tüm şekiller silindi.');
-    }
+    if (!selectedIds.length){ showToast('Önce silinecek bir şekil seçin.'); return; }
+    var n = selectedIds.length;
+    removeSelectedFeatures();
+    showToast(n > 1 ? (n + ' şekil silindi.') : 'Seçili şekil silindi.');
   });
 
   function isPolygonMode(m){ return m === 'polygon'; }
@@ -2203,7 +2832,7 @@
   function isLineMeasure(m){ return m === 'measure-distance'; }
   function isMeasureMode(m){ return isAreaMeasure(m) || isLineMeasure(m); }
   function isVertexDrawMode(m){ return m === 'linestring' || isPolygonMode(m) || m === 'rectangle' || m === 'circle' || isMeasureMode(m); }
-  function isCoordEntryMode(m){ return m === 'point' || isVertexDrawMode(m); }
+  function isCoordEntryMode(m){ return m === 'point' || m === 'measure-point' || isVertexDrawMode(m); }
 
   // Çizim sırasında aynı/çok yakın noktanın (örn. yanlışlık ya da çift
   // tıklama sonucu) tekrar eklenmesini önler — 0.00 m'lik bozuk kenar ve
@@ -2223,6 +2852,41 @@
   function escapeAttrHtml(s){
     return String(s).replace(/[&<>"]/g, function(c){ return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]; });
   }
+  // Bilgi balonunun harita üzerinde iğnelendiği koordinatı belirler:
+  // Nokta objelerde kendi konumu, çizgi/poligonlarda üst-orta (bbox tepe
+  // noktası) — böylece balon objenin tam ÜZERİNDE açılır.
+  function infoAnchorForFeature(f){
+    try{
+      if (f.geometry.type === 'Point'){
+        return { lng: f.geometry.coordinates[0], lat: f.geometry.coordinates[1] };
+      }
+      var bbox = turf.bbox(f);
+      return { lng: (bbox[0] + bbox[2]) / 2, lat: bbox[3] };
+    }catch(err){ return null; }
+  }
+
+  // Bilgi balonunu (#infoPopover) infoPopoverAnchorLngLat konumunun tam
+  // üzerine, harita ekran koordinatına göre konumlandırır. Harita
+  // kaydırıldıkça/yakınlaştırıldıkça (map 'move'/'resize') yeniden çağrılır.
+  function updateInfoPopoverPosition(){
+    var pop = document.getElementById('infoPopover');
+    if (!pop.classList.contains('show') || !infoPopoverAnchorLngLat) return;
+    var pt = map.project(infoPopoverAnchorLngLat);
+    var mapRect = document.getElementById('map').getBoundingClientRect();
+    var popRect = pop.getBoundingClientRect();
+    // Balon her zaman harita alanının içinde kalsın (üst-kenarda kırpılmasın,
+    // sol/sağ kenardan taşmasın) — büyük objelerde bbox tepe noktası ekranın
+    // en üstüne yakın çıkabilir.
+    var halfW = (popRect.width || 260) / 2;
+    var left = mapRect.left + pt.x;
+    left = Math.max(mapRect.left + halfW + 4, Math.min(mapRect.right - halfW - 4, left));
+    var popH = popRect.height || 120;
+    var top = mapRect.top + pt.y;
+    top = Math.max(mapRect.top + popH + 16, top);
+    pop.style.left = left + 'px';
+    pop.style.top = top + 'px';
+  }
+
   function handleInfoClick(e){
     var hit = map.queryRenderedFeatures(e.point, { layers: selectableLayers() });
     var f = null;
@@ -2233,36 +2897,777 @@
     }
     if (!f) f = geometricHitTest(e.point, e.lngLat);
     var pop = document.getElementById('infoPopover');
+    var main = document.getElementById('infoPopoverMain');
     if (!f){
-      pop.innerHTML = '<b>Bilgi</b><br>Bu noktada bir obje bulunamadı — haritada çizilmiş bir şekle tıklayın.';
+      main.innerHTML = '<b>Bilgi</b><br>Bu noktada bir obje bulunamadı — haritada çizilmiş bir şekle tıklayın.';
+      infoPopoverAnchorLngLat = { lng: e.lngLat.lng, lat: e.lngLat.lat };
       pop.classList.add('show');
+      updateInfoPopoverPosition();
+      renderInfoDocsPanel(null);
       return;
     }
     var lyr = getLayer(f.properties && f.properties.layerId);
-    var rows = Object.keys(f.properties || {}).filter(function(k){
-      return k.indexOf('__') !== 0 && k !== 'layerId';
-    });
-    var body = rows.length
-      ? rows.map(function(k){
-          return '<div style="display:flex;gap:10px;justify-content:space-between;margin-top:4px;">' +
-            '<span style="color:var(--text-dim);">' + escapeAttrHtml(k) + '</span>' +
-            '<span style="color:var(--text);text-align:right;">' + escapeAttrHtml(String(f.properties[k])) + '</span></div>';
-        }).join('')
-      : '<div style="margin-top:4px;">Bu objede öznitelik bilgisi girilmemiş.</div>';
-    pop.innerHTML = '<b>' + typeLabel(f) + (lyr ? ' · ' + escapeAttrHtml(lyr.name) : '') + '</b>' + body;
+    var lyrLabel = lyr ? lyr.name.split(' — ')[0] : '';
+    var schemaCols = (f.properties && dbTableSchemas[f.properties.layerId]) || null;
+    var body;
+    if (schemaCols && schemaCols.length){
+      var schemaRows = schemaCols.map(function(col){
+        var val = f.properties ? f.properties[col.column_name] : undefined;
+        if (val === undefined || val === null || val === '') return '';
+        return '<div style="display:flex;gap:10px;justify-content:space-between;margin-top:4px;">' +
+          '<span style="color:var(--text-dim);">' + escapeAttrHtml(col.display_name || col.column_name.replace(/_/g,' ')) + '</span>' +
+          '<span style="color:var(--text);text-align:right;">' + escapeAttrHtml(String(val)) + '</span></div>';
+      }).join('');
+      body = schemaRows || '<div style="margin-top:4px;">Bu objede öznitelik bilgisi girilmemiş.</div>';
+    } else {
+      var rows = Object.keys(f.properties || {}).filter(function(k){
+        return k.indexOf('__') !== 0 && k !== 'layerId' && k !== 'tablo';
+      });
+      body = rows.length
+        ? rows.map(function(k){
+            return '<div style="display:flex;gap:10px;justify-content:space-between;margin-top:4px;">' +
+              '<span style="color:var(--text-dim);">' + escapeAttrHtml(k) + '</span>' +
+              '<span style="color:var(--text);text-align:right;">' + escapeAttrHtml(String(f.properties[k])) + '</span></div>';
+          }).join('')
+        : '<div style="margin-top:4px;">Bu objede öznitelik bilgisi girilmemiş.</div>';
+    }
+    main.innerHTML = '<div style="display:flex;align-items:center;gap:8px;">' +
+        '<span style="width:18px;height:18px;flex:0 0 auto;color:var(--gold);">' + iconFor(f) + '</span>' +
+        '<b>' + (lyrLabel ? escapeAttrHtml(lyrLabel) : typeLabel(f)) + '</b></div>' + body;
+    infoPopoverAnchorLngLat = infoAnchorForFeature(f) || { lng: e.lngLat.lng, lat: e.lngLat.lat };
     pop.classList.add('show');
+    updateInfoPopoverPosition();
+    renderInfoDocsPanel(f.id);
   }
+
+  // ---------------------------------------------------------------------
+  // Doküman Ekle: Editör > Ekle > "Doküman" — haritadaki bir objeye resim,
+  // video, cad, gis, bim vb. dosyalar ekler. Eklenen dokümanlar üst pencereye
+  // (React — 'kroki:add-documents') gönderilir ve mevcut Doküman Yönetimi
+  // altyapısına (tb_dokumanlar) kaydedilir; ardından güncel liste
+  // 'kroki:documents-updated' ile geri gelir ve featureDocumentsCache'i
+  // günceller (bkz. Bilgi panelindeki renderInfoDocsPanel).
+  // ---------------------------------------------------------------------
+  var DOC_TYPE_LABELS = { resim:'Resim', video:'Video', cad:'CAD', gis:'GIS', bim:'BIM', diger:'Diğer' };
+  var DOC_TYPE_EXT_MAP = {
+    resim: ['jpg','jpeg','png','gif','webp','bmp','svg'],
+    video: ['mp4','mov','avi','mkv','webm'],
+    cad: ['dwg','dxf','skp','rvt','ifc'],
+    gis: ['shp','geojson','kml','kmz','gpkg'],
+    bim: ['ifc','rvt','nwd','nwc']
+  };
+  function guessDocType(filename){
+    var ext = (filename.split('.').pop() || '').toLowerCase();
+    for (var t in DOC_TYPE_EXT_MAP){
+      if (DOC_TYPE_EXT_MAP[t].indexOf(ext) !== -1) return t;
+    }
+    return 'diger';
+  }
+  function formatFileSize(bytes){
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+  }
+
+  document.getElementById('btnAddDocument').addEventListener('click', function(){
+    docAttachMode = !docAttachMode;
+    this.classList.toggle('active', docAttachMode);
+    if (docAttachMode){
+      infoMode = false;
+      document.getElementById('btnInfo').classList.remove('active');
+      document.getElementById('infoPopover').classList.remove('show');
+      attributeEditMode = false;
+      document.getElementById('btnAttrEdit').classList.remove('active');
+    }
+    map.getCanvas().style.cursor = docAttachMode ? 'copy' : (mode === 'select' ? 'default' : (isVertexDrawMode(mode) ? 'crosshair' : ''));
+    showToast(docAttachMode ? 'Doküman eklemek istediğiniz objeye haritada tıklayın.' : 'Doküman ekleme modu kapatıldı.');
+  });
+
+  function handleDocAttachClick(e){
+    var hit = map.queryRenderedFeatures(e.point, { layers: selectableLayers() });
+    var f = null;
+    if (hit.length){
+      var hp = hit[0].properties || {};
+      var candidateId = String(hp.parentId || hp.featureId || hit[0].id);
+      f = features.find(function(x){ return x.id === candidateId; });
+    }
+    if (!f) f = geometricHitTest(e.point, e.lngLat);
+    if (!f){
+      showToast('Bu noktada bir obje bulunamadı — haritada çizilmiş bir şekle tıklayın.');
+      return;
+    }
+    docAttachMode = false;
+    document.getElementById('btnAddDocument').classList.remove('active');
+    map.getCanvas().style.cursor = mode === 'select' ? 'default' : (isVertexDrawMode(mode) ? 'crosshair' : '');
+    openDocUploadModal(f);
+  }
+
+  function openDocUploadModal(f){
+    docAttachTargetFeature = f;
+    docUploadPendingMode = false;
+    docUploadStagedFiles = [];
+    var lyr = getLayer(f.properties && f.properties.layerId);
+    document.getElementById('docUploadTargetLabel').textContent =
+      'Hedef obje: ' + typeLabel(f) + (lyr ? ' · ' + lyr.name : '') + (f.properties && f.properties.name ? ' — ' + f.properties.name : '');
+    document.getElementById('docUploadFileInput').value = '';
+    renderDocUploadStagedList();
+    document.getElementById('docUploadModal').classList.add('show');
+  }
+
+  // Veri Girişi formundan (Editör > Ekle > Obje) açılır — obje henüz haritada
+  // çizilmediği için hedef obje yok; seçilen dosyalar ffStagedDocFiles içinde
+  // bekletilir ve obje fiilen oluşturulunca (bkz. addFeature) otomatik eklenir.
+  function openDocUploadModalPending(){
+    docAttachTargetFeature = null;
+    docUploadPendingMode = true;
+    docUploadStagedFiles = ffStagedDocFiles.slice();
+    document.getElementById('docUploadTargetLabel').textContent = 'Hedef: haritaya çizilecek yeni obje (Kaydet\'e bastığınızda eklenecek)';
+    document.getElementById('docUploadFileInput').value = '';
+    renderDocUploadStagedList();
+    document.getElementById('docUploadModal').classList.add('show');
+  }
+
+  function renderDocUploadStagedList(){
+    var list = document.getElementById('docUploadStagedList');
+    list.innerHTML = '';
+    if (!docUploadStagedFiles.length){
+      list.innerHTML = '<div class="field-label" style="margin:0;">Henüz dosya seçilmedi.</div>';
+      return;
+    }
+    docUploadStagedFiles.forEach(function(staged, idx){
+      var row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 8px;background:var(--bg-panel-raise);border:1px solid var(--line);border-radius:2px;';
+      var typeSelect = document.createElement('select');
+      typeSelect.className = 'native-select';
+      typeSelect.style.cssText = 'width:auto;flex:0 0 auto;font-size:11px;';
+      Object.keys(DOC_TYPE_LABELS).forEach(function(t){
+        var opt = document.createElement('option');
+        opt.value = t; opt.textContent = DOC_TYPE_LABELS[t];
+        if (t === staged.docType) opt.selected = true;
+        typeSelect.appendChild(opt);
+      });
+      typeSelect.addEventListener('change', function(){ staged.docType = typeSelect.value; });
+      var nameSpan = document.createElement('span');
+      nameSpan.textContent = staged.file.name + ' (' + formatFileSize(staged.file.size) + ')';
+      nameSpan.style.cssText = 'flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;';
+      var removeBtn = document.createElement('button');
+      removeBtn.className = 'layer-icon-btn del';
+      removeBtn.title = 'Kaldır';
+      removeBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+      removeBtn.addEventListener('click', function(){
+        docUploadStagedFiles.splice(idx, 1);
+        renderDocUploadStagedList();
+      });
+      row.appendChild(typeSelect);
+      row.appendChild(nameSpan);
+      row.appendChild(removeBtn);
+      list.appendChild(row);
+    });
+  }
+
+  document.getElementById('docUploadFileInput').addEventListener('change', function(e){
+    Array.prototype.forEach.call(e.target.files, function(file){
+      docUploadStagedFiles.push({ file: file, docType: guessDocType(file.name) });
+    });
+    renderDocUploadStagedList();
+  });
+
+  document.getElementById('btnDocUploadCancel').addEventListener('click', function(){
+    document.getElementById('docUploadModal').classList.remove('show');
+    docAttachTargetFeature = null;
+    docUploadStagedFiles = [];
+    if (docUploadPendingMode){
+      docUploadPendingMode = false;
+      document.getElementById('featureFormModal').classList.add('show');
+    }
+  });
+
+  // Küçük dosyaları (ör. resimler) önizleme için base64 data URL'e çevirir;
+  // büyük/ikili dosyalarda (cad/bim vb.) önizleme atlanır, sadece meta veri gönderilir.
+  var DOC_PREVIEW_MAX_BYTES = 4 * 1024 * 1024;
+  function readFileAsDataUrl(file){
+    return new Promise(function(resolve){
+      if (file.size > DOC_PREVIEW_MAX_BYTES){ resolve(null); return; }
+      var reader = new FileReader();
+      reader.onload = function(){ resolve(reader.result); };
+      reader.onerror = function(){ resolve(null); };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // docUploadStagedFiles içindeki dosyaları base64'e çevirip 'kroki:add-documents'
+  // ile üst pencereye (React) gönderir — hem mevcut bir objeye anında eklerken
+  // (openDocUploadModal) hem de Veri Girişi'nden gelen bekleyen dosyaları obje
+  // fiilen oluşturulduğunda eklerken (bkz. addFeature) ortak kullanılır.
+  function commitStagedDocuments(targetFeature, stagedFiles){
+    if (!stagedFiles || !stagedFiles.length) return Promise.resolve();
+    var targetFeatureId = targetFeature.id;
+    var projectId = (targetFeature.properties && (targetFeature.properties.proje_id || targetFeature.properties.project_id)) || undefined;
+    return Promise.all(stagedFiles.map(function(staged){
+      return readFileAsDataUrl(staged.file).then(function(dataUrl){
+        return {
+          name: staged.file.name,
+          sizeLabel: formatFileSize(staged.file.size),
+          docType: staged.docType,
+          dataUrl: dataUrl
+        };
+      });
+    })).then(function(filesPayload){
+      window.parent.postMessage({
+        type: 'kroki:add-documents',
+        featureId: targetFeatureId,
+        projectId: projectId,
+        files: filesPayload
+      }, '*');
+      showToast(filesPayload.length + ' doküman "' + typeLabel(targetFeature) + '" objesine eklendi.');
+    });
+  }
+
+  document.getElementById('btnDocUploadSubmit').addEventListener('click', function(){
+    if (!docUploadStagedFiles.length){ showToast('Önce en az bir dosya seçin.'); return; }
+    if (docUploadPendingMode){
+      ffStagedDocFiles = docUploadStagedFiles.slice();
+      updateFFDocBadge();
+      showToast(ffStagedDocFiles.length + ' dosya hazırlandı — obje haritaya çizilip kaydedilince otomatik eklenecek.');
+      document.getElementById('docUploadModal').classList.remove('show');
+      docUploadPendingMode = false;
+      docUploadStagedFiles = [];
+      document.getElementById('featureFormModal').classList.add('show');
+      return;
+    }
+    if (!docAttachTargetFeature){ return; }
+    var targetFeature = docAttachTargetFeature;
+    showLoading('Dokümanlar yükleniyor…');
+    commitStagedDocuments(targetFeature, docUploadStagedFiles).then(function(){
+      hideLoading();
+      document.getElementById('docUploadModal').classList.remove('show');
+      docAttachTargetFeature = null;
+      docUploadStagedFiles = [];
+    });
+  });
+
+  // Üst pencereden (React) gelen, haritadaki objelere bağlı güncel doküman
+  // listesini önbelleğe alır ve (varsa) o an açık olan Bilgi panelini tazeler.
+  window.addEventListener('message', function(e){
+    var msg = e.data;
+    if (!msg || msg.type !== 'kroki:documents-updated' || !Array.isArray(msg.documents)) return;
+    featureDocumentsCache = {};
+    msg.documents.forEach(function(d){
+      if (!d.feature_id) return;
+      if (!featureDocumentsCache[d.feature_id]) featureDocumentsCache[d.feature_id] = [];
+      featureDocumentsCache[d.feature_id].push(d);
+    });
+    if (activeInfoFeatureId) renderInfoDocsPanel(activeInfoFeatureId);
+  });
+
+  // ---------------------------------------------------------------------
+  // Veritabanı sütun şeması köprüsü: üst pencere (React), her db-layer için
+  // gerçek tablo sütunlarını (STANDART 7 hariç) gönderir; Veri Girişi ve
+  // Öznitelik Düzenle formları bu şemaya göre DİNAMİK olarak kurulur — artık
+  // sabit "Ad/Açıklama" alanları değil, veritabanındaki gerçek sütunlar
+  // (örn. block_name, height_meters, floors_count...) gösterilir.
+  // ---------------------------------------------------------------------
+  var dbTableSchemas = {}; // { [layerId]: [{column_name, data_type, is_nullable, description, relation_table, ...}] }
+  var relationOptionsCache = {}; // { [relationTableName]: [{id, label}] } — FK combobox seçenekleri
+  window.addEventListener('message', function(e){
+    var msg = e.data;
+    if (!msg || msg.type !== 'kroki:load-schemas' || !msg.schemas) return;
+    Object.keys(msg.schemas).forEach(function(layerId){
+      dbTableSchemas[layerId] = msg.schemas[layerId].columns || [];
+    });
+    if (msg.relationOptions) relationOptionsCache = msg.relationOptions;
+  });
+
+  function inputTypeForColumn(col){
+    var t = (col.data_type || '').toLowerCase();
+    if (t.indexOf('numeric') === 0 || t.indexOf('integer') === 0 || t.indexOf('serial') === 0) return 'number';
+    if (t.indexOf('date') === 0 && t.indexOf('timestamp') !== 0) return 'date';
+    return 'text';
+  }
+
+  // Bir katman için (varsa) veritabanı şemasına göre dinamik form alanları
+  // üretir; şema yoksa (kullanıcı tanımlı/PostGIS-dışı katman) klasik
+  // Ad/Açıklama alan çiftine geri döner. `existingValues` verilirse (Öznitelik
+  // Düzenle akışı) alanlar mevcut değerlerle önceden doldurulur.
+  function renderSchemaFields(container, lyr, existingValues){
+    container.innerHTML = '';
+    var cols = lyr ? dbTableSchemas[lyr.id] : null;
+    if (cols && cols.length){
+      cols.forEach(function(col){
+        // Geometri sütunu (the_geom) bu formdan değil, haritada çizerek/
+        // sürükleyerek düzenlenir — burada gösterilmez.
+        if ((col.data_type || '').indexOf('geometry') === 0) return;
+        var wrap = document.createElement('div');
+        wrap.style.marginTop = '10px';
+        var relOptions = col.relation_table ? (relationOptionsCache[col.relation_table] || null) : null;
+        var existingVal = (existingValues && existingValues[col.column_name] !== undefined) ? existingValues[col.column_name] : '';
+        var inputHtml;
+        if (relOptions){
+          inputHtml = '<select class="native-select ff-schema-field" data-col="' + col.column_name + '"></select>';
+        } else if (col.data_type === 'boolean'){
+          inputHtml = '<input type="checkbox" class="ff-schema-field" data-col="' + col.column_name + '" style="width:16px;height:16px;">';
+        } else {
+          inputHtml = '<input type="' + inputTypeForColumn(col) + '" class="ff-schema-field" data-col="' + col.column_name + '"' +
+            (inputTypeForColumn(col) === 'number' ? ' step="any"' : '') + (col.readonly ? ' disabled' : '') + '>';
+        }
+        wrap.innerHTML = '<label class="field-label" style="margin-top:0;">' + (col.display_name || col.column_name.replace(/_/g,' ')) +
+          (col.is_nullable === false ? ' *' : '') + (col.readonly ? ' (otomatik)' : '') + (col.description ? ' — ' + col.description : '') + '</label>' + inputHtml;
+        if (col.readonly) wrap.style.opacity = '0.6';
+        container.appendChild(wrap);
+        var inputEl = wrap.querySelector('.ff-schema-field');
+        if (relOptions){
+          var optEmpty = document.createElement('option');
+          optEmpty.value = ''; optEmpty.textContent = 'Seçiniz...';
+          inputEl.appendChild(optEmpty);
+          relOptions.forEach(function(opt){
+            var o = document.createElement('option');
+            o.value = opt.id; o.textContent = (String(opt.label) === String(opt.id)) ? opt.label : (opt.label + ' (' + opt.id + ')');
+            if (String(existingVal) === String(opt.id)) o.selected = true;
+            inputEl.appendChild(o);
+          });
+        } else if (col.data_type === 'boolean'){
+          inputEl.checked = !!existingVal;
+        } else {
+          inputEl.value = existingVal;
+        }
+      });
+    } else {
+      var nameWrap = document.createElement('div');
+      nameWrap.innerHTML = '<label class="field-label" style="margin-top:0;">Ad</label>' +
+        '<input type="text" class="ff-generic-field" data-col="name" placeholder="Ad / etiket">';
+      var descWrap = document.createElement('div');
+      descWrap.style.marginTop = '10px';
+      descWrap.innerHTML = '<label class="field-label" style="margin-top:0;">Açıklama</label>' +
+        '<textarea rows="2" class="ff-generic-field" data-col="description" placeholder="Açıklama (opsiyonel)"></textarea>';
+      container.appendChild(nameWrap);
+      container.appendChild(descWrap);
+      nameWrap.querySelector('.ff-generic-field').value = (existingValues && existingValues.name) || '';
+      descWrap.querySelector('.ff-generic-field').value = (existingValues && existingValues.description) || '';
+    }
+  }
+
+  // renderSchemaFields ile üretilen alanların güncel değerlerini toplar.
+  function collectSchemaFieldValues(container){
+    var attrs = {};
+    container.querySelectorAll('.ff-schema-field').forEach(function(el){
+      var col = el.getAttribute('data-col');
+      if (el.type === 'checkbox'){ attrs[col] = el.checked; }
+      else if (el.tagName === 'SELECT'){ if (el.value) attrs[col] = el.value; }
+      else if (el.type === 'number'){ attrs[col] = el.value === '' ? null : Number(el.value); }
+      else { attrs[col] = el.value; }
+    });
+    container.querySelectorAll('.ff-generic-field').forEach(function(el){
+      attrs[el.getAttribute('data-col')] = el.value;
+    });
+    return attrs;
+  }
+
+  // renderSchemaFields ile üretilmiş, o an açık olan bir forma (örn. Öznitelik
+  // Düzenle) ait alanları, forma dokunmadan (başka bir kaynaktan — örn. "3B
+  // Ayarları" penceresindeki Kat Adedi/Kat Yüksekliği sürgüleri) canlı olarak
+  // günceller — böylece iki farklı UI aynı veriyi gösterdiğinde senkron kalır.
+  function syncSchemaFieldInputs(container, values){
+    if (!container) return;
+    Object.keys(values).forEach(function(col){
+      var el = container.querySelector('.ff-schema-field[data-col="' + col + '"]');
+      if (!el) return;
+      if (el.tagName === 'SELECT' || el.type === 'checkbox') return;
+      el.value = values[col];
+    });
+  }
+
+  var DOC_TYPE_ICON_COLOR = { resim:'#3fc2ac', video:'#e3a541', cad:'#6d8fe0', gis:'#e0736d', bim:'#a06de0', diger:'#8a94a6' };
+  function renderInfoDocsPanel(featureId){
+    activeInfoFeatureId = featureId;
+    var panel = document.getElementById('infoDocsPanel');
+    var listEl = document.getElementById('infoDocsList');
+    var previewEl = document.getElementById('infoDocsPreview');
+    var docs = featureId ? (featureDocumentsCache[featureId] || []) : [];
+    if (!docs.length){
+      panel.classList.remove('show');
+      listEl.innerHTML = '';
+      previewEl.innerHTML = '';
+      return;
+    }
+    panel.classList.add('show');
+    listEl.innerHTML = '';
+    docs.forEach(function(d, idx){
+      var row = document.createElement('div');
+      row.className = 'info-doc-row' + (idx === 0 ? ' active' : '');
+      row.innerHTML = '<span class="doc-type-badge" style="background:' + (DOC_TYPE_ICON_COLOR[d.doc_type] || '#8a94a6') + '">' +
+        (DOC_TYPE_LABELS[d.doc_type] || 'Dosya') + '</span><span class="doc-name">' + escapeAttrHtml(d.name) + '</span>';
+      row.addEventListener('click', function(){
+        listEl.querySelectorAll('.info-doc-row').forEach(function(r){ r.classList.remove('active'); });
+        row.classList.add('active');
+        renderInfoDocPreview(d);
+      });
+      listEl.appendChild(row);
+    });
+    renderInfoDocPreview(docs[0]);
+  }
+  function renderInfoDocPreview(d){
+    var previewEl = document.getElementById('infoDocsPreview');
+    if (!d){ previewEl.innerHTML = ''; return; }
+    if (d.doc_type === 'resim' && d.file_data_url){
+      previewEl.innerHTML = '<img src="' + d.file_data_url + '" alt="' + escapeAttrHtml(d.name) + '">' +
+        '<span>' + escapeAttrHtml(d.name) + '</span><span style="color:var(--text-dim);">' + escapeAttrHtml(d.file_size || '') + '</span>';
+    } else if (d.doc_type === 'video' && d.file_data_url){
+      previewEl.innerHTML = '<video src="' + d.file_data_url + '" controls style="max-width:100%;max-height:140px;border-radius:2px;border:1px solid var(--line);"></video>' +
+        '<span>' + escapeAttrHtml(d.name) + '</span>';
+    } else {
+      previewEl.innerHTML = '<div style="width:100%;padding:18px 0;background:var(--bg-panel-raise);border:1px dashed var(--line);border-radius:2px;color:var(--text-dim);">' +
+        (DOC_TYPE_LABELS[d.doc_type] || 'Dosya') + ' — önizleme mevcut değil</div>' +
+        '<span>' + escapeAttrHtml(d.name) + '</span><span style="color:var(--text-dim);">' + escapeAttrHtml(d.file_size || '') + '</span>';
+    }
+  }
+
+  // ---------------------------------------------------------------------
+  // Öznitelik Düzenle: Editör > Güncelle > "Öznitelik" — haritadaki MEVCUT
+  // bir objeye tıklayınca, o objenin (veritabanı sütunlarına göre dinamik)
+  // öznitelik bilgilerini VE eklenmiş dokümanlarını tek formdan güncellemeyi
+  // sağlar. Kaydedilince güncel öznitelikler maybeAutoSaveDbFeature ile hem
+  // tarayıcı oturumuna hem de (kroki:update-db-feature ile) veritabanına yazılır.
+  // ---------------------------------------------------------------------
+  var attributeEditMode = false;
+  var attrEditTargetFeature = null;
+  document.getElementById('btnAttrEdit').addEventListener('click', function(){
+    attributeEditMode = !attributeEditMode;
+    this.classList.toggle('active', attributeEditMode);
+    if (attributeEditMode){
+      infoMode = false; document.getElementById('btnInfo').classList.remove('active');
+      document.getElementById('infoPopover').classList.remove('show');
+      docAttachMode = false; document.getElementById('btnAddDocument').classList.remove('active');
+    }
+    map.getCanvas().style.cursor = attributeEditMode ? 'help' : (mode === 'select' ? 'default' : (isVertexDrawMode(mode) ? 'crosshair' : ''));
+    showToast(attributeEditMode ? 'Öznitelik düzenleme modu açık — haritada bir objeye tıklayın.' : 'Öznitelik düzenleme modu kapatıldı.');
+  });
+
+  function handleAttributeEditClick(e){
+    var hit = map.queryRenderedFeatures(e.point, { layers: selectableLayers() });
+    var f = null;
+    if (hit.length){
+      var hp = hit[0].properties || {};
+      var candidateId = String(hp.parentId || hp.featureId || hit[0].id);
+      f = features.find(function(x){ return x.id === candidateId; });
+    }
+    if (!f) f = geometricHitTest(e.point, e.lngLat);
+    if (!f){ showToast('Bu noktada bir obje bulunamadı — haritada çizilmiş bir şekle tıklayın.'); return; }
+    attributeEditMode = false;
+    document.getElementById('btnAttrEdit').classList.remove('active');
+    map.getCanvas().style.cursor = mode === 'select' ? 'default' : (isVertexDrawMode(mode) ? 'crosshair' : '');
+    openAttributeEditModal(f);
+  }
+
+  function renderAttrEditDocsList(featureId){
+    var list = document.getElementById('attrEditDocsList');
+    var docs = featureDocumentsCache[featureId] || [];
+    if (!docs.length){
+      list.innerHTML = '<div class="field-label" style="margin:0;">Bu objeye henüz doküman eklenmemiş.</div>';
+      return;
+    }
+    list.innerHTML = '';
+    docs.forEach(function(d){
+      var row = document.createElement('div');
+      row.className = 'info-doc-row';
+      row.style.cursor = 'default';
+      row.innerHTML = '<span class="doc-type-badge" style="background:' + (DOC_TYPE_ICON_COLOR[d.doc_type] || '#8a94a6') + '">' +
+        (DOC_TYPE_LABELS[d.doc_type] || 'Dosya') + '</span><span class="doc-name">' + escapeAttrHtml(d.name) + '</span>' +
+        '<span style="color:var(--text-dim);font-size:10px;">' + escapeAttrHtml(d.file_size || '') + '</span>';
+      list.appendChild(row);
+    });
+  }
+
+  function openAttributeEditModal(f){
+    attrEditTargetFeature = f;
+    var lyr = getLayer(f.properties && f.properties.layerId);
+    var lyrLabel = lyr ? lyr.name.split(' — ')[0] : typeLabel(f);
+    document.getElementById('attrEditTitleIcon').innerHTML = iconFor(f);
+    document.getElementById('attrEditTitleText').textContent = lyrLabel;
+    renderSchemaFields(document.getElementById('attrEditDynamicFields'), lyr, f.properties || {});
+    renderAttrEditDocsList(f.id);
+    refreshAttrEditMake3DButton();
+    document.getElementById('attrEditModal').classList.add('show');
+  }
+
+  // Yalnızca Poligon geometrilerinde anlamlı — mevcut objeyi 3B'ye çevirir
+  // (veya zaten 3B ise 2B'ye geri alır), haritadaki "3B'ye çevir" aracıyla
+  // aynı mantığı kullanır (bkz. btnToggle3D).
+  function refreshAttrEditMake3DButton(){
+    var btn = document.getElementById('btnAttrEditMake3D');
+    var f = attrEditTargetFeature;
+    if (!f || f.geometry.type !== 'Polygon'){
+      btn.style.display = 'none';
+      return;
+    }
+    btn.style.display = 'flex';
+    var is3D = !!(f.properties && f.properties.extrude);
+    btn.title = is3D ? '2B yap' : '3B yap';
+    btn.classList.toggle('active', is3D);
+  }
+  // "3B yap" butonu artık doğrudan çevirmez — Editör > Geometri tabındaki aynı
+  // araçları (3B'ye çevir, Kat adedi/yüksekliği, Döndür, Ölçekle) obje seçili
+  // olmasa da kullanılabilecek küçük, bağımsız bir pencerede açar.
+  function syncAttr3DPopoverFields(){
+    var f = attrEditTargetFeature;
+    if (!f) return;
+    var extruded = !!(f.properties && f.properties.extrude);
+    document.getElementById('attr3DToggleBtn').textContent = extruded ? '2B\'ye çevir' : '3B\'ye çevir';
+    var floors = (f.properties && (f.properties.floors || f.properties.floors_count)) || 1;
+    var totalH = (f.properties && (f.properties.height || f.properties.height_meters)) || 30;
+    var floorH = (f.properties && f.properties.floorHeight) || (totalH / floors);
+    document.getElementById('attr3DFloorsSlider').value = floors;
+    document.getElementById('attr3DFloorHeightSlider').value = floorH;
+    document.getElementById('attr3DFloorsVal').textContent = floors;
+    document.getElementById('attr3DFloorHeightVal').textContent = floorH.toFixed(1) + ' m';
+    document.getElementById('attr3DTotalHeightVal').textContent = 'Toplam yükseklik: ' + (floors * floorH).toFixed(1) + ' m';
+    document.getElementById('attr3DRotateSlider').value = 0;
+    document.getElementById('attr3DRotateVal').textContent = '0°';
+    document.getElementById('attr3DScaleSlider').value = 100;
+    document.getElementById('attr3DScaleVal').textContent = '100%';
+  }
+  function closeAttr3DPopover(){
+    document.getElementById('attr3DPopover').classList.remove('show');
+    attr3DBaseGeometry = null;
+  }
+  // "3B Ayarları" penceresini, Öznitelik Düzenle formunun (attrEditModal)
+  // HEMEN YANINDA açar — sağda yer yoksa solda; sürükleme (aşağıdaki
+  // mousedown/mousemove) ile daha sonra istenilen yere taşınabilir.
+  function positionAttr3DPopoverNextToModal(){
+    var modalBox = document.querySelector('#attrEditModal .modal-box');
+    var pop = document.getElementById('attr3DPopover');
+    if (!modalBox) return;
+    var rect = modalBox.getBoundingClientRect();
+    var popWidth = 220, popHeight = 360, gap = 10;
+    var left = rect.right + gap;
+    if (left + popWidth > window.innerWidth) left = Math.max(4, rect.left - popWidth - gap);
+    var top = Math.min(rect.top, Math.max(4, window.innerHeight - popHeight - 4));
+    pop.style.left = left + 'px';
+    pop.style.top = top + 'px';
+  }
+  document.getElementById('btnAttr3DClose').addEventListener('click', closeAttr3DPopover);
+  // Poligonun 3B (extrude) durumunu açar/kapatır — hem "3B Ayarları"
+  // penceresindeki "3B'ye çevir/2B'ye çevir" butonu hem de Öznitelik
+  // formunun altındaki "3B yap" butonunun obje ZATEN 3B'yken doğrudan
+  // 2B'ye çevirme kısayolu bu TEK fonksiyonu paylaşır.
+  function toggleAttrEdit3DExtrude(){
+    var f = attrEditTargetFeature;
+    if (!f || f.geometry.type !== 'Polygon') return;
+    pushHistory();
+    if (f.properties.extrude){
+      delete f.properties.extrude;
+      delete f.properties.height;
+      delete f.properties.base;
+      delete f.properties.floors;
+      delete f.properties.floorHeight;
+    } else {
+      f.properties.extrude = true;
+      f.properties.floors = f.properties.floors || f.properties.floors_count || 1;
+      f.properties.floorHeight = f.properties.floorHeight || ((f.properties.height || f.properties.height_meters || 30) / f.properties.floors);
+      f.properties.height = f.properties.floors * f.properties.floorHeight;
+      f.properties.base = f.properties.base || 0;
+      ensure3DView();
+    }
+    attr3DBaseGeometry = JSON.parse(JSON.stringify(f.geometry));
+    renderFeatures(); renderVertices(); updateEditPanel();
+    maybeAutoSaveDbFeature(f);
+    refreshAttrEditMake3DButton();
+    showToast(f.properties.extrude ? '3B poligona çevrildi.' : '2B poligona çevrildi.');
+  }
+  document.getElementById('btnAttrEditMake3D').addEventListener('click', function(){
+    var f = attrEditTargetFeature;
+    if (!f || f.geometry.type !== 'Polygon') return;
+    var wasExtruded = !!(f.properties && f.properties.extrude);
+    if (wasExtruded){
+      // Obje zaten 3B: doğrudan 2B'ye çevirir ve (açıksa) "3B Ayarları"
+      // penceresini de otomatik kapatır — buton bir açma/kapama anahtarı gibi çalışır.
+      toggleAttrEdit3DExtrude();
+      closeAttr3DPopover();
+      return;
+    }
+    attr3DBaseGeometry = JSON.parse(JSON.stringify(f.geometry));
+    syncAttr3DPopoverFields();
+    positionAttr3DPopoverNextToModal();
+    document.getElementById('attr3DPopover').classList.add('show');
+    // Pencere açılır açılmaz obje henüz 2B ise otomatik olarak 3B'ye çevrilir
+    // (kullanıcının ayrıca "3B'ye çevir"e basmasına gerek kalmaz).
+    toggleAttrEdit3DExtrude();
+    syncAttr3DPopoverFields();
+  });
+
+  // "3B Ayarları" penceresi başlık çubuğundan sürüklenerek taşınabilir.
+  (function(){
+    var pop = document.getElementById('attr3DPopover');
+    var handle = pop.querySelector('.modal-title');
+    var dragging = false, offsetX = 0, offsetY = 0;
+    handle.addEventListener('mousedown', function(e){
+      if (e.target.closest('#btnAttr3DClose')) return;
+      dragging = true;
+      var rect = pop.getBoundingClientRect();
+      offsetX = e.clientX - rect.left;
+      offsetY = e.clientY - rect.top;
+      e.preventDefault();
+    });
+    document.addEventListener('mousemove', function(e){
+      if (!dragging) return;
+      pop.style.left = (e.clientX - offsetX) + 'px';
+      pop.style.top = (e.clientY - offsetY) + 'px';
+    });
+    document.addEventListener('mouseup', function(){ dragging = false; });
+  })();
+
+  document.getElementById('attr3DToggleBtn').addEventListener('click', function(){
+    toggleAttrEdit3DExtrude();
+    syncAttr3DPopoverFields();
+  });
+
+  // Kat adedi/yüksekliği değiştikçe hem 3B ekstrüzyonu hem de (varsa)
+  // katmanın gerçek şema sütunlarını (örn. Binalar 3D > floors_count,
+  // height_meters) günceller — Öznitelik formu açıkken alanlar anında
+  // senkron kalır (bkz. istek: "Binalar katmanında kat adedi ve kat
+  // yüksekliği 3B ayar penceresindeki ayarlar ile senkronize olacak").
+  function applyAttr3DFloors(){
+    var f = attrEditTargetFeature;
+    if (!f) return;
+    var floors = Math.max(1, parseInt(document.getElementById('attr3DFloorsSlider').value, 10) || 1);
+    var floorH = Math.max(0.1, parseFloat(document.getElementById('attr3DFloorHeightSlider').value) || 3);
+    f.properties.floors = floors;
+    f.properties.floorHeight = floorH;
+    f.properties.height = floors * floorH;
+    if (f.properties.floors_count !== undefined || f.properties.height_meters !== undefined){
+      f.properties.floors_count = floors;
+      f.properties.height_meters = floors * floorH;
+      syncSchemaFieldInputs(document.getElementById('attrEditDynamicFields'), { floors_count: floors, height_meters: floors * floorH });
+    }
+    document.getElementById('attr3DFloorsVal').textContent = floors;
+    document.getElementById('attr3DFloorHeightVal').textContent = floorH.toFixed(1) + ' m';
+    document.getElementById('attr3DTotalHeightVal').textContent = 'Toplam yükseklik: ' + (floors * floorH).toFixed(1) + ' m';
+  }
+  var attr3DFloorsSlider = document.getElementById('attr3DFloorsSlider');
+  var attr3DFloorHeightSlider = document.getElementById('attr3DFloorHeightSlider');
+  var attr3DFloorsHistoryPushed = false;
+  attr3DFloorsSlider.addEventListener('pointerdown', function(){ attr3DFloorsHistoryPushed = false; });
+  attr3DFloorHeightSlider.addEventListener('pointerdown', function(){ attr3DFloorsHistoryPushed = false; });
+  attr3DFloorsSlider.addEventListener('input', function(){
+    if (!attrEditTargetFeature) return;
+    if (!attr3DFloorsHistoryPushed){ pushHistory(); attr3DFloorsHistoryPushed = true; }
+    applyAttr3DFloors();
+    renderFeatures();
+  });
+  attr3DFloorHeightSlider.addEventListener('input', function(){
+    if (!attrEditTargetFeature) return;
+    if (!attr3DFloorsHistoryPushed){ pushHistory(); attr3DFloorsHistoryPushed = true; }
+    applyAttr3DFloors();
+    renderFeatures();
+  });
+  function attr3DSaveFloorsOnCommit(){ maybeAutoSaveDbFeature(attrEditTargetFeature); }
+  attr3DFloorsSlider.addEventListener('pointerup', attr3DSaveFloorsOnCommit);
+  attr3DFloorHeightSlider.addEventListener('pointerup', attr3DSaveFloorsOnCommit);
+
+  var attr3DRotateSlider = document.getElementById('attr3DRotateSlider');
+  var attr3DRotateVal = document.getElementById('attr3DRotateVal');
+  var attr3DRotateHistoryPushed = false;
+  attr3DRotateSlider.addEventListener('pointerdown', function(){ attr3DRotateHistoryPushed = false; });
+  attr3DRotateSlider.addEventListener('input', function(){
+    var f = attrEditTargetFeature;
+    if (!f || !attr3DBaseGeometry) return;
+    if (!attr3DRotateHistoryPushed){ pushHistory(); attr3DRotateHistoryPushed = true; }
+    var angle = parseFloat(attr3DRotateSlider.value);
+    attr3DRotateVal.textContent = angle + '°';
+    try{
+      var base = { type:'Feature', geometry: JSON.parse(JSON.stringify(attr3DBaseGeometry)), properties:{} };
+      var pivot = turf.centroid(base).geometry.coordinates;
+      var rotated = turf.transformRotate(base, angle, { pivot: pivot });
+      f.geometry = rotated.geometry;
+      renderFeatures(); renderVertices();
+    }catch(e){ /* geçersiz ara durum, yoksay */ }
+  });
+  attr3DRotateSlider.addEventListener('change', function(){
+    attr3DRotateSlider.value = 0; attr3DRotateVal.textContent = '0°';
+    var f = attrEditTargetFeature;
+    if (f){ attr3DBaseGeometry = JSON.parse(JSON.stringify(f.geometry)); maybeAutoSaveDbFeature(f); }
+  });
+
+  var attr3DScaleSlider = document.getElementById('attr3DScaleSlider');
+  var attr3DScaleVal = document.getElementById('attr3DScaleVal');
+  var attr3DScaleHistoryPushed = false;
+  attr3DScaleSlider.addEventListener('pointerdown', function(){ attr3DScaleHistoryPushed = false; });
+  attr3DScaleSlider.addEventListener('input', function(){
+    var f = attrEditTargetFeature;
+    if (!f || !attr3DBaseGeometry) return;
+    if (!attr3DScaleHistoryPushed){ pushHistory(); attr3DScaleHistoryPushed = true; }
+    var pct = parseFloat(attr3DScaleSlider.value);
+    attr3DScaleVal.textContent = pct + '%';
+    try{
+      var base = { type:'Feature', geometry: JSON.parse(JSON.stringify(attr3DBaseGeometry)), properties:{} };
+      var scaled = turf.transformScale(base, pct / 100, { origin:'centroid' });
+      f.geometry = scaled.geometry;
+      renderFeatures(); renderVertices();
+    }catch(e){ /* geçersiz ara durum, yoksay */ }
+  });
+  attr3DScaleSlider.addEventListener('change', function(){
+    attr3DScaleSlider.value = 100; attr3DScaleVal.textContent = '100%';
+    var f = attrEditTargetFeature;
+    if (f){ attr3DBaseGeometry = JSON.parse(JSON.stringify(f.geometry)); maybeAutoSaveDbFeature(f); }
+  });
+
+  function closeAttributeEditModal(){
+    document.getElementById('attrEditModal').classList.remove('show');
+    attrEditTargetFeature = null;
+    closeAttr3DPopover();
+  }
+  document.getElementById('btnAttrEditCancel').addEventListener('click', closeAttributeEditModal);
+  document.getElementById('btnAttrEditClose').addEventListener('click', closeAttributeEditModal);
+
+  document.getElementById('btnAttrEditAddDoc').addEventListener('click', function(){
+    if (!attrEditTargetFeature) return;
+    document.getElementById('attrEditModal').classList.remove('show');
+    openDocUploadModal(attrEditTargetFeature);
+  });
+
+  document.getElementById('btnAttrEditSubmit').addEventListener('click', function(){
+    if (!attrEditTargetFeature) return;
+    var f = attrEditTargetFeature;
+    var newValues = collectSchemaFieldValues(document.getElementById('attrEditDynamicFields'));
+    pushHistory();
+    Object.assign(f.properties, newValues);
+    // Kat adedi/bina yüksekliği formdan elle değiştirildiyse (3B Ayarları
+    // penceresi kullanılmadan), 3B ekstrüzyonu da bu yeni değerlerle senkron kalsın.
+    if (f.properties.extrude && (newValues.floors_count !== undefined || newValues.height_meters !== undefined)){
+      var syncedFloors = Math.max(1, parseInt(f.properties.floors_count, 10) || f.properties.floors || 1);
+      var syncedTotalH = parseFloat(f.properties.height_meters) || (syncedFloors * (f.properties.floorHeight || 3));
+      f.properties.floors = syncedFloors;
+      f.properties.floorHeight = syncedTotalH / syncedFloors;
+      f.properties.height = syncedTotalH;
+    }
+    renderFeatures();
+    maybeAutoSaveDbFeature(f);
+    document.getElementById('attrEditModal').classList.remove('show');
+    attrEditTargetFeature = null;
+    closeAttr3DPopover();
+    showToast('Öznitelik bilgileri güncellendi ve veritabanına kaydedildi.');
+  });
 
   // ---------------------------------------------------------------------
   // Nokta / çizgi / poligon / 3B poligon / dikdörtgen / çember çizimi
   // ---------------------------------------------------------------------
   map.on('click', function(e){
+    if (attributeEditMode){ handleAttributeEditClick(e); return; }
+    if (docAttachMode){ handleDocAttachClick(e); return; }
     if (infoMode){ handleInfoClick(e); return; }
     var fromPt = (isVertexDrawMode(mode) && draftCoords && draftCoords.length) ? draftCoords[draftCoords.length - 1] : null;
     var snap = isCoordEntryMode(mode) ? findSnapPoint(e.point, null, fromPt) : null;
     var lngLat = snap ? snap.coord : [e.lngLat.lng, e.lngLat.lat];
     if (mode === 'point'){
       addFeature(makeFeature('Point', lngLat));
+    } else if (mode === 'measure-point'){
+      ensureMeasureLayerExists();
+      var pf = makeFeature('Point', lngLat);
+      pf.properties.layerId = MEASURE_LAYER_ID;
+      pf.properties.measureType = 'point';
+      pf.properties.x = lngLat[0].toFixed(6);
+      pf.properties.y = lngLat[1].toFixed(6);
+      addFeature(pf);
+      showToast('Koordinat eklendi — X: ' + pf.properties.x + ', Y: ' + pf.properties.y);
     } else if (isVertexDrawMode(mode)){
       if (isMeasureMode(mode) && measureFrozen){
         draftCoords = null; measureFrozen = false; clearMeasureSummary(); renderDraftPreview(null);
@@ -2282,9 +3687,39 @@
     }
   });
 
+  // İnşaat İlerlemesi (construction_progress) sütunu dolu olan HERHANGİ bir
+  // objenin (yalnızca Binalar 3D değil — bu sütuna sahip her katman) üzerine
+  // gelindiğinde fareyi takip eden küçük bir "% İlerleme" tooltip'i gösterir.
+  function updateProgressTooltip(e){
+    var tooltip = document.getElementById('progressTooltip');
+    var hit = map.queryRenderedFeatures(e.point, { layers: selectableLayers() });
+    var f = null;
+    if (hit.length){
+      var hp = hit[0].properties || {};
+      var candidateId = String(hp.parentId || hp.featureId || hit[0].id);
+      f = features.find(function(x){ return x.id === candidateId; });
+    }
+    var raw = f && f.properties ? f.properties.construction_progress : undefined;
+    var pct = parseFloat(raw);
+    if (raw === undefined || raw === null || raw === '' || isNaN(pct)){
+      tooltip.style.display = 'none';
+      return;
+    }
+    tooltip.innerHTML = '% İlerleme: <b>' + pct.toFixed(0) + '%</b>';
+    tooltip.style.display = 'block';
+    var mapRect = document.getElementById('map').getBoundingClientRect();
+    tooltip.style.left = (mapRect.left + e.point.x + 14) + 'px';
+    tooltip.style.top = (mapRect.top + e.point.y + 14) + 'px';
+  }
+
+  map.on('mouseout', function(){
+    document.getElementById('progressTooltip').style.display = 'none';
+  });
+
   map.on('mousemove', function(e){
     document.getElementById('stCoord').textContent = e.lngLat.lng.toFixed(5) + ', ' + e.lngLat.lat.toFixed(5);
     lastMouseLngLat = [e.lngLat.lng, e.lngLat.lat];
+    updateProgressTooltip(e);
     if (isMeasureMode(mode) && measureFrozen) return;
     if (isCoordEntryMode(mode)){
       var fromPt2 = (isVertexDrawMode(mode) && draftCoords && draftCoords.length) ? draftCoords[draftCoords.length - 1] : null;
@@ -2293,7 +3728,16 @@
       var effectiveLngLat = snap ? snap.coord : lastMouseLngLat;
       positionCursorInput(e.point);
       updateDraftDynamicPreview(effectiveLngLat);
+    } else if (mode === 'select' && selectedIds.length === 1){
+      // Tek obje seçiliyken fare bir kenarın orta noktasına yaklaşırsa "orta
+      // nokta işareti" (snap-marker, midpoint tipiyle) gösterilir — bu işaret
+      // görünürken çift tıklamak köşe ekler (bkz. map 'dblclick').
+      var selectedForMid = features.find(function(x){ return x.id === selectedIds[0]; });
+      hoveredMidpoint = findNearestMidpoint(selectedForMid, e.point);
+      updateSnapMarker(hoveredMidpoint ? { coord: hoveredMidpoint.coord, type:'midpoint' } : null);
+      hideCursorInput();
     } else {
+      hoveredMidpoint = null;
       hideCursorInput();
       updateSnapMarker(null);
     }
@@ -2488,11 +3932,35 @@
   function cancelDraft(){
     draftCoords = null;
     measureFrozen = false;
+    if (pendingFeatureAttributes && ffStagedDocFiles.length){
+      ffStagedDocFiles = [];
+      updateFFDocBadge();
+    }
     pendingFeatureAttributes = null;
     pendingFeatureModeExpected = null;
     renderDraftPreview(null);
     hideCursorInput();
     clearMeasureSummary();
+  }
+
+  // Çizim sürerken Ctrl+Z, tüm taslağı iptal etmek yerine yalnızca son eklenen
+  // segmenti (köşeyi) geri alır — böylece kullanıcı çizime kaldığı yerden,
+  // bir önceki köşeden devam edebilir. Taslakta hiç köşe kalmazsa taslak
+  // tamamen temizlenir (cancelDraft ile aynı sonuç).
+  function undoLastDraftSegment(){
+    if (!draftCoords || !draftCoords.length) return false;
+    draftCoords.pop();
+    if (!draftCoords.length){
+      draftCoords = null;
+      renderDraftPreview(null);
+      hideCursorInput();
+      clearMeasureSummary();
+    } else {
+      renderDraftPreview(buildDraftPreview(draftCoords));
+      if (isMeasureMode(mode)) updateMeasureSummary(draftCoords);
+      if (lastMouseLngLat) updateDraftDynamicPreview(lastMouseLngLat);
+    }
+    return true;
   }
 
   function clearMeasureSummary(){
@@ -2636,26 +4104,52 @@
     if ((mode === 'linestring' || isPolygonMode(mode) || isMeasureMode(mode)) && draftCoords && draftCoords.length >= 2){
       e.preventDefault();
       finishDraft();
-    } else if (mode === 'select' && selectedId){
-      e.preventDefault();
-      insertVertexNear(selectedId, e.lngLat);
+      return;
     }
+    if (mode !== 'select') return;
+    e.preventDefault();
+    // İstisna: tek obje seçiliyken bir kenarın ORTA NOKTASI işareti
+    // görünüyorsa (bkz. map 'mousemove' → hoveredMidpoint), çift tıklama
+    // öznitelik formu yerine o noktaya köşe ekler.
+    if (selectedIds.length === 1 && hoveredMidpoint){
+      insertVertexNear(selectedIds[0], e.lngLat);
+      return;
+    }
+    // Genel kural: Seç modunda bir objenin üzerine çift tıklamak, o objenin
+    // Öznitelik Düzenle (öznitelik + doküman) formunu açar.
+    var hit = map.queryRenderedFeatures(e.point, { layers: selectableLayers() });
+    var f = null;
+    if (hit.length){
+      var hp = hit[0].properties || {};
+      var candidateId = String(hp.parentId || hp.featureId || hit[0].id);
+      f = features.find(function(x){ return x.id === candidateId; });
+    }
+    if (!f) f = geometricHitTest(e.point, e.lngLat);
+    if (f) openAttributeEditModal(f);
   });
 
   document.addEventListener('keydown', function(e){
     var tag = document.activeElement ? document.activeElement.tagName : '';
     if (tag === 'TEXTAREA' || tag === 'INPUT') return;
     if (e.key === 'Escape'){
-      if (infoMode){
+      if (attributeEditMode){
+        attributeEditMode = false;
+        document.getElementById('btnAttrEdit').classList.remove('active');
+        map.getCanvas().style.cursor = (mode === 'select') ? 'default' : (isVertexDrawMode(mode) ? 'crosshair' : '');
+      } else if (docAttachMode){
+        docAttachMode = false;
+        document.getElementById('btnAddDocument').classList.remove('active');
+        map.getCanvas().style.cursor = (mode === 'select') ? 'default' : (isVertexDrawMode(mode) ? 'crosshair' : '');
+      } else if (infoMode){
         infoMode = false;
         document.getElementById('btnInfo').classList.remove('active');
         document.getElementById('infoPopover').classList.remove('show');
-        map.getCanvas().style.cursor = (mode === 'select') ? 'pointer' : (isVertexDrawMode(mode) ? 'crosshair' : '');
+        map.getCanvas().style.cursor = (mode === 'select') ? 'default' : (isVertexDrawMode(mode) ? 'crosshair' : '');
       } else if (draftCoords) cancelDraft(); else deselect();
     } else if (e.key === 'Enter'){
       if (draftCoords) finishDraft();
     } else if (e.key === 'Delete' || e.key === 'Backspace'){
-      if (selectedId){ e.preventDefault(); removeFeatureById(selectedId); }
+      if (selectedIds.length){ e.preventDefault(); removeSelectedFeatures(); }
     }
   });
 
@@ -2711,7 +4205,12 @@
 
   function onSelectMouseDown(e){
     if (e.originalEvent && e.originalEvent.button !== 0) return;
-    var vertexHit = (selectedId && map.getLayer('vertex-layer')) ? map.queryRenderedFeatures(e.point, { layers:['vertex-layer'] }) : [];
+    var ctrlHeld = !!(e.originalEvent && (e.originalEvent.ctrlKey || e.originalEvent.metaKey));
+
+    // Köşe tutamacı sürükleme sadece tek obje seçiliyken ve Ctrl basılı
+    // DEĞİLKEN geçerlidir (Ctrl basılıysa amaç seçime ekleme/çıkarmadır).
+    var vertexHit = (!ctrlHeld && selectedIds.length === 1 && map.getLayer('vertex-layer'))
+      ? map.queryRenderedFeatures(e.point, { layers:['vertex-layer'] }) : [];
     if (vertexHit.length){
       e.preventDefault();
       var vp = vertexHit[0].properties;
@@ -2731,11 +4230,80 @@
     }
     if (fid){
       e.preventDefault();
-      selectFeatureId(fid);
-      beginDrag('feature', { featureId: fid }, e.lngLat);
+      if (ctrlHeld){
+        // Ctrl+tık: objeyi seçime ekler/çıkarır, sürükleme başlatmaz.
+        toggleFeatureSelection(fid);
+      } else {
+        if (selectedIds.indexOf(fid) === -1) selectFeatureId(fid);
+        beginDrag('feature', { featureId: fid }, e.lngLat);
+      }
     } else {
-      deselect();
+      // Boş alana tıklama: Ctrl basılı değilse önce mevcut seçim temizlenir.
+      // Her iki durumda da bir "pencere ile toplu seçim" sürüklemesi
+      // başlatılabilir (fare hareket etmezse sadece boş tıklama sayılır).
+      if (!ctrlHeld) deselect();
+      beginBoxSelect(e, ctrlHeld);
     }
+  }
+
+  // "Pencere ile toplu seçim" — boş bir noktadan sürüklenerek bir dikdörtgen
+  // (ekran uzayında) çizilir; bırakıldığında o dikdörtgenle kesişen tüm
+  // seçilebilir objeler seçime eklenir (additive=true, Ctrl basılıydı) ya da
+  // seçimin yeni içeriği olur (additive=false).
+  function beginBoxSelect(startEvent, additive){
+    var startPx = startEvent.point;
+    var moved = false;
+    // additive (Ctrl+sürükle) seçimde MapLibre'nin varsayılan "Ctrl+sürükle =
+    // döndür/eğ" (dragRotate) davranışı bizim dikdörtgen seçimimizle çakışır
+    // ve mousemove olaylarını harita döndürme jestine yönlendirir — bu yüzden
+    // sürükleme boyunca geçici olarak devre dışı bırakılır.
+    map.dragPan.disable();
+    map.dragRotate.disable();
+
+    var boxEl = document.createElement('div');
+    boxEl.className = 'select-box-rect';
+    document.getElementById('map').appendChild(boxEl);
+
+    function updateBoxEl(p0, p1){
+      var x = Math.min(p0.x, p1.x), y = Math.min(p0.y, p1.y);
+      var w = Math.abs(p1.x - p0.x), h = Math.abs(p1.y - p0.y);
+      boxEl.style.left = x + 'px'; boxEl.style.top = y + 'px';
+      boxEl.style.width = w + 'px'; boxEl.style.height = h + 'px';
+    }
+
+    function onMove(ev){
+      var p = ev.point;
+      if (!moved && Math.hypot(p.x - startPx.x, p.y - startPx.y) > 3) moved = true;
+      if (!moved) return;
+      boxEl.classList.add('show');
+      updateBoxEl(startPx, p);
+    }
+    function onUp(ev){
+      map.off('mousemove', onMove); map.off('mouseup', onUp);
+      map.dragPan.enable();
+      map.dragRotate.enable();
+      boxEl.remove();
+      if (!moved) return;
+
+      var p = ev.point;
+      var minX = Math.min(startPx.x, p.x), minY = Math.min(startPx.y, p.y);
+      var maxX = Math.max(startPx.x, p.x), maxY = Math.max(startPx.y, p.y);
+      var hits = map.queryRenderedFeatures([[minX, minY], [maxX, maxY]], { layers: selectableLayers() });
+      var ids = [];
+      hits.forEach(function(h){
+        var hp = h.properties || {};
+        var candidateId = String(hp.parentId || hp.featureId || h.id);
+        if (ids.indexOf(candidateId) === -1 && features.some(function(f){ return f.id === candidateId; })) ids.push(candidateId);
+      });
+      if (!ids.length){
+        if (!additive) showToast('Pencere içinde şekil bulunamadı.');
+        return;
+      }
+      if (additive) addToSelection(ids); else setSelection(ids);
+      showToast(ids.length + ' obje seçildi.');
+    }
+    map.on('mousemove', onMove);
+    map.on('mouseup', onUp);
   }
 
   function beginDrag(kind, ctx, startLngLat){
@@ -2770,9 +4338,25 @@
     function onUp(){
       map.off('mousemove', onMove); map.off('mouseup', onUp);
       map.dragPan.enable();
-      map.getCanvas().style.cursor = (mode === 'select') ? 'pointer' : '';
+      map.getCanvas().style.cursor = (mode === 'select') ? 'default' : '';
       updateSnapMarker(null);
-      if (moved) updateEditPanel();
+      if (moved){
+        updateEditPanel();
+        var movedFeature = features.find(function(x){ return x.id === ctx.featureId; });
+        // Bir proje sınırı (tb_proje_sinirlari katmanındaki bir şekil)
+        // taşındığında, harita otomatik olarak sınırın yeni konumuna
+        // yakınlaşır — böylece kullanıcı sürüklediği sınırı görüş
+        // alanının dışına taşımış olsa bile kaybetmez.
+        if (kind === 'feature' && movedFeature && movedFeature.properties && movedFeature.properties.layerId === 'db-layer-sinirlar'){
+          try{
+            var bbox = turf.bbox(movedFeature);
+            map.fitBounds(bbox, { padding:80, duration:600, maxZoom:16 });
+          }catch(err){ /* geçersiz geometri oluştuysa yoksay */ }
+        }
+        // Taşıma (kind:'feature') ya da köşe sürükleme (kind:'vertex') ile
+        // geometrisi değişen obje bir veritabanı katmanına aitse otomatik kaydet.
+        maybeAutoSaveDbFeature(movedFeature);
+      }
     }
     map.on('mousemove', onMove);
     map.on('mouseup', onUp);
@@ -2798,31 +4382,63 @@
     f.geometry.coordinates = shift(original.geometry.coordinates);
   }
 
+  // Bir şeklin (LineString/Polygon) kenarları arasında, verilen ekran
+  // noktasına (piksel) en yakın kenar ORTA NOKTASINI bulur — snapTolerancePx
+  // dışındaysa null döner. Hem fare hareketindeki "orta nokta işareti"
+  // önizlemesi (bkz. map 'mousemove') hem de köşe ekleme (insertVertexNear)
+  // bu tek fonksiyonu paylaşır.
+  function findNearestMidpoint(f, screenPoint){
+    if (!f || (f.geometry.type !== 'LineString' && f.geometry.type !== 'Polygon')) return null;
+    var best = null, bestDist = snapTolerancePx;
+    var rings = f.geometry.type === 'LineString' ? [f.geometry.coordinates] : [f.geometry.coordinates[0]];
+    rings.forEach(function(ring, ringIdx){
+      for (var i = 0; i < ring.length - 1; i++){
+        var a = ring[i], b = ring[i + 1];
+        var mid = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+        var midPx = map.project(mid);
+        var d = Math.hypot(midPx.x - screenPoint.x, midPx.y - screenPoint.y);
+        if (d < bestDist){ bestDist = d; best = { ringIdx: ringIdx, segIndex: i, coord: mid }; }
+      }
+    });
+    return best;
+  }
+
+  // Çizgi/poligonlara yalnızca bir KENARIN ORTA NOKTASINA (orta nokta işareti
+  // görünürken) çift tıklandığında köşe eklenir — kenar üzerindeki rastgele
+  // bir noktaya çift tıklamak artık köşe eklemez (bkz. map 'dblclick': bu
+  // durumda onun yerine Öznitelik Düzenle formu açılır).
   function insertVertexNear(featureId, lngLat){
     var f = features.find(function(x){ return x.id === featureId; });
     if (!f) return;
-    if (f.geometry.type === 'LineString'){
-      pushHistory();
-      var line = turf.lineString(f.geometry.coordinates);
-      var snapped = turf.nearestPointOnLine(line, [lngLat.lng, lngLat.lat]);
-      var idx = snapped.properties.index;
-      f.geometry.coordinates.splice(idx + 1, 0, [lngLat.lng, lngLat.lat]);
-      renderFeatures(); renderVertices(); updateEditPanel();
-    } else if (f.geometry.type === 'Polygon'){
-      pushHistory();
-      var ring = f.geometry.coordinates[0];
-      var line2 = turf.lineString(ring);
-      var snapped2 = turf.nearestPointOnLine(line2, [lngLat.lng, lngLat.lat]);
-      var idx2 = snapped2.properties.index;
-      ring.splice(idx2 + 1, 0, [lngLat.lng, lngLat.lat]);
-      renderFeatures(); renderVertices(); updateEditPanel();
-    } else {
+    if (f.geometry.type !== 'LineString' && f.geometry.type !== 'Polygon'){
       showToast('Bu geometri türüne köşe eklenemez.');
+      return;
     }
+    var best = findNearestMidpoint(f, map.project(lngLat));
+    if (!best){
+      showToast('Köşe eklemek için bir kenarın orta noktasına yakın çift tıklayın.');
+      return;
+    }
+    pushHistory();
+    if (f.geometry.type === 'LineString'){
+      f.geometry.coordinates.splice(best.segIndex + 1, 0, best.coord);
+    } else {
+      f.geometry.coordinates[0].splice(best.segIndex + 1, 0, best.coord);
+    }
+    renderFeatures(); renderVertices(); updateEditPanel();
+    maybeAutoSaveDbFeature(f);
   }
 
   map.on('contextmenu', function(e){
-    if (mode !== 'select' || !selectedId) return;
+    // Çizim sürerken sağ tık, çift tıkla aynı şekilde taslağı tamamlar —
+    // fare düğmesini değiştirmeden (dblclick için tekrar sol tıklamaya
+    // gerek kalmadan) çizimi bitirmenin hızlı bir yolu.
+    if ((mode === 'linestring' || isPolygonMode(mode) || isMeasureMode(mode)) && draftCoords && draftCoords.length >= 2){
+      e.preventDefault();
+      finishDraft();
+      return;
+    }
+    if (mode !== 'select' || selectedIds.length !== 1) return;
     var vertexHit = map.queryRenderedFeatures(e.point, { layers:['vertex-layer'] });
     if (!vertexHit.length) return;
     e.preventDefault();
@@ -2855,25 +4471,51 @@
     renderFeatures();
     renderVertices();
     updateEditPanel();
+    maybeAutoSaveDbFeature(f);
   }
 
   // ---------------------------------------------------------------------
-  // Seçim yardımcıları
+  // Seçim yardımcıları — toplu seçim (selectedIds bir dizidir):
+  // selectFeatureId(id)      → seçimi TEK bu objeyle değiştirir
+  // toggleFeatureSelection() → Ctrl+tık: objeyi seçime ekler/çıkarır
+  // setSelection(ids)        → pencere seçimi: seçimin yeni içeriği
+  // addToSelection(ids)      → Ctrl+pencere seçimi: mevcut seçime ekler
   // ---------------------------------------------------------------------
-  function selectFeatureId(id){
-    selectedId = id;
+  function refreshSelectionUI(){
     refreshSelectedFilter();
     renderVertices();
     refreshPanel();
     updateEditPanel();
+    // 'features' kaynağını da yeniden besler — seçili obje(ler) rengi seçim
+    // rengine (amber) dönsün diye (bkz. visibleFeaturesForRender → __layerColor/
+    // __layerFillColor/__extrusionColor override'ı, sadece seçim değiştiğinde
+    // tetiklenmesi gerekir, her renderFeatures() çağrısında zaten uygulanıyor
+    // olsa da SEÇIM değişimi tek başına önceden bunu tetiklemiyordu).
+    var src = map.getSource('features');
+    if (src) src.setData(fc(visibleFeaturesForRender()));
+    updateFloorSource();
+  }
+  function selectFeatureId(id){
+    selectedIds = [id];
+    refreshSelectionUI();
+  }
+  function toggleFeatureSelection(id){
+    var idx = selectedIds.indexOf(id);
+    if (idx === -1) selectedIds.push(id); else selectedIds.splice(idx, 1);
+    refreshSelectionUI();
+  }
+  function setSelection(ids){
+    selectedIds = ids.slice();
+    refreshSelectionUI();
+  }
+  function addToSelection(ids){
+    ids.forEach(function(id){ if (selectedIds.indexOf(id) === -1) selectedIds.push(id); });
+    refreshSelectionUI();
   }
   function deselect(){
-    if (!selectedId) return;
-    selectedId = null;
-    refreshSelectedFilter();
-    renderVertices();
-    refreshPanel();
-    updateEditPanel();
+    if (!selectedIds.length) return;
+    selectedIds = [];
+    refreshSelectionUI();
   }
 
   function addFeature(f){
@@ -2887,14 +4529,43 @@
     }
     features.push(f);
     renderFeatures();
+    if (f.properties.extrude) ensure3DView();
+    // Veri Girişi formunda "Doküman ekle" ile önceden hazırlanmış (henüz hiçbir
+    // objeye bağlanmamış) dosyalar varsa, obje şimdi fiilen oluştuğuna göre ona eklenir.
+    if (ffStagedDocFiles.length){
+      var stagedToCommit = ffStagedDocFiles;
+      ffStagedDocFiles = [];
+      updateFFDocBadge();
+      commitStagedDocuments(f, stagedToCommit);
+    }
+    // Aktif katman bir veritabanı (PostGIS) katmanıysa (id'si 'db-layer-' ile
+    // başlar — bkz. KrokiMapModule.tsx'teki postMessage köprüsü), Editör >
+    // Ekle ile eklenen obje doğrudan o katmana eklenmiş sayılır ve kullanıcı
+    // ayrıca "Kaydet"e basmasına gerek kalmadan oturum otomatik kaydedilir.
+    if (typeof f.properties.layerId === 'string' && f.properties.layerId.indexOf('db-layer-') === 0){
+      saveSessionToLocalStorage();
+    }
   }
   function removeFeatureById(id){
     pushHistory();
     features = features.filter(function(f){ return f.id !== id; });
-    documents = documents.filter(function(d){ return d.objectId !== id; });
-    if (selectedId === id) deselect();
+    var idx = selectedIds.indexOf(id);
+    if (idx !== -1){ selectedIds.splice(idx, 1); refreshSelectedFilter(); refreshPanel(); updateEditPanel(); }
     renderFeatures();
     renderVertices();
+  }
+  // Toplu seçimdeki TÜM objeleri tek bir geçmiş (undo) adımında siler.
+  function removeSelectedFeatures(){
+    if (!selectedIds.length) return;
+    pushHistory();
+    var idsToRemove = selectedIds.slice();
+    features = features.filter(function(f){ return idsToRemove.indexOf(f.id) === -1; });
+    selectedIds = [];
+    refreshSelectedFilter();
+    renderFeatures();
+    renderVertices();
+    refreshPanel();
+    updateEditPanel();
   }
 
   // ---------------------------------------------------------------------
@@ -2931,6 +4602,21 @@
     });
   });
 
+  // Editör > Güncelle panelindeki "Genel" / "Geometri" alt-sekmeleri — yukarıdaki
+  // Harita modülü .subtab grubundan BAĞIMSIZ çalışır (aynı sınıf adları
+  // paylaşılsaydı birbirlerini kapatırlardı), bu yüzden ayrı .edit-subtab /
+  // .edit-subtabpage sınıflarıyla kendi küçük gruplarında yönetilir.
+  var editSubtabs = Array.prototype.slice.call(document.querySelectorAll('.edit-subtab'));
+  function setEditSubtab(name){
+    editSubtabs.forEach(function(x){ x.classList.toggle('active', x.getAttribute('data-editsubtab') === name); });
+    document.querySelectorAll('.edit-subtabpage').forEach(function(p){
+      p.classList.toggle('active', p.getAttribute('data-editsubpage') === name);
+    });
+  }
+  editSubtabs.forEach(function(t){
+    t.addEventListener('click', function(){ setEditSubtab(t.getAttribute('data-editsubtab')); });
+  });
+
   // Sol kenar çubuğu (modül navigasyonu + panel) — ilk açılışta kapalı,
   // sadece sol üstteki tek bir düğmeyle (panelToggle) açılıp kapanır.
   function setSidebarOpen(open){
@@ -2947,18 +4633,40 @@
   // ---------------------------------------------------------------------
   var maps = [{ id:'map-genel', name:'Genel' }];
   var activeMapId = 'map-genel';
+  var MEASURE_FOLDER_ID = 'folder-olcumler';
+  var MEASURE_LAYER_ID = 'layer-olcumler';
   var folders = [
     { id:'folder-genel', name:'Genel', mapId:'map-genel', parentFolderId:null, expanded:true, deletable:false },
     { id:'folder-yapilar', name:'Yapılar', mapId:'map-genel', parentFolderId:'folder-genel', expanded:true, deletable:true },
-    { id:'folder-altyapi', name:'Altyapı', mapId:'map-genel', parentFolderId:'folder-genel', expanded:true, deletable:true }
+    { id:'folder-altyapi', name:'Altyapı', mapId:'map-genel', parentFolderId:'folder-genel', expanded:true, deletable:true },
+    { id: MEASURE_FOLDER_ID, name:'Ölçümler', mapId:'map-genel', parentFolderId:'folder-genel', expanded:true, deletable:false }
   ];
+  // Not: Bu araç önceden "Nokta/Çizgi/Poligon/Karma Katman" adında 4 varsayılan
+  // örnek katmanla açılıyordu. Artık veritabanı (PostGIS) katmanları gerçek
+  // içerikle geldiği için bu yer tutucu katmanlar kaldırıldı — treeview,
+  // kullanıcı kendi katmanını oluşturana ya da veritabanı katmanları yüklenene
+  // kadar boş başlar (bkz. "Yeni Katman Ekle" — bir klasöre sağ tıklayarak).
   var layers = [
-    { id:'layer-point', name:'Nokta Katmanı', visible:true, color:null, lineWidth:null, dash:'solid', symbol:'circle', scale:1, geomType:'Point', mapId:'map-genel', folderId:'folder-genel' },
-    { id:'layer-line', name:'Çizgi Katmanı', visible:true, color:null, lineWidth:null, dash:'solid', geomType:'LineString', mapId:'map-genel', folderId:'folder-genel' },
-    { id:'layer-polygon', name:'Poligon Katmanı', visible:true, color:null, lineWidth:null, dash:'solid', geomType:'Polygon', mapId:'map-genel', folderId:'folder-genel' },
-    { id:'layer-mixed', name:'Karma Katman', visible:true, color:null, lineWidth:null, dash:'solid', symbol:'circle', scale:1, geomType:null, mapId:'map-genel', folderId:'folder-genel' }
+    // Ölçüm araçlarıyla (Mesafe/Alan/Nokta) üretilen TÜM ölçümler bu karma
+    // (Point + LineString + Polygon bir arada) katmana eklenir — treeview'de
+    // ayrı bir katman olarak görünür. Sağ tıkla elle silinemez (deletable:false)
+    // ama "Yenile" butonuyla klasörü/katmanıyla birlikte tamamen temizlenir
+    // (bkz. btnRefresh) ve Editör > Aktif katman kombosunda görünmez (bkz.
+    // refreshActiveLayerSelect) — yalnızca ölçüm araçlarından üretilir.
+    { id: MEASURE_LAYER_ID, name:'Ölçüm ve Koordinatlar', mapId:'map-genel', folderId: MEASURE_FOLDER_ID, visible:true, color:'#38bdf8', fillColor:'#38bdf8', lineWidth:2, dash:'dashed', geomType:null, deletable:false }
   ];
-  var activeLayerId = 'layer-point';
+  // Refresh (veya başka bir sebeple) Ölçümler klasörü/katmanı silindiyse,
+  // yeni bir ölçüm eklenmeden önce ikisini de sessizce yeniden oluşturur.
+  function ensureMeasureLayerExists(){
+    if (!folders.some(function(f){ return f.id === MEASURE_FOLDER_ID; })){
+      folders.push({ id: MEASURE_FOLDER_ID, name:'Ölçümler', mapId:'map-genel', parentFolderId:'folder-genel', expanded:true, deletable:false });
+    }
+    if (!layers.some(function(l){ return l.id === MEASURE_LAYER_ID; })){
+      layers.push({ id: MEASURE_LAYER_ID, name:'Ölçüm ve Koordinatlar', mapId:'map-genel', folderId: MEASURE_FOLDER_ID, visible:true, color:'#38bdf8', fillColor:'#38bdf8', lineWidth:2, dash:'dashed', geomType:null, deletable:false });
+      renderLayerTree();
+    }
+  }
+  var activeLayerId = null;
   var pendingFeatureAttributes = null; // "+ Yerleştir" formundan gelen öznitelikler
   var pendingFeatureModeExpected = null; // form sonrası beklenen çizim modu
   var featureFormEditingId = null; // dolu ise, form "yeni obje" değil bu id'li objenin özniteliklerini düzenliyor demektir
@@ -2984,9 +4692,64 @@
   }
 
   function getLayer(id){ return layers.find(function(l){ return l.id === id; }); }
+  // Veritabanı (PostGIS) katmanlarının adı "Proje Sınırları — tb_proje_sinirlari (4)"
+  // biçimindedir; arayüzde (Editör > Aktif katman, Info balonu, form başlıkları vb.)
+  // yalnızca ham veritabanı tablo adı/kaydı içermeyen temiz kısım gösterilir.
+  function layerDisplayName(lyr){
+    return lyr && lyr.name ? lyr.name.split(' — ')[0] : (lyr ? lyr.name : '');
+  }
   function getDefaultFolderId(mapId){
     var f = folders.find(function(x){ return x.mapId === mapId && x.deletable === false; });
     return f ? f.id : null;
+  }
+
+  // 3B bina rengi: İnşaat İlerlemesi (%) tamamlanan kısım İşletme butonuyla
+  // aynı yeşile (emerald), kalan kısım Veri Durumu'na göre boyanır —
+  // Planlanan: mavi, İnşaat: turuncu, diğer/tanımsız: yeşil (İşletme/İptal
+  // gibi durumlar zaten "tamamlanmış" kabul edilir).
+  var EXTRUSION_PROGRESS_COLOR = '#059669';
+  function extrusionStatusColor(veriDurumu){
+    if (veriDurumu === 'Planlanan') return '#3b82f6';
+    if (veriDurumu === 'İnşaat') return '#f97316';
+    return EXTRUSION_PROGRESS_COLOR;
+  }
+  // Seçili objeler (selectedIds) sarıya boyanır — hangi obje(ler)in seçili
+  // olduğu sadece ince bir çerçeveyle değil, objenin kendi rengiyle de belli olur.
+  var SELECTION_COLOR = '#facc15';
+
+  // ---------------------------------------------------------------------
+  // 4D Analizi: 3B binaların "İnşaat İlerlemesi (%)" değeri BUGÜNÜ referans
+  // alan basit bir zaman çizelgesine yayılır (her bina 1 yıllık bir inşaat
+  // süresi varsayar; bugünkü ilerleme yüzdesi o sürenin ne kadarının
+  // geçtiğini belirler). Simülasyon açıkken, seçilen tarihe göre HER binanın
+  // o anki simüle ilerlemesi hesaplanıp renklendirme/kat doluluğunda
+  // (bkz. getEffectiveProgress) gerçek construction_progress yerine kullanılır.
+  // Gerçek veri hiç değişmez — yalnızca görselleştirme geçici olarak farklıdır.
+  var FOURD_ACTIVE = false;
+  var FOURD_TOTAL_DAYS = 365;
+  var FOURD_SIM_DATE = new Date();
+  function fourDSimulatedProgress(f){
+    var raw = parseFloat(f.properties && f.properties.construction_progress);
+    if (isNaN(raw)) return null;
+    var clamped = Math.max(0, Math.min(100, raw));
+    var today = new Date(); today.setHours(0,0,0,0);
+    var dayMs = 86400000;
+    var startDate = new Date(today.getTime() - (clamped / 100) * FOURD_TOTAL_DAYS * dayMs);
+    var endDate = new Date(startDate.getTime() + FOURD_TOTAL_DAYS * dayMs);
+    var t = FOURD_SIM_DATE.getTime();
+    if (t <= startDate.getTime()) return 0;
+    if (t >= endDate.getTime()) return 100;
+    return ((t - startDate.getTime()) / (endDate.getTime() - startDate.getTime())) * 100;
+  }
+  // Bir objenin o anki "etkin" ilerleme yüzdesini döndürür: 4D simülasyonu
+  // açıksa simüle değeri, kapalıysa gerçek (kaydedilmiş) değeri kullanır.
+  function getEffectiveProgress(f){
+    if (FOURD_ACTIVE){
+      var sim = fourDSimulatedProgress(f);
+      return sim === null ? 0 : sim;
+    }
+    var raw = parseFloat(f.properties && f.properties.construction_progress);
+    return isNaN(raw) ? 0 : raw;
   }
 
   function visibleFeaturesForRender(){
@@ -2996,18 +4759,32 @@
       if (lyr.mapId && lyr.mapId !== activeMapId) return false;
       return lyr.visible !== false;
     }).map(function(f){
+      // MapLibre, GeoJSON kaynaklarında poligon/çizgi sorgularında (özellikle
+      // queryRenderedFeatures ile pencere/toplu seçimde) üst seviye `id` alanını
+      // her zaman güvenilir biçimde geri döndürmeyebilir — bu yüzden objenin
+      // kendi id'si `properties.featureId` içine de kopyalanır; seçim mantığı
+      // (hp.parentId || hp.featureId || h.id) zaten bu alanı önceliklendirir.
       var lyr = getLayer(f.properties && f.properties.layerId);
-      if (lyr && (lyr.color || lyr.fillColor || lyr.lineWidth || lyr.dash || lyr.symbol || lyr.scale)){
-        var f2 = JSON.parse(JSON.stringify(f));
+      var f2 = JSON.parse(JSON.stringify(f));
+      f2.properties.featureId = f.id;
+      if (lyr){
         if (lyr.color) f2.properties.__layerColor = lyr.color;
         if (lyr.fillColor) f2.properties.__layerFillColor = lyr.fillColor;
         if (lyr.lineWidth) f2.properties.__layerWidth = lyr.lineWidth;
         if (lyr.dash) f2.properties.__layerDash = lyr.dash;
         if (lyr.symbol) f2.properties.__layerSymbol = lyr.symbol;
         if (lyr.scale) f2.properties.__layerScale = lyr.scale;
-        return f2;
       }
-      return f;
+      if (f2.geometry.type === 'Polygon' && f2.properties && f2.properties.extrude){
+        var progress = getEffectiveProgress(f2);
+        f2.properties.__extrusionColor = (progress >= 100) ? EXTRUSION_PROGRESS_COLOR : extrusionStatusColor(f2.properties.veri_durumu);
+      }
+      if (selectedIds.indexOf(f.id) !== -1){
+        f2.properties.__layerColor = SELECTION_COLOR;
+        f2.properties.__layerFillColor = SELECTION_COLOR;
+        f2.properties.__extrusionColor = SELECTION_COLOR;
+      }
+      return f2;
     });
   }
 
@@ -3037,7 +4814,13 @@
       var row = document.createElement('div');
       row.className = 'ctx-menu-item' + (it.danger ? ' danger' : '');
       row.textContent = it.label;
-      row.addEventListener('click', function(){ menu.classList.remove('show'); it.action(); });
+      // stopPropagation: bazı menü öğeleri (ör. "Farklı Kaydet...") kendi
+      // action()'ı içinde AYNI menü elemanını yeniden kullanarak bir alt menü
+      // (format seçimi) açar. Tıklama document'a kadar kabarcıklanmaya devam
+      // ederse, aşağıdaki genel "boş yere tıklayınca menüyü kapat" dinleyicisi
+      // az önce açılan alt menüyü de anında kapatıyordu — bu yüzden "Farklı
+      // Kaydet" hiçbir şey yapmıyormuş gibi görünüyordu.
+      row.addEventListener('click', function(e){ e.stopPropagation(); menu.classList.remove('show'); it.action(); });
       menu.appendChild(row);
     });
     var vw = window.innerWidth, vh = window.innerHeight;
@@ -3047,20 +4830,21 @@
   }
   document.addEventListener('click', function(){ document.getElementById('treeContextMenu').classList.remove('show'); });
 
-  function addFolderPrompt(parentFolderId){
-    var name = prompt('Klasör adı:', 'Yeni Klasör');
+  async function addFolderPrompt(parentFolderId){
+    var name = await customPrompt('Klasör adı:', 'Yeni Klasör');
     if (!name || !name.trim()) return;
     folders.push({ id:'folder-' + uid(), name:name.trim(), mapId:activeMapId, parentFolderId: parentFolderId || null, expanded:true });
     renderLayerTree();
+    saveSessionToLocalStorage();
   }
-  function deleteFolderConfirm(folderId){
+  async function deleteFolderConfirm(folderId){
     var folder = folders.find(function(f){ return f.id === folderId; });
     if (!folder) return;
     if (folder.deletable === false){ showToast('"' + folder.name + '" varsayılan klasörü silinemez.'); return; }
     var descLayerIds = collectDescendantLayerIds(folderId);
     var totalFeatures = features.filter(function(f){ return descLayerIds.indexOf(f.properties && f.properties.layerId) >= 0; }).length;
     var msg = (descLayerIds.length || totalFeatures) ? ('Bu klasördeki ' + descLayerIds.length + ' katman ve ' + totalFeatures + ' şekil de silinecek. Emin misiniz?') : 'Klasör silinsin mi?';
-    if (!confirm(msg)) return;
+    if (!(await customConfirm(msg, { title:'Klasörü Sil', okLabel:'Sil', danger:true }))) return;
     pushHistory();
     var allFolderIds = collectAllFolderIds(folderId);
     features = features.filter(function(f){ return descLayerIds.indexOf(f.properties && f.properties.layerId) === -1; });
@@ -3069,12 +4853,13 @@
     if (!layers.find(function(l){ return l.id === activeLayerId; })) activeLayerId = layers[0] ? layers[0].id : null;
     renderFeatures(); renderLayerTree();
   }
-  function deleteLayerConfirm(layerId){
+  async function deleteLayerConfirm(layerId){
     var lyr = getLayer(layerId);
     if (!lyr) return;
+    if (lyr.deletable === false){ showToast('"' + lyr.name + '" katmanı oturum boyunca silinemez.'); return; }
     var count = features.filter(function(f){ return (f.properties && f.properties.layerId) === layerId; }).length;
     var msg = count > 0 ? ('Bu katmandaki ' + count + ' şekil de silinecek. Emin misiniz?') : 'Katman silinsin mi?';
-    if (!confirm(msg)) return;
+    if (!(await customConfirm(msg, { title:'Katmanı Sil', okLabel:'Sil', danger:true }))) return;
     pushHistory();
     features = features.filter(function(f){ return (f.properties && f.properties.layerId) !== layerId; });
     layers = layers.filter(function(l){ return l.id !== layerId; });
@@ -3086,6 +4871,93 @@
   }
   var pendingLayerFolderId = null;
 
+  // ---------------------------------------------------------------------
+  // "Kaydet" — bu araç kendi başına bir sunucu/veritabanına yazmadığı için
+  // (bkz. dosya başındaki not), "Kaydet" mevcut klasör/katman/şekil durumunu
+  // tarayıcının localStorage'ında saklar; sayfa yeniden açıldığında (aynı
+  // tarayıcıda) map.on('load') içinde otomatik geri yüklenir. Veritabanı
+  // (PostGIS) köprüsüyle aynı id-bazlı tekrar-etmeme (dedup) mantığını
+  // kullanır, böylece aynı kayıt iki kez eklenmez.
+  // ---------------------------------------------------------------------
+  // Bir veritabanı (PostGIS) katmanına ait ("db-layer-" ön ekli layerId)
+  // bir objenin geometrisi taşınınca/değiştirilince (sürükleyerek taşıma,
+  // köşe ekleme/silme/sürükleme) oturumu otomatik kaydeder — tıpkı yeni bir
+  // obje o katmana eklendiğinde olduğu gibi (bkz. addFeature).
+  function maybeAutoSaveDbFeature(f){
+    if (f && f.properties && typeof f.properties.layerId === 'string' && f.properties.layerId.indexOf('db-layer-') === 0){
+      saveSessionToLocalStorage();
+      // Tarayıcı localStorage'ına ek olarak, bu obje asıl PostGIS veritabanı
+      // (tb_proje_sinirlari / tb_binalar_3d / tb_altyapi_hatlari) katmanına
+      // aitse üst pencereye (React) 'kroki:update-db-feature' ile bildirilir;
+      // üst pencere ilgili api.updateXXX() çağrısıyla güncel geometriyi/
+      // öznitelikleri veritabanına (mock backend) anında yazar.
+      try{
+        window.parent.postMessage({
+          type: 'kroki:update-db-feature',
+          layerId: f.properties.layerId,
+          featureId: f.id,
+          geometry: f.geometry,
+          properties: f.properties
+        }, '*');
+      }catch(e){ /* izole/erişilemez üst pencere — yoksay */ }
+    }
+  }
+
+  var KROKI_SESSION_STORAGE_KEY = 'kroki_session_v1';
+  function saveSessionToLocalStorage(){
+    try{
+      var payload = { folders: folders, layers: layers, features: features, savedAt: new Date().toISOString() };
+      localStorage.setItem(KROKI_SESSION_STORAGE_KEY, JSON.stringify(payload));
+      showToast('Kaydedildi — ' + features.length + ' şekil tarayıcıda saklandı.');
+    }catch(err){
+      console.error('Oturum kaydedilemedi:', err);
+      showToast('Kaydetme başarısız oldu.');
+    }
+  }
+  function restoreSessionFromLocalStorage(){
+    try{
+      var raw = localStorage.getItem(KROKI_SESSION_STORAGE_KEY);
+      if (!raw) return;
+      var payload = JSON.parse(raw);
+      var addedFeatureCount = 0;
+      var addedFolderOrLayerCount = 0;
+      (payload.folders || []).forEach(function(f){
+        if (!folders.some(function(x){ return x.id === f.id; })){ folders.push(f); addedFolderOrLayerCount++; }
+      });
+      (payload.layers || []).forEach(function(l){
+        if (!layers.some(function(x){ return x.id === l.id; })){ layers.push(l); addedFolderOrLayerCount++; }
+      });
+      (payload.features || []).forEach(function(f){
+        if (!features.some(function(x){ return x.id === f.id; })){ features.push(f); addedFeatureCount++; }
+      });
+      if (!activeLayerId && layers.length){
+        var firstSelectable = layers.filter(function(l){ return l.id !== MEASURE_LAYER_ID; })[0];
+        activeLayerId = firstSelectable ? firstSelectable.id : null;
+      }
+      // Klasör/katman sırası (folderId, layers dizisindeki konum) da kayıtlı
+      // oturumdaki haliyle uygulanır — sürükle-bırak ile yapılan sıralama
+      // değişiklikleri de böylece yeniden yüklemede korunur.
+      if (payload.layers && payload.layers.length){
+        var savedOrder = payload.layers.map(function(l){ return l.id; });
+        layers.sort(function(a, b){
+          var ia = savedOrder.indexOf(a.id), ib = savedOrder.indexOf(b.id);
+          if (ia === -1) ia = savedOrder.length;
+          if (ib === -1) ib = savedOrder.length;
+          return ia - ib;
+        });
+        layers.forEach(function(lyr){
+          var saved = payload.layers.find(function(l){ return l.id === lyr.id; });
+          if (saved && saved.folderId !== undefined) lyr.folderId = saved.folderId;
+        });
+      }
+      if (addedFeatureCount || addedFolderOrLayerCount){
+        renderFeatures(); renderLayerTree(); refreshActiveLayerSelect();
+      }
+    }catch(err){
+      console.error('Kaydedilmiş oturum geri yüklenemedi:', err);
+    }
+  }
+
   // "Yakınlaş (Zoom To)" — bir katmanın tüm şekillerini kapsayacak şekilde haritayı yakınlaştırır.
   function zoomToLayer(layerId){
     var feats = features.filter(function(f){ return (f.properties && f.properties.layerId) === layerId; });
@@ -3094,6 +4966,190 @@
       var bbox = turf.bbox(fc(feats));
       map.fitBounds(bbox, { padding:80, duration:600, maxZoom:18 });
     }catch(e){ showToast('Bu katmana yakınlaşılamadı.'); }
+  }
+
+  // ---------------------------------------------------------------------
+  // GeoPackage (.gpkg) dışa aktarımı — gerçek bir GeoPackage, aslında
+  // belirli bir şema izleyen bir SQLite veritabanı dosyasıdır. Bunu doğru
+  // şekilde üretmek için tarayıcıda çalışan gerçek bir SQLite motoru
+  // (sql.js — SQLite'ın WebAssembly derlemesi) kullanılır; elle bayt bayt
+  // bir SQLite dosyası inşa etmek (shapefile/DXF encoder'larımızın aksine)
+  // pratik değildir.
+  // ---------------------------------------------------------------------
+  var GPKG_SRS_ID = 4326;
+  var GPKG_WGS84_WKT = 'GEOGCS["WGS 84",DATUM["WGS_1984",SPHEROID["WGS 84",6378137,298.257223563,AUTHORITY["EPSG","7030"]],AUTHORITY["EPSG","6326"]],PRIMEM["Greenwich",0,AUTHORITY["EPSG","8901"]],UNIT["degree",0.0174532925199433,AUTHORITY["EPSG","9122"]],AUTHORITY["EPSG","4326"]]';
+  var sqlJsPromise = null;
+  function ensureSqlJs(){
+    if (!sqlJsPromise){
+      if (typeof initSqlJs === 'undefined'){
+        return Promise.reject(new Error('sql.js kütüphanesi yüklenemedi (internet bağlantınızı kontrol edin).'));
+      }
+      sqlJsPromise = initSqlJs({
+        locateFile: function(file){ return 'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.14.2/' + file; }
+      });
+    }
+    return sqlJsPromise;
+  }
+
+  // Standart WKB (Well-Known Binary, little-endian) — Point / LineString / Polygon.
+  function wkbForGeometry(geom){
+    function writePoint(view, offset, coord){
+      view.setFloat64(offset, coord[0], true);
+      view.setFloat64(offset + 8, coord[1], true);
+      return offset + 16;
+    }
+    if (geom.type === 'Point'){
+      var buf = new ArrayBuffer(21);
+      var view = new DataView(buf);
+      view.setUint8(0, 1);
+      view.setUint32(1, 1, true);
+      writePoint(view, 5, geom.coordinates);
+      return new Uint8Array(buf);
+    }
+    if (geom.type === 'LineString'){
+      var coords = geom.coordinates;
+      var buf2 = new ArrayBuffer(9 + coords.length * 16);
+      var view2 = new DataView(buf2);
+      view2.setUint8(0, 1);
+      view2.setUint32(1, 2, true);
+      view2.setUint32(5, coords.length, true);
+      var off = 9;
+      coords.forEach(function(c){ off = writePoint(view2, off, c); });
+      return new Uint8Array(buf2);
+    }
+    if (geom.type === 'Polygon'){
+      var rings = geom.coordinates;
+      var totalPts = rings.reduce(function(s, r){ return s + r.length; }, 0);
+      var buf3 = new ArrayBuffer(9 + rings.length * 4 + totalPts * 16);
+      var view3 = new DataView(buf3);
+      view3.setUint8(0, 1);
+      view3.setUint32(1, 3, true);
+      view3.setUint32(5, rings.length, true);
+      var off3 = 9;
+      rings.forEach(function(ring){
+        view3.setUint32(off3, ring.length, true); off3 += 4;
+        ring.forEach(function(c){ off3 = writePoint(view3, off3, c); });
+      });
+      return new Uint8Array(buf3);
+    }
+    return null;
+  }
+
+  // GeoPackage geometri BLOB'u: "GP" imzası + versiyon + bayraklar + SRS id + WKB gövdesi.
+  function gpkgGeometryBlob(geom, srsId){
+    var wkb = wkbForGeometry(geom);
+    if (!wkb) return null;
+    var out = new Uint8Array(8 + wkb.length);
+    out[0] = 0x47; out[1] = 0x50; out[2] = 0; out[3] = 0x01; // 'G','P', v0, flags(little-endian, zarf yok)
+    new DataView(out.buffer).setInt32(4, srsId, true);
+    out.set(wkb, 8);
+    return out;
+  }
+
+  function groupFeaturesByGeomType(feats, tableNamePrefix){
+    var byType = { Point: [], LineString: [], Polygon: [] };
+    feats.forEach(function(f){ if (f.geometry && byType[f.geometry.type]) byType[f.geometry.type].push(f); });
+    var typeNames = { Point:'POINT', LineString:'LINESTRING', Polygon:'POLYGON' };
+    var suffix = { Point:'points', LineString:'lines', Polygon:'polygons' };
+    var safePrefix = (tableNamePrefix || 'cizim').replace(/[^a-zA-Z0-9_]/g, '_').slice(0, 40) || 'cizim';
+    var groups = [];
+    Object.keys(byType).forEach(function(gt){
+      if (!byType[gt].length) return;
+      groups.push({ tableName: safePrefix + '_' + suffix[gt], geomTypeName: typeNames[gt], label: suffix[gt], features: byType[gt] });
+    });
+    return groups;
+  }
+
+  // featureGroups: [{ tableName, geomTypeName, label, features }] — her biri kendi
+  // feature tablosuna, tutarlı bir GeoPackage (gpkg_contents/gpkg_geometry_columns
+  // kayıtlarıyla birlikte) içine yazılır. Dönen değer indirilmeye hazır bir Blob'dur.
+  async function buildGeoPackageBlob(featureGroups){
+    var SQL = await ensureSqlJs();
+    var db = new SQL.Database();
+    db.run('PRAGMA application_id = 1196444487;'); // ASCII 'GPKG'
+    db.run('PRAGMA user_version = 10300;'); // GeoPackage 1.3.0
+
+    db.run(
+      'CREATE TABLE gpkg_spatial_ref_sys (' +
+      'srs_name TEXT NOT NULL, srs_id INTEGER NOT NULL PRIMARY KEY, ' +
+      'organization TEXT NOT NULL, organization_coordsys_id INTEGER NOT NULL, ' +
+      'definition TEXT NOT NULL, description TEXT);'
+    );
+    db.run(
+      "INSERT INTO gpkg_spatial_ref_sys VALUES " +
+      "('Undefined cartesian SRS', -1, 'NONE', -1, 'undefined', 'undefined cartesian coordinate reference system')," +
+      "('Undefined geographic SRS', 0, 'NONE', 0, 'undefined', 'undefined geographic coordinate reference system')," +
+      "('WGS 84 geodetic', 4326, 'EPSG', 4326, '" + GPKG_WGS84_WKT + "', 'longitude/latitude coordinates in decimal degrees on the WGS 84 spheroid');"
+    );
+    db.run(
+      'CREATE TABLE gpkg_contents (' +
+      'table_name TEXT NOT NULL PRIMARY KEY, data_type TEXT NOT NULL, identifier TEXT UNIQUE, ' +
+      "description TEXT DEFAULT '', last_change DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))," +
+      'min_x DOUBLE, min_y DOUBLE, max_x DOUBLE, max_y DOUBLE, srs_id INTEGER,' +
+      'CONSTRAINT fk_gc_r_srs_id FOREIGN KEY (srs_id) REFERENCES gpkg_spatial_ref_sys(srs_id));'
+    );
+    db.run(
+      'CREATE TABLE gpkg_geometry_columns (' +
+      'table_name TEXT NOT NULL, column_name TEXT NOT NULL, geometry_type_name TEXT NOT NULL, ' +
+      'srs_id INTEGER NOT NULL, z TINYINT NOT NULL, m TINYINT NOT NULL, ' +
+      'CONSTRAINT pk_geom_cols PRIMARY KEY (table_name, column_name), ' +
+      'CONSTRAINT fk_gc_tn FOREIGN KEY (table_name) REFERENCES gpkg_contents(table_name), ' +
+      'CONSTRAINT fk_gc_srs FOREIGN KEY (srs_id) REFERENCES gpkg_spatial_ref_sys(srs_id));'
+    );
+
+    var contentsStmt = db.prepare('INSERT INTO gpkg_contents (table_name, data_type, identifier, description, min_x, min_y, max_x, max_y, srs_id) VALUES (?,?,?,?,?,?,?,?,?)');
+    var geomColStmt = db.prepare('INSERT INTO gpkg_geometry_columns VALUES (?,?,?,?,0,0)');
+
+    featureGroups.forEach(function(group){
+      if (!group.features.length) return;
+      var tn = group.tableName;
+      db.run('CREATE TABLE "' + tn + '" (fid INTEGER PRIMARY KEY AUTOINCREMENT, geom ' + group.geomTypeName + ', layer_name TEXT, name TEXT, properties TEXT);');
+
+      var bbox = [180, 90, -180, -90];
+      try{ var b = turf.bbox({ type:'FeatureCollection', features: group.features }); bbox = b; }catch(e){ /* geçersiz geometri varsa dünya sınırını kullan */ bbox = [-180,-90,180,90]; }
+      contentsStmt.run([tn, 'features', tn, group.label || tn, bbox[0], bbox[1], bbox[2], bbox[3], GPKG_SRS_ID]);
+      geomColStmt.run([tn, 'geom', group.geomTypeName, GPKG_SRS_ID]);
+
+      var insertStmt = db.prepare('INSERT INTO "' + tn + '" (geom, layer_name, name, properties) VALUES (?,?,?,?)');
+      group.features.forEach(function(f){
+        var blob = gpkgGeometryBlob(f.geometry, GPKG_SRS_ID);
+        if (!blob) return;
+        var props = f.properties || {};
+        var lyrForFeature = getLayer(props.layerId);
+        insertStmt.run([blob, lyrForFeature ? lyrForFeature.name : '', props.name || '', JSON.stringify(props)]);
+      });
+      insertStmt.free();
+    });
+    contentsStmt.free();
+    geomColStmt.free();
+
+    var data = db.export();
+    db.close();
+    return new Blob([data], { type: 'application/geopackage+sqlite3' });
+  }
+
+  async function exportFeaturesAsGeoPackage(feats, baseName){
+    if (!feats.length){ showToast('Dışa aktarılacak şekil yok.'); return; }
+    var safeBase = (baseName || 'cizim').replace(/[\\\/:*?"<>|]+/g, '_').trim() || 'cizim';
+    showLoading('GeoPackage oluşturuluyor…');
+    try{
+      var groups = groupFeaturesByGeomType(feats, safeBase);
+      var blob = await buildGeoPackageBlob(groups);
+      downloadBlob(blob, safeBase + '.gpkg');
+      showToast(safeBase + '.gpkg indirildi (' + feats.length + ' şekil).');
+    }catch(err){
+      console.error('GeoPackage oluşturulamadı:', err);
+      showToast('GeoPackage oluşturulamadı: ' + (err && err.message ? err.message : 'bilinmeyen hata'));
+    }finally{
+      hideLoading();
+    }
+  }
+
+  // "Export (GeoPackage)" — CBS Haritası split-butonundan: TÜM çizimi (aktif
+  // haritadaki bütün katman/klasörlerin şekillerini) tek bir .gpkg dosyasında
+  // (geometri türüne göre ayrı tablolar halinde) dışa aktarır.
+  function exportAllAsGeoPackage(){
+    exportFeaturesAsGeoPackage(features, 'kroki_tum_cizim');
   }
 
   // "Farklı Kaydet..." — tek bir katmanın şekillerini seçilen formatta indirir.
@@ -3158,7 +5214,7 @@
         showToast(baseName + '-shapefile.zip indirildi.');
       });
     } else if (format === 'gpkg'){
-      showToast('GeoPackage bu ortamda desteklenmiyor — GeoJSON olarak indirip QGIS ile GPKG\'ye dönüştürebilirsiniz.');
+      exportFeaturesAsGeoPackage(feats, baseName);
     }
   }
 
@@ -3203,7 +5259,7 @@
         { label:'Yeni Klasör Ekle', action:function(){ addFolderPrompt(folder.id); } },
         { label:'Yeni Katman Ekle', action:function(){ openLayerModalForFolder(folder.id); } },
         { sep:true },
-        { label:'Yeniden Adlandır', action:function(){ var n = prompt('Klasör adı:', folder.name); if (n && n.trim()){ folder.name = n.trim(); renderLayerTree(); } } }
+        { label:'Yeniden Adlandır', action:async function(){ var n = await customPrompt('Klasör adı:', folder.name); if (n && n.trim()){ folder.name = n.trim(); renderLayerTree(); } } }
       ];
       if (folder.deletable !== false){
         items.push({ label:'Sil', danger:true, action:function(){ deleteFolderConfirm(folder.id); } });
@@ -3259,7 +5315,7 @@
       showTreeContextMenu(cx, cy, [
         { label:'Yakınlaş (Zoom To)', action:function(){ zoomToLayer(lyr.id); } },
         { sep:true },
-        { label:'Yeniden Adlandır', action:function(){ var n = prompt('Katman adı:', lyr.name); if (n && n.trim()){ lyr.name = n.trim(); renderLayerTree(); } } },
+        { label:'Yeniden Adlandır', action:async function(){ var n = await customPrompt('Katman adı:', lyr.name); if (n && n.trim()){ lyr.name = n.trim(); renderLayerTree(); } } },
         { label:'Stil', action:function(){ openLayerStyleModal(lyr.id); } },
         { sep:true },
         { label:'Sil', danger:true, action:function(){ deleteLayerConfirm(lyr.id); } },
@@ -3319,6 +5375,7 @@
       layers.push(lyr);
     }
     renderLayerTree();
+    saveSessionToLocalStorage();
     if (fromFolder !== (targetFolderId || null)){
       var f = folders.find(function(x){ return x.id === targetFolderId; });
       showToast('"' + lyr.name + '"' + (f ? (' → "' + f.name + '" klasörüne taşındı.') : ' kök seviyeye taşındı.'));
@@ -3341,9 +5398,9 @@
     row.addEventListener('contextmenu', function(e){
       e.preventDefault(); e.stopPropagation();
       showTreeContextMenu(e.clientX, e.clientY, [
-        { label:'Yeniden Adlandır', action:function(){ var n = prompt('Ad:', r.name || 'Raster'); if (n && n.trim()){ r.name = n.trim(); renderLayerTree(); } } },
-        { label:'Sil', danger:true, action:function(){
-          if (!confirm('Raster katman silinsin mi?')) return;
+        { label:'Yeniden Adlandır', action:async function(){ var n = await customPrompt('Ad:', r.name || 'Raster'); if (n && n.trim()){ r.name = n.trim(); renderLayerTree(); } } },
+        { label:'Sil', danger:true, action:async function(){
+          if (!(await customConfirm('Raster katman silinsin mi?', { title:'Rasteri Sil', okLabel:'Sil', danger:true }))) return;
           if (map.getLayer(r.id)) map.removeLayer(r.id);
           if (map.getSource(r.id)) map.removeSource(r.id);
           rasterOverlays = rasterOverlays.filter(function(x){ return x !== r; });
@@ -3416,8 +5473,9 @@
     e.stopPropagation();
     document.getElementById('mapSelectDropList').classList.toggle('show');
   });
-  document.getElementById('btnAddContent').addEventListener('click', function(e){
-    e.stopPropagation();
+  // "İmport" — vektör/raster dosya seçme popover'ı (eskiden "+" butonuna
+  // bağlıydı; artık CBS Haritası split-butonunun altındaki menüden açılır).
+  function showAddContentPopover(){
     var pop = document.getElementById('addContentPopover');
     pop.innerHTML = '';
     [
@@ -3440,7 +5498,44 @@
       document.getElementById('importInput').click();
     });
     pop.appendChild(btn2);
-    pop.classList.toggle('show');
+    pop.classList.add('show');
+  }
+
+  // ---------------------------------------------------------------------
+  // "CBS Haritası" yanındaki split buton: varsayılan tıklama "Kaydet",
+  // ok kısmı açılan küçük menüde "İmport" (eski "+" butonunun işlevi) ve
+  // "Export" (tüm çizimi GeoPackage olarak indir) seçeneklerini sunar.
+  // ---------------------------------------------------------------------
+  document.getElementById('btnMapSplitToggle').addEventListener('click', function(e){
+    e.stopPropagation();
+    document.getElementById('addContentPopover').classList.remove('show');
+    document.getElementById('mapSplitMenu').classList.toggle('show');
+  });
+  document.getElementById('btnMapSave').addEventListener('click', function(e){
+    e.stopPropagation();
+    document.getElementById('mapSplitMenu').classList.remove('show');
+    saveSessionToLocalStorage();
+  });
+  document.getElementById('btnMapImport').addEventListener('click', function(e){
+    e.stopPropagation();
+    document.getElementById('mapSplitMenu').classList.remove('show');
+    showAddContentPopover();
+  });
+  document.getElementById('btnMapExport').addEventListener('click', function(e){
+    e.stopPropagation();
+    document.getElementById('mapSplitMenu').classList.remove('show');
+    exportAllAsGeoPackage();
+  });
+  document.addEventListener('click', function(e){
+    var menu = document.getElementById('mapSplitMenu');
+    var toggleBtn = document.getElementById('mapSplitBtn');
+    if (menu.classList.contains('show') && !toggleBtn.contains(e.target)){
+      menu.classList.remove('show');
+    }
+    var pop3 = document.getElementById('addContentPopover');
+    if (pop3.classList.contains('show') && !pop3.contains(e.target) && !toggleBtn.contains(e.target)){
+      pop3.classList.remove('show');
+    }
   });
 
   // Editör sekmesindeki "Aktif katman" combobox'ını katman listesiyle
@@ -3457,14 +5552,17 @@
     } else {
       iconEl.innerHTML = '';
     }
-    document.getElementById('activeLayerDropName').textContent = active ? active.name : '—';
+    document.getElementById('activeLayerDropName').textContent = active ? layerDisplayName(active) : '—';
 
     list.innerHTML = '';
-    layers.forEach(function(lyr){
+    // Ölçümler katmanı yalnızca ölçüm araçlarından (Mesafe/Alan/Nokta)
+    // otomatik doldurulur — Editör > Aktif katman kombosunda seçenek olarak
+    // gösterilmez (elle obje eklenmesi amaçlanmıyor).
+    layers.filter(function(lyr){ return lyr.id !== MEASURE_LAYER_ID; }).forEach(function(lyr){
       var item = document.createElement('div');
       item.className = 'active-layer-drop-item';
       var lyrIconColor = lyr.color || defaultColorFor(lyr.geomType);
-      item.innerHTML = '<span style="display:flex;color:' + lyrIconColor + ';">' + ((lyr.geomType === 'Point' && lyr.symbol) ? symbolIconSvg(lyr.symbol) : geomTypeIcon(lyr.geomType)) + '</span>' + '<span>' + lyr.name.replace(/</g,'&lt;') + '</span>';
+      item.innerHTML = '<span style="display:flex;color:' + lyrIconColor + ';">' + ((lyr.geomType === 'Point' && lyr.symbol) ? symbolIconSvg(lyr.symbol) : geomTypeIcon(lyr.geomType)) + '</span>' + '<span>' + layerDisplayName(lyr).replace(/</g,'&lt;') + '</span>';
       item.addEventListener('click', function(){
         activeLayerId = lyr.id;
         list.classList.remove('show');
@@ -3491,16 +5589,13 @@
   // (Dikdörtgen/Çember + 3B seçeneği) alt bölümünü buna göre gösterir/gizler.
   function refreshEditorLayerHint(){
     var hint = document.getElementById('activeLayerGeomHint');
-    var quick = document.getElementById('quickShapeGroup');
     var lyr = getLayer(activeLayerId);
     syncDraftStyleToActiveLayer();
-    if (!hint || !quick || !lyr) return;
+    if (!hint || !lyr) return;
     if (!lyr.geomType){
       hint.textContent = '"' + lyr.name + '" için geometri türü tanımlı değil — Harita sekmesinden türü belirlenmiş bir katman seçin/oluşturun.';
-      quick.style.display = 'none';
     } else {
       hint.textContent = 'Aktif katman: "' + lyr.name + '" (' + geomTypeLabel(lyr.geomType) + ')';
-      quick.style.display = (lyr.geomType === 'Polygon') ? 'block' : 'none';
     }
   }
 
@@ -3528,6 +5623,7 @@
     activeLayerId = id;
     pendingLayerFolderId = null;
     renderLayerTree();
+    saveSessionToLocalStorage();
     document.getElementById('layerModal').classList.remove('show');
     showToast('"' + name + '" katmanı (' + geomTypeLabel(pendingGeomType) + ') oluşturuldu ve aktif yapıldı.');
   });
@@ -3652,83 +5748,78 @@
   // Aynı form, "Öznitelik" ile seçili bir objeyi düzenlemek için de kullanılır
   // (featureFormEditingId doluysa gönderim yeni obje çizmez, mevcut objeyi günceller).
   // ---------------------------------------------------------------------
+  var ffSelectedShape = 'polygon'; // 'polygon' (serbest) | 'rectangle' | 'circle' — sadece Poligon katmanlarda anlamlı
+  function ffSyncShapeButtons(){
+    document.querySelectorAll('#ffShapeButtons .tool').forEach(function(b){
+      b.classList.toggle('active', b.getAttribute('data-shape') === ffSelectedShape);
+    });
+  }
+  document.querySelectorAll('#ffShapeButtons .tool').forEach(function(b){
+    b.addEventListener('click', function(){ ffSelectedShape = b.getAttribute('data-shape'); ffSyncShapeButtons(); });
+  });
+  document.getElementById('ff3DCheckbox').addEventListener('change', function(e){
+    document.getElementById('ff3DFields').style.display = e.target.checked ? 'flex' : 'none';
+  });
+
   document.getElementById('btnPlaceFeature').addEventListener('click', function(){
     var lyr = getLayer(activeLayerId);
     if (!lyr){ showToast('Önce bir katman seçin.'); return; }
     if (!lyr.geomType){ showToast('Bu katman için geometri türü tanımlanmamış — Harita sekmesinden türü belirlenmiş bir katman seçin/oluşturun.'); return; }
-    featureFormEditingId = null;
-    document.getElementById('featureFormTitle').textContent = lyr.name + ' — Veri Girişi (' + geomTypeLabel(lyr.geomType) + ')';
-    document.getElementById('ffName').value = '';
-    document.getElementById('ffDescription').value = '';
-    document.getElementById('ffCustomFields').innerHTML = '';
+    document.getElementById('featureFormTitleIcon').innerHTML = geomTypeIcon(lyr.geomType);
+    document.getElementById('featureFormTitleText').textContent = lyr.name.split(' — ')[0] + ' — Veri Girişi (' + geomTypeLabel(lyr.geomType) + ')';
+    var isPoly = lyr.geomType === 'Polygon';
+    document.getElementById('ffShapeSection').style.display = isPoly ? 'block' : 'none';
+    ffSelectedShape = 'polygon';
+    ffSyncShapeButtons();
+    document.getElementById('ff3DCheckbox').checked = false;
+    document.getElementById('ff3DFields').style.display = 'none';
+    document.getElementById('ffFloors').value = 1;
+    document.getElementById('ffFloorHeight').value = 3;
+    renderSchemaFields(document.getElementById('ffDynamicFields'), lyr, null);
+    ffStagedDocFiles = [];
+    updateFFDocBadge();
     document.getElementById('featureFormModal').classList.add('show');
   });
-  document.getElementById('btnEditAttributes').addEventListener('click', function(){
-    var f = selectedFeature();
-    if (!f){ showToast('Önce düzenlenecek bir obje seçin.'); return; }
-    var lyr = getLayer(f.properties && f.properties.layerId);
-    featureFormEditingId = f.id;
-    document.getElementById('featureFormTitle').textContent = (lyr ? lyr.name + ' — ' : '') + 'Öznitelikleri Düzenle';
-    document.getElementById('ffName').value = (f.properties && f.properties.name) || '';
-    document.getElementById('ffDescription').value = (f.properties && f.properties.description) || '';
-    var customFieldsEl = document.getElementById('ffCustomFields');
-    customFieldsEl.innerHTML = '';
-    Object.keys(f.properties || {}).forEach(function(k){
-      if (['name','description','layerId','extrude','floors','floorHeight','height','base','pipe','diameter','shape'].indexOf(k) >= 0) return;
-      addCustomFieldRow(k, f.properties[k]);
-    });
-    document.getElementById('featureFormModal').classList.add('show');
-  });
-  document.getElementById('btnFFCancel').addEventListener('click', function(){
-    featureFormEditingId = null;
+  function closeFeatureFormModal(){
     document.getElementById('featureFormModal').classList.remove('show');
-  });
-  function addCustomFieldRow(key, val){
-    var row = document.createElement('div');
-    row.className = 'ff-custom-row';
-    row.innerHTML = '<input type="text" placeholder="Alan adı" class="ff-key"><input type="text" placeholder="Değer" class="ff-val">' +
-      '<button class="layer-icon-btn del ff-remove" title="Alanı kaldır"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 6l12 12M18 6L6 18"/></svg></button>';
-    row.querySelector('.ff-key').value = key || '';
-    row.querySelector('.ff-val').value = val || '';
-    row.querySelector('.ff-remove').addEventListener('click', function(){ row.remove(); });
-    document.getElementById('ffCustomFields').appendChild(row);
+    ffStagedDocFiles = [];
+    updateFFDocBadge();
   }
-  document.getElementById('btnFFAddField').addEventListener('click', function(){ addCustomFieldRow('', ''); });
-  document.getElementById('btnFFSubmit').addEventListener('click', function(){
-    var attrs = {};
-    var nameVal = document.getElementById('ffName').value.trim();
-    var descVal = document.getElementById('ffDescription').value.trim();
-    if (nameVal) attrs.name = nameVal;
-    if (descVal) attrs.description = descVal;
-    document.querySelectorAll('#ffCustomFields .ff-custom-row').forEach(function(row){
-      var k = row.querySelector('.ff-key').value.trim();
-      var v = row.querySelector('.ff-val').value.trim();
-      if (k) attrs[k] = v;
-    });
-
-    if (featureFormEditingId){
-      var target = features.find(function(x){ return x.id === featureFormEditingId; });
-      featureFormEditingId = null;
-      document.getElementById('featureFormModal').classList.remove('show');
-      if (!target) return;
-      pushHistory();
-      var layerId = target.properties && target.properties.layerId;
-      var keep = {};
-      ['layerId','extrude','floors','floorHeight','height','base','pipe','diameter','shape'].forEach(function(k){
-        if (target.properties && (k in target.properties)) keep[k] = target.properties[k];
-      });
-      target.properties = Object.assign({}, attrs, keep);
-      if (layerId) target.properties.layerId = layerId;
-      renderFeatures();
-      updateEditPanel();
-      showToast('Öznitelikler güncellendi.');
-      return;
+  document.getElementById('btnFFCancel').addEventListener('click', closeFeatureFormModal);
+  document.getElementById('btnFFClose').addEventListener('click', closeFeatureFormModal);
+  function updateFFDocBadge(){
+    var badge = document.getElementById('ffDocBadge');
+    if (ffStagedDocFiles.length){
+      badge.style.display = 'block';
+      badge.textContent = String(ffStagedDocFiles.length);
+    } else {
+      badge.style.display = 'none';
     }
-
+  }
+  document.getElementById('btnFFAddDoc').addEventListener('click', function(){
+    document.getElementById('featureFormModal').classList.remove('show');
+    openDocUploadModalPending();
+  });
+  document.getElementById('btnFFSubmit').addEventListener('click', function(){
     var lyr = getLayer(activeLayerId);
     if (!lyr || !lyr.geomType){ showToast('Geçerli bir katman bulunamadı.'); return; }
+    var attrs = collectSchemaFieldValues(document.getElementById('ffDynamicFields'));
+    var targetMode = geomTypeToMode(lyr.geomType);
+    if (lyr.geomType === 'Polygon'){
+      if (ffSelectedShape === 'rectangle') targetMode = 'rectangle';
+      else if (ffSelectedShape === 'circle') targetMode = 'circle';
+      if (document.getElementById('ff3DCheckbox').checked){
+        var floors = Math.max(1, parseInt(document.getElementById('ffFloors').value, 10) || 1);
+        var floorH = Math.max(0.1, parseFloat(document.getElementById('ffFloorHeight').value) || 3);
+        attrs.extrude = true;
+        attrs.floors = floors;
+        attrs.floorHeight = floorH;
+        attrs.height = floors * floorH;
+        attrs.base = 0;
+      }
+    }
     pendingFeatureAttributes = attrs;
-    pendingFeatureModeExpected = geomTypeToMode(lyr.geomType);
+    pendingFeatureModeExpected = targetMode;
     document.getElementById('featureFormModal').classList.remove('show');
     setModule('editor');
     setMode(pendingFeatureModeExpected);
@@ -3871,6 +5962,32 @@
   // ---------------------------------------------------------------------
   // Harita stili değiştirme (çizimleri koruyarak)
   // ---------------------------------------------------------------------
+  // map.setStyle() tüm özel (veritabanı dahil) katman/kaynakları temizler;
+  // yeni stil hazır olunca bunlar yeniden eklenmelidir. ÖNEMLİ: 'style.load'
+  // dinleyicisi setStyle() ÇAĞRILMADAN ÖNCE bağlanır — aksi halde (bazı
+  // durumlarda stil senkron/çok hızlı hazırlanırsa) olay kaçırılabilir ve
+  // veritabanı katmanlarındaki çizimler haritadan bir daha geri gelmeyecek
+  // şekilde kaybolur.
+  function reapplyCustomLayersAfterStyleChange(styleOrUrl){
+    function reapply(){
+      setupLayers();
+      renderFeatures();
+      renderVertices();
+      if (typeof updatePipeSource === 'function') updatePipeSource();
+      if (typeof renderPersistedMeasurements === 'function') renderPersistedMeasurements();
+      rasterOverlays.forEach(function(r){ addRasterLayer(r.id, r.url, r.coords); });
+    }
+    // map.setStyle() hem bir stil URL'sini (OpenFreeMap) hem de doğrudan bir
+    // stil nesnesini (ör. Google raster stilleri) kabul eder.
+    map.once('style.load', reapply);
+    map.setStyle(styleOrUrl);
+    // Güvenlik ağı: bazı tarayıcı/stil kombinasyonlarında 'style.load' hiç
+    // tetiklenmeyebiliyor (gözlemlenen gerçek bir durum) — kısa bir süre
+    // sonra hâlâ 'features' kaynağı yoksa (katmanlar geri gelmediyse) elle tetikler.
+    setTimeout(function(){
+      if (!map.getSource('features')) reapply();
+    }, 600);
+  }
   var styleRow = document.getElementById('styleRow');
   STYLES.forEach(function(s){
     var b = document.createElement('div');
@@ -3881,12 +5998,7 @@
       currentStyleId = s.id;
       Array.prototype.slice.call(styleRow.children).forEach(function(c){ c.classList.remove('active'); });
       b.classList.add('active');
-      map.setStyle(s.url);
-      map.once('style.load', function(){
-        setupLayers();
-        renderFeatures();
-        rasterOverlays.forEach(function(r){ addRasterLayer(r.id, r.url, r.coords); });
-      });
+      reapplyCustomLayersAfterStyleChange(s.style || s.url);
       document.getElementById('basemapPopover').classList.remove('show');
     });
     styleRow.appendChild(b);
@@ -3944,8 +6056,26 @@
     return null;
   }
 
+  // Durum çubuğundaki gösterge: toplam obje sayısı ARTIK hiç gösterilmez —
+  // yalnızca bir seçim varsa (selectedIds), bir ok (seçim) ikonu ve SEÇİLİ
+  // obje sayısı belirir; seçim yoksa bu yuva tamamen gizlenir.
+  function updateStatusCountIndicator(){
+    var wrap = document.getElementById('stCountWrap');
+    var div = document.getElementById('stCountDiv');
+    var val = document.getElementById('stCount');
+    if (selectedIds.length){
+      wrap.style.display = '';
+      div.style.display = '';
+      val.textContent = selectedIds.length;
+      val.style.color = 'var(--amber)';
+    } else {
+      wrap.style.display = 'none';
+      div.style.display = 'none';
+    }
+  }
+
   function refreshPanel(){
-    document.getElementById('stCount').textContent = features.length;
+    updateStatusCountIndicator();
 
     var list = document.getElementById('featList');
     var empty = document.getElementById('emptyState');
@@ -3955,7 +6085,7 @@
 
     features.forEach(function(f){
       var row = document.createElement('div');
-      row.className = 'feat-row' + (f.id === selectedId ? ' sel' : '');
+      row.className = 'feat-row' + (selectedIds.indexOf(f.id) !== -1 ? ' sel' : '');
       var meas = measure(f);
       row.innerHTML =
         '<span class="feat-icon">' + iconFor(f) + '</span>' +
@@ -3975,7 +6105,8 @@
       row.addEventListener('click', function(ev){
         if (ev.target.closest('.feat-actions')) return;
         if (mode !== 'select') setMode('select');
-        selectFeatureId(f.id);
+        if (ev.ctrlKey || ev.metaKey) toggleFeatureSelection(f.id);
+        else selectFeatureId(f.id);
       });
       row.querySelector('.goto').addEventListener('click', function(ev){ ev.stopPropagation(); flyToFeature(f); });
       row.querySelector('.del').addEventListener('click', function(ev){ ev.stopPropagation(); removeFeatureById(f.id); });
@@ -4004,13 +6135,26 @@
   var rotateVal = document.getElementById('rotateVal');
   var scaleVal = document.getElementById('scaleVal');
 
-  function selectedFeature(){ return selectedId ? features.find(function(x){ return x.id === selectedId; }) : null; }
+  // Sadece TEK bir obje seçiliyken sonuç döner — düzenleme paneli (döndür/
+  // ölçekle/tampon/vb.) kasıtlı olarak yalnızca tekil seçimde etkindir.
+  function selectedFeature(){ return (selectedIds.length === 1) ? features.find(function(x){ return x.id === selectedIds[0]; }) : null; }
 
+  var lastEditPanelFeatureId = null; // yalnızca SEÇİM gerçekten değiştiğinde Geometri sekmesine dön
   function updateEditPanel(){
     var f = selectedFeature();
-    document.getElementById('editEmpty').style.display = f ? 'none' : 'block';
+    if (f && f.id !== lastEditPanelFeatureId) setEditSubtab('geometri');
+    lastEditPanelFeatureId = f ? f.id : null;
+    var emptyEl = document.getElementById('editEmpty');
+    emptyEl.style.display = f ? 'none' : 'block';
     document.getElementById('editControls').style.display = f ? 'flex' : 'none';
-    document.getElementById('btnEditAttributes').classList.toggle('disabled', !f);
+    if (selectedIds.length > 1){
+      // Toplu seçimde tekil düzenleme araçları (döndür/ölçekle/tampon/vb.)
+      // anlamsızdır; bunun yerine kaç obje seçili olduğu ve Sil/Delete ile
+      // toplu silinebileceği bildirilir.
+      emptyEl.textContent = selectedIds.length + ' obje seçili — hepsini silmek için "Seçileni Sil" veya Delete tuşunu kullanın. Tekil düzenleme (döndür/ölçekle/tampon vb.) için tek bir obje seçin.';
+    } else {
+      emptyEl.textContent = 'Düzenlemek için bir şekil seçin — Seç aracıyla haritada tıklayın ya da Harita modülündeki listeden bir satıra dokunun.';
+    }
     if (!f) return;
     renderDocumentsForFeature(f.id);
     editBaseGeometry = JSON.parse(JSON.stringify(f.geometry));
@@ -4064,7 +6208,7 @@
   rotateSlider.addEventListener('change', function(){
     rotateSlider.value = 0; rotateVal.textContent = '0°';
     var f = selectedFeature();
-    if (f) editBaseGeometry = JSON.parse(JSON.stringify(f.geometry));
+    if (f){ editBaseGeometry = JSON.parse(JSON.stringify(f.geometry)); maybeAutoSaveDbFeature(f); }
   });
 
   var scaleHistoryPushed = false;
@@ -4085,7 +6229,7 @@
   scaleSlider.addEventListener('change', function(){
     scaleSlider.value = 100; scaleVal.textContent = '100%';
     var f = selectedFeature();
-    if (f) editBaseGeometry = JSON.parse(JSON.stringify(f.geometry));
+    if (f){ editBaseGeometry = JSON.parse(JSON.stringify(f.geometry)); maybeAutoSaveDbFeature(f); }
   });
 
   document.getElementById('btnBuffer').addEventListener('click', function(){
@@ -4112,6 +6256,7 @@
       delete f.properties.pipe;
       delete f.properties.diameter;
       renderFeatures(); renderVertices(); updateEditPanel();
+      maybeAutoSaveDbFeature(f);
       showToast(meters > 0 ? 'Şekil genişletildi.' : 'Şekil daraltıldı.');
     }catch(err){
       undoStack.pop(); updateHistoryButtons();
@@ -4129,6 +6274,7 @@
       var simplified = turf.simplify(f, { tolerance: tol, highQuality: true, mutate:false });
       f.geometry = simplified.geometry;
       renderFeatures(); renderVertices(); updateEditPanel();
+      maybeAutoSaveDbFeature(f);
       showToast('Geometri sadeleştirildi.');
     }catch(err){
       undoStack.pop(); updateHistoryButtons();
@@ -4166,6 +6312,9 @@
     applyFloors(f);
     renderFeatures();
   });
+  function saveFloorsOnCommit(){ maybeAutoSaveDbFeature(selectedFeature()); }
+  floorsSlider.addEventListener('pointerup', saveFloorsOnCommit);
+  floorHeightSlider.addEventListener('pointerup', saveFloorsOnCommit);
 
   document.getElementById('btnToggle3D').addEventListener('click', function(){
     var f = selectedFeature();
@@ -4179,13 +6328,16 @@
       delete f.properties.floorHeight;
     } else {
       f.properties.extrude = true;
-      f.properties.floors = f.properties.floors || 1;
-      f.properties.floorHeight = f.properties.floorHeight || (f.properties.height || 30);
+      // Binalar 3D gibi gerçek şema sütunları (floors_count, height_meters)
+      // dolu olan katmanlarda, 3B ekstrüzyon bu girilmiş değerlere göre kurulur.
+      f.properties.floors = f.properties.floors || f.properties.floors_count || 1;
+      f.properties.floorHeight = f.properties.floorHeight || ((f.properties.height || f.properties.height_meters || 30) / f.properties.floors);
       f.properties.height = f.properties.floors * f.properties.floorHeight;
       f.properties.base = f.properties.base || 0;
       ensure3DView();
     }
     renderFeatures(); renderVertices(); updateEditPanel();
+    maybeAutoSaveDbFeature(f);
     showToast(f.properties.extrude ? '3B poligona çevrildi.' : '2B poligona çevrildi.');
   });
 
@@ -4200,6 +6352,7 @@
     document.getElementById('diameterVal').textContent = f.properties.diameter + ' m';
     renderFeatures();
   });
+  diameterSlider.addEventListener('pointerup', function(){ maybeAutoSaveDbFeature(selectedFeature()); });
 
   document.getElementById('btnTogglePipe').addEventListener('click', function(){
     var f = selectedFeature();
@@ -4214,6 +6367,7 @@
       ensure3DView();
     }
     renderFeatures(); renderVertices(); updateEditPanel();
+    maybeAutoSaveDbFeature(f);
     showToast(f.properties.pipe ? 'Çizgi boruya çevrildi.' : 'Boru kaldırıldı.');
   });
 
@@ -4235,7 +6389,7 @@
   });
 
   document.getElementById('btnDeleteSelected').addEventListener('click', function(){
-    if (selectedId) removeFeatureById(selectedId);
+    if (selectedIds.length === 1) removeFeatureById(selectedIds[0]);
   });
 
   document.getElementById('btnUndo').addEventListener('click', undo);
@@ -4246,7 +6400,11 @@
     var tag = document.activeElement ? document.activeElement.tagName : '';
     if (tag === 'TEXTAREA' || tag === 'INPUT') return;
     var mod = e.ctrlKey || e.metaKey;
-    if (mod && e.key.toLowerCase() === 'z' && !e.shiftKey){ e.preventDefault(); undo(); }
+    if (mod && e.key.toLowerCase() === 'z' && !e.shiftKey){
+      e.preventDefault();
+      if (draftCoords && draftCoords.length){ undoLastDraftSegment(); return; }
+      undo();
+    }
     else if (mod && (e.key.toLowerCase() === 'y' || (e.key.toLowerCase() === 'z' && e.shiftKey))){ e.preventDefault(); redo(); }
   });
 
@@ -4721,6 +6879,74 @@
       header.closest('.accordion').classList.toggle('open');
     });
   });
+
+  // ---- 4D Analizi (zaman bazlı inşaat ilerlemesi simülasyonu) ----
+  (function initFourDControls(){
+    var slider = document.getElementById('fourDDaySlider');
+    var label = document.getElementById('fourDDateLabel');
+    var info = document.getElementById('fourDInfo');
+    var playBtn = document.getElementById('btnFourDPlay');
+    var playTimer = null;
+
+    function formatFourDDate(d){
+      var months = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];
+      return d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear();
+    }
+
+    function applyFourDDate(offsetDays){
+      var today = new Date(); today.setHours(0,0,0,0);
+      FOURD_SIM_DATE = new Date(today.getTime() + offsetDays * 86400000);
+      FOURD_ACTIVE = (offsetDays !== 0);
+      label.textContent = (offsetDays === 0) ? 'bugün' : formatFourDDate(FOURD_SIM_DATE);
+      label.style.color = FOURD_ACTIVE ? 'var(--amber)' : '';
+      // Simülasyona göre kaç bina "tamamlandı / devam ediyor / henüz başlamadı" — bilgi satırı.
+      var done = 0, progressing = 0, notStarted = 0;
+      features.forEach(function(f){
+        if (f.geometry.type !== 'Polygon' || !f.properties || !f.properties.extrude) return;
+        if (isNaN(parseFloat(f.properties.construction_progress))) return;
+        var p = FOURD_ACTIVE ? fourDSimulatedProgress(f) : parseFloat(f.properties.construction_progress);
+        if (p >= 100) done++; else if (p <= 0) notStarted++; else progressing++;
+      });
+      info.textContent = FOURD_ACTIVE
+        ? ('Simülasyon: ' + done + ' tamamlandı · ' + progressing + ' devam ediyor · ' + notStarted + ' başlamadı')
+        : '';
+      renderFeatures();
+    }
+
+    slider.addEventListener('input', function(){
+      applyFourDDate(parseInt(slider.value, 10) || 0);
+    });
+
+    document.getElementById('btnFourDReset').addEventListener('click', function(){
+      if (playTimer){ clearInterval(playTimer); playTimer = null; playBtn.textContent = '▶ Oynat'; }
+      slider.value = 0;
+      applyFourDDate(0);
+    });
+
+    // "Oynat": kaydırıcıyı -365 gününden +365 gününe kadar otomatik ilerletip
+    // inşaat sürecini zamanla canlandırır — tekrar basılınca durdurur.
+    playBtn.addEventListener('click', function(){
+      if (playTimer){
+        clearInterval(playTimer);
+        playTimer = null;
+        playBtn.textContent = '▶ Oynat';
+        return;
+      }
+      playBtn.textContent = '⏸ Durdur';
+      if (parseInt(slider.value, 10) >= 365) slider.value = -365;
+      playTimer = setInterval(function(){
+        var next = (parseInt(slider.value, 10) || 0) + 5;
+        if (next > 365){
+          clearInterval(playTimer);
+          playTimer = null;
+          playBtn.textContent = '▶ Oynat';
+          next = 365;
+        }
+        slider.value = next;
+        applyFourDDate(next);
+      }, 120);
+    });
+  })();
 
   (function initShadowControls(){
     var dateInput = document.getElementById('shadowDate');
@@ -5287,6 +7513,88 @@
     loadingCount = Math.max(0, loadingCount - 1);
     if (loadingCount === 0) document.getElementById('loadingIndicator').classList.remove('show');
   }
+
+  // ---------------------------------------------------------------------
+  // Veritabanı (PostGIS) katmanlarının üst pencereden (React uygulaması)
+  // postMessage ile enjekte edilmesi. Bu araç kendi başına bir veritabanı
+  // bağlantısına sahip değildir; asıl PostGIS verisi (proje sınırları,
+  // binalar, altyapı hatları) üst pencerede tutulur ve bu köprü üzerinden
+  // haritaya, mevcut "Katmanlar" ağacındaki diğer klasör/katmanlarla aynı
+  // yapıda ve varsayılan olarak GÖRÜNÜR (visible:true) eklenir.
+  // ---------------------------------------------------------------------
+  var dbLayersLoaded = false;
+  window.addEventListener('message', function(e){
+    var msg = e.data;
+    if (!msg || msg.type !== 'kroki:load-db-layers' || dbLayersLoaded) return;
+    dbLayersLoaded = true;
+    try{
+      (msg.folders || []).forEach(function(f){
+        if (!folders.some(function(x){ return x.id === f.id; })) folders.push(f);
+      });
+      (msg.layers || []).forEach(function(l){
+        if (!layers.some(function(x){ return x.id === l.id; })) layers.push(l);
+      });
+      (msg.features || []).forEach(function(f){
+        if (!f.id) f.id = uid();
+        // localStorage'dan geri yüklenmiş (kullanıcının taşıdığı/düzenlediği)
+        // bir kayıt zaten aynı id ile mevcutsa, üzerine "temiz" veritabanı
+        // kopyasını EKLEMEYİZ — aksi halde ekranda aynı obje iki kez (biri
+        // eski/taşınmamış, biri kullanıcının son hali) görünür.
+        if (features.some(function(x){ return x.id === f.id; })) return;
+        features.push(f);
+      });
+      // Artık varsayılan örnek katman olmadığı için, henüz aktif bir katman
+      // seçilmemişse (activeLayerId null) — ör. Editör modülündeki "Yerleştir"
+      // akışının bir hedefi olsun diye — ilk veritabanı katmanını aktif yap.
+      if (!activeLayerId && (msg.layers || []).length){
+        activeLayerId = msg.layers[0].id;
+      }
+      renderFeatures();
+      refreshActiveLayerSelect();
+      if ((msg.features || []).length){
+        showToast((msg.features || []).length + ' adet PostGIS veritabanı kaydı haritaya yüklendi.');
+      }
+    }catch(err){
+      console.error('Veritabanı katmanları yüklenemedi:', err);
+    }
+  });
+
+  // ---------------------------------------------------------------------
+  // "kroki:zoom-to-project" — üst panelden bir proje seçildiğinde
+  // (KrokiMapModule.tsx), o projenin sınır kutusuna (bbox: [minLng,minLat,
+  // maxLng,maxLat]) yakınlaşır.
+  // ---------------------------------------------------------------------
+  window.addEventListener('message', function(e){
+    var msg = e.data;
+    if (!msg || msg.type !== 'kroki:zoom-to-project' || !Array.isArray(msg.bbox)) return;
+    try{
+      map.fitBounds(msg.bbox, { padding:60, duration:800, maxZoom:16 });
+    }catch(err){
+      console.error('Proje sınırına yakınlaşılamadı:', err);
+    }
+  });
+
+  // Üst pencereye "haritaya katman göndermeye hazırım" sinyali — üst pencere
+  // bu mesajı bekleyip ardından 'kroki:load-db-layers' mesajını gönderir.
+  // Tek seferlik gönderim yeterli değildir: React tarafındaki 'message'
+  // dinleyicisi (React 18/19 StrictMode altında efektlerin geliştirmede iki
+  // kez çalıştırılması gibi nedenlerle) bu sinyal gönderildiği anda henüz
+  // takılı olmayabilir — bu durumda postMessage sessizce kaybolur ve
+  // veritabanı katmanları (dolayısıyla treeview) hiç yüklenmez. Bu yüzden
+  // 'kroki:load-db-layers' yanıtı gelene kadar sinyal periyodik olarak
+  // tekrar gönderilir; alıcı taraf zaten idempotent (dbLayersLoaded bayrağı
+  // ve id bazlı birleştirme) olduğu için tekrarlar zararsızdır.
+  function sendReadySignal(){
+    if (dbLayersLoaded) return;
+    try{ window.parent.postMessage({ type:'kroki:ready' }, '*'); }catch(e){ /* izole/erişilemez üst pencere — yoksay */ }
+  }
+  sendReadySignal();
+  var readyRetryCount = 0;
+  var readyRetryTimer = setInterval(function(){
+    readyRetryCount++;
+    if (dbLayersLoaded || readyRetryCount > 20){ clearInterval(readyRetryTimer); return; }
+    sendReadySignal();
+  }, 400);
 })();
 </script>
 </body>

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Database, Users, TableProperties, Layers, Box, Zap, MapPin, 
-  Search, Plus, Trash2, Edit2, Shield, ShieldCheck, CheckCircle2, 
+import {
+  Database, Users, TableProperties, Layers, Box, Zap, MapPin,
+  Search, Plus, Trash2, Edit2, Shield, ShieldCheck, CheckCircle2,
   AlertCircle, Download, FileText, Check, X, RefreshCw, Key,
-  Lock, HardDrive, Filter, Eye, Server, Cpu, Sparkles
+  Lock, HardDrive, Filter, Eye, Server, Cpu, Sparkles, Camera
 } from 'lucide-react';
 import { 
   ProjeRecord, Bina3DRecord, AltyapiHattiRecord, ProjeSiniriRecord, 
@@ -17,12 +17,27 @@ interface AdminPanelProps {
   onClose?: () => void;
 }
 
-type MainAdminTab = 'veriler' | 'kullanicilar' | 'veritabani';
+type MainAdminTab = 'veriler' | 'kullanicilar';
+type VerilerSubTab = 'veri' | 'sutunlar';
+
+// avatar_url ya gerçek bir fotoğraf (data: veya http(s) URL'i) ya da (henüz
+// fotoğraf yüklenmemiş kullanıcılarda) baş harflerden oluşan kısa bir kod
+// tutar — bu ikisini ayırt etmek için kullanılır.
+function isAvatarImage(url?: string | null): boolean {
+  return !!url && (url.startsWith('data:image') || url.startsWith('http://') || url.startsWith('https://'));
+}
+function getInitials(fullName?: string): string {
+  if (!fullName) return 'U';
+  const parts = fullName.trim().split(/\s+/);
+  const initials = parts.length > 1 ? parts[0][0] + parts[parts.length - 1][0] : parts[0].slice(0, 2);
+  return initials.toUpperCase();
+}
 
 export default function AdminPanel({ theme, onClose }: AdminPanelProps) {
   const [activeMainTab, setActiveMainTab] = useState<MainAdminTab>('veriler');
 
   // Tab 1: Veriler States
+  const [verilerSubTab, setVerilerSubTab] = useState<VerilerSubTab>('veri');
   const [selectedTableKey, setSelectedTableKey] = useState<string>('tb_projeler');
   const [tableData, setTableData] = useState<any[]>([]);
   const [loadingData, setLoadingData] = useState(false);
@@ -47,8 +62,7 @@ export default function AdminPanel({ theme, onClose }: AdminPanelProps) {
     user_role: 'standart_user' as UserRole
   });
 
-  // Tab 3: Veritabanı States
-  const [schemaTableKey, setSchemaTableKey] = useState<string>('tb_projeler');
+  // Tab 1 (Sütunlar alt-sekmesi) States — eskiden ayrı "Veritabanı" ana sekmesindeydi
   const [allColumns, setAllColumns] = useState<TabloSutunRecord[]>([]);
   const [showAddColumnModal, setShowAddColumnModal] = useState(false);
   const [newColumnForm, setNewColumnForm] = useState({
@@ -59,6 +73,21 @@ export default function AdminPanel({ theme, onClose }: AdminPanelProps) {
     description: ''
   });
 
+  // Sütun İlişkilendirme (FK) States — bir sütunu başka bir tablonun id'sine
+  // bağlayıp veri girişinde combobox olarak göstermek için.
+  const [relationOptionsCache, setRelationOptionsCache] = useState<Record<string, { id: any; label: string }[]>>({});
+  const [showRelationModal, setShowRelationModal] = useState(false);
+  const [relationEditingColumn, setRelationEditingColumn] = useState<TabloSutunRecord | null>(null);
+  const [relationForm, setRelationForm] = useState({
+    relation_table: '',
+    relation_column: 'id',
+    relation_display_column: 'name'
+  });
+
+  // Sütun Silme (kontrollü) — yalnızca sistem (STANDART 7) dışındaki
+  // sütunlar için, onay adımından geçerek silinebilir.
+  const [deleteColumnConfirm, setDeleteColumnConfirm] = useState<TabloSutunRecord | null>(null);
+
   // Notification Toast State
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -68,59 +97,49 @@ export default function AdminPanel({ theme, onClose }: AdminPanelProps) {
   };
 
   // 1. Data Loader
+  const fetchTableData = async (tableKey: string): Promise<any[]> => {
+    switch (tableKey) {
+      case 'tb_projeler':
+        return api.getProjeler();
+      case 'tb_binalar_3d':
+        return api.getBinalar3D();
+      case 'tb_altyapi_hatlari':
+        return api.getAltyapiHatlari();
+      case 'tb_proje_sinirlari':
+        return api.getProjeSinirlari();
+      case 'tb_bloklar':
+        return api.getBloklar();
+      case 'tb_ruhsatlar':
+        return api.getRuhsatlar();
+      case 'tb_wbs_gorevler':
+        return api.getWbsGorevler();
+      case 'tb_dokumanlar':
+        return api.getDokumanlar();
+      case 'tb_varliklar':
+        return api.getVarliklar();
+      case 'tb_bakim_kayitlari':
+        return api.getBakimKayitlari();
+      case 'tb_bildirimler':
+        return api.getBildirimler();
+      case 'tb_personel':
+        return api.getPersoneller();
+      case 'tb_proje_durumlari':
+        return api.getProjeDurumlari();
+      case 'tb_risk_dereceleri':
+        return api.getRiskDereceleri();
+      case 'tb_data_status':
+        return api.getVeriDurumlari();
+      case 'tb_kullanici_rolleri':
+        return api.getKullaniciRolleri();
+      default:
+        return api.getProjeler();
+    }
+  };
+
   const loadActiveTableData = async (tableKey: string) => {
     setLoadingData(true);
     try {
-      let data: any[] = [];
-      switch (tableKey) {
-        case 'tb_projeler':
-          data = await api.getProjeler();
-          break;
-        case 'tb_binalar_3d':
-          data = await api.getBinalar3D();
-          break;
-        case 'tb_altyapi_hatlari':
-          data = await api.getAltyapiHatlari();
-          break;
-        case 'tb_proje_sinirlari':
-          data = await api.getProjeSinirlari();
-          break;
-        case 'tb_bloklar':
-          data = await api.getBloklar();
-          break;
-        case 'tb_ruhsatlar':
-          data = await api.getRuhsatlar();
-          break;
-        case 'tb_wbs_gorevler':
-          data = await api.getWbsGorevler();
-          break;
-        case 'tb_dokumanlar':
-          data = await api.getDokumanlar();
-          break;
-        case 'tb_varliklar':
-          data = await api.getVarliklar();
-          break;
-        case 'tb_bakim_kayitlari':
-          data = await api.getBakimKayitlari();
-          break;
-        case 'tb_bildirimler':
-          data = await api.getBildirimler();
-          break;
-        case 'tb_personel':
-          data = await api.getPersoneller();
-          break;
-        case 'tb_proje_durumlari':
-          data = await api.getProjeDurumlari();
-          break;
-        case 'tb_risk_dereceleri':
-          data = await api.getRiskDereceleri();
-          break;
-        case 'tb_kullanici_rolleri':
-          data = await api.getKullaniciRolleri();
-          break;
-        default:
-          data = await api.getProjeler();
-      }
+      const data = await fetchTableData(tableKey);
       setTableData(data);
     } catch (err) {
       console.error(err);
@@ -128,6 +147,27 @@ export default function AdminPanel({ theme, onClose }: AdminPanelProps) {
     } finally {
       setLoadingData(false);
     }
+  };
+
+  // İlişkili (FK) bir sütun için combobox seçeneklerini yükler ve önbelleğe alır.
+  const loadRelationOptions = async (col: TabloSutunRecord) => {
+    if (!col.relation_table || relationOptionsCache[col.relation_table]) return;
+    try {
+      const rows = await fetchTableData(col.relation_table);
+      const displayKey = col.relation_display_column || 'name';
+      const idKey = col.relation_column || 'id';
+      const options = rows.map((r: any) => ({ id: r[idKey], label: r[displayKey] ?? String(r[idKey]) }));
+      setRelationOptionsCache(prev => ({ ...prev, [col.relation_table as string]: options }));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // Seçili tablonun ilişkili (FK) sütunlarının seçeneklerini önceden yükler
+  // (Ekle/Düzenle formu açıldığında combobox'ların dolu gelmesi için).
+  const ensureRelationOptionsForTable = async (tableKey: string) => {
+    const relCols = allColumns.filter(c => c.table_name === tableKey && c.relation_table);
+    await Promise.all(relCols.map(loadRelationOptions));
   };
 
   // 2. Initial Data Load
@@ -179,6 +219,7 @@ export default function AdminPanel({ theme, onClose }: AdminPanelProps) {
     { key: 'tb_personel', name: 'Personel & Kullanıcılar', type: 'DATA', icon: Users, count: personelList.length, badge: 'Kullanıcı' },
     { key: 'tb_proje_durumlari', name: 'Proje Durumları', type: 'LISTE', icon: TableProperties, count: 4, badge: 'Sözel Liste' },
     { key: 'tb_risk_dereceleri', name: 'Risk Dereceleri', type: 'LISTE', icon: AlertCircle, count: 3, badge: 'Sözel Liste' },
+    { key: 'tb_data_status', name: 'Veri Durumları', type: 'LISTE', icon: TableProperties, count: 4, badge: 'Sözel Liste' },
     { key: 'tb_kullanici_rolleri', name: 'Kullanıcı Rolleri', type: 'LISTE', icon: Key, count: 3, badge: 'Sözel Liste' }
   ];
 
@@ -201,7 +242,7 @@ export default function AdminPanel({ theme, onClose }: AdminPanelProps) {
   const handlePermissionToggle = async (
     userId: number | string,
     tableName: string,
-    field: 'can_read' | 'can_write' | 'can_delete' | 'can_admin'
+    field: 'can_read' | 'can_write' | 'can_delete' | 'can_admin' | 'can_doc_add' | 'can_doc_manage'
   ) => {
     try {
       const existingPerm = yetkilerList.find(y => y.user_id === Number(userId) && y.table_or_layer_name === tableName);
@@ -218,7 +259,9 @@ export default function AdminPanel({ theme, onClose }: AdminPanelProps) {
           can_read: field === 'can_read',
           can_write: field === 'can_write',
           can_delete: field === 'can_delete',
-          can_admin: field === 'can_admin'
+          can_admin: field === 'can_admin',
+          can_doc_add: field === 'can_doc_add',
+          can_doc_manage: field === 'can_doc_manage'
         });
         setYetkilerList(prev => [...prev, newPerm]);
       }
@@ -226,6 +269,32 @@ export default function AdminPanel({ theme, onClose }: AdminPanelProps) {
     } catch (err) {
       console.error(err);
       showToast('Yetki güncellenirken hata oluştu.');
+    }
+  };
+
+  // Kullanıcı fotoğrafı ekleme/değiştirme — seçilen görsel base64 data URL'e
+  // çevrilip avatar_url alanına yazılır (mock ortamda gerçek bir dosya
+  // sunucusu olmadığından, dokümanlardaki file_data_url ile aynı yaklaşım).
+  const handleAvatarFileChange = async (personId: number | string, file: File | undefined) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      showToast('Lütfen bir görsel dosyası seçin.');
+      return;
+    }
+    try {
+      const dataUrl: string = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      await api.updatePersonel(personId, { avatar_url: dataUrl });
+      setPersonelList(prev => prev.map(p => p.id === personId ? { ...p, avatar_url: dataUrl } : p));
+      setSelectedPersonel(prev => prev && prev.id === personId ? { ...prev, avatar_url: dataUrl } : prev);
+      showToast('Kullanıcı fotoğrafı güncellendi.');
+    } catch (err) {
+      console.error(err);
+      showToast('Fotoğraf yüklenirken hata oluştu.');
     }
   };
 
@@ -244,6 +313,7 @@ export default function AdminPanel({ theme, onClose }: AdminPanelProps) {
       initialObj.area = '50.000 m²';
       initialObj.risk_level = 'Düşük';
     } else if (selectedTableKey === 'tb_binalar_3d') {
+      initialObj.name = 'Yeni Bina';
       initialObj.block_name = 'Yeni Blok';
       initialObj.building_type = 'Konut / Ticaret';
       initialObj.height_meters = 45;
@@ -254,6 +324,7 @@ export default function AdminPanel({ theme, onClose }: AdminPanelProps) {
       initialObj.project_id = 'IGA-ETAP-1';
       initialObj.veri_durumu = 'Planlanan';
     } else if (selectedTableKey === 'tb_altyapi_hatlari') {
+      initialObj.name = 'Yeni Altyapı Hattı';
       initialObj.network_name = 'Yeni Hat';
       initialObj.line_type = 'elektrik';
       initialObj.pipe_or_cable_spec = '154kV XLPE';
@@ -263,6 +334,7 @@ export default function AdminPanel({ theme, onClose }: AdminPanelProps) {
       initialObj.project_id = 'IGA-ETAP-1';
       initialObj.veri_durumu = 'Planlanan';
     } else if (selectedTableKey === 'tb_proje_sinirlari') {
+      initialObj.name = 'Yeni Proje Sınırı';
       initialObj.project_name = 'Yeni Parsel Sınırı';
       initialObj.ada_parsel = '1500 / 12';
       initialObj.area_sqm = 75000;
@@ -332,6 +404,10 @@ export default function AdminPanel({ theme, onClose }: AdminPanelProps) {
       initialObj.code = 'yeni_risk';
       initialObj.name = 'Özel Risk Seviyesi';
       initialObj.notes = 'Risk açıklaması';
+    } else if (selectedTableKey === 'tb_data_status') {
+      initialObj.code = 'yeni_durum';
+      initialObj.name = 'Yeni Veri Durumu';
+      initialObj.notes = 'Açıklama notu';
     } else if (selectedTableKey === 'tb_kullanici_rolleri') {
       initialObj.code = 'guest_user';
       initialObj.name = 'Misafir Kullanıcı';
@@ -341,6 +417,7 @@ export default function AdminPanel({ theme, onClose }: AdminPanelProps) {
     }
     setNewRowData(initialObj);
     setShowAddRowModal(true);
+    ensureRelationOptionsForTable(selectedTableKey);
   };
 
   const handleCreateRowSubmit = async (e: React.FormEvent) => {
@@ -388,6 +465,9 @@ export default function AdminPanel({ theme, onClose }: AdminPanelProps) {
         case 'tb_risk_dereceleri':
           created = await api.createRiskDerecesi(newRowData);
           break;
+        case 'tb_data_status':
+          created = await api.createVeriDurumu(newRowData);
+          break;
         case 'tb_kullanici_rolleri':
           created = await api.createKullaniciRolu(newRowData);
           break;
@@ -407,6 +487,7 @@ export default function AdminPanel({ theme, onClose }: AdminPanelProps) {
   const handleOpenEditRow = (row: Record<string, any>) => {
     setEditingRow({ ...row });
     setShowEditRowModal(true);
+    ensureRelationOptionsForTable(selectedTableKey);
   };
 
   const handleUpdateRowSubmit = async (e: React.FormEvent) => {
@@ -454,6 +535,9 @@ export default function AdminPanel({ theme, onClose }: AdminPanelProps) {
           break;
         case 'tb_risk_dereceleri':
           await api.updateRiskDerecesi(rowId, editingRow);
+          break;
+        case 'tb_data_status':
+          await api.updateVeriDurumu(rowId, editingRow);
           break;
         case 'tb_kullanici_rolleri':
           await api.updateKullaniciRolu(rowId, editingRow);
@@ -515,6 +599,9 @@ export default function AdminPanel({ theme, onClose }: AdminPanelProps) {
         case 'tb_risk_dereceleri':
           await api.deleteRiskDerecesi(rowId);
           break;
+        case 'tb_data_status':
+          await api.deleteVeriDurumu(rowId);
+          break;
         case 'tb_kullanici_rolleri':
           await api.deleteKullaniciRolu(rowId);
           break;
@@ -566,7 +653,7 @@ export default function AdminPanel({ theme, onClose }: AdminPanelProps) {
 
     try {
       const newCol = await api.addTabloSutunu({
-        table_name: schemaTableKey,
+        table_name: selectedTableKey,
         column_name: cleanColName,
         data_type: newColumnForm.data_type,
         is_nullable: newColumnForm.is_nullable,
@@ -583,9 +670,71 @@ export default function AdminPanel({ theme, onClose }: AdminPanelProps) {
         column_default: '',
         description: ''
       });
-      showToast(`'${cleanColName}' sütunu '${schemaTableKey}' tablosuna eklendi.`);
+      showToast(`'${cleanColName}' sütunu '${selectedTableKey}' tablosuna eklendi.`);
     } catch (err: any) {
       showToast(err.message || 'Sütun eklenirken hata oluştu.');
+    }
+  };
+
+  // Sütun İlişkilendirme (FK) — bir sütunu başka bir tablonun anahtarına
+  // bağlayarak veri girişinde combobox olarak göstermeyi sağlar.
+  const handleOpenRelationModal = (col: TabloSutunRecord) => {
+    setRelationEditingColumn(col);
+    setRelationForm({
+      relation_table: col.relation_table || '',
+      relation_column: col.relation_column || 'id',
+      relation_display_column: col.relation_display_column || 'name'
+    });
+    setShowRelationModal(true);
+  };
+
+  const handleSaveRelation = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!relationEditingColumn || !relationForm.relation_table) return;
+    try {
+      const updated = await api.updateTabloSutunuRelation(
+        relationEditingColumn.table_name,
+        relationEditingColumn.column_name,
+        relationForm
+      );
+      setAllColumns(prev => prev.map(c =>
+        c.table_name === updated.table_name && c.column_name === updated.column_name ? updated : c
+      ));
+      setRelationOptionsCache(prev => {
+        const next = { ...prev };
+        delete next[relationForm.relation_table];
+        return next;
+      });
+      setShowRelationModal(false);
+      setRelationEditingColumn(null);
+      showToast(`'${relationEditingColumn.column_name}' sütunu '${relationForm.relation_table}' tablosuyla ilişkilendirildi.`);
+    } catch (err: any) {
+      showToast(err.message || 'İlişki kaydedilirken hata oluştu.');
+    }
+  };
+
+  const handleClearRelation = async (col: TabloSutunRecord) => {
+    try {
+      const updated = await api.updateTabloSutunuRelation(col.table_name, col.column_name, null);
+      setAllColumns(prev => prev.map(c =>
+        c.table_name === updated.table_name && c.column_name === updated.column_name ? updated : c
+      ));
+      showToast(`'${col.column_name}' sütunundaki ilişki kaldırıldı.`);
+    } catch (err: any) {
+      showToast(err.message || 'İlişki kaldırılırken hata oluştu.');
+    }
+  };
+
+  const handleDeleteColumn = async (col: TabloSutunRecord) => {
+    try {
+      await api.deleteTabloSutunu(col.table_name, col.column_name);
+      setAllColumns(prev => prev.filter(c =>
+        !(c.table_name === col.table_name && c.column_name === col.column_name)
+      ));
+      setDeleteColumnConfirm(null);
+      showToast(`'${col.column_name}' sütunu '${col.table_name}' tablosundan silindi.`);
+    } catch (err: any) {
+      showToast(err.message || 'Sütun silinirken hata oluştu.');
     }
   };
 
@@ -617,12 +766,12 @@ export default function AdminPanel({ theme, onClose }: AdminPanelProps) {
           </div>
           <div>
             <div className="flex items-center gap-2 mb-0.5">
-              <span className="px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-400 text-[8.5px] font-black uppercase tracking-wider border border-sky-500/20">SİSTEM YÖNETİMİ</span>
-              <span className="text-[9.5px] text-[var(--text-secondary)]">one map • one timeline • one truth</span>
+              <span className="px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-400 text-[10px] font-black uppercase tracking-wider border border-sky-500/20">SİSTEM YÖNETİMİ</span>
+              <span className="text-[10px] text-[var(--text-secondary)]">one map • one timeline • one truth</span>
             </div>
             <h1 className="text-xs font-black tracking-tight text-[var(--text-primary)] flex items-center gap-2 uppercase">
               <span>ADMIN PANELİ</span>
-              <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-slate-800 text-slate-400 border border-slate-700 font-mono">
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700 font-mono">
                 v2.4 (PostGIS 5257)
               </span>
             </h1>
@@ -634,6 +783,15 @@ export default function AdminPanel({ theme, onClose }: AdminPanelProps) {
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
             REST API & Veritabanı Canlı
           </span>
+          <a
+            href="/api/export/gpkg"
+            download="oda_pys_cbs.gpkg"
+            title="CBS/PostGIS katmanlarını (proje sınırları, binalar, altyapı hatları) gerçek bir OGC GeoPackage (.gpkg) dosyası olarak indir — QGIS vb. herhangi bir GIS aracında açılabilir."
+            className="text-[11px] font-bold px-3 py-1 bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg flex items-center gap-1.5 text-[var(--text-secondary)] hover:text-sky-400 hover:border-sky-500/30 transition"
+          >
+            <Download className="w-3.5 h-3.5" />
+            Dışa Aktar (.gpkg)
+          </a>
           {onClose && (
             <button 
               onClick={onClose}
@@ -688,24 +846,6 @@ export default function AdminPanel({ theme, onClose }: AdminPanelProps) {
             </div>
           </button>
 
-          {/* Tab 3: Veritabanı */}
-          <button
-            onClick={() => setActiveMainTab('veritabani')}
-            className={`w-11 h-11 rounded-2xl flex flex-col items-center justify-center transition-all duration-200 cursor-pointer relative group ${
-              activeMainTab === 'veritabani'
-                ? 'bg-gradient-to-tr from-emerald-600 to-teal-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.4)] ring-2 ring-emerald-400/40'
-                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-primary)] border border-transparent hover:border-[var(--border)]'
-            }`}
-            title="Veritabanı & Şema Yönetimi"
-            id="admin-tab-veritabani"
-          >
-            <Database className="w-5 h-5" />
-            {/* Tooltip */}
-            <div className="absolute left-16 px-2.5 py-1 bg-[#1e293b] text-white text-[11px] font-bold rounded-lg whitespace-nowrap shadow-xl opacity-0 pointer-events-none group-hover:opacity-100 transition z-50">
-              3. Veritabanı & Kolon Yönetimi
-            </div>
-          </button>
-
           <div className="mt-auto flex flex-col items-center gap-2">
             <div className="w-8 h-[1px] bg-[var(--border)]"></div>
             <div className="w-7 h-7 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/20 flex items-center justify-center text-[10px] font-bold" title="Standart 7 Kolon Uyumlu">
@@ -755,7 +895,7 @@ export default function AdminPanel({ theme, onClose }: AdminPanelProps) {
                             </span>
                           </div>
                         </div>
-                        <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded ${
+                        <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${
                           isSelected ? 'bg-white/20 text-white' : 'bg-[var(--bg-primary)] border border-[var(--border)] text-[var(--text-secondary)]'
                         }`}>
                           {tbl.badge}
@@ -766,9 +906,39 @@ export default function AdminPanel({ theme, onClose }: AdminPanelProps) {
                 </div>
               </div>
 
-              {/* Right Content Area: Table Data Grid */}
+              {/* Right Content Area: alt-sekmeler (Tablo/Katman Verileri & Sütunlar) */}
               <div className="flex-1 flex flex-col bg-[var(--bg-primary)] overflow-hidden">
-                
+
+                {/* Sub-tab bar */}
+                <div className="flex items-center gap-2 px-4 pt-3 bg-[var(--bg-secondary)] border-b border-[var(--border)]">
+                  <button
+                    onClick={() => setVerilerSubTab('veri')}
+                    className={`px-3.5 py-2 rounded-t-lg text-xs font-extrabold flex items-center gap-1.5 transition cursor-pointer border-b-2 ${
+                      verilerSubTab === 'veri'
+                        ? 'text-sky-400 border-sky-400 bg-[var(--bg-primary)]'
+                        : 'text-[var(--text-secondary)] border-transparent hover:text-[var(--text-primary)]'
+                    }`}
+                    id="admin-subtab-veri"
+                  >
+                    <TableProperties className="w-3.5 h-3.5" />
+                    Tablo/Katman Verileri
+                  </button>
+                  <button
+                    onClick={() => setVerilerSubTab('sutunlar')}
+                    className={`px-3.5 py-2 rounded-t-lg text-xs font-extrabold flex items-center gap-1.5 transition cursor-pointer border-b-2 ${
+                      verilerSubTab === 'sutunlar'
+                        ? 'text-emerald-400 border-emerald-400 bg-[var(--bg-primary)]'
+                        : 'text-[var(--text-secondary)] border-transparent hover:text-[var(--text-primary)]'
+                    }`}
+                    id="admin-subtab-sutunlar"
+                  >
+                    <HardDrive className="w-3.5 h-3.5" />
+                    Sütunlar
+                  </button>
+                </div>
+
+              {verilerSubTab === 'veri' && (
+              <>
                 {/* Header Toolbar */}
                 <div className="p-4 border-b border-[var(--border)] bg-[var(--bg-secondary)] flex items-center justify-between gap-3 flex-wrap">
                   <div className="flex items-center gap-2">
@@ -855,7 +1025,7 @@ export default function AdminPanel({ theme, onClose }: AdminPanelProps) {
                                       {JSON.stringify(val).substring(0, 30)}...
                                     </span>
                                   ) : key === 'row_status' ? (
-                                    <span className={`text-[9px] px-2 py-0.5 rounded font-black ${val === 1 ? 'bg-emerald-500/15 text-emerald-400' : 'bg-red-500/15 text-red-400'}`}>
+                                    <span className={`text-[10px] px-2 py-0.5 rounded font-black ${val === 1 ? 'bg-emerald-500/15 text-emerald-400' : 'bg-red-500/15 text-red-400'}`}>
                                       {val === 1 ? 'Aktif (1)' : 'Silinmiş (0)'}
                                     </span>
                                   ) : key === 'id' || key.endsWith('id') || key.endsWith('code') || key.endsWith('date') || key === 'ada_parsel' || key === 'coordinates' || key === 'center' ? (
@@ -893,6 +1063,167 @@ export default function AdminPanel({ theme, onClose }: AdminPanelProps) {
                     </div>
                   )}
                 </div>
+              </>
+              )}
+
+              {verilerSubTab === 'sutunlar' && (
+                <div className="flex-1 overflow-y-auto p-6" style={{ scrollbarWidth: 'thin' }}>
+                  <div className="space-y-6 max-w-5xl">
+
+                    {/* Table Schema Header HUD */}
+                    <div className="p-5 rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] flex items-center justify-between flex-wrap gap-4 shadow-sm">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h2 className="text-base font-extrabold text-[var(--text-primary)] font-mono">{selectedTableKey}</h2>
+                          <span className="text-[10px] font-mono px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-md font-bold">
+                            PostgreSQL / PostGIS Uyumlu
+                          </span>
+                        </div>
+                        <p className="text-xs text-[var(--text-secondary)] mt-1">
+                          ASCII snake_case kolon standartları ve zorunlu 7 standart sistem kolonu.
+                        </p>
+                      </div>
+
+                      <button
+                        onClick={() => setShowAddColumnModal(true)}
+                        className="px-3.5 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold hover:bg-emerald-700 transition flex items-center gap-1.5 shadow-md cursor-pointer"
+                        id="admin-btn-add-column"
+                      >
+                        <Plus className="w-4 h-4" />
+                        Yeni Sütun Ekle
+                      </button>
+                    </div>
+
+                    {/* Columns Definition List */}
+                    <div className="p-5 rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] space-y-4 shadow-sm">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-sm font-extrabold text-[var(--text-primary)] flex items-center gap-2">
+                          <HardDrive className="w-4 h-4 text-emerald-400" />
+                          Sütun Yapısı & Veri Tipleri
+                        </h3>
+                        <span className="text-[11px] font-mono text-[var(--text-secondary)]">
+                          {allColumns.filter(c => c.table_name === selectedTableKey).length} Sütun Tanımlı
+                        </span>
+                      </div>
+
+                      <div className="rounded-xl border border-[var(--border)] overflow-hidden bg-[var(--bg-primary)]">
+                        <table className="w-full text-left text-xs border-collapse font-sans">
+                          <thead>
+                            <tr className="border-b border-[var(--border)] bg-[var(--bg-secondary)] text-[10px] uppercase font-black text-[var(--text-secondary)]">
+                              <th className="p-3">Sütun Adı (snake_case)</th>
+                              <th className="p-3">Veri Tipi</th>
+                              <th className="p-3">Boş Olabilir (Nullable)</th>
+                              <th className="p-3">Varsayılan (Default)</th>
+                              <th className="p-3">Açıklama / Standart</th>
+                              <th className="p-3">İlişki (FK)</th>
+                              <th className="p-3">İşlemler</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-[var(--border)] font-medium text-[var(--text-secondary)]">
+                            {allColumns.filter(c => c.table_name === selectedTableKey).map((col, idx) => (
+                              <tr key={idx} className="hover:bg-[var(--bg-secondary)] transition">
+                                <td className="p-3 font-mono font-bold text-[var(--text-primary)]">
+                                  <div className="flex items-center gap-1.5">
+                                    <span>{col.column_name}</span>
+                                    {col.is_standard && (
+                                      <span className="text-[10px] font-sans px-1.5 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded font-black">
+                                        STANDART 7
+                                      </span>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="p-3 font-mono text-sky-400 font-bold">{col.data_type}</td>
+                                <td className="p-3">
+                                  <span className={`text-[10px] px-2 py-0.5 rounded font-black ${col.is_nullable ? 'bg-slate-500/10 text-slate-400' : 'bg-red-500/10 text-red-400'}`}>
+                                    {col.is_nullable ? 'EVET' : 'HAYIR (NOT NULL)'}
+                                  </span>
+                                </td>
+                                <td className="p-3 font-mono text-[11px] text-[var(--text-secondary)]">{col.column_default || '-'}</td>
+                                <td className="p-3 text-[var(--text-secondary)]">{col.description || '-'}</td>
+                                <td className="p-3">
+                                  {col.is_standard ? (
+                                    <span className="text-[10px] text-[var(--text-secondary)]">-</span>
+                                  ) : col.relation_table ? (
+                                    <div className="flex items-center gap-1.5">
+                                      <button
+                                        onClick={() => handleOpenRelationModal(col)}
+                                        className="text-[10px] font-mono px-2 py-1 rounded-lg bg-violet-500/10 text-violet-400 border border-violet-500/20 hover:bg-violet-500/20 transition cursor-pointer flex items-center gap-1"
+                                        title="İlişkiyi düzenle"
+                                      >
+                                        <Key className="w-3 h-3" />
+                                        → {col.relation_table}.{col.relation_display_column}
+                                      </button>
+                                      <button
+                                        onClick={() => handleClearRelation(col)}
+                                        className="p-1 rounded-lg text-[var(--text-secondary)] hover:text-red-400 hover:bg-red-500/10 transition cursor-pointer"
+                                        title="İlişkiyi kaldır"
+                                      >
+                                        <X className="w-3 h-3" />
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <button
+                                      onClick={() => handleOpenRelationModal(col)}
+                                      className="text-[10px] font-bold px-2 py-1 rounded-lg border border-dashed border-[var(--border)] text-[var(--text-secondary)] hover:border-violet-500/40 hover:text-violet-400 transition cursor-pointer flex items-center gap-1"
+                                      title="Bu sütunu başka bir tabloyla ilişkilendir"
+                                    >
+                                      <Plus className="w-3 h-3" />
+                                      İlişki Ekle
+                                    </button>
+                                  )}
+                                </td>
+                                <td className="p-3">
+                                  {col.is_standard ? (
+                                    <span className="text-[10px] text-[var(--text-secondary)]">-</span>
+                                  ) : (
+                                    <button
+                                      onClick={() => setDeleteColumnConfirm(col)}
+                                      className="p-1.5 rounded-lg text-[var(--text-secondary)] hover:text-red-400 hover:bg-red-500/10 transition cursor-pointer"
+                                      title="Sütunu sil"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    {/* SQL Schema Reference Card */}
+                    <div className="p-5 rounded-2xl border border-[var(--border)] bg-[#121316] text-slate-300 space-y-3 shadow-inner">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-mono font-bold text-sky-400 flex items-center gap-1.5">
+                          <FileText className="w-3.5 h-3.5" />
+                          sqlScripts.sql Otomatik DDL Tanımı
+                        </span>
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold">
+                          -- TABLO_TIPI: {availableTables.find(t => t.key === selectedTableKey)?.type || 'DATA'}
+                        </span>
+                      </div>
+
+                      <pre className="p-3 rounded-xl bg-black/60 border border-slate-800 text-[11px] font-mono text-emerald-400 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
+{`-- TABLO_TIPI: ${availableTables.find(t => t.key === selectedTableKey)?.type || 'DATA'}
+CREATE TABLE ${selectedTableKey} (
+    id serial primary key,
+    notes text,
+    row_status integer default 1,
+    create_uid integer,
+    create_date timestamp without time zone default current_timestamp,
+    write_uid integer,
+    write_date timestamp without time zone${allColumns
+      .filter(c => c.table_name === selectedTableKey && !c.is_standard)
+      .map(c => `,\n    ${c.column_name} ${c.data_type}${c.is_nullable ? '' : ' not null'}${c.column_default ? ` default ${c.column_default}` : ''}`)
+      .join('')}
+);`}
+                      </pre>
+                    </div>
+
+                  </div>
+                </div>
+              )}
 
               </div>
             </div>
@@ -935,11 +1266,29 @@ export default function AdminPanel({ theme, onClose }: AdminPanelProps) {
                       >
                         <div className="flex items-center justify-between gap-2 mb-1.5">
                           <div className="flex items-center gap-2">
-                            <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-amber-500 to-orange-600 flex items-center justify-center text-white font-black text-[10px]">
-                              {person.avatar_url || 'U'}
-                            </div>
+                            <label
+                              onClick={(e) => e.stopPropagation()}
+                              className="relative w-7 h-7 rounded-full bg-gradient-to-tr from-amber-500 to-orange-600 flex items-center justify-center text-white font-black text-[10px] shrink-0 cursor-pointer group overflow-hidden"
+                              title="Fotoğrafı değiştir"
+                            >
+                              {isAvatarImage(person.avatar_url) ? (
+                                <img src={person.avatar_url!} alt={person.full_name} className="w-full h-full object-cover" />
+                              ) : (
+                                getInitials(person.full_name)
+                              )}
+                              <span className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition">
+                                <Camera className="w-3 h-3 text-white" />
+                              </span>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onClick={(e) => e.stopPropagation()}
+                                onChange={(e) => handleAvatarFileChange(person.id, e.target.files?.[0])}
+                              />
+                            </label>
                             <div>
-                              <h4 className="font-extrabold text-[var(--text-primary)]">{person.full_name}</h4>
+                              <h4 className="text-[12px] font-bold text-[var(--text-primary)]">{person.full_name}</h4>
                               <span className="text-[10px] text-[var(--text-secondary)]">{person.email}</span>
                             </div>
                           </div>
@@ -947,7 +1296,7 @@ export default function AdminPanel({ theme, onClose }: AdminPanelProps) {
 
                         <div className="flex items-center justify-between text-[10px] pt-1 border-t border-[var(--border)]">
                           <span className="text-[var(--text-secondary)]">{person.department}</span>
-                          <span className={`px-2 py-0.5 rounded font-black uppercase text-[9px] ${
+                          <span className={`px-2 py-0.5 rounded font-black uppercase text-[10px] ${
                             person.user_role === 'super_user'
                               ? 'bg-red-500/15 text-red-400 border border-red-500/20'
                               : person.user_role === 'power_user'
@@ -971,12 +1320,28 @@ export default function AdminPanel({ theme, onClose }: AdminPanelProps) {
                     {/* User Profile Card */}
                     <div className="p-5 rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] flex items-center justify-between flex-wrap gap-4 shadow-sm">
                       <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-600 flex items-center justify-center text-white text-lg font-black shadow-lg">
-                          {selectedPersonel.avatar_url || 'U'}
-                        </div>
+                        <label
+                          className="relative w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-600 flex items-center justify-center text-white text-lg font-black shadow-lg shrink-0 cursor-pointer group overflow-hidden"
+                          title="Fotoğrafı değiştir"
+                        >
+                          {isAvatarImage(selectedPersonel.avatar_url) ? (
+                            <img src={selectedPersonel.avatar_url!} alt={selectedPersonel.full_name} className="w-full h-full object-cover" />
+                          ) : (
+                            getInitials(selectedPersonel.full_name)
+                          )}
+                          <span className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition">
+                            <Camera className="w-5 h-5 text-white" />
+                          </span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => handleAvatarFileChange(selectedPersonel.id, e.target.files?.[0])}
+                          />
+                        </label>
                         <div>
                           <div className="flex items-center gap-2">
-                            <h2 className="text-lg font-extrabold text-[var(--text-primary)]">{selectedPersonel.full_name}</h2>
+                            <h2 className="text-base font-bold text-[var(--text-primary)]">{selectedPersonel.full_name}</h2>
                             <span className="text-[10px] font-mono px-2 py-0.5 bg-slate-800 text-slate-300 rounded border border-slate-700">
                               UID: {selectedPersonel.id}
                             </span>
@@ -1032,7 +1397,7 @@ export default function AdminPanel({ theme, onClose }: AdminPanelProps) {
                       </div>
 
                       {/* Matrix Table */}
-                      <div className="rounded-xl border border-[var(--border)] overflow-hidden bg-[var(--bg-primary)]">
+                      <div className="rounded-xl border border-[var(--border)] overflow-x-auto bg-[var(--bg-primary)]">
                         <table className="w-full text-left text-xs border-collapse font-sans">
                           <thead>
                             <tr className="border-b border-[var(--border)] bg-[var(--bg-secondary)] text-[10px] uppercase font-black text-[var(--text-secondary)]">
@@ -1042,6 +1407,8 @@ export default function AdminPanel({ theme, onClose }: AdminPanelProps) {
                               <th className="p-3 text-center">Yazma (Write)</th>
                               <th className="p-3 text-center">Silme (Delete)</th>
                               <th className="p-3 text-center">Yönetim (Admin)</th>
+                              <th className="p-3 text-center">Doküman Ekle</th>
+                              <th className="p-3 text-center">Doküman Sil/Düzenle</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-[var(--border)] font-medium text-[var(--text-secondary)]">
@@ -1051,6 +1418,8 @@ export default function AdminPanel({ theme, onClose }: AdminPanelProps) {
                               const canWrite = perm ? perm.can_write : (selectedPersonel.user_role === 'super_user' || selectedPersonel.user_role === 'power_user');
                               const canDelete = perm ? perm.can_delete : selectedPersonel.user_role === 'super_user';
                               const canAdmin = perm ? perm.can_admin : selectedPersonel.user_role === 'super_user';
+                              const canDocAdd = perm ? perm.can_doc_add : (selectedPersonel.user_role === 'super_user' || selectedPersonel.user_role === 'power_user');
+                              const canDocManage = perm ? perm.can_doc_manage : selectedPersonel.user_role === 'super_user';
 
                               return (
                                 <tr key={tbl.key} className="hover:bg-[var(--bg-secondary)] transition">
@@ -1062,7 +1431,7 @@ export default function AdminPanel({ theme, onClose }: AdminPanelProps) {
                                     </div>
                                   </td>
                                   <td className="p-3">
-                                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--bg-secondary)] border border-[var(--border)] font-mono">
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--bg-secondary)] border border-[var(--border)] font-mono">
                                       {tbl.badge}
                                     </span>
                                   </td>
@@ -1099,11 +1468,31 @@ export default function AdminPanel({ theme, onClose }: AdminPanelProps) {
 
                                   {/* Admin Toggle */}
                                   <td className="p-3 text-center">
-                                    <input 
+                                    <input
                                       type="checkbox"
                                       checked={canAdmin}
                                       onChange={() => handlePermissionToggle(selectedPersonel.id, tbl.key, 'can_admin')}
                                       className="w-4 h-4 rounded text-amber-600 focus:ring-amber-500 cursor-pointer"
+                                    />
+                                  </td>
+
+                                  {/* Doküman Ekle Toggle */}
+                                  <td className="p-3 text-center">
+                                    <input
+                                      type="checkbox"
+                                      checked={canDocAdd}
+                                      onChange={() => handlePermissionToggle(selectedPersonel.id, tbl.key, 'can_doc_add')}
+                                      className="w-4 h-4 rounded text-teal-600 focus:ring-teal-500 cursor-pointer"
+                                    />
+                                  </td>
+
+                                  {/* Doküman Sil/Düzenle Toggle */}
+                                  <td className="p-3 text-center">
+                                    <input
+                                      type="checkbox"
+                                      checked={canDocManage}
+                                      onChange={() => handlePermissionToggle(selectedPersonel.id, tbl.key, 'can_doc_manage')}
+                                      className="w-4 h-4 rounded text-fuchsia-600 focus:ring-fuchsia-500 cursor-pointer"
                                     />
                                   </td>
                                 </tr>
@@ -1127,164 +1516,6 @@ export default function AdminPanel({ theme, onClose }: AdminPanelProps) {
             </div>
           )}
 
-          {/* ========================================================
-              TAB 3: VERİTABANI & ŞEMA & SÜTUN YÖNETİMİ
-             ======================================================== */}
-          {activeMainTab === 'veritabani' && (
-            <div className="flex-1 flex overflow-hidden">
-              
-              {/* Left Column: Tables selector */}
-              <div className="w-72 shrink-0 bg-[var(--bg-secondary)] border-r border-[var(--border)] flex flex-col overflow-hidden">
-                <div className="p-3.5 border-b border-[var(--border)] flex items-center justify-between">
-                  <span className="text-xs font-black uppercase tracking-wider text-[var(--text-secondary)] flex items-center gap-1.5">
-                    <TableProperties className="w-3.5 h-3.5 text-emerald-400" />
-                    Şema Tabloları ({availableTables.length})
-                  </span>
-                </div>
-
-                <div className="flex-1 overflow-y-auto p-2 space-y-1" style={{ scrollbarWidth: 'thin' }}>
-                  {availableTables.map(tbl => {
-                    const isSelected = schemaTableKey === tbl.key;
-                    return (
-                      <button
-                        key={tbl.key}
-                        onClick={() => setSchemaTableKey(tbl.key)}
-                        className={`w-full p-2.5 rounded-xl text-left text-xs font-bold transition flex items-center justify-between gap-2 cursor-pointer ${
-                          isSelected
-                            ? 'bg-emerald-600 text-white shadow-md'
-                            : 'text-[var(--text-secondary)] hover:bg-[var(--bg-primary)] hover:text-[var(--text-primary)]'
-                        }`}
-                      >
-                        <div className="truncate">
-                          <p className="truncate font-extrabold">{tbl.name}</p>
-                          <span className={`text-[10px] font-mono block ${isSelected ? 'text-emerald-100' : 'opacity-60'}`}>
-                            {tbl.key}
-                          </span>
-                        </div>
-                        <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded ${
-                          isSelected ? 'bg-white/20 text-white' : 'bg-[var(--bg-primary)] border border-[var(--border)]'
-                        }`}>
-                          {tbl.type}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Right Column: Schema Column Structure & Add Column Modal */}
-              <div className="flex-1 flex flex-col bg-[var(--bg-primary)] overflow-y-auto p-6" style={{ scrollbarWidth: 'thin' }}>
-                <div className="space-y-6 max-w-5xl">
-                  
-                  {/* Table Schema Header HUD */}
-                  <div className="p-5 rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] flex items-center justify-between flex-wrap gap-4 shadow-sm">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h2 className="text-base font-extrabold text-[var(--text-primary)] font-mono">{schemaTableKey}</h2>
-                        <span className="text-[10px] font-mono px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-md font-bold">
-                          PostgreSQL / PostGIS Uyumlu
-                        </span>
-                      </div>
-                      <p className="text-xs text-[var(--text-secondary)] mt-1">
-                        ASCII snake_case kolon standartları ve zorunlu 7 standart sistem kolonu.
-                      </p>
-                    </div>
-
-                    <button
-                      onClick={() => setShowAddColumnModal(true)}
-                      className="px-3.5 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold hover:bg-emerald-700 transition flex items-center gap-1.5 shadow-md cursor-pointer"
-                      id="admin-btn-add-column"
-                    >
-                      <Plus className="w-4 h-4" />
-                      Yeni Sütun Ekle
-                    </button>
-                  </div>
-
-                  {/* Columns Definition List */}
-                  <div className="p-5 rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] space-y-4 shadow-sm">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-extrabold text-[var(--text-primary)] flex items-center gap-2">
-                        <HardDrive className="w-4 h-4 text-emerald-400" />
-                        Sütun Yapısı & Veri Tipleri
-                      </h3>
-                      <span className="text-[11px] font-mono text-[var(--text-secondary)]">
-                        {allColumns.filter(c => c.table_name === schemaTableKey).length} Sütun Tanımlı
-                      </span>
-                    </div>
-
-                    <div className="rounded-xl border border-[var(--border)] overflow-hidden bg-[var(--bg-primary)]">
-                      <table className="w-full text-left text-xs border-collapse font-sans">
-                        <thead>
-                          <tr className="border-b border-[var(--border)] bg-[var(--bg-secondary)] text-[10px] uppercase font-black text-[var(--text-secondary)]">
-                            <th className="p-3">Sütun Adı (snake_case)</th>
-                            <th className="p-3">Veri Tipi</th>
-                            <th className="p-3">Boş Olabilir (Nullable)</th>
-                            <th className="p-3">Varsayılan (Default)</th>
-                            <th className="p-3">Açıklama / Standart</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-[var(--border)] font-medium text-[var(--text-secondary)]">
-                          {allColumns.filter(c => c.table_name === schemaTableKey).map((col, idx) => (
-                            <tr key={idx} className="hover:bg-[var(--bg-secondary)] transition">
-                              <td className="p-3 font-mono font-bold text-[var(--text-primary)]">
-                                <div className="flex items-center gap-1.5">
-                                  <span>{col.column_name}</span>
-                                  {col.is_standard && (
-                                    <span className="text-[8px] font-sans px-1.5 py-0.2 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded font-black">
-                                      STANDART 7
-                                    </span>
-                                  )}
-                                </div>
-                              </td>
-                              <td className="p-3 font-mono text-sky-400 font-bold">{col.data_type}</td>
-                              <td className="p-3">
-                                <span className={`text-[10px] px-2 py-0.5 rounded font-black ${col.is_nullable ? 'bg-slate-500/10 text-slate-400' : 'bg-red-500/10 text-red-400'}`}>
-                                  {col.is_nullable ? 'EVET' : 'HAYIR (NOT NULL)'}
-                                </span>
-                              </td>
-                              <td className="p-3 font-mono text-[11px] text-[var(--text-secondary)]">{col.column_default || '-'}</td>
-                              <td className="p-3 text-[var(--text-secondary)]">{col.description || '-'}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-
-                  {/* SQL Schema Reference Card */}
-                  <div className="p-5 rounded-2xl border border-[var(--border)] bg-[#121316] text-slate-300 space-y-3 shadow-inner">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-mono font-bold text-sky-400 flex items-center gap-1.5">
-                        <FileText className="w-3.5 h-3.5" />
-                        sqlScripts.sql Otomatik DDL Tanımı
-                      </span>
-                      <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold">
-                        -- TABLO_TIPI: {availableTables.find(t => t.key === schemaTableKey)?.type || 'DATA'}
-                      </span>
-                    </div>
-
-                    <pre className="p-3 rounded-xl bg-black/60 border border-slate-800 text-[11px] font-mono text-emerald-400 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
-{`-- TABLO_TIPI: ${availableTables.find(t => t.key === schemaTableKey)?.type || 'DATA'}
-CREATE TABLE ${schemaTableKey} (
-    id serial primary key,
-    notes text,
-    row_status integer default 1,
-    create_uid integer,
-    create_date timestamp without time zone default current_timestamp,
-    write_uid integer,
-    write_date timestamp without time zone${allColumns
-      .filter(c => c.table_name === schemaTableKey && !c.is_standard)
-      .map(c => `,\n    ${c.column_name} ${c.data_type}${c.is_nullable ? '' : ' not null'}${c.column_default ? ` default ${c.column_default}` : ''}`)
-      .join('')}
-);`}
-                    </pre>
-                  </div>
-
-                </div>
-              </div>
-
-            </div>
-          )}
 
         </div>
 
@@ -1398,7 +1629,7 @@ CREATE TABLE ${schemaTableKey} (
             <div className="p-4 border-b border-[var(--border)] flex items-center justify-between">
               <h3 className="text-sm font-extrabold text-[var(--text-primary)] flex items-center gap-2">
                 <Plus className="w-4 h-4 text-emerald-500" />
-                Tabloya Yeni Sütun Ekle ({schemaTableKey})
+                Tabloya Yeni Sütun Ekle ({selectedTableKey})
               </h3>
               <button onClick={() => setShowAddColumnModal(false)} className="text-[var(--text-secondary)] hover:text-white cursor-pointer">
                 <X className="w-4 h-4" />
@@ -1501,6 +1732,87 @@ CREATE TABLE ${schemaTableKey} (
       )}
 
       {/* ========================================================
+          MODAL: SÜTUN İLİŞKİLENDİRME (FK) — Sütunlar sekmesi
+         ======================================================== */}
+      {showRelationModal && relationEditingColumn && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl shadow-2xl overflow-hidden animate-fade-in">
+            <div className="p-4 border-b border-[var(--border)] flex items-center justify-between">
+              <h3 className="text-sm font-extrabold text-[var(--text-primary)] flex items-center gap-2">
+                <Key className="w-4 h-4 text-violet-400" />
+                Sütunu İlişkilendir ({relationEditingColumn.table_name}.{relationEditingColumn.column_name})
+              </h3>
+              <button onClick={() => setShowRelationModal(false)} className="text-[var(--text-secondary)] hover:text-white cursor-pointer">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveRelation} className="p-5 space-y-4 text-xs font-bold">
+              <div className="p-2.5 rounded-xl bg-violet-500/10 border border-violet-500/20 text-violet-300 text-[11px] font-medium">
+                Bu sütun, seçtiğiniz tablonun anahtar sütununa (genelde "id") bağlanır.
+                Veri giriş formunda bu sütun için, ilişkili tablonun "görünen ad" sütununu
+                (örn. "name") listeleyen bir combobox gösterilir.
+              </div>
+
+              <div>
+                <label className="block text-[var(--text-secondary)] mb-1">İlişkili Tablo:</label>
+                <select
+                  required
+                  value={relationForm.relation_table}
+                  onChange={(e) => setRelationForm({ ...relationForm, relation_table: e.target.value })}
+                  className="w-full p-2.5 rounded-lg bg-[var(--bg-primary)] border border-[var(--border)] text-[var(--text-primary)] font-mono focus:outline-none focus:border-violet-500 cursor-pointer"
+                >
+                  <option value="" disabled>Seçiniz...</option>
+                  {availableTables.filter(t => t.key !== relationEditingColumn.table_name).map(t => (
+                    <option key={t.key} value={t.key}>{t.name} ({t.key})</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[var(--text-secondary)] mb-1">Anahtar Sütun (genelde id):</label>
+                <input
+                  type="text"
+                  required
+                  value={relationForm.relation_column}
+                  onChange={(e) => setRelationForm({ ...relationForm, relation_column: e.target.value })}
+                  className="w-full p-2.5 rounded-lg bg-[var(--bg-primary)] border border-[var(--border)] text-[var(--text-primary)] font-mono focus:outline-none focus:border-violet-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[var(--text-secondary)] mb-1">Combobox'ta Gösterilecek Sütun:</label>
+                <input
+                  type="text"
+                  required
+                  value={relationForm.relation_display_column}
+                  onChange={(e) => setRelationForm({ ...relationForm, relation_display_column: e.target.value })}
+                  placeholder="örn: name"
+                  className="w-full p-2.5 rounded-lg bg-[var(--bg-primary)] border border-[var(--border)] text-[var(--text-primary)] font-mono focus:outline-none focus:border-violet-500"
+                />
+              </div>
+
+              <div className="pt-2 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowRelationModal(false)}
+                  className="px-4 py-2 rounded-lg border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg-primary)] cursor-pointer"
+                >
+                  İptal
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition shadow cursor-pointer font-extrabold"
+                >
+                  İlişkiyi Kaydet
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================
           MODAL: YENİ KAYIT EKLE (TAB 1 DİNAMİK)
          ======================================================== */}
       {showAddRowModal && (
@@ -1549,12 +1861,26 @@ CREATE TABLE ${schemaTableKey} (
                 Object.entries(newRowData).map(([fieldKey, fieldVal]) => {
                   const label = fieldKey.replace(/_/g, ' ').toUpperCase();
                   const isNumber = typeof fieldVal === 'number';
+                  const relationCol = allColumns.find(c => c.table_name === selectedTableKey && c.column_name === fieldKey && c.relation_table);
+                  const relationOptions = relationCol ? (relationOptionsCache[relationCol.relation_table as string] || []) : [];
                   return (
                     <div key={fieldKey}>
                       <label className="block text-[var(--text-secondary)] mb-1 font-mono text-[11px]">
                         {label} ({fieldKey}):
                       </label>
-                      {fieldKey === 'veri_durumu' ? (
+                      {relationCol ? (
+                        <select
+                          value={fieldVal ?? ''}
+                          onChange={(e) => setNewRowData({ ...newRowData, [fieldKey]: e.target.value })}
+                          className="w-full p-2.5 rounded-xl bg-[var(--bg-primary)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:border-orange-500 cursor-pointer"
+                          title={`İlişkili tablo: ${relationCol.relation_table}`}
+                        >
+                          <option value="" disabled>Seçiniz...</option>
+                          {relationOptions.map(opt => (
+                            <option key={opt.id} value={opt.id}>{opt.label} ({opt.id})</option>
+                          ))}
+                        </select>
+                      ) : fieldKey === 'veri_durumu' ? (
                         <select
                           value={fieldVal ?? 'Planlanan'}
                           onChange={(e) => setNewRowData({ ...newRowData, [fieldKey]: e.target.value })}
@@ -1638,12 +1964,26 @@ CREATE TABLE ${schemaTableKey} (
                   const label = fieldKey.replace(/_/g, ' ').toUpperCase();
                   const isNumber = typeof fieldVal === 'number';
                   const isObj = typeof fieldVal === 'object' && fieldVal !== null;
+                  const relationCol = allColumns.find(c => c.table_name === selectedTableKey && c.column_name === fieldKey && c.relation_table);
+                  const relationOptions = relationCol ? (relationOptionsCache[relationCol.relation_table as string] || []) : [];
                   return (
                     <div key={fieldKey}>
                       <label className="block text-[var(--text-secondary)] mb-1 font-mono text-[11px]">
                         {label} ({fieldKey}):
                       </label>
-                      {fieldKey === 'veri_durumu' ? (
+                      {relationCol ? (
+                        <select
+                          value={fieldVal ?? ''}
+                          onChange={(e) => setEditingRow({ ...editingRow, [fieldKey]: e.target.value })}
+                          className="w-full p-2.5 rounded-xl bg-[var(--bg-primary)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:border-sky-500 cursor-pointer"
+                          title={`İlişkili tablo: ${relationCol.relation_table}`}
+                        >
+                          <option value="" disabled>Seçiniz...</option>
+                          {relationOptions.map(opt => (
+                            <option key={opt.id} value={opt.id}>{opt.label} ({opt.id})</option>
+                          ))}
+                        </select>
+                      ) : fieldKey === 'veri_durumu' ? (
                         <select
                           value={fieldVal ?? 'Planlanan'}
                           onChange={(e) => setEditingRow({ ...editingRow, [fieldKey]: e.target.value })}
@@ -1736,6 +2076,48 @@ CREATE TABLE ${schemaTableKey} (
               </button>
               <button
                 onClick={() => handleDeleteRow(deleteConfirmRow)}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl font-extrabold text-xs shadow-lg shadow-red-500/20 cursor-pointer flex items-center gap-1.5"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Evet, Sil
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================
+          MODAL: SÜTUN SİLME ONAYI (Sütunlar alt-sekmesi)
+         ======================================================== */}
+      {deleteColumnConfirm && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-sm bg-[var(--bg-secondary)] border border-red-500/30 rounded-2xl shadow-2xl overflow-hidden animate-fade-in p-5 text-center space-y-4">
+            <div className="w-12 h-12 rounded-full bg-red-500/15 text-red-500 flex items-center justify-center mx-auto">
+              <Trash2 className="w-6 h-6" />
+            </div>
+
+            <div>
+              <h3 className="text-sm font-extrabold text-[var(--text-primary)]">
+                Sütunu Silmek İstiyor Musunuz?
+              </h3>
+              <p className="text-xs text-[var(--text-secondary)] mt-1">
+                <span className="font-mono text-amber-400 font-bold">{deleteColumnConfirm.table_name}</span> tablosundan{' '}
+                <span className="font-mono text-sky-400 font-bold">{deleteColumnConfirm.column_name}</span> sütunu kalıcı olarak silinecektir.
+              </p>
+              <p className="text-[10px] text-slate-400 mt-2 font-mono bg-[var(--bg-primary)] p-2 rounded-lg border border-[var(--border)]">
+                Bu işlem geri alınamaz — sütundaki mevcut veriler de birlikte kaybolur. Sistem (STANDART 7) sütunları bu işlemden hariçtir.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-center gap-2 pt-2">
+              <button
+                onClick={() => setDeleteColumnConfirm(null)}
+                className="px-4 py-2 rounded-xl border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg-primary)] font-bold text-xs cursor-pointer"
+              >
+                Vazgeç
+              </button>
+              <button
+                onClick={() => handleDeleteColumn(deleteColumnConfirm)}
                 className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl font-extrabold text-xs shadow-lg shadow-red-500/20 cursor-pointer flex items-center gap-1.5"
               >
                 <Trash2 className="w-3.5 h-3.5" />

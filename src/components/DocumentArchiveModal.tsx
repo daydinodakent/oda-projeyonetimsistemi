@@ -794,7 +794,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
               <h3 className="text-sm font-black uppercase tracking-wider text-[var(--text-primary)] flex items-center gap-2">
                 DOKÜMAN YÖNETİMİ
               </h3>
-              <p className="text-[10.5px] text-[var(--text-secondary)]">
+              <p className="text-[10px] text-[var(--text-secondary)]">
                 Proje, İnşaat ve İşletme aşamalarına ait teknik şartnameler, çizimler ve kalite kontrol kılavuzları
               </p>
             </div>
@@ -837,7 +837,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
               <button
                 key={tag}
                 onClick={() => setActiveCategoryFilter(tag)}
-                className={`px-2.5 py-1 text-[9.5px] font-bold rounded transition cursor-pointer ${
+                className={`px-2.5 py-1 text-[10px] font-bold rounded transition cursor-pointer ${
                   activeCategoryFilter === tag
                     ? 'bg-[var(--bg-primary)] text-[var(--text-primary)] border-b-2 border-indigo-500 font-bold'
                     : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
@@ -887,7 +887,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                 {/* FAVORİLER BÖLÜMÜ */}
                 {(favoriteFolders.length > 0 || favoriteDocuments.length > 0) && (
                   <div className="space-y-2 border-b border-[var(--border)] pb-3.5 mb-3.5">
-                    <span className="text-[9.5px] font-black text-indigo-400 uppercase tracking-widest flex items-center gap-1.5">
+                    <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest flex items-center gap-1.5">
                       <Star className="w-3.5 h-3.5 text-indigo-400 fill-indigo-400/20" />
                       FAVORİLER
                     </span>
@@ -899,7 +899,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                         return (
                           <div
                             key={`fav-f-${sub.id}`}
-                            className={`w-full flex items-center justify-between p-1 rounded text-left text-[9.5px] transition group ${
+                            className={`w-full flex items-center justify-between p-1 rounded text-left text-[10px] transition group ${
                               isSelected 
                                 ? 'bg-indigo-600/15 text-indigo-400 border border-indigo-500/25 font-extrabold' 
                                 : 'text-slate-300 hover:text-white hover:bg-slate-800/10'
@@ -929,7 +929,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                         return (
                           <div
                             key={`fav-d-${doc.id}`}
-                            className={`w-full flex items-center justify-between p-1 rounded text-left text-[9.5px] transition group ${
+                            className={`w-full flex items-center justify-between p-1 rounded text-left text-[10px] transition group ${
                               isSelected 
                                 ? 'bg-indigo-600/15 text-indigo-400 border border-indigo-500/25 font-extrabold' 
                                 : 'text-slate-300 hover:text-white hover:bg-slate-800/10'
@@ -973,11 +973,11 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                         onClick={() => togglePhaseExpand(phase.id)}
                         className="w-full flex items-center justify-between p-1.5 hover:bg-slate-800/20 rounded transition text-left cursor-pointer group"
                       >
-                        <span className="flex items-center gap-1.5 text-[10.5px] font-black text-amber-500 group-hover:text-amber-400">
+                        <span className="flex items-center gap-1.5 text-[10px] font-black text-amber-500 group-hover:text-amber-400">
                           {isExpanded ? <ChevronDown className="w-3.5 h-3.5 shrink-0" /> : <ChevronRight className="w-3.5 h-3.5 shrink-0" />}
                           {phase.name}
                         </span>
-                        <span className="text-[8px] bg-amber-500/10 text-amber-500 px-1 rounded-full font-mono font-bold">
+                        <span className="text-[10px] bg-amber-500/10 text-amber-500 px-1 rounded-full font-mono font-bold">
                           {phase.subfolders.length}
                         </span>
                       </button>
@@ -991,7 +991,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                             return (
                               <div
                                 key={sub.id}
-                                className={`w-full flex items-center justify-between p-1 rounded text-left text-[9.5px] transition group ${
+                                className={`w-full flex items-center justify-between p-1 rounded text-left text-[10px] transition group ${
                                   isSelected 
                                     ? 'bg-indigo-600/15 text-indigo-400 border border-indigo-500/25 font-extrabold' 
                                     : 'text-slate-300 hover:text-white hover:bg-slate-800/10'
@@ -1005,7 +1005,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                                   <span className="truncate">{sub.name}</span>
                                 </button>
                                 <div className="flex items-center gap-1 shrink-0">
-                                  <span className="text-[8px] text-slate-500 font-bold font-mono mr-1">
+                                  <span className="text-[10px] text-slate-500 font-bold font-mono mr-1">
                                     ({documents.filter(d => d.folderId === sub.id).length})
                                   </span>
                                   <button
@@ -1048,7 +1048,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                     {selectedFolderId 
                       ? `Klasör: ${folders.flatMap(p => p.subfolders).find(s => s.id === selectedFolderId)?.name}` 
                       : 'Tüm Arşiv Klasör İçeriği'}
-                    <span className="text-[9px] text-slate-500 font-mono">({filteredDocuments.length} döküman listeleniyor)</span>
+                    <span className="text-[10px] text-slate-500 font-mono">({filteredDocuments.length} döküman listeleniyor)</span>
                   </h3>
                 </div>
               </div>
@@ -1086,7 +1086,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                 <div className="w-full overflow-x-auto">
                   <table className="w-full text-[10px] text-left border-collapse">
                     <thead>
-                      <tr className="border-b border-slate-800 text-slate-400 font-black uppercase tracking-widest text-[8.5px] bg-[#0c101c]/40">
+                      <tr className="border-b border-slate-800 text-slate-400 font-black uppercase tracking-widest text-[10px] bg-[#0c101c]/40">
                         <th className="py-2.5 px-3">Döküman Adı</th>
                         <th className="py-2.5 px-2">Aşama / Tip</th>
                         <th className="py-2.5 px-2">Yazar / Tarih</th>
@@ -1124,7 +1124,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                             {/* Phase and Category badges */}
                             <td className="py-2.5 px-2">
                               <div className="flex items-center gap-1.5">
-                                <span className={`px-1.5 py-0.2 rounded text-[7.5px] font-black ${
+                                <span className={`px-1.5 py-0.5 rounded text-[10px] font-black ${
                                   doc.phase === 'PROJE' 
                                     ? 'bg-blue-500/10 text-blue-400' 
                                     : doc.phase === 'İNŞAAT' 
@@ -1141,15 +1141,15 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                             <td className="py-2.5 px-2 text-slate-300">
                               <div className="leading-tight">
                                 <span className="block font-bold">{doc.author}</span>
-                                <span className="text-[8.5px] text-slate-500 font-mono">{doc.date}</span>
+                                <span className="text-[10px] text-slate-500 font-mono">{doc.date}</span>
                               </div>
                             </td>
 
                             {/* Version and Filesize */}
-                            <td className="py-2.5 px-2 font-mono text-slate-400 text-[9px]">
+                            <td className="py-2.5 px-2 font-mono text-slate-400 text-[10px]">
                               <div className="leading-tight">
                                 <span className="block font-black text-slate-300">{doc.version}</span>
-                                <span className="text-[8px] text-slate-500">{doc.size}</span>
+                                <span className="text-[10px] text-slate-500">{doc.size}</span>
                               </div>
                             </td>
 
@@ -1159,7 +1159,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                                 const status = doc.approvalStatus || 'PENDING';
                                 if (status === 'APPROVED') {
                                   return (
-                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 text-[8px] font-black uppercase border border-emerald-500/25">
+                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 text-[10px] font-black uppercase border border-emerald-500/25">
                                       <Shield className="w-2.5 h-2.5" />
                                       ONAYLANDI
                                     </span>
@@ -1167,13 +1167,13 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                                 }
                                 if (status === 'REJECTED') {
                                   return (
-                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-400 text-[8px] font-black uppercase border border-rose-500/25">
+                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-400 text-[10px] font-black uppercase border border-rose-500/25">
                                       ✕ REDDEDİLDİ
                                     </span>
                                   );
                                 }
                                 return (
-                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 text-[8px] font-black uppercase border border-amber-500/25">
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 text-[10px] font-black uppercase border border-amber-500/25">
                                     ● BEKLİYOR
                                   </span>
                                 );
@@ -1218,7 +1218,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                   CDE TEKNİK PANEL
                 </span>
                 {selectedDoc && (
-                  <span className={`px-1.5 py-0.2 rounded text-[7.5px] font-black ${
+                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-black ${
                     selectedDoc.approvalStatus === 'APPROVED'
                       ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
                       : selectedDoc.approvalStatus === 'REJECTED'
@@ -1236,7 +1236,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                   <div className="grid grid-cols-2 gap-1 p-1 bg-[#121624] border border-slate-800 rounded-lg">
                     <button
                       onClick={() => setActiveRightTab('details')}
-                      className={`py-1.5 text-[9px] font-black uppercase tracking-wider rounded-md transition cursor-pointer ${
+                      className={`py-1.5 text-[10px] font-black uppercase tracking-wider rounded-md transition cursor-pointer ${
                         activeRightTab === 'details'
                           ? 'bg-indigo-600 text-white shadow-sm font-extrabold'
                           : 'text-slate-400 hover:text-slate-200'
@@ -1246,7 +1246,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                     </button>
                     <button
                       onClick={() => setActiveRightTab('approval')}
-                      className={`py-1.5 text-[9px] font-black uppercase tracking-wider rounded-md transition cursor-pointer flex items-center justify-center gap-1 ${
+                      className={`py-1.5 text-[10px] font-black uppercase tracking-wider rounded-md transition cursor-pointer flex items-center justify-center gap-1 ${
                         activeRightTab === 'approval'
                           ? 'bg-indigo-600 text-white shadow-sm font-extrabold'
                           : 'text-slate-400 hover:text-slate-200'
@@ -1262,7 +1262,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                     <h4 className="text-xs font-black text-slate-100 leading-normal mb-1 break-all">
                       {selectedDoc.name}
                     </h4>
-                    <p className="text-[9px] text-slate-400 italic">
+                    <p className="text-[10px] text-slate-400 italic">
                       {selectedDoc.description || 'Bu dökümana ait açıklama detayı bulunmamaktadır.'}
                     </p>
                   </div>
@@ -1274,14 +1274,14 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                         <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 blur-[30px] pointer-events-none rounded-full" />
                         {getDocumentIcon(selectedDoc.extension, selectedDoc.category)}
                         
-                        <span className="text-[8.5px] font-mono text-slate-400 uppercase font-black tracking-wider block mt-2">
+                        <span className="text-[10px] font-mono text-slate-400 uppercase font-black tracking-wider block mt-2">
                           {selectedDoc.extension.toUpperCase()} BELGE SİMÜLASYONU
                         </span>
-                        <span className="text-[7.5px] text-slate-600 block mb-3 font-mono">Arşiv Güvenli Şifreleme v2</span>
+                        <span className="text-[10px] text-slate-600 block mb-3 font-mono">Arşiv Güvenli Şifreleme v2</span>
 
                         <button
                           onClick={() => setFullScreenPreviewDoc(selectedDoc)}
-                          className="px-2.5 py-1 bg-indigo-600/20 hover:bg-indigo-600 border border-indigo-500/25 hover:border-indigo-500 text-indigo-400 hover:text-white rounded text-[8.5px] font-black uppercase flex items-center gap-1 cursor-pointer transition-all duration-200"
+                          className="px-2.5 py-1 bg-indigo-600/20 hover:bg-indigo-600 border border-indigo-500/25 hover:border-indigo-500 text-indigo-400 hover:text-white rounded text-[10px] font-black uppercase flex items-center gap-1 cursor-pointer transition-all duration-200"
                         >
                           <Eye className="w-3 h-3" />
                           Tam Ekran Önizleme
@@ -1294,7 +1294,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                           BELGE BİLGİLERİ
                         </span>
 
-                        <div className="space-y-1.5 text-[9.5px]">
+                        <div className="space-y-1.5 text-[10px]">
                           <div className="flex justify-between">
                             <span className="text-slate-500">Revizyon Tarihi:</span>
                             <span className="font-mono font-bold text-slate-200">{selectedDoc.date}</span>
@@ -1348,37 +1348,37 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                             };
 
                             return (
-                              <div className="space-y-2 text-[9px]">
+                              <div className="space-y-2 text-[10px]">
                                 <p className="text-slate-300 leading-snug">
                                   Bu teknik döküman, <strong>5070 Sayılı Elektronik İmza Kanunu</strong> uyarınca dijital olarak mühürlenmiş ve arşivlenmiştir.
                                 </p>
 
                                 <div className="p-2 bg-slate-900/60 rounded border border-emerald-500/10 space-y-1 font-mono text-slate-400">
                                   <div>
-                                    <span className="text-slate-500 block text-[8px]">Onaylayan Yetkili</span>
+                                    <span className="text-slate-500 block text-[10px]">Onaylayan Yetkili</span>
                                     <span className="text-emerald-300 font-sans font-bold">{matchingLog.approver}</span>
                                   </div>
                                   <div>
-                                    <span className="text-slate-500 block text-[8px]">Görevi / Rolü</span>
+                                    <span className="text-slate-500 block text-[10px]">Görevi / Rolü</span>
                                     <span className="text-slate-300 font-sans">{matchingLog.role}</span>
                                   </div>
                                   <div>
-                                    <span className="text-slate-500 block text-[8px]">Zaman Damgası</span>
+                                    <span className="text-slate-500 block text-[10px]">Zaman Damgası</span>
                                     <span className="text-slate-300">{matchingLog.timestamp}</span>
                                   </div>
                                   <div>
-                                    <span className="text-slate-500 block text-[8px]">Doğrulama IP</span>
+                                    <span className="text-slate-500 block text-[10px]">Doğrulama IP</span>
                                     <span className="text-slate-300">{matchingLog.ipAddress}</span>
                                   </div>
                                   <div className="pt-1 border-t border-slate-800">
-                                    <span className="text-slate-500 block text-[8px]">Sertifika Hash</span>
-                                    <span className="text-[7.5px] break-all font-mono select-all text-slate-500">{matchingLog.hash}</span>
+                                    <span className="text-slate-500 block text-[10px]">Sertifika Hash</span>
+                                    <span className="text-[10px] break-all font-mono select-all text-slate-500">{matchingLog.hash}</span>
                                   </div>
                                 </div>
 
                                 {/* Render Signature Image or Digital cursive Text */}
                                 <div className="border border-emerald-500/15 bg-white/5 rounded-lg p-2 flex flex-col items-center justify-center min-h-[50px]">
-                                  <span className="text-[7px] text-slate-600 uppercase font-mono tracking-widest mb-1">E-İMZA KANITI</span>
+                                  <span className="text-[10px] text-slate-600 uppercase font-mono tracking-widest mb-1">E-İMZA KANITI</span>
                                   {matchingLog.signatureType === 'draw' && matchingLog.signatureData.startsWith('data:image') ? (
                                     <img 
                                       src={matchingLog.signatureData} 
@@ -1395,7 +1395,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
 
                                 <button
                                   onClick={() => handleRevokeApproval(selectedDoc.id)}
-                                  className="w-full mt-2 py-1 bg-red-600/10 hover:bg-red-600 hover:text-white border border-red-500/30 text-red-400 rounded text-[9px] font-black uppercase transition cursor-pointer"
+                                  className="w-full mt-2 py-1 bg-red-600/10 hover:bg-red-600 hover:text-white border border-red-500/30 text-red-400 rounded text-[10px] font-black uppercase transition cursor-pointer"
                                 >
                                   Onayı Geri Çek
                                 </button>
@@ -1410,7 +1410,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                             <span className="text-sm font-bold">✕</span>
                             <span className="text-[10px] font-black uppercase tracking-widest">BELGE REDDEDİLDİ</span>
                           </div>
-                          <p className="text-[9.5px] text-slate-400 leading-snug">
+                          <p className="text-[10px] text-slate-400 leading-snug">
                             Bu döküman revizyon gerektirdiği gerekçesiyle reddedilmiştir. Belgeyi güncelledikten sonra yeni versiyonunu yükleyebilir veya tekrar onaya sunabilirsiniz.
                           </p>
                           <button
@@ -1418,7 +1418,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                               const updated = documents.map(d => d.id === selectedDoc.id ? { ...d, approvalStatus: 'PENDING' as const } : d);
                               setDocuments(updated);
                             }}
-                            className="w-full py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[9px] font-black uppercase rounded border border-slate-700 transition cursor-pointer"
+                            className="w-full py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-black uppercase rounded border border-slate-700 transition cursor-pointer"
                           >
                             Tekrar İncelemeye Al (Onay Bekliyor)
                           </button>
@@ -1428,21 +1428,21 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                         <div className="space-y-3">
                           <div className="p-2 bg-[#0d1324] border border-slate-800 rounded-lg space-y-2">
                             <div>
-                              <label className="text-[8px] text-slate-500 block uppercase font-mono">İmzalayan Yetkili Ad Soyad</label>
+                              <label className="text-[10px] text-slate-500 block uppercase font-mono">İmzalayan Yetkili Ad Soyad</label>
                               <input 
                                 type="text"
                                 value={signerName}
                                 onChange={e => setSignerName(e.target.value)}
-                                className="w-full bg-slate-900 border border-slate-800 text-[9.5px] font-bold text-slate-100 rounded px-2 py-1 focus:outline-none focus:border-indigo-500"
+                                className="w-full bg-slate-900 border border-slate-800 text-[10px] font-bold text-slate-100 rounded px-2 py-1 focus:outline-none focus:border-indigo-500"
                               />
                             </div>
                             <div>
-                              <label className="text-[8px] text-slate-500 block uppercase font-mono">Yetki Ünvanı / Rolü</label>
+                              <label className="text-[10px] text-slate-500 block uppercase font-mono">Yetki Ünvanı / Rolü</label>
                               <input 
                                 type="text"
                                 value={signerRole}
                                 onChange={e => setSignerRole(e.target.value)}
-                                className="w-full bg-slate-900 border border-slate-800 text-[9.5px] font-bold text-slate-100 rounded px-2 py-1 focus:outline-none focus:border-indigo-500"
+                                className="w-full bg-slate-900 border border-slate-800 text-[10px] font-bold text-slate-100 rounded px-2 py-1 focus:outline-none focus:border-indigo-500"
                               />
                             </div>
                           </div>
@@ -1451,7 +1451,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                           <div className="flex gap-1 border-b border-slate-800 pb-2">
                             <button
                               onClick={() => setSignatureType('draw')}
-                              className={`flex-1 py-1 text-[8.5px] font-black uppercase rounded cursor-pointer transition ${
+                              className={`flex-1 py-1 text-[10px] font-black uppercase rounded cursor-pointer transition ${
                                 signatureType === 'draw' ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30' : 'text-slate-500 hover:text-slate-300'
                               }`}
                             >
@@ -1459,7 +1459,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                             </button>
                             <button
                               onClick={() => setSignatureType('type')}
-                              className={`flex-1 py-1 text-[8.5px] font-black uppercase rounded cursor-pointer transition ${
+                              className={`flex-1 py-1 text-[10px] font-black uppercase rounded cursor-pointer transition ${
                                 signatureType === 'type' ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30' : 'text-slate-500 hover:text-slate-300'
                               }`}
                             >
@@ -1485,17 +1485,17 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                                 <button
                                   type="button"
                                   onClick={clearCanvas}
-                                  className="absolute bottom-2 right-2 px-1.5 py-0.5 bg-slate-800/80 hover:bg-slate-700 hover:text-white text-slate-400 text-[7.5px] font-mono rounded cursor-pointer uppercase tracking-widest border border-slate-700 transition"
+                                  className="absolute bottom-2 right-2 px-1.5 py-0.5 bg-slate-800/80 hover:bg-slate-700 hover:text-white text-slate-400 text-[10px] font-mono rounded cursor-pointer uppercase tracking-widest border border-slate-700 transition"
                                 >
                                   Temizle
                                 </button>
-                                <span className="absolute top-2 left-2 text-[7.5px] text-slate-600 font-mono pointer-events-none">İMZA ALANI</span>
+                                <span className="absolute top-2 left-2 text-[10px] text-slate-600 font-mono pointer-events-none">İMZA ALANI</span>
                               </div>
                             </div>
                           ) : (
                             <div className="border border-slate-800 bg-[#090e18] rounded-xl p-3 flex items-center justify-center text-center min-h-[96px]">
                               <div className="space-y-1">
-                                <span className="text-[7.5px] text-slate-600 font-mono block">DİJİTAL KALİGRAFİ</span>
+                                <span className="text-[10px] text-slate-600 font-mono block">DİJİTAL KALİGRAFİ</span>
                                 <span className="font-serif italic text-lg tracking-wider text-indigo-300 font-bold px-4 py-1 border-b border-indigo-500/30 inline-block">
                                   {typedSignatureText || signerName}
                                 </span>
@@ -1506,8 +1506,8 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                           {/* PIN verification code */}
                           <div>
                             <div className="flex justify-between items-center mb-1">
-                              <label className="text-[8.5px] text-slate-400 font-black uppercase tracking-wider block">Dijital Güvenlik Kodu</label>
-                              <span className="text-[7.5px] text-slate-600 font-mono">Örnek PIN: 1973</span>
+                              <label className="text-[10px] text-slate-400 font-black uppercase tracking-wider block">Dijital Güvenlik Kodu</label>
+                              <span className="text-[10px] text-slate-600 font-mono">Örnek PIN: 1973</span>
                             </div>
                             <input
                               type="password"
@@ -1515,12 +1515,12 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                               maxLength={6}
                               value={verificationCode}
                               onChange={e => setVerificationCode(e.target.value)}
-                              className="w-full bg-[#121624] border border-slate-800 rounded px-2.5 py-1.5 text-[9.5px] font-mono focus:outline-none focus:border-indigo-500 text-slate-200 placeholder-slate-600"
+                              className="w-full bg-[#121624] border border-slate-800 rounded px-2.5 py-1.5 text-[10px] font-mono focus:outline-none focus:border-indigo-500 text-slate-200 placeholder-slate-600"
                             />
                           </div>
 
                           {/* Terms Acceptance */}
-                          <label className="flex items-start gap-1.5 p-1 text-[8.5px] text-slate-500 select-none cursor-pointer">
+                          <label className="flex items-start gap-1.5 p-1 text-[10px] text-slate-500 select-none cursor-pointer">
                             <input
                               type="checkbox"
                               checked={termsAccepted}
@@ -1536,14 +1536,14 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                           <div className="flex gap-2 pt-1 border-t border-slate-900/60">
                             <button
                               onClick={() => handleRejectDocument(selectedDoc.id)}
-                              className="flex-1 py-1.5 bg-rose-950/20 hover:bg-rose-900/30 border border-rose-900/40 text-rose-400 rounded text-[9.5px] font-black uppercase transition cursor-pointer"
+                              className="flex-1 py-1.5 bg-rose-950/20 hover:bg-rose-900/30 border border-rose-900/40 text-rose-400 rounded text-[10px] font-black uppercase transition cursor-pointer"
                             >
                               Reddet
                             </button>
                             <button
                               onClick={() => handleApproveDocument(selectedDoc.id)}
                               disabled={!termsAccepted}
-                              className={`flex-[2] py-1.5 font-black uppercase rounded text-[9.5px] text-center transition flex items-center justify-center gap-1.5 ${
+                              className={`flex-[2] py-1.5 font-black uppercase rounded text-[10px] text-center transition flex items-center justify-center gap-1.5 ${
                                 termsAccepted
                                   ? 'bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer shadow-[0_4px_12px_rgba(16,185,129,0.25)] border border-emerald-500/20'
                                   : 'bg-slate-800 text-slate-500 border border-slate-800 cursor-not-allowed'
@@ -1570,7 +1570,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
               <div className="border-t border-slate-900 pt-3 flex gap-2">
                 <button
                   onClick={() => toggleFavoriteDocument(selectedDoc.id)}
-                  className={`flex-1 py-1.5 border rounded text-[9.5px] font-black uppercase flex items-center justify-center gap-1 cursor-pointer transition-all ${
+                  className={`flex-1 py-1.5 border rounded text-[10px] font-black uppercase flex items-center justify-center gap-1 cursor-pointer transition-all ${
                     favoriteDocuments.includes(selectedDoc.id)
                       ? 'bg-indigo-600/20 border-indigo-500/50 text-indigo-400'
                       : 'bg-slate-800/60 hover:bg-slate-700/80 border-slate-800 text-slate-300 hover:text-white'
@@ -1582,7 +1582,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                 </button>
                 <button
                   onClick={() => alert(`📥 ${selectedDoc.name} dosyası başarıyla indirildi.`)}
-                  className="flex-1 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 hover:text-white rounded text-[9.5px] font-black uppercase flex items-center justify-center gap-1 cursor-pointer transition-all"
+                  className="flex-1 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 hover:text-white rounded text-[10px] font-black uppercase flex items-center justify-center gap-1 cursor-pointer transition-all"
                 >
                   <Download className="w-3.5 h-3.5" />
                   İndir
@@ -1610,10 +1610,10 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
               </button>
             </div>
 
-            <form onSubmit={handleCreateDocument} className="space-y-3.5 text-[10.5px]">
+            <form onSubmit={handleCreateDocument} className="space-y-3.5 text-[10px]">
               {/* Doc Name */}
               <div className="space-y-1">
-                <label className="text-[9.5px] font-black text-slate-400 uppercase block">Doküman Adı:</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase block">Doküman Adı:</label>
                 <input
                   type="text"
                   required
@@ -1627,7 +1627,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
               <div className="grid grid-cols-2 gap-3">
                 {/* Phase Selection */}
                 <div className="space-y-1">
-                  <label className="text-[9.5px] font-black text-slate-400 uppercase block">Süreç Aşaması:</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase block">Süreç Aşaması:</label>
                   <select
                     value={newDocPhase}
                     onChange={(e) => {
@@ -1646,7 +1646,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
 
                 {/* File format extension selection */}
                 <div className="space-y-1">
-                  <label className="text-[9.5px] font-black text-slate-400 uppercase block">Dosya Formatı / Uzantısı:</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase block">Dosya Formatı / Uzantısı:</label>
                   <select
                     value={newDocExtension}
                     onChange={(e) => {
@@ -1692,7 +1692,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
               <div className="grid grid-cols-2 gap-3">
                 {/* Category Spec */}
                 <div className="space-y-1">
-                  <label className="text-[9.5px] font-black text-slate-400 uppercase block">Kategori Türü:</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase block">Kategori Türü:</label>
                   <select
                     value={newDocCategory}
                     onChange={(e) => setNewDocCategory(e.target.value)}
@@ -1708,7 +1708,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
 
                 {/* Subfolder Node placement */}
                 <div className="space-y-1">
-                  <label className="text-[9.5px] font-black text-slate-400 uppercase block">İlişkili Klasör Konumu:</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase block">İlişkili Klasör Konumu:</label>
                   <select
                     value={newDocFolderId}
                     onChange={(e) => setNewDocFolderId(e.target.value)}
@@ -1728,7 +1728,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
               <div className="grid grid-cols-2 gap-3">
                 {/* Author Name */}
                 <div className="space-y-1">
-                  <label className="text-[9.5px] font-black text-slate-400 uppercase block">Oluşturan / Yazar:</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase block">Oluşturan / Yazar:</label>
                   <input
                     type="text"
                     required
@@ -1740,7 +1740,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
 
                 {/* Version */}
                 <div className="space-y-1">
-                  <label className="text-[9.5px] font-black text-slate-400 uppercase block">Belge Versiyonu:</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase block">Belge Versiyonu:</label>
                   <input
                     type="text"
                     required
@@ -1753,7 +1753,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
 
               {/* Description field */}
               <div className="space-y-1">
-                <label className="text-[9.5px] font-black text-slate-400 uppercase block">Belge Açıklaması / Notlar:</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase block">Belge Açıklaması / Notlar:</label>
                 <textarea
                   value={newDocDescription}
                   onChange={(e) => setNewDocDescription(e.target.value)}
@@ -1800,10 +1800,10 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
               </button>
             </div>
 
-            <form onSubmit={handleCreateFolder} className="space-y-4 text-[10.5px]">
+            <form onSubmit={handleCreateFolder} className="space-y-4 text-[10px]">
               {/* Phase classification */}
               <div className="space-y-1">
-                <label className="text-[9.5px] font-black text-slate-400 uppercase block">Üst Süreç Grubu:</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase block">Üst Süreç Grubu:</label>
                 <select
                   value={newFolderPhase}
                   onChange={(e) => setNewFolderPhase(e.target.value)}
@@ -1817,7 +1817,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
 
               {/* Folder Name input */}
               <div className="space-y-1">
-                <label className="text-[9.5px] font-black text-slate-400 uppercase block">Klasör Adı:</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase block">Klasör Adı:</label>
                 <input
                   type="text"
                   required
@@ -1857,7 +1857,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
               {getDocumentIcon(fullScreenPreviewDoc.extension, fullScreenPreviewDoc.category)}
               <div>
                 <strong className="text-xs text-slate-100 block">{fullScreenPreviewDoc.name}</strong>
-                <span className="text-[9px] text-slate-400">Yazar: {fullScreenPreviewDoc.author} | Revizyon: {fullScreenPreviewDoc.version}</span>
+                <span className="text-[10px] text-slate-400">Yazar: {fullScreenPreviewDoc.author} | Revizyon: {fullScreenPreviewDoc.version}</span>
               </div>
             </div>
             <button
@@ -1905,7 +1905,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                   <div className="flex-1 flex flex-col md:flex-row gap-3 h-full text-left font-sans">
                     {/* Left Sidebar Tabs */}
                     <div className="w-full md:w-56 bg-[#0a0e17] border border-slate-800 p-3 rounded-xl flex flex-col gap-2 shrink-0">
-                      <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-1 block">ÇALIŞMA SAYFALARI</span>
+                      <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1 block">ÇALIŞMA SAYFALARI</span>
                       {Object.keys(xlsxSheets).map(sheetName => (
                         <button
                           key={sheetName}
@@ -1913,7 +1913,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                             setXlsxActiveSheet(sheetName);
                             setXlsxSearchQuery('');
                           }}
-                          className={`w-full text-left p-2.5 rounded-lg text-[10.5px] font-bold transition flex items-center gap-2 cursor-pointer ${
+                          className={`w-full text-left p-2.5 rounded-lg text-[10px] font-bold transition flex items-center gap-2 cursor-pointer ${
                             xlsxActiveSheet === sheetName
                               ? 'bg-emerald-600/15 border border-emerald-500/20 text-emerald-400'
                               : 'text-slate-400 hover:text-white hover:bg-slate-800/40'
@@ -1924,7 +1924,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                         </button>
                       ))}
 
-                      <div className="mt-auto pt-3 border-t border-slate-900 text-[9px] text-slate-500 font-mono space-y-1">
+                      <div className="mt-auto pt-3 border-t border-slate-900 text-[10px] text-slate-500 font-mono space-y-1">
                         <div>Format: Microsoft Excel (.xlsx)</div>
                         <div>Dosya Boyutu: {fullScreenPreviewDoc.size}</div>
                         <div>Versiyon: {fullScreenPreviewDoc.version}</div>
@@ -1941,7 +1941,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                             type="text"
                             readOnly
                             value={`=SUM(F2:F${filteredData.length + 1})`}
-                            className="bg-[#080c14] border border-slate-800 rounded px-2.5 py-1 text-[10.5px] text-emerald-400 font-mono flex-1 focus:outline-none"
+                            className="bg-[#080c14] border border-slate-800 rounded px-2.5 py-1 text-[10px] text-emerald-400 font-mono flex-1 focus:outline-none"
                           />
                         </div>
 
@@ -1959,9 +1959,9 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
 
                       {/* Spreadsheet Grid Grid */}
                       <div className="flex-1 overflow-auto scrollbar-none">
-                        <table className="w-full text-left text-[10.5px] border-collapse">
+                        <table className="w-full text-left text-[10px] border-collapse">
                           <thead>
-                            <tr className="bg-[#121929] text-slate-400 uppercase font-mono text-[9px] border-b border-slate-800">
+                            <tr className="bg-[#121929] text-slate-400 uppercase font-mono text-[10px] border-b border-slate-800">
                               <th className="py-2 px-3 border-r border-slate-800 w-8 text-center">#</th>
                               <th className="py-2 px-3 border-r border-slate-800">A / Poz Kodu</th>
                               <th className="py-2 px-3 border-r border-slate-800">B / İmalat Kalemi Tanımı</th>
@@ -1974,7 +1974,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                           <tbody className="divide-y divide-slate-900 font-mono">
                             {filteredData.map((row, idx) => (
                               <tr key={idx} className="hover:bg-slate-800/20 text-slate-300">
-                                <td className="py-2 px-3 border-r border-slate-800 text-center bg-[#101726]/30 text-slate-500 text-[9.5px]">{idx + 2}</td>
+                                <td className="py-2 px-3 border-r border-slate-800 text-center bg-[#101726]/30 text-slate-500 text-[10px]">{idx + 2}</td>
                                 <td className="py-2 px-3 border-r border-slate-800 font-bold text-slate-200">{row.code}</td>
                                 <td className="py-2 px-3 border-r border-slate-800 text-slate-300 font-sans">{row.name}</td>
                                 <td className="py-2 px-3 border-r border-slate-800 text-center text-slate-400">{row.unit}</td>
@@ -2063,7 +2063,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                   <div className="flex-1 flex flex-col md:flex-row gap-3 h-full text-left font-sans">
                     {/* Left Outline Sidebar */}
                     <div className="w-full md:w-56 bg-[#0a0e17] border border-slate-800 p-3 rounded-xl flex flex-col gap-2 shrink-0">
-                      <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-1.5 block">
+                      <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1.5 block">
                         {isDocx ? 'DOKÜMAN BÖLÜMLERİ' : 'SUNUM SLAYTLARI'}
                       </span>
                       
@@ -2071,7 +2071,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                         docxChapters.map((ch, i) => (
                           <div key={i} className="p-2 bg-slate-900/40 rounded border border-slate-800/40 text-[10px] text-slate-300">
                             <span className="font-bold text-indigo-400 block mb-0.5">{ch.title}</span>
-                            <span className="text-slate-500 text-[9px] line-clamp-1">{ch.text}</span>
+                            <span className="text-slate-500 text-[10px] line-clamp-1">{ch.text}</span>
                           </div>
                         ))
                       ) : (
@@ -2085,13 +2085,13 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                                 : 'bg-slate-900/30 border-slate-900 text-slate-400 hover:text-slate-200'
                             }`}
                           >
-                            <span className="block text-[8px] text-slate-500 font-mono">SLAYT {i + 1}</span>
+                            <span className="block text-[10px] text-slate-500 font-mono">SLAYT {i + 1}</span>
                             <span className="line-clamp-1">{slide.title}</span>
                           </button>
                         ))
                       )}
 
-                      <div className="mt-auto pt-3 border-t border-slate-900 text-[9px] text-slate-500 font-mono space-y-1">
+                      <div className="mt-auto pt-3 border-t border-slate-900 text-[10px] text-slate-500 font-mono space-y-1">
                         <div>Format: {isDocx ? 'Microsoft Word (.docx)' : 'Microsoft PowerPoint (.pptx)'}</div>
                         <div>Yazar: {fullScreenPreviewDoc.author}</div>
                         <div>Tarih: {fullScreenPreviewDoc.date}</div>
@@ -2103,7 +2103,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                       {/* Top Viewer Control Bar */}
                       <div className="p-3 bg-[#0d1321] border-b border-slate-800 flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <span className={`px-2 py-0.5 rounded text-[8.5px] font-black uppercase text-white ${isDocx ? 'bg-blue-600' : 'bg-orange-600'}`}>
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase text-white ${isDocx ? 'bg-blue-600' : 'bg-orange-600'}`}>
                             {ext.toUpperCase()} OKUYUCU
                           </span>
                           <span className="text-[10px] text-slate-400 font-mono">Versiyon: {fullScreenPreviewDoc.version}</span>
@@ -2114,7 +2114,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                             <button
                               disabled={pptxCurrentSlide === 1}
                               onClick={() => setPptxCurrentSlide(p => Math.max(1, p - 1))}
-                              className="px-2 py-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-300 rounded text-[9px] cursor-pointer"
+                              className="px-2 py-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-300 rounded text-[10px] cursor-pointer"
                             >
                               Önceki
                             </button>
@@ -2122,7 +2122,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                             <button
                               disabled={pptxCurrentSlide === pptxSlides.length}
                               onClick={() => setPptxCurrentSlide(p => Math.min(pptxSlides.length, p + 1))}
-                              className="px-2 py-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-300 rounded text-[9px] cursor-pointer"
+                              className="px-2 py-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-300 rounded text-[10px] cursor-pointer"
                             >
                               Sonraki
                             </button>
@@ -2134,24 +2134,24 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                       <div className="flex-1 p-5 overflow-y-auto bg-[#080b12] flex justify-center scrollbar-none">
                         {isDocx ? (
                           <div className="w-full max-w-2xl bg-[#0d121f] border border-slate-800 p-8 rounded-lg shadow-xl space-y-5 text-slate-300 text-[11px] leading-relaxed relative">
-                            <div className="absolute top-4 right-4 bg-emerald-500/10 border border-emerald-500/30 px-2 py-1 rounded text-emerald-400 text-[8.5px] font-mono font-bold flex items-center gap-1">
+                            <div className="absolute top-4 right-4 bg-emerald-500/10 border border-emerald-500/30 px-2 py-1 rounded text-emerald-400 text-[10px] font-mono font-bold flex items-center gap-1">
                               <CheckCircle2 className="w-3 h-3 text-emerald-400" />
                               DIJITAL ONAYLI (CDE)
                             </div>
 
                             <div className="border-b border-slate-800 pb-3">
                               <h1 className="text-sm font-black text-white uppercase tracking-wide leading-tight">{fullScreenPreviewDoc.name}</h1>
-                              <p className="text-[9px] text-slate-500 font-mono mt-1">Oluşturan: {fullScreenPreviewDoc.author} | Revizyon Tarihi: {fullScreenPreviewDoc.date}</p>
+                              <p className="text-[10px] text-slate-500 font-mono mt-1">Oluşturan: {fullScreenPreviewDoc.author} | Revizyon Tarihi: {fullScreenPreviewDoc.date}</p>
                             </div>
 
                             {docxChapters.map((ch, idx) => (
                               <div key={idx} className="space-y-1.5">
-                                <h3 className="font-extrabold text-indigo-400 text-[11.5px]">{ch.title}</h3>
+                                <h3 className="font-extrabold text-indigo-400 text-[11px]">{ch.title}</h3>
                                 <p className="text-slate-300 font-medium">{ch.text}</p>
                               </div>
                             ))}
 
-                            <div className="pt-6 border-t border-slate-800/80 grid grid-cols-2 gap-4 text-[9px] font-mono text-slate-500">
+                            <div className="pt-6 border-t border-slate-800/80 grid grid-cols-2 gap-4 text-[10px] font-mono text-slate-500">
                               <div>
                                 <span>Doğrulama Anahtarı:</span>
                                 <span className="block text-slate-400 truncate">SHA256: 8f4e2c91b8a4f6d3e7a0c1...</span>
@@ -2166,7 +2166,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                           <div className="w-full max-w-2xl bg-[#131929] border border-slate-800 p-8 rounded-xl shadow-xl flex flex-col justify-between text-slate-300 text-[11px] min-h-[350px]">
                             {/* Slide Title Panel */}
                             <div>
-                              <span className="text-[8.5px] font-black text-amber-500 font-mono tracking-widest block uppercase mb-1">
+                              <span className="text-[10px] font-black text-amber-500 font-mono tracking-widest block uppercase mb-1">
                                 SLAYT {pptxCurrentSlide} - TEKNİK SUNUM KATMANI
                               </span>
                               <h2 className="text-sm font-black text-slate-100 uppercase tracking-wide border-b border-slate-800 pb-2 mb-4 leading-snug">
@@ -2188,8 +2188,8 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
 
                             {/* Slide Stats Panel */}
                             <div className="mt-6 pt-4 border-t border-slate-800 flex items-center justify-between">
-                              <span className="text-slate-500 text-[9px] font-mono">© {fullScreenPreviewDoc.date} - Istanbul Metro Sunumları</span>
-                              <span className="bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded text-indigo-400 font-mono font-black text-[9.5px]">
+                              <span className="text-slate-500 text-[10px] font-mono">© {fullScreenPreviewDoc.date} - Istanbul Metro Sunumları</span>
+                              <span className="bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded text-indigo-400 font-mono font-black text-[10px]">
                                 {pptxSlides[pptxCurrentSlide - 1].stats}
                               </span>
                             </div>
@@ -2217,7 +2217,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                   <div className="flex-1 flex flex-col md:flex-row gap-3 h-full text-left font-sans">
                     {/* Left bookmarks panel */}
                     <div className="w-full md:w-56 bg-[#0a0e17] border border-slate-800 p-3 rounded-xl flex flex-col gap-2 shrink-0">
-                      <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest block mb-1">PDF İÇİNDEKİLER</span>
+                      <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest block mb-1">PDF İÇİNDEKİLER</span>
                       <div className="relative mb-2">
                         <Search className="absolute left-2 top-2.5 w-3 h-3 text-slate-500" />
                         <input
@@ -2225,7 +2225,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                           placeholder="Bölümlerde ara..."
                           value={pdfBookmarkSearch}
                           onChange={(e) => setPdfBookmarkSearch(e.target.value)}
-                          className="w-full bg-[#101524] border border-slate-800 rounded px-2.5 pl-6 py-1.5 text-[9.5px] text-white focus:outline-none"
+                          className="w-full bg-[#101524] border border-slate-800 rounded px-2.5 pl-6 py-1.5 text-[10px] text-white focus:outline-none"
                         />
                       </div>
 
@@ -2247,12 +2247,12 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                       </div>
 
                       <div className="pt-3 border-t border-slate-900 space-y-2">
-                        <span className="text-[8.5px] text-slate-500 block uppercase font-black tracking-wider">GÜVENLİK VE ONAY</span>
+                        <span className="text-[10px] text-slate-500 block uppercase font-black tracking-wider">GÜVENLİK VE ONAY</span>
                         <div className="bg-emerald-600/10 border border-emerald-500/20 p-2 rounded flex items-center gap-1.5">
                           <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                           <div>
-                            <span className="text-[9.5px] font-black text-emerald-400 block uppercase leading-tight">MÜHÜRLÜ DOKÜMAN</span>
-                            <span className="text-[8px] text-slate-400 font-mono block">E-İMZA: AKTİF</span>
+                            <span className="text-[10px] font-black text-emerald-400 block uppercase leading-tight">MÜHÜRLÜ DOKÜMAN</span>
+                            <span className="text-[10px] text-slate-400 font-mono block">E-İMZA: AKTİF</span>
                           </div>
                         </div>
                       </div>
@@ -2263,8 +2263,8 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                       {/* Top Action Bar */}
                       <div className="p-3 bg-[#0d1321] border-b border-slate-800 flex items-center justify-between flex-wrap gap-2">
                         <div className="flex items-center gap-2">
-                          <span className="bg-red-600 px-2 py-0.5 rounded text-[8.5px] font-black text-white uppercase font-mono">PDF ENGINE</span>
-                          <span className="text-[10.5px] text-slate-300 font-mono">Sayfa {pdfPage} / 3</span>
+                          <span className="bg-red-600 px-2 py-0.5 rounded text-[10px] font-black text-white uppercase font-mono">PDF ENGINE</span>
+                          <span className="text-[10px] text-slate-300 font-mono">Sayfa {pdfPage} / 3</span>
                         </div>
 
                         {/* Zoom Controls */}
@@ -2291,14 +2291,14 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                           <button
                             disabled={pdfPage === 1}
                             onClick={() => setPdfPage(p => Math.max(1, p - 1))}
-                            className="px-2 py-1 bg-[#151b2a] hover:bg-[#1a2336] border border-slate-800 disabled:opacity-30 rounded text-[9px] text-slate-300 cursor-pointer"
+                            className="px-2 py-1 bg-[#151b2a] hover:bg-[#1a2336] border border-slate-800 disabled:opacity-30 rounded text-[10px] text-slate-300 cursor-pointer"
                           >
                             Önceki
                           </button>
                           <button
                             disabled={pdfPage === 3}
                             onClick={() => setPdfPage(p => Math.min(3, p + 1))}
-                            className="px-2 py-1 bg-[#151b2a] hover:bg-[#1a2336] border border-slate-800 disabled:opacity-30 rounded text-[9px] text-slate-300 cursor-pointer"
+                            className="px-2 py-1 bg-[#151b2a] hover:bg-[#1a2336] border border-slate-800 disabled:opacity-30 rounded text-[10px] text-slate-300 cursor-pointer"
                           >
                             Sonraki
                           </button>
@@ -2319,7 +2319,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                           {pdfPage === 1 && (
                             <div className="space-y-4 pt-4">
                               <div className="border-b-2 border-slate-800 pb-3">
-                                <span className="text-[9px] font-mono font-bold text-slate-500 block uppercase">ISTANBUL BULGURLU-HALKALI METRO PROJESI (BHM)</span>
+                                <span className="text-[10px] font-mono font-bold text-slate-500 block uppercase">ISTANBUL BULGURLU-HALKALI METRO PROJESI (BHM)</span>
                                 <h1 className="text-sm font-black text-slate-900 uppercase tracking-wide leading-snug mt-1">{fullScreenPreviewDoc.name}</h1>
                               </div>
                               <div className="grid grid-cols-2 gap-4 text-[10px] font-mono border-b border-slate-200 pb-3">
@@ -2332,7 +2332,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                                   <span className="text-slate-800 font-extrabold">TEKNİK RAPOR & ŞARTNAME</span>
                                 </div>
                               </div>
-                              <h3 className="font-extrabold text-slate-900 text-[11.5px] uppercase">DOKÜMAN KÜNYESİ</h3>
+                              <h3 className="font-extrabold text-slate-900 text-[11px] uppercase">DOKÜMAN KÜNYESİ</h3>
                               <p className="text-slate-700 text-justify">
                                 Bu doküman, tünel inşaatı kapsamında gerçekleştirilecek zemin geoteknik sondaj analizleri, deprem ve sismik risk ivmelenmeleri ile sismografik izleme standartlarını belirlemek amacıyla hazırlanmıştır. İşletme ve imalat aşamalarında tüm denetim mekanizmaları bu raporda yer alan kriterlere göre yürütülecektir.
                               </p>
@@ -2341,11 +2341,11 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
 
                           {pdfPage === 2 && (
                             <div className="space-y-4 pt-2">
-                              <h3 className="font-black text-slate-900 border-b border-slate-300 pb-1 text-[11.5px] uppercase">GÜZERGAH JEOLOJİK SONDAJ VERİLERİ</h3>
+                              <h3 className="font-black text-slate-900 border-b border-slate-300 pb-1 text-[11px] uppercase">GÜZERGAH JEOLOJİK SONDAJ VERİLERİ</h3>
                               <p className="text-slate-700">
                                 Raylı sistem güzergahı boyunca açılan sondaj kuyularından alınan veriler, kil ve kalker tabakalarının yoğun olduğunu göstermektedir. TBM tünel delme makinesi parametreleri saniyede 12 mm delme hızını aşmayacak şekilde ayarlanacaktır.
                               </p>
-                              <table className="w-full text-left text-[9.5px] border-collapse border border-slate-300">
+                              <table className="w-full text-left text-[10px] border-collapse border border-slate-300">
                                 <thead>
                                   <tr className="bg-slate-100 font-bold border-b border-slate-300">
                                     <th className="p-2 border-r border-slate-300">Kuyu No</th>
@@ -2374,7 +2374,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
 
                           {pdfPage === 3 && (
                             <div className="space-y-4 pt-2">
-                              <h3 className="font-black text-slate-900 border-b border-slate-300 pb-1 text-[11.5px] uppercase">SİSMİK ALARM VE DEFORMASTON SINIRLARI</h3>
+                              <h3 className="font-black text-slate-900 border-b border-slate-300 pb-1 text-[11px] uppercase">SİSMİK ALARM VE DEFORMASTON SINIRLARI</h3>
                               <p className="text-slate-700">
                                 Sahadaki sismograflar tarafından tünel zemin kaplamalarında milimetrik yer değiştirme (deformasyon) takipleri saniyede bir merkeze aktarılır. Aşağıdaki tabloda yer alan alarm eşikleri hassasiyetle kontrol edilmelidir:
                               </p>
@@ -2385,7 +2385,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                             </div>
                           )}
 
-                          <div className="pt-12 border-t border-slate-200 text-[8.5px] font-mono text-slate-400 flex justify-between">
+                          <div className="pt-12 border-t border-slate-200 text-[10px] font-mono text-slate-400 flex justify-between">
                             <span>Sertifika No: BHM-PDF-A430</span>
                             <span>Doğrulanmış Güvenli PDF OKUYUCU</span>
                           </div>
@@ -2402,7 +2402,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                   <div className="flex-1 flex flex-col md:flex-row gap-3 h-full text-left font-sans">
                     {/* Left layer toggles */}
                     <div className="w-full md:w-56 bg-[#0a0e17] border border-slate-800 p-3 rounded-xl flex flex-col gap-2.5 shrink-0">
-                      <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest flex items-center gap-1.5">
+                      <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest flex items-center gap-1.5">
                         <Layers className="w-4 h-4 text-indigo-400" />
                         CAD KATMAN YÖNETİCİSİ
                       </span>
@@ -2434,8 +2434,8 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                       </div>
 
                       <div className="pt-3 border-t border-slate-900 space-y-2">
-                        <span className="text-[8.5px] text-slate-500 block uppercase font-black tracking-wider">HARİTA KOORDİNATLARI</span>
-                        <div className="bg-[#080b11] border border-slate-800 p-2.5 rounded font-mono text-[9px] text-indigo-400 space-y-1">
+                        <span className="text-[10px] text-slate-500 block uppercase font-black tracking-wider">HARİTA KOORDİNATLARI</span>
+                        <div className="bg-[#080b11] border border-slate-800 p-2.5 rounded font-mono text-[10px] text-indigo-400 space-y-1">
                           <div className="flex justify-between">
                             <span>UTM (Zone 35):</span>
                             <span className="font-bold text-slate-300">ED50</span>
@@ -2449,7 +2449,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                             <span className="font-bold text-white">{cadCoords.y.toLocaleString()} m</span>
                           </div>
                         </div>
-                        <span className="text-[8px] text-slate-500 block text-center italic">Haritada gezinmek için farenizi hareket ettirin.</span>
+                        <span className="text-[10px] text-slate-500 block text-center italic">Haritada gezinmek için farenizi hareket ettirin.</span>
                       </div>
                     </div>
 
@@ -2458,7 +2458,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                       {/* Control Panel Header */}
                       <div className="p-3 bg-[#0d1321] border-b border-slate-800 flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <span className="bg-indigo-600/20 border border-indigo-500/20 px-2 py-0.5 rounded text-[8.5px] font-black text-indigo-400 uppercase font-mono">CAD VECTOR ENGINE</span>
+                          <span className="bg-indigo-600/20 border border-indigo-500/20 px-2 py-0.5 rounded text-[10px] font-black text-indigo-400 uppercase font-mono">CAD VECTOR ENGINE</span>
                           <span className="text-[10px] text-slate-400">Dosya: {fullScreenPreviewDoc.name}</span>
                         </div>
 
@@ -2471,7 +2471,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                           >
                             <ZoomOut className="w-3.5 h-3.5" />
                           </button>
-                          <span className="text-[9.5px] text-white font-mono font-bold w-10 text-center">{cadZoom}%</span>
+                          <span className="text-[10px] text-white font-mono font-bold w-10 text-center">{cadZoom}%</span>
                           <button
                             onClick={() => setCadZoom(z => Math.min(250, z + 25))}
                             className="p-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded cursor-pointer"
@@ -2481,7 +2481,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                           </button>
                           <button
                             onClick={() => { setCadZoom(100); setCadPanOffset({ x: 0, y: 0 }); }}
-                            className="px-2 py-1 bg-[#1a2336] hover:bg-indigo-600/30 hover:text-indigo-400 text-slate-300 rounded text-[9.5px] font-bold font-sans cursor-pointer ml-1.5"
+                            className="px-2 py-1 bg-[#1a2336] hover:bg-indigo-600/30 hover:text-indigo-400 text-slate-300 rounded text-[10px] font-bold font-sans cursor-pointer ml-1.5"
                           >
                             Ekranı Ortala
                           </button>
@@ -2615,18 +2615,18 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                   <div className="flex-1 flex flex-col md:flex-row gap-3 h-full text-left font-sans">
                     {/* Left layer filter and Projection selection */}
                     <div className="w-full md:w-56 bg-[#0a0e17] border border-slate-800 p-3 rounded-xl flex flex-col gap-2.5 shrink-0">
-                      <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest flex items-center gap-1.5">
+                      <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest flex items-center gap-1.5">
                         <Map className="w-4 h-4 text-indigo-400" />
                         GIS VE HARİTA KATMANLARI
                       </span>
 
                       {/* Projection Selector */}
                       <div className="space-y-1">
-                        <label className="text-[8.5px] font-black text-slate-500 uppercase">PROJEKSİYON SİSTEMİ:</label>
+                        <label className="text-[10px] font-black text-slate-500 uppercase">PROJEKSİYON SİSTEMİ:</label>
                         <select
                           value={gisProjection}
                           onChange={(e) => setGisProjection(e.target.value)}
-                          className="w-full bg-[#111624] border border-slate-800 rounded px-2 py-1 text-[9.5px] text-slate-200 focus:outline-none"
+                          className="w-full bg-[#111624] border border-slate-800 rounded px-2 py-1 text-[10px] text-slate-200 focus:outline-none"
                         >
                           <option value="EPSG:4326 (WGS84)">EPSG:4326 (WGS84 - Coğrafi)</option>
                           <option value="EPSG:32635 (UTM-35N)">EPSG:32635 (UTM-35N / ED50)</option>
@@ -2636,7 +2636,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
 
                       {/* Map Layers Toggles */}
                       <div className="space-y-1.5 pt-1">
-                        <label className="text-[8.5px] font-black text-slate-500 uppercase">GÖRÜNÜR KATMANLAR:</label>
+                        <label className="text-[10px] font-black text-slate-500 uppercase">GÖRÜNÜR KATMANLAR:</label>
                         {Object.keys(gisLayers).map(layerKey => {
                           const aliases: Record<string, string> = {
                             routes: 'Metro Ray Güzergahı',
@@ -2645,7 +2645,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                             labels: 'Etiketler ve Bilgiler'
                           };
                           return (
-                            <label key={layerKey} className="flex items-center gap-2 p-1.5 bg-[#121726]/40 hover:bg-[#121726]/80 border border-slate-800/40 rounded text-[9.5px] text-slate-300 cursor-pointer">
+                            <label key={layerKey} className="flex items-center gap-2 p-1.5 bg-[#121726]/40 hover:bg-[#121726]/80 border border-slate-800/40 rounded text-[10px] text-slate-300 cursor-pointer">
                               <input
                                 type="checkbox"
                                 checked={gisLayers[layerKey]}
@@ -2660,18 +2660,18 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
 
                       {/* Feature Selected Details Box */}
                       <div className="pt-3 border-t border-slate-900 mt-auto">
-                        <span className="text-[8.5px] text-slate-500 block uppercase font-black tracking-wider mb-1.5">KATMAN ÖZNİTELİKLERİ</span>
+                        <span className="text-[10px] text-slate-500 block uppercase font-black tracking-wider mb-1.5">KATMAN ÖZNİTELİKLERİ</span>
                         {selectedFeatureData ? (
-                          <div className="bg-[#080b11] border border-slate-800 p-2.5 rounded font-mono text-[9px] text-slate-300 space-y-1.5">
-                            <div className="text-indigo-400 font-extrabold text-[9.5px] font-sans border-b border-slate-900 pb-1">{selectedFeatureData.name}</div>
+                          <div className="bg-[#080b11] border border-slate-800 p-2.5 rounded font-mono text-[10px] text-slate-300 space-y-1.5">
+                            <div className="text-indigo-400 font-extrabold text-[10px] font-sans border-b border-slate-900 pb-1">{selectedFeatureData.name}</div>
                             <div><span className="text-slate-500">Tür:</span> <span className="text-white font-bold">{selectedFeatureData.type}</span></div>
                             <div><span className="text-slate-500">Alan:</span> <span className="text-white">{selectedFeatureData.area}</span></div>
                             <div><span className="text-slate-500">Derinlik:</span> <span className="text-white font-bold text-amber-500">{selectedFeatureData.depth}</span></div>
                             <div><span className="text-slate-500">Durum:</span> <span className="text-emerald-400">{selectedFeatureData.status}</span></div>
-                            <div className="text-[8px] text-slate-500 break-all leading-tight"><span className="text-slate-500 block font-bold">WKT Geometrisi:</span> {selectedFeatureData.geometry}</div>
+                            <div className="text-[10px] text-slate-500 break-all leading-tight"><span className="text-slate-500 block font-bold">WKT Geometrisi:</span> {selectedFeatureData.geometry}</div>
                           </div>
                         ) : (
-                          <div className="text-center py-4 text-slate-600 text-[9px] italic bg-slate-900/10 border border-slate-900 border-dashed rounded">
+                          <div className="text-center py-4 text-slate-600 text-[10px] italic bg-slate-900/10 border border-slate-900 border-dashed rounded">
                             Haritadan bir nesneye tıklayarak coğrafi veri tabanını sorgulayın.
                           </div>
                         )}
@@ -2683,16 +2683,16 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                       {/* Top Action Bar */}
                       <div className="p-3 bg-[#0d1321] border-b border-slate-800 flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <span className="bg-emerald-600/20 border border-emerald-500/20 px-2 py-0.5 rounded text-[8.5px] font-black text-emerald-400 uppercase font-mono">GIS RENDERER v2.4</span>
+                          <span className="bg-emerald-600/20 border border-emerald-500/20 px-2 py-0.5 rounded text-[10px] font-black text-emerald-400 uppercase font-mono">GIS RENDERER v2.4</span>
                           <span className="text-[10px] text-slate-400">Coğrafi Katman Entegrasyonu Aktif</span>
                         </div>
-                        <div className="text-[9.5px] text-slate-500 font-mono">Doğruluk Sapması: &lt; 0.05m</div>
+                        <div className="text-[10px] text-slate-500 font-mono">Doğruluk Sapması: &lt; 0.05m</div>
                       </div>
 
                       {/* Map Drawing Container */}
                       <div className="flex-1 bg-[#070b11] relative flex items-center justify-center p-4">
                         {/* Map Scale Indicator */}
-                        <div className="absolute bottom-3 left-3 bg-[#0f1424] border border-slate-800 px-2 py-1 rounded text-[8px] text-slate-400 font-mono z-10 flex items-center gap-1.5">
+                        <div className="absolute bottom-3 left-3 bg-[#0f1424] border border-slate-800 px-2 py-1 rounded text-[10px] text-slate-400 font-mono z-10 flex items-center gap-1.5">
                           <div className="w-10 h-1 bg-slate-400 border border-slate-700"></div>
                           <span>250 Metre (Scale 1:5000)</span>
                         </div>
@@ -2763,7 +2763,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                         </svg>
 
                         {/* Visual Help Tips overlay */}
-                        <div className="absolute top-3 right-3 bg-indigo-950/90 border border-indigo-500/30 p-2 rounded text-[8.5px] text-indigo-300 max-w-xs leading-relaxed shadow-lg font-bold">
+                        <div className="absolute top-3 right-3 bg-indigo-950/90 border border-indigo-500/30 p-2 rounded text-[10px] text-indigo-300 max-w-xs leading-relaxed shadow-lg font-bold">
                           💡 Nesnelerin coğrafi özniteliklerini detaylandırmak için haritada üzerlerine doğrudan tıklayabilirsiniz.
                         </div>
                       </div>
@@ -2778,7 +2778,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                   <div className="flex-1 flex flex-col md:flex-row gap-3 h-full text-left font-sans">
                     {/* Left Workbench Controls */}
                     <div className="w-full md:w-56 bg-[#0a0e17] border border-slate-800 p-3 rounded-xl flex flex-col gap-3 shrink-0">
-                      <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest flex items-center gap-1.5">
+                      <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest flex items-center gap-1.5">
                         <Sliders className="w-4 h-4 text-indigo-400" />
                         GÖRÜNTÜ AYARLARI
                       </span>
@@ -2786,7 +2786,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                       {/* Contrast Brightness Sliders */}
                       <div className="space-y-2.5">
                         <div className="space-y-1">
-                          <div className="flex justify-between text-[9.5px]">
+                          <div className="flex justify-between text-[10px]">
                             <span className="text-slate-400">Parlaklık (Brightness)</span>
                             <span className="font-mono text-white font-bold">{imgBrightness}%</span>
                           </div>
@@ -2801,7 +2801,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                         </div>
 
                         <div className="space-y-1">
-                          <div className="flex justify-between text-[9.5px]">
+                          <div className="flex justify-between text-[10px]">
                             <span className="text-slate-400">Kontrast (Contrast)</span>
                             <span className="font-mono text-white font-bold">{imgContrast}%</span>
                           </div>
@@ -2818,9 +2818,9 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
 
                       {/* Filter Toggles */}
                       <div className="space-y-1.5 pt-1">
-                        <span className="text-[8.5px] text-slate-500 block uppercase font-black tracking-wider">HIZLI FİLTRELER</span>
+                        <span className="text-[10px] text-slate-500 block uppercase font-black tracking-wider">HIZLI FİLTRELER</span>
                         
-                        <label className="flex items-center justify-between p-2 bg-[#121726]/40 hover:bg-[#121726]/80 border border-slate-800/40 rounded text-[9.5px] text-slate-300 cursor-pointer">
+                        <label className="flex items-center justify-between p-2 bg-[#121726]/40 hover:bg-[#121726]/80 border border-slate-800/40 rounded text-[10px] text-slate-300 cursor-pointer">
                           <span>Siyah-Beyaz (Grayscale)</span>
                           <input
                             type="checkbox"
@@ -2833,7 +2833,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                         <div className="grid grid-cols-2 gap-1.5 pt-1">
                           <button
                             onClick={() => setImgFlipX(f => !f)}
-                            className={`py-1.5 rounded border text-[9.5px] font-bold cursor-pointer transition ${
+                            className={`py-1.5 rounded border text-[10px] font-bold cursor-pointer transition ${
                               imgFlipX ? 'bg-indigo-600/20 border-indigo-500' : 'bg-[#101524] border-slate-800 text-slate-400'
                             }`}
                           >
@@ -2841,7 +2841,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                           </button>
                           <button
                             onClick={() => setImgFlipY(f => !f)}
-                            className={`py-1.5 rounded border text-[9.5px] font-bold cursor-pointer transition ${
+                            className={`py-1.5 rounded border text-[10px] font-bold cursor-pointer transition ${
                               imgFlipY ? 'bg-indigo-600/20 border-indigo-500' : 'bg-[#101524] border-slate-800 text-slate-400'
                             }`}
                           >
@@ -2858,15 +2858,15 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                           setImgFlipX(false);
                           setImgFlipY(false);
                         }}
-                        className="w-full mt-2 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded text-[9.5px] uppercase cursor-pointer"
+                        className="w-full mt-2 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded text-[10px] uppercase cursor-pointer"
                       >
                         Ayarları Sıfırla
                       </button>
 
                       {/* EXIF Metadata parameters */}
                       <div className="pt-2 border-t border-slate-900 mt-auto">
-                        <span className="text-[8.5px] text-slate-500 block uppercase font-black tracking-wider mb-1.5">KAMERA EXIF VERİSİ</span>
-                        <div className="bg-[#080b11] border border-slate-800 p-2 rounded font-mono text-[8.5px] text-slate-400 space-y-1">
+                        <span className="text-[10px] text-slate-500 block uppercase font-black tracking-wider mb-1.5">KAMERA EXIF VERİSİ</span>
+                        <div className="bg-[#080b11] border border-slate-800 p-2 rounded font-mono text-[10px] text-slate-400 space-y-1">
                           <div>Çözünürlük: <span className="text-white">3840 x 2160 (4K)</span></div>
                           <div>Kamera: <span className="text-white">DJI Mavic 3 Pro</span></div>
                           <div>Pozlama: <span className="text-white">1/160s f/2.8 ISO 100</span></div>
@@ -2879,7 +2879,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                     <div className="flex-1 bg-[#0b0e17] border border-slate-800 rounded-xl flex flex-col overflow-hidden">
                       <div className="p-3 bg-[#0d1321] border-b border-slate-800 flex justify-between items-center">
                         <span className="text-[10px] text-slate-400">Yüksek Kaliteli Önizleme Modu</span>
-                        <span className="text-[9px] text-slate-500 font-mono">Tür: {ext.toUpperCase()} Görsel</span>
+                        <span className="text-[10px] text-slate-500 font-mono">Tür: {ext.toUpperCase()} Görsel</span>
                       </div>
 
                       {/* The Main Rendered Image Canvas */}
@@ -2938,7 +2938,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                             </g>
                           </svg>
 
-                          <div className="absolute bottom-3 right-3 bg-black/60 border border-slate-800/80 px-2.5 py-1 rounded text-[8.5px] text-slate-300 font-mono">
+                          <div className="absolute bottom-3 right-3 bg-black/60 border border-slate-800/80 px-2.5 py-1 rounded text-[10px] text-slate-300 font-mono">
                             Drone_BHM_Station_Topview.png
                           </div>
                         </div>
@@ -2954,12 +2954,12 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                   <div className="flex-1 flex flex-col md:flex-row gap-3 h-full text-left font-sans">
                     {/* Left sidebar video details */}
                     <div className="w-full md:w-56 bg-[#0a0e17] border border-slate-800 p-3 rounded-xl flex flex-col gap-3 shrink-0">
-                      <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest flex items-center gap-1.5">
+                      <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest flex items-center gap-1.5">
                         <Video className="w-4 h-4 text-indigo-400" />
                         VİDEO DETAYLARI
                       </span>
 
-                      <div className="bg-[#080b11] border border-slate-800 p-2.5 rounded font-mono text-[8.5px] text-slate-400 space-y-2">
+                      <div className="bg-[#080b11] border border-slate-800 p-2.5 rounded font-mono text-[10px] text-slate-400 space-y-2">
                         <div>Dosya Adı: <span className="text-white break-all">{fullScreenPreviewDoc.name}</span></div>
                         <div>Format: <span className="text-white uppercase">{ext}</span></div>
                         <div>Çözünürlük: <span className="text-emerald-400 font-bold">1920 x 1080 (FullHD)</span></div>
@@ -2970,7 +2970,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
 
                       {/* Waveform Visualization sound activity (animates when video plays!) */}
                       <div className="pt-2 border-t border-slate-900 mt-auto">
-                        <span className="text-[8.5px] text-slate-500 block uppercase font-black tracking-wider mb-2">SES SPEKTRUMU</span>
+                        <span className="text-[10px] text-slate-500 block uppercase font-black tracking-wider mb-2">SES SPEKTRUMU</span>
                         <div className="h-10 bg-slate-900/60 border border-slate-800 rounded flex items-end justify-center gap-[2px] p-1.5 overflow-hidden">
                           {Array.from({ length: 18 }).map((_, idx) => {
                             // Compute randomized wave heights when active
@@ -2989,7 +2989,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                             );
                           })}
                         </div>
-                        <span className="text-[8px] text-slate-500 block text-center mt-1 font-mono">Audio Track: Stereo (L/R)</span>
+                        <span className="text-[10px] text-slate-500 block text-center mt-1 font-mono">Audio Track: Stereo (L/R)</span>
                       </div>
                     </div>
 
@@ -2997,7 +2997,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                     <div className="flex-1 bg-[#0b0e17] border border-slate-800 rounded-xl flex flex-col overflow-hidden">
                       <div className="p-3 bg-[#0d1321] border-b border-slate-800 flex justify-between items-center">
                         <span className="text-[10px] text-slate-400">Teknik Animasyon ve Şantiye İzleme Ekranı</span>
-                        <span className="bg-indigo-600/20 border border-indigo-500/20 px-2 py-0.5 rounded text-[8.5px] font-black text-indigo-400 uppercase font-mono">CDE PLAYER</span>
+                        <span className="bg-indigo-600/20 border border-indigo-500/20 px-2 py-0.5 rounded text-[10px] font-black text-indigo-400 uppercase font-mono">CDE PLAYER</span>
                       </div>
 
                       {/* Video Player Display Container */}
@@ -3060,7 +3060,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                                   {vidPlaying ? <Pause className="w-4 h-4 shrink-0" /> : <Play className="w-4 h-4 shrink-0 fill-white" />}
                                 </button>
 
-                                <span className="font-mono text-[9.5px]">
+                                <span className="font-mono text-[10px]">
                                   {Math.floor((vidProgress * 1.2) / 60)}:
                                   {String(Math.floor((vidProgress * 1.2) % 60)).padStart(2, '0')} / 2:00
                                 </span>
@@ -3081,12 +3081,12 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                                 </div>
 
                                 {/* Speed selector */}
-                                <div className="flex items-center gap-1 font-mono text-[9px]">
+                                <div className="flex items-center gap-1 font-mono text-[10px]">
                                   <span className="text-slate-500">Hız:</span>
                                   <select
                                     value={vidSpeed}
                                     onChange={(e) => setVidSpeed(Number(e.target.value))}
-                                    className="bg-slate-900 border border-slate-800 rounded px-1 text-[9.5px] text-white focus:outline-none"
+                                    className="bg-slate-900 border border-slate-800 rounded px-1 text-[10px] text-white focus:outline-none"
                                   >
                                     <option value={0.5}>0.5x</option>
                                     <option value={1}>1.0x</option>
@@ -3149,7 +3149,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
           </div>
 
           {/* Preview Footer */}
-          <div className="text-center text-[9px] text-slate-500 font-mono">
+          <div className="text-center text-[10px] text-slate-500 font-mono">
             <span>© 2026 Unified GIS/ERP Enterprise - Güvenli Doküman Görüntüleme Servisi v4.2</span>
           </div>
         </div>
@@ -3167,7 +3167,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                 </div>
                 <div>
                   <h3 className="text-sm font-black text-slate-100 uppercase tracking-wider">CDE Dijital İmza Kanıt Defteri</h3>
-                  <p className="text-[9px] text-slate-500 font-mono">5070 Sayılı Elektronik İmza Kanunu Güvenlik & Doğruluk Defteri</p>
+                  <p className="text-[10px] text-slate-500 font-mono">5070 Sayılı Elektronik İmza Kanunu Güvenlik & Doğruluk Defteri</p>
                 </div>
               </div>
               <button
@@ -3210,7 +3210,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                     <div className="p-8 text-center text-slate-600 font-mono text-[10px] space-y-2">
                       <Lock className="w-10 h-10 text-slate-800 mx-auto" />
                       <p className="uppercase font-bold text-slate-500">Defterde Kayıt Bulunamadı</p>
-                      <p className="text-[9px] text-slate-600">Arama kriterini değiştirebilir veya bekleyen dökümanları imzalayarak yeni kanıt oluşturabilirsiniz.</p>
+                      <p className="text-[10px] text-slate-600">Arama kriterini değiştirebilir veya bekleyen dökümanları imzalayarak yeni kanıt oluşturabilirsiniz.</p>
                     </div>
                   );
                 }
@@ -3218,7 +3218,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                 return (
                   <table className="w-full text-left border-collapse text-[10px]">
                     <thead>
-                      <tr className="border-b border-slate-800 bg-[#0c101c] text-slate-400 font-mono font-black uppercase text-[8px] tracking-widest">
+                      <tr className="border-b border-slate-800 bg-[#0c101c] text-slate-400 font-mono font-black uppercase text-[10px] tracking-widest">
                         <th className="py-2 px-3">Sertifika No</th>
                         <th className="py-2 px-3">Döküman Adı</th>
                         <th className="py-2 px-3">Onaylayan / Rol</th>
@@ -3235,10 +3235,10 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                           <td className="py-3 px-3 font-semibold text-slate-200 max-w-[150px] truncate" title={log.docName}>{log.docName}</td>
                           <td className="py-3 px-3 text-slate-300">
                             <span className="block font-bold">{log.approver}</span>
-                            <span className="text-[8.5px] text-slate-500">{log.role}</span>
+                            <span className="text-[10px] text-slate-500">{log.role}</span>
                           </td>
-                          <td className="py-3 px-3 font-mono text-slate-400 text-[9px]">{log.timestamp}</td>
-                          <td className="py-3 px-3 font-mono text-slate-500 text-[9px]">{log.ipAddress}</td>
+                          <td className="py-3 px-3 font-mono text-slate-400 text-[10px]">{log.timestamp}</td>
+                          <td className="py-3 px-3 font-mono text-slate-500 text-[10px]">{log.ipAddress}</td>
                           <td className="py-3 px-3">
                             <div className="bg-white/5 border border-slate-800/60 rounded px-1.5 py-1 min-h-[30px] flex items-center justify-center max-w-[120px]">
                               {log.signatureType === 'draw' && log.signatureData.startsWith('data:image') ? (
@@ -3255,7 +3255,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                               )}
                             </div>
                           </td>
-                          <td className="py-3 px-3 font-mono text-slate-500 text-[8px] max-w-[120px] truncate select-all" title={log.hash}>
+                          <td className="py-3 px-3 font-mono text-slate-500 text-[10px] max-w-[120px] truncate select-all" title={log.hash}>
                             {log.hash}
                           </td>
                         </tr>
@@ -3269,13 +3269,13 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
             {/* Footer Information */}
             <div className="p-3 bg-indigo-950/10 border border-indigo-500/15 rounded-xl flex items-start gap-2.5">
               <Shield className="w-5 h-5 text-indigo-400 mt-0.5 shrink-0" />
-              <div className="text-[9.5px] leading-relaxed text-slate-400">
+              <div className="text-[10px] leading-relaxed text-slate-400">
                 <strong className="text-slate-200 font-bold block mb-0.5">CDE Dağıtık Blokzincir & Loglama Protokolü Açıklaması:</strong>
                 Burada loglanan tüm olaylar değiştirilemez, silinemez niteliktedir. Her onay işleminde oluşturulan benzersiz SHA-256 hash değeri; doküman içeriği, revizyon numarası, IP adresi ve yetkili zaman damgası bilgileri kullanılarak kriptografik olarak hesaplanır. CDE bütünlüğü bu şifreleme zinciri ile korunmaktadır.
               </div>
             </div>
 
-            <div className="flex justify-between items-center text-[9px] text-slate-600 font-mono pt-2 border-t border-slate-900">
+            <div className="flex justify-between items-center text-[10px] text-slate-600 font-mono pt-2 border-t border-slate-900">
               <span>Sistem Sürümü: v4.2-SecureArc</span>
               <button
                 onClick={() => setShowAuditLedgerModal(false)}
