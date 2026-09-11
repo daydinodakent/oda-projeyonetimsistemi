@@ -195,6 +195,12 @@
   .layer-icon-btn:hover{background:#213e4e;color:var(--text);}
   .layer-icon-btn.del:hover{background:#3a1c18;color:var(--danger);}
   .layer-icon-btn svg{width:13px;height:13px;}
+  /* Saha panelindeki "Yeni Klasör Ekle" — ağaç satırlarındaki küçük
+     .layer-icon-btn'lerden farklı olarak, panel başlığında tek başına duran
+     görünür bir eylem butonu olduğundan normal boyutlu (harita kümesi
+     butonlarıyla aynı: 27x27 kutu, 14x14 ikon) gösterilir. */
+  #btnSahaAddFolder{width:27px;height:27px;}
+  #btnSahaAddFolder svg{width:14px;height:14px;}
 
   /* ---------- Split buton (CBS Haritası yanı: Kaydet / İmport / Export) ---------- */
   .split-btn{display:flex;flex:0 0 auto;height:30px;border:1px solid var(--amber);border-radius:2px;overflow:visible;position:relative;}
@@ -604,6 +610,11 @@
   .status-snap-btn .status-icon{color:inherit;}
   .status-snap-btn.active{color:#e02424;}
   .saha-toggle-btn.on{color:var(--teal);}
+  /* Durum çubuğundaki Saha (fotoğraf katmanı göster/gizle) düğmesi, diğer
+     küçük durum çubuğu simgelerinden biraz daha büyük gösterilir — sıkça
+     kullanılan bir aç/kapa olduğundan tıklaması daha kolay olsun diye. */
+  #statusSahaToggleBtn{padding:4px 10px;}
+  #statusSahaToggleBtn .status-icon{width:16px;height:16px;}
   #snapTolerancePopover{
     position:absolute;bottom:34px;right:14px;z-index:8;display:none;
     background:var(--bg-panel);border:1px solid var(--line);border-radius:var(--radius);
@@ -4993,6 +5004,10 @@
     if (map.getLayer(SAHA_LAYER_ID)){
       map.setLayoutProperty(SAHA_LAYER_ID, 'visibility', sahaVisible ? 'visible' : 'none');
     }
+    // Foto şeridi (ve dolayısıyla haritadaki yuvarlak pinler) kapatılınca,
+    // o an açık bir fotoğraf penceresi (sahaActivePopup) varsa o da kapanır —
+    // aksi halde pinler gizlense bile üzerine tıklanmış popup ekranda asılı kalırdı.
+    if (!sahaVisible && sahaActivePopup) sahaActivePopup.remove();
     renderSahaFilmstrip();
   }
   document.getElementById('statusSahaToggleBtn').addEventListener('click', function(){
@@ -6165,13 +6180,15 @@
     if (!isAreaGeom && !maskFeatureId) return;
     e.preventDefault();
     var menuItems = [];
-    if (isAreaGeom){
+    // Bir maske zaten aktifken menüde SADECE "Maskeyi Kaldır" gösterilir —
+    // "Alanı Maskele" tekrar sunulmaz (kaldırılmadan yeni bir maske
+    // uygulanamaz, karışıklığı önler).
+    if (maskFeatureId){
+      menuItems.push({ label:'Maskeyi Kaldır', action: clearAreaMask, danger:true });
+    } else if (isAreaGeom){
       var areaFeature = f;
       if (selectedIds.length !== 1 || selectedIds[0] !== areaFeature.id) selectFeatureId(areaFeature.id);
       menuItems.push({ label:'Alanı Maskele', action: function(){ applyAreaMask(areaFeature.id); } });
-    }
-    if (maskFeatureId){
-      menuItems.push({ label:'Maskeyi Kaldır', action: clearAreaMask, danger:true });
     }
     showTreeContextMenu(e.originalEvent.clientX, e.originalEvent.clientY, menuItems);
   });
