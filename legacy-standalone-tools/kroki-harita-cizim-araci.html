@@ -791,6 +791,14 @@
   }
   #infoPopover b{color:var(--text);}
   #infoPopoverMain{width:230px;padding:14px;padding-right:26px;}
+  #infoAddDocBtn{
+    display:flex;align-items:center;justify-content:center;gap:5px;width:100%;margin-top:10px;
+    padding:6px 0;background:transparent;border:1px dashed var(--line);border-radius:2px;
+    color:var(--text-dim);font-size:11px;cursor:pointer;
+  }
+  #infoAddDocBtn:hover{color:var(--gold);border-color:var(--gold);}
+  #infoAddDocBtn.hidden{display:none;}
+  #infoAddDocBtn svg{width:12px;height:12px;}
   /* Doküman paneli: info penceresinin SAĞINDA açılır (yalnızca objeye ait
      doküman varken görünür) — üstte liste, hemen altında seçili dokümanın
      önizlemesi ("view"). */
@@ -1432,8 +1440,14 @@
 <div id="infoPopover">
   <button id="infoPopoverClose" class="attr-table-close" title="Kapat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
   <div id="infoPopoverMain">
-    <b>Bilgi</b><br>
-    Haritada bir objeye tıklayarak özniteliklerini görüntüleyin.
+    <div id="infoPopoverBody">
+      <b>Bilgi</b><br>
+      Haritada bir objeye tıklayarak özniteliklerini görüntüleyin.
+    </div>
+    <button id="infoAddDocBtn" class="hidden" title="Bu objeye doküman ekle">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+      Doküman Ekle
+    </button>
   </div>
   <div id="infoDocsPanel">
     <b style="color:var(--text);">Dokümanlar</b>
@@ -2296,6 +2310,15 @@
     e.stopPropagation();
     document.getElementById('infoPopover').classList.remove('show');
   });
+  // Bilgi balonunun altındaki "Doküman Ekle" — o an görüntülenen objeye
+  // (activeInfoFeatureId) doğrudan mevcut doküman yükleme modalını açar,
+  // ayrıca Doküman Ekleme moduna geçip haritada tekrar tıklamaya gerek kalmaz.
+  document.getElementById('infoAddDocBtn').addEventListener('click', function(e){
+    e.stopPropagation();
+    var f = features.find(function(x){ return x.id === activeInfoFeatureId; });
+    if (!f){ showToast('Bu noktada bir obje bulunamadı.'); return; }
+    openDocUploadModal(f);
+  });
 
   document.getElementById('statusSnapBtn').addEventListener('click', function(){
     snapEnabled = !snapEnabled;
@@ -3069,8 +3092,9 @@
   }
 
   // Kat adedi 1'den fazla olan 3B poligonlar için, her katı ayrı bir
-  // ekstrüzyon dilimi olarak üretir; katlar sırayla iki renk arasında
-  // dönüşümlü olarak boyanır (bandParity) böylece bina katmanlı görünür.
+  // ekstrüzyon dilimi olarak üretir; her kat, Veri Durumu'na göre belirlenen
+  // renk ailesi (mavi/turuncu/yeşil — bkz. floorShadeFamily) içinde alttan
+  // üste doğru koyudan açığa giden farklı bir tonla boyanır.
   function updateFloorSource(){
     var src = map.getSource('floors');
     if (!src) return;
@@ -3081,19 +3105,21 @@
       if (floors <= 1) return; // tek kat: mevcut poly-extrusion katmanı zaten gösteriyor
       var floorH = f.properties.floorHeight || ((f.properties.height || 30) / floors);
       // İnşaat İlerlemesi (%) alt kattan itibaren doldurulur — o katın üst
-      // sınırına kadar olan yüzde ilerlemeye ulaşıldıysa kat yeşile (İşletme
-      // rengi) döner, aksi halde Veri Durumu'na göre boyanır (bkz. extrusionStatusColor).
+      // sınırına kadar olan yüzde ilerlemeye ulaşıldıysa kat "tamamlanmış"
+      // (yeşil aile) sayılır, aksi halde Veri Durumu'nun kendi renk ailesinden
+      // boyanır (bkz. floorShadeFamily/floorShadeColor).
       var progress = getEffectiveProgress(f);
       var isSelected = selectedIds.indexOf(f.id) !== -1;
-      var statusColor = extrusionStatusColor(f.properties.veri_durumu);
+      var family = floorShadeFamily(f.properties.veri_durumu);
       for (var i = 0; i < floors; i++){
         var floorTopFraction = ((i + 1) / floors) * 100;
         var filled = progress >= floorTopFraction;
+        var shade = floorShadeColor(filled ? 'green' : family, i, floors);
         floorFeats.push({
           type:'Feature',
           id: f.id + '_floor' + i,
           geometry: f.geometry,
-          properties:{ parentId: f.id, floorIndex: i, base: i * floorH, top: (i + 1) * floorH, bandParity: i % 2, fillColor: isSelected ? SELECTION_COLOR : (filled ? EXTRUSION_PROGRESS_COLOR : statusColor) }
+          properties:{ parentId: f.id, floorIndex: i, base: i * floorH, top: (i + 1) * floorH, bandParity: i % 2, fillColor: isSelected ? SELECTION_COLOR : shade }
         });
       }
     });
@@ -3310,13 +3336,14 @@
     }
     if (!f) f = geometricHitTest(e.point, e.lngLat);
     var pop = document.getElementById('infoPopover');
-    var main = document.getElementById('infoPopoverMain');
+    var main = document.getElementById('infoPopoverBody');
     if (!f){
       main.innerHTML = '<b>Bilgi</b><br>Bu noktada bir obje bulunamadı — haritada çizilmiş bir şekle tıklayın.';
       infoPopoverAnchorLngLat = { lng: e.lngLat.lng, lat: e.lngLat.lat };
       pop.classList.add('show');
       updateInfoPopoverPosition();
       renderInfoDocsPanel(null);
+      document.getElementById('infoAddDocBtn').classList.add('hidden');
       return;
     }
     var lyr = getLayer(f.properties && f.properties.layerId);
@@ -3351,6 +3378,7 @@
     pop.classList.add('show');
     updateInfoPopoverPosition();
     renderInfoDocsPanel(f.id);
+    document.getElementById('infoAddDocBtn').classList.remove('hidden');
   }
 
   // ---------------------------------------------------------------------
@@ -5790,6 +5818,33 @@
     if (veriDurumu === 'Planlanan') return '#3b82f6';
     if (veriDurumu === 'İnşaat') return '#f97316';
     return EXTRUSION_PROGRESS_COLOR;
+  }
+  // Çok katlı binalarda her kat, Veri Durumu'na göre belirlenen renk ailesi
+  // (Planlanan: mavi, İnşaat: turuncu, İşletme/tamamlanmış: yeşil) İÇİNDE,
+  // en alt kattan en üst kata doğru koyudan açığa giden farklı bir tonla
+  // boyanır — böylece bina katmanlı/3 boyutlu görünür (bkz. updateFloorSource).
+  var FLOOR_SHADE_FAMILIES = {
+    blue:   ['#1e3a8a', '#3b82f6', '#93c5fd'],
+    orange: ['#7c2d12', '#f97316', '#fdba74'],
+    green:  ['#065f46', '#059669', '#6ee7b7']
+  };
+  function floorShadeFamily(veriDurumu){
+    if (veriDurumu === 'Planlanan') return 'blue';
+    if (veriDurumu === 'İnşaat') return 'orange';
+    return 'green';
+  }
+  function lerpHexColor(hexA, hexB, t){
+    var a = parseInt(hexA.slice(1), 16), b = parseInt(hexB.slice(1), 16);
+    var ar = (a >> 16) & 255, ag = (a >> 8) & 255, ab = a & 255;
+    var br = (b >> 16) & 255, bg = (b >> 8) & 255, bb = b & 255;
+    var r = Math.round(ar + (br - ar) * t), g = Math.round(ag + (bg - ag) * t), bl = Math.round(ab + (bb - ab) * t);
+    return '#' + ((1 << 24) + (r << 16) + (g << 8) + bl).toString(16).slice(1);
+  }
+  function floorShadeColor(family, floorIndex, totalFloors){
+    var stops = FLOOR_SHADE_FAMILIES[family] || FLOOR_SHADE_FAMILIES.blue;
+    if (totalFloors <= 1) return stops[1];
+    var t = floorIndex / (totalFloors - 1); // 0: en alt kat (koyu) .. 1: en üst kat (açık)
+    return t <= 0.5 ? lerpHexColor(stops[0], stops[1], t / 0.5) : lerpHexColor(stops[1], stops[2], (t - 0.5) / 0.5);
   }
   // Seçili objeler (selectedIds) sarıya boyanır — hangi obje(ler)in seçili
   // olduğu sadece ince bir çerçeveyle değil, objenin kendi rengiyle de belli olur.
