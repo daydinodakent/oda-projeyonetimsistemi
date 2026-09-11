@@ -202,25 +202,37 @@ const KrokiMapModule: React.FC<KrokiMapModuleProps> = ({ activeProjectId }) => {
             veri_durumu: r.veri_durumu,
           },
         })),
-        ...binalar.map((r) => ({
-          id: r.id,
-          type: 'Feature',
-          geometry: { type: r.the_geom?.tip, coordinates: r.the_geom?.coordinates },
-          properties: {
-            layerId: 'db-layer-binalar',
-            tablo: LAYER_TABLE_MAP['db-layer-binalar'],
-            name: r.block_name,
-            project_id: r.project_id,
-            block_name: r.block_name,
-            building_type: r.building_type,
-            height_meters: r.height_meters,
-            floors_count: r.floors_count,
-            construction_progress: r.construction_progress,
-            structural_status: r.structural_status,
-            footprint_area_sqm: r.footprint_area_sqm,
-            veri_durumu: r.veri_durumu,
-          },
-        })),
+        ...binalar.map((r) => {
+          // Kat adedi/yükseklik bilgisi dolu olan bir bina, haritada
+          // otomatik olarak 3B (ekstrüzyonlu) çizilir — kullanıcının her
+          // birini tek tek "3B'ye çevir" ile dönüştürmesine gerek kalmaz.
+          const floors = r.floors_count || 1;
+          const floorHeight = r.height_meters && floors ? r.height_meters / floors : 3;
+          return {
+            id: r.id,
+            type: 'Feature',
+            geometry: { type: r.the_geom?.tip, coordinates: r.the_geom?.coordinates },
+            properties: {
+              layerId: 'db-layer-binalar',
+              tablo: LAYER_TABLE_MAP['db-layer-binalar'],
+              name: r.block_name,
+              project_id: r.project_id,
+              block_name: r.block_name,
+              building_type: r.building_type,
+              height_meters: r.height_meters,
+              floors_count: r.floors_count,
+              construction_progress: r.construction_progress,
+              structural_status: r.structural_status,
+              footprint_area_sqm: r.footprint_area_sqm,
+              veri_durumu: r.veri_durumu,
+              extrude: true,
+              floors,
+              floorHeight,
+              height: r.height_meters || floors * floorHeight,
+              base: 0,
+            },
+          };
+        }),
         ...altyapi.map((r) => ({
           id: r.id,
           type: 'Feature',

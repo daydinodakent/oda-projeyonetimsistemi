@@ -560,106 +560,119 @@ export const gisBoundaryRecords: GISBoundaryRecord[] = initialProjects.map((p) =
   };
 });
 
-// 10 bina/proje — 2 satır x 5 sütunluk bir ızgarada, proje sınırının içinde.
-const BUILDING_GRID_OFFSETS: [number, number][] = [
-  [-0.008, 0.003], [-0.004, 0.003], [0, 0.003], [0.004, 0.003], [0.008, 0.003],
-  [-0.008, -0.003], [-0.004, -0.003], [0, -0.003], [0.004, -0.003], [0.008, -0.003]
-];
-const BUILDING_HALF = 0.0007;
-const BUILDING_PROFILES: { height: number; floors: number; progress: number; status: string }[] = [
-  { height: 180, floors: 45, progress: 85, status: 'İnce Yapı' },
-  { height: 45,  floors: 11, progress: 60, status: 'Kaba Yapı' },
-  { height: 90,  floors: 22, progress: 72, status: 'İnce Yapı' },
-  { height: 150, floors: 38, progress: 90, status: 'Tamamlandı' },
-  { height: 60,  floors: 15, progress: 55, status: 'Kaba Yapı' },
-  { height: 120, floors: 30, progress: 78, status: 'İnce Yapı' },
-  { height: 200, floors: 50, progress: 40, status: 'Temel' },
-  { height: 75,  floors: 19, progress: 65, status: 'Kaba Yapı' },
-  { height: 110, floors: 28, progress: 82, status: 'İnce Yapı' },
-  { height: 35,  floors: 9,  progress: 95, status: 'Tamamlandı' }
-];
-
-export const gisBuildingRecords: GISBuildingRecord[] = initialProjects.flatMap((p) => {
-  const [lng, lat] = p.coordinates;
-  return BUILDING_GRID_OFFSETS.map((offset, i) => {
-    const cx = lng + offset[0], cy = lat + offset[1];
-    const prof = BUILDING_PROFILES[i];
-    return {
-      id: `bld-${p.id}-${i + 1}`,
-      table_name: 'tb_binalar_3d',
-      project_id: p.id,
-      block_name: `${p.code} — Blok ${String.fromCharCode(65 + Math.floor(i / 5))}${(i % 5) + 1}`,
-      building_type: prof.height > 100 ? 'Gökdelen / Kule' : prof.height > 50 ? 'Yüksek Yapı' : 'Orta / Alçak Yapı',
-      height_meters: prof.height,
-      floors_count: prof.floors,
-      construction_progress: prof.progress,
-      structural_status: prof.status,
-      footprint_area_sqm: Math.round(Math.pow(BUILDING_HALF * 2 * 111000, 2)),
-      srid: 4326,
-      coordinates: [
-        [cx - BUILDING_HALF, cy - BUILDING_HALF],
-        [cx + BUILDING_HALF, cy - BUILDING_HALF],
-        [cx + BUILDING_HALF, cy + BUILDING_HALF],
-        [cx - BUILDING_HALF, cy + BUILDING_HALF]
-      ] as [number, number][]
-    };
+// ---------------------------------------------------------------------
+// 1. Etap binaları — kullanıcının verdiği referans vaziyet planındaki
+// (kavisli sokaklar boyunca dizilmiş küçük sıra ev/villa kümeleri) genel
+// düzeni andıran, programatik olarak üretilmiş bir yerleşim: proje
+// sınırı içinde birkaç "hilal" (yay) kümesi, her kümede kavisi takip
+// edecek şekilde döndürülmüş küçük dikdörtgen bina ayak izleri. Sadece
+// 1. Etap'ta bina var — diğer etaplarda (bu değişiklikten önce var olan
+// generic 10-bina/proje ızgarası ve onu birbirine bağlayan altyapı
+// hatları) artık YOK; kullanıcı isteği üzerine mevcut bina/altyapı
+// verisi tüm katmanlardan silindi.
+// ---------------------------------------------------------------------
+function metersToDegLng(m: number, atLat: number): number {
+  return m / (111320 * Math.cos((atLat * Math.PI) / 180));
+}
+function metersToDegLat(m: number): number {
+  return m / 110540;
+}
+// Merkezi (cx,cy) [derece], yarı-eksenleri (rxM,ryM) [metre] olan bir
+// elipsin üzerinde, açıyı (derece) kavise TEĞET olacak şekilde döndürülmüş
+// küçük bir dikdörtgen (bina ayak izi) halkası üretir.
+function arcBuildingRing(
+  cx: number, cy: number, rxM: number, ryM: number, angleDeg: number,
+  widthM: number, depthM: number, lat: number
+): { ring: [number, number][]; center: [number, number] } {
+  const rad = (angleDeg * Math.PI) / 180;
+  // Elips üzerindeki nokta (yay merkezi)
+  const px = cx + metersToDegLng(rxM * Math.cos(rad), lat);
+  const py = cy + metersToDegLat(ryM * Math.sin(rad));
+  // Teğet yönü (kavisi takip eden uzun kenar boyunca)
+  const tangentRad = rad + Math.PI / 2;
+  const halfW = metersToDegLng(widthM / 2, lat);
+  const halfD = metersToDegLat(depthM / 2);
+  const cos = Math.cos(tangentRad), sin = Math.sin(tangentRad);
+  const corners: [number, number][] = [
+    [-halfW, -halfD], [halfW, -halfD], [halfW, halfD], [-halfW, halfD]
+  ];
+  const ring = corners.map(([dx, dy]) => {
+    const rx = dx * cos - dy * sin;
+    const ry = dx * sin + dy * cos;
+    return [px + rx, py + ry] as [number, number];
   });
-});
-
-// 10 altyapı hattı/proje — yukarıdaki 10 binayı birbirine bağlayan bir
-// şebeke (her satırın kendi içinde 4'er yatay bağlantı + iki satırı
-// birleştiren 2 dikey bağlantı = 10 kenar), elektrik/su/gaz/telekom/drenaj
-// arasında dönüşümlü tiplendirilmiş. Hat durumu projenin genel ilerlemesine
-// göre belirlenir (orijinal veri setindeki Etap1/3 Faal, Etap2 İnşaat
-// Halinde, Etap4 Planlanan örüntüsüyle tutarlı).
-const INFRA_EDGES: [number, number][] = [
-  [0, 1], [1, 2], [2, 3], [3, 4],   // 1. sıra binalarını birbirine bağlar
-  [5, 6], [6, 7], [7, 8], [8, 9],   // 2. sıra binalarını birbirine bağlar
-  [0, 5], [4, 9]                     // iki sırayı dikey olarak bağlar
-];
-const INFRA_TYPE_CYCLE: GISInfrastructureRecord['line_type'][] = ['elektrik', 'su', 'gaz', 'telekom', 'drenaj'];
-const INFRA_SPEC_BY_TYPE: Record<string, { spec: string; depth: number; voltage: string }> = {
-  elektrik: { spec: '3x(1x240/25) mm² XLPE Yeraltı Kablosu', depth: 1.8, voltage: '34.5 kV' },
-  su:       { spec: 'Ø400 mm Duktil Font Boru', depth: 2.0, voltage: '12 Bar' },
-  gaz:      { spec: 'Ø200 mm Polietilen Boru', depth: 1.6, voltage: '4 Bar' },
-  telekom:  { spec: '144 Core Single Mode Fiber Optik', depth: 1.1, voltage: 'Optik Sinyal' },
-  drenaj:   { spec: 'Ø800 mm Koruge Boru', depth: 2.4, voltage: 'Cazibeli Akış' }
-};
-function statusForProgress(progress: number): GISInfrastructureRecord['status'] {
-  if (progress >= 70) return 'Faal';
-  if (progress >= 40) return 'İnşaat Halinde';
-  return 'Planlanan';
+  return { ring, center: [px, py] };
 }
 
-export const gisInfrastructureRecords: GISInfrastructureRecord[] = initialProjects.flatMap((p) => {
+interface BuildingArcCluster {
+  label: string;
+  cxM: number; cyM: number;   // proje merkezine göre ofset (metre)
+  rxM: number; ryM: number;   // yay yarıçapları (metre)
+  startDeg: number; sweepDeg: number;
+  count: number;
+}
+// Proje sınırı ~1840m (boylam) x ~1990m (enlem) — kümeler bu alana, kenardan
+// güvenli bir payla (≈150-250m) sığacak şekilde yerleştirilir.
+const BUILDING_ARC_CLUSTERS: BuildingArcCluster[] = [
+  { label: 'A', cxM: -480, cyM: 560,  rxM: 210, ryM: 150, startDeg: 15,  sweepDeg: 320, count: 16 },
+  { label: 'B', cxM: 470,  cyM: 560,  rxM: 200, ryM: 150, startDeg: 195, sweepDeg: 320, count: 15 },
+  { label: 'C', cxM: -560, cyM: -20,  rxM: 175, ryM: 235, startDeg: 105, sweepDeg: 320, count: 17 },
+  { label: 'D', cxM: 560,  cyM: -20,  rxM: 175, ryM: 235, startDeg: 285, sweepDeg: 320, count: 17 },
+  { label: 'E', cxM: -280, cyM: -580, rxM: 235, ryM: 160, startDeg: 0,   sweepDeg: 340, count: 18 },
+  { label: 'F', cxM: 300,  cyM: -570, rxM: 225, ryM: 150, startDeg: 5,   sweepDeg: 340, count: 16 }
+];
+// 3 bina tipi: 2, 3 ve 4 katlı — kat yüksekliği 3m ile tutarlı (bkz. Kroki
+// aracındaki 3B ekstrüzyon varsayılanları).
+const FLOOR_TYPES: { floors: number; label: string; footprintW: number; footprintD: number }[] = [
+  { floors: 2, label: 'İkiz Villa',     footprintW: 12, footprintD: 8 },
+  { floors: 3, label: 'Sıra Ev',        footprintW: 14, footprintD: 9 },
+  { floors: 4, label: 'Rezidans Blok',  footprintW: 16, footprintD: 10 }
+];
+const FLOOR_H = 3; // metre/kat
+
+export const gisBuildingRecords: GISBuildingRecord[] = (() => {
+  const p = initialProjects.find((pr) => pr.id === 'IGA-ETAP-1');
+  if (!p) return [];
   const [lng, lat] = p.coordinates;
-  const status = statusForProgress(p.overallProgress);
-  return INFRA_EDGES.map((edge, i) => {
-    const a = BUILDING_GRID_OFFSETS[edge[0]];
-    const b = BUILDING_GRID_OFFSETS[edge[1]];
-    const from: [number, number] = [lng + a[0], lat + a[1]];
-    const to: [number, number] = [lng + b[0], lat + b[1]];
-    const type = INFRA_TYPE_CYCLE[i % INFRA_TYPE_CYCLE.length];
-    const specInfo = INFRA_SPEC_BY_TYPE[type];
-    const lengthMeters = Math.round(Math.hypot(
-      (to[0] - from[0]) * 111320 * Math.cos(lat * Math.PI / 180),
-      (to[1] - from[1]) * 110540
-    ));
-    return {
-      id: `infra-${p.id}-${i + 1}`,
-      table_name: 'tb_altyapi_hatlari',
-      project_id: p.id,
-      line_type: type,
-      network_name: `${p.code} — Bina ${edge[0] + 1} / Bina ${edge[1] + 1} Arası ${type.charAt(0).toUpperCase() + type.slice(1)} Hattı`,
-      pipe_or_cable_spec: specInfo.spec,
-      depth_meters: specInfo.depth,
-      voltage_or_pressure: specInfo.voltage,
-      total_length_meters: lengthMeters,
-      status,
-      coordinates: [from, to]
-    };
+  const out: GISBuildingRecord[] = [];
+  let globalIdx = 0;
+  BUILDING_ARC_CLUSTERS.forEach((cl) => {
+    for (let i = 0; i < cl.count; i++) {
+      const angle = cl.startDeg + (cl.sweepDeg * i) / (cl.count - 1);
+      const typeIdx = (globalIdx + i) % FLOOR_TYPES.length;
+      const type = FLOOR_TYPES[typeIdx];
+      const durumIdx = globalIdx % 3;
+      const veriDurumu: 'Planlanan' | 'İnşaat' | 'İşletme' = durumIdx === 0 ? 'Planlanan' : durumIdx === 1 ? 'İnşaat' : 'İşletme';
+      const progress = veriDurumu === 'İşletme' ? 100 : veriDurumu === 'İnşaat' ? 30 + ((globalIdx * 7) % 50) : 0;
+      const status = veriDurumu === 'İşletme' ? 'Tamamlandı' : veriDurumu === 'İnşaat' ? 'Kaba Yapı' : 'Temel';
+      const { ring } = arcBuildingRing(
+        lng + metersToDegLng(cl.cxM, lat), lat + metersToDegLat(cl.cyM),
+        cl.rxM, cl.ryM, angle, type.footprintW, type.footprintD, lat
+      );
+      globalIdx++;
+      out.push({
+        id: `bld-${p.id}-${globalIdx}`,
+        table_name: 'tb_binalar_3d',
+        project_id: p.id,
+        block_name: `1. Etap — Blok ${cl.label}${i + 1}`,
+        building_type: type.label,
+        height_meters: type.floors * FLOOR_H,
+        floors_count: type.floors,
+        construction_progress: progress,
+        structural_status: status,
+        footprint_area_sqm: Math.round(type.footprintW * type.footprintD),
+        srid: 4326,
+        coordinates: ring,
+        veri_durumu: veriDurumu
+      });
+    }
   });
-});
+  return out;
+})();
+
+// Kullanıcı isteği üzerine mevcut altyapı hattı verisi (tüm projeler)
+// veritabanından silindi — yeni bir hat seti eklenmedi.
+export const gisInfrastructureRecords: GISInfrastructureRecord[] = [];
 
 export const initialWbsTasks: Record<string, WBSTask[]> = {
   'IGA-ETAP-1': [
