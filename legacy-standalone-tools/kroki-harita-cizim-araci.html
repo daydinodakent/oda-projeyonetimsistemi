@@ -815,7 +815,7 @@
     border-top:1px dashed var(--line);padding-top:8px;font-size:11px;
     display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;
   }
-  #infoDocsPreview img{max-width:100%;max-height:140px;border-radius:2px;border:1px solid var(--line);}
+  #infoDocsPreview img{max-width:100%;max-height:140px;border-radius:2px;border:1px solid var(--line);cursor:zoom-in;}
 
   /* ---------- Genel modal (Yeni Katman / Veri Girişi) ---------- */
   .modal-overlay{
@@ -3712,18 +3712,20 @@
       row.addEventListener('click', function(){
         listEl.querySelectorAll('.info-doc-row').forEach(function(r){ r.classList.remove('active'); });
         row.classList.add('active');
-        renderInfoDocPreview(d);
+        renderInfoDocPreview(d, docs);
       });
       listEl.appendChild(row);
     });
-    renderInfoDocPreview(docs[0]);
+    renderInfoDocPreview(docs[0], docs);
   }
-  function renderInfoDocPreview(d){
+  function renderInfoDocPreview(d, docs){
     var previewEl = document.getElementById('infoDocsPreview');
     if (!d){ previewEl.innerHTML = ''; return; }
     if (d.doc_type === 'resim' && d.file_data_url){
-      previewEl.innerHTML = '<img src="' + d.file_data_url + '" alt="' + escapeAttrHtml(d.name) + '">' +
+      previewEl.innerHTML = '<img src="' + d.file_data_url + '" alt="' + escapeAttrHtml(d.name) + '" title="Tam ekran için çift tıklayın">' +
         '<span>' + escapeAttrHtml(d.name) + '</span><span style="color:var(--text-dim);">' + escapeAttrHtml(d.file_size || '') + '</span>';
+      var previewImgEl = previewEl.querySelector('img');
+      if (previewImgEl) previewImgEl.addEventListener('dblclick', function(){ openInfoDocLightbox(d, docs); });
     } else if (d.doc_type === 'video' && d.file_data_url){
       previewEl.innerHTML = '<video src="' + d.file_data_url + '" controls style="max-width:100%;max-height:140px;border-radius:2px;border:1px solid var(--line);"></video>' +
         '<span>' + escapeAttrHtml(d.name) + '</span>';
@@ -4389,50 +4391,74 @@
     if (imgEl) imgEl.addEventListener('click', function(){ sahaOpenLightbox(p); });
   }
 
-  // Saha fotoğrafı tam ekran görüntüleyici — haritadaki bir pin'in popup'ındaki
-  // fotoğrafa tıklanınca açılır; birden fazla saha fotoğrafı varsa ok
-  // tuşlarıyla/ok düğmeleriyle diğer fotoğraflara geçilebilir.
-  var sahaLightboxIndex = -1;
-  function sahaOpenLightbox(p){
-    sahaLightboxIndex = sahaPhotos.findIndex(function(x){ return String(x.id) === String(p.id); });
-    if (sahaLightboxIndex === -1) sahaLightboxIndex = 0;
-    sahaRenderLightbox();
+  // Tam ekran görüntüleyici (lightbox) — hem Saha fotoğrafı popup'ındaki
+  // fotoğrafa hem de Bilgi (Info) balonundaki doküman önizleme resmine
+  // çift tıklanınca açılır (bkz. sahaOpenLightbox / openInfoDocLightbox).
+  // İçeride birden fazla öğe varsa ok tuşlarıyla/ok düğmeleriyle gezinilebilir;
+  // öğeler {src, name, notes, coord} şeklinde normalize edilir — coord yoksa
+  // (dokümanların konumu olmadığından) o satır gizlenir.
+  var lightboxItems = [];
+  var lightboxIndex = -1;
+  function openLightbox(items, startIndex){
+    lightboxItems = items;
+    lightboxIndex = startIndex >= 0 && startIndex < items.length ? startIndex : 0;
+    renderLightbox();
     document.getElementById('sahaLightbox').classList.remove('hidden');
   }
-  function sahaCloseLightbox(){
+  function closeLightbox(){
     document.getElementById('sahaLightbox').classList.add('hidden');
-    sahaLightboxIndex = -1;
+    lightboxItems = [];
+    lightboxIndex = -1;
   }
-  function sahaRenderLightbox(){
-    if (sahaLightboxIndex < 0 || sahaLightboxIndex >= sahaPhotos.length) return;
-    var p = sahaPhotos[sahaLightboxIndex];
-    document.getElementById('sahaLightboxImg').src = p.file_data_url || '';
-    document.getElementById('sahaLightboxName').textContent = p.name || '';
+  function renderLightbox(){
+    if (lightboxIndex < 0 || lightboxIndex >= lightboxItems.length) return;
+    var it = lightboxItems[lightboxIndex];
+    document.getElementById('sahaLightboxImg').src = it.src || '';
+    document.getElementById('sahaLightboxName').textContent = it.name || '';
     var notesEl = document.getElementById('sahaLightboxNotes');
-    notesEl.textContent = p.notes || '';
-    notesEl.style.display = p.notes ? '' : 'none';
-    document.getElementById('sahaLightboxCoord').textContent = Number(p.lat).toFixed(6) + ', ' + Number(p.lng).toFixed(6);
-    var multi = sahaPhotos.length > 1;
+    notesEl.textContent = it.notes || '';
+    notesEl.style.display = it.notes ? '' : 'none';
+    var coordEl = document.getElementById('sahaLightboxCoord');
+    coordEl.textContent = it.coord || '';
+    coordEl.style.display = it.coord ? '' : 'none';
+    var multi = lightboxItems.length > 1;
     document.getElementById('sahaLightboxPrev').classList.toggle('hidden', !multi);
     document.getElementById('sahaLightboxNext').classList.toggle('hidden', !multi);
   }
-  document.getElementById('sahaLightboxClose').addEventListener('click', sahaCloseLightbox);
+  function sahaOpenLightbox(p){
+    var items = sahaPhotos.map(function(x){
+      return { src: x.file_data_url || '', name: x.name || '', notes: x.notes || '',
+        coord: Number(x.lat).toFixed(6) + ', ' + Number(x.lng).toFixed(6) };
+    });
+    var idx = sahaPhotos.findIndex(function(x){ return String(x.id) === String(p.id); });
+    openLightbox(items, idx === -1 ? 0 : idx);
+  }
+  // Bilgi balonundaki doküman önizlemesinde bir resme çift tıklanınca açılır —
+  // aynı objeye eklenmiş diğer resim dokümanları arasında da gezinilebilir.
+  function openInfoDocLightbox(doc, allDocs){
+    var imgDocs = (allDocs || [doc]).filter(function(d){ return d.doc_type === 'resim' && d.file_data_url; });
+    var items = imgDocs.map(function(d){ return { src: d.file_data_url, name: d.name || '', notes: '', coord: '' }; });
+    if (!items.length) return;
+    var idx = imgDocs.indexOf(doc);
+    openLightbox(items, idx === -1 ? 0 : idx);
+  }
+  document.getElementById('sahaLightboxClose').addEventListener('click', closeLightbox);
   document.getElementById('sahaLightbox').addEventListener('click', function(e){
-    if (e.target.id === 'sahaLightbox') sahaCloseLightbox(); // arka plana tıklayınca da kapat
+    if (e.target.id === 'sahaLightbox') closeLightbox(); // arka plana tıklayınca da kapat
   });
   document.getElementById('sahaLightboxPrev').addEventListener('click', function(e){
     e.stopPropagation();
-    sahaLightboxIndex = (sahaLightboxIndex - 1 + sahaPhotos.length) % sahaPhotos.length;
-    sahaRenderLightbox();
+    lightboxIndex = (lightboxIndex - 1 + lightboxItems.length) % lightboxItems.length;
+    renderLightbox();
   });
   document.getElementById('sahaLightboxNext').addEventListener('click', function(e){
     e.stopPropagation();
-    sahaLightboxIndex = (sahaLightboxIndex + 1) % sahaPhotos.length;
-    sahaRenderLightbox();
+    lightboxIndex = (lightboxIndex + 1) % lightboxItems.length;
+    renderLightbox();
   });
   document.addEventListener('keydown', function(e){
     if (document.getElementById('sahaLightbox').classList.contains('hidden')) return;
-    if (e.key === 'Escape') sahaCloseLightbox();
+    if (e.key === 'Escape') closeLightbox();
     else if (e.key === 'ArrowLeft') document.getElementById('sahaLightboxPrev').click();
     else if (e.key === 'ArrowRight') document.getElementById('sahaLightboxNext').click();
   });
