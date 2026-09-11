@@ -986,7 +986,9 @@ export async function createDokuman(item: Partial<DokumanRecord>): Promise<Dokum
     approval_status: item.approval_status || 'Approved',
     approver: item.approver || 'BIM Koordinatörü',
     doc_type: item.doc_type,
-    file_data_url: item.file_data_url || null
+    file_data_url: item.file_data_url || null,
+    lat: item.lat ?? null,
+    lng: item.lng ?? null
   };
   return apiCreate('tb_dokumanlar', newItem);
 }

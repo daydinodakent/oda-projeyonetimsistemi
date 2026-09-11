@@ -332,6 +332,44 @@
 
   .hint{font-size:11px;color:var(--text-dim);line-height:1.6;padding-top:8px;border-top:1px solid var(--line-soft);margin-top:2px;}
 
+  /* ---------- Saha (konumlu fotoğraf galerisi) ---------- */
+  #sahaPendingList{display:flex;flex-direction:column;gap:8px;}
+  .saha-photo-card{
+    display:flex;gap:8px;padding:8px;background:var(--bg-panel-raise);
+    border:1px solid var(--line);border-radius:var(--radius);
+  }
+  .saha-photo-thumb-wrap{flex:0 0 auto;width:56px;height:56px;border-radius:2px;overflow:hidden;background:var(--bg-deep);}
+  .saha-photo-thumb{width:100%;height:100%;object-fit:cover;display:block;}
+  .saha-photo-info{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:4px;}
+  .saha-photo-name{font-size:12px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .saha-gps-badge{font-size:10px;display:inline-flex;align-items:center;gap:3px;width:fit-content;padding:1px 6px;border-radius:8px;}
+  .saha-gps-badge.auto{color:var(--teal);background:rgba(63,194,172,.12);}
+  .saha-gps-badge.manual{color:var(--amber);background:var(--amber-dim);}
+  .saha-gps-badge.missing{color:var(--danger);background:rgba(224,104,90,.12);}
+  .saha-photo-coord{font-family:var(--font-mono);font-size:10px;color:var(--text-dim);}
+  .saha-photo-notes{
+    width:100%;min-height:40px;resize:vertical;background:var(--bg-deep);border:1px solid var(--line);
+    color:var(--text);border-radius:2px;padding:5px 7px;font-family:var(--font-ui);font-size:11.5px;
+  }
+  .saha-photo-actions{flex:0 0 auto;display:flex;flex-direction:column;gap:4px;}
+  .saha-pin-btn{color:var(--amber);}
+  #sahaSavedList{display:flex;flex-direction:column;gap:6px;}
+  .saha-saved-row{
+    display:flex;align-items:center;gap:8px;padding:6px;background:var(--bg-panel-raise);
+    border:1px solid var(--line);border-radius:var(--radius);cursor:pointer;
+  }
+  .saha-saved-row:hover{border-color:var(--teal);}
+  .saha-saved-thumb{width:36px;height:36px;border-radius:2px;object-fit:cover;flex:0 0 auto;background:var(--bg-deep);}
+  .saha-saved-info{flex:1 1 auto;min-width:0;}
+  .saha-saved-name{font-size:11.5px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .saha-saved-coord{font-family:var(--font-mono);font-size:10px;color:var(--text-dim);}
+  /* Haritadaki saha fotoğrafı pin popup'ı */
+  .saha-popup{max-width:180px;}
+  .saha-popup-img{width:100%;border-radius:2px;display:block;margin-bottom:6px;}
+  .saha-popup-name{font-size:12px;font-weight:600;color:#0f1e29;}
+  .saha-popup-notes{font-size:11px;color:#3c4c56;margin-top:3px;white-space:pre-wrap;}
+  .saha-popup-coord{font-family:var(--font-mono);font-size:10px;color:#6b7684;margin-top:4px;}
+
   .fmt-grid{display:flex;flex-wrap:wrap;gap:5px;align-items:center;}
   .fmt-cat{width:100%;font-size:10px;letter-spacing:.4px;color:var(--text-dim);margin-top:6px;}
   .fmt-cat:first-child{margin-top:0;}
@@ -735,9 +773,9 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20V10M12 20V4M20 20v-7"/></svg>
     <span>Analiz</span>
   </button>
-  <button class="mod-btn" data-module="rapor" data-tip="Rapor">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h9l3 3v15H6z"/><path d="M9 12h6M9 16h6M9 8h3"/></svg>
-    <span>Rapor</span>
+  <button class="mod-btn" data-module="saha" data-tip="Saha">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 8V6a2 2 0 0 1 2-2h2M4 16v2a2 2 0 0 0 2 2h2M20 8V6a2 2 0 0 0-2-2h-2M20 16v2a2 2 0 0 1-2 2h-2"/><circle cx="12" cy="12" r="3.2"/></svg>
+    <span>Saha</span>
   </button>
   <button class="mod-btn" data-module="cikti" data-tip="Çıktı">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v12"/><path d="M7 9l5-6 5 6"/><path d="M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg>
@@ -1152,10 +1190,30 @@
       Sorgu modülü bu ortamda uygulanmadı.
     </div>
   </div>
-  <div class="module-page" data-module-page="rapor" style="display:none;">
-    <div class="hint" style="border:1px dashed var(--line);border-radius:2px;padding:14px;margin-top:0;">
-      Rapor modülü bu ortamda uygulanmadı.
+  <!-- ================= SAHA (konumlu fotoğraf galerisi) =================
+       Fotoğraf EXIF GPS verisi içeriyorsa konumu otomatik okunur; içermiyorsa
+       kullanıcı haritada tıklayarak elle bir pin ile konumlandırır. Kaydedilen
+       fotoğraflar haritada pin olarak gösterilir (bkz. ensureSahaPhotoLayer). -->
+  <div class="module-page" data-module-page="saha" style="display:none;">
+    <span class="field-label" style="margin-bottom:0;">Saha Fotoğrafları <span style="font-weight:400;">— konumlu galeri: EXIF GPS varsa otomatik, yoksa haritada pinleyin</span></span>
+
+    <input type="file" id="sahaPhotoInput" accept="image/*" multiple style="display:none;">
+    <div class="btn-row">
+      <div class="btn primary" id="btnSahaAddPhoto" style="flex:1;">+ Fotoğraf Ekle</div>
     </div>
+
+    <div id="sahaPendingList"></div>
+    <div class="btn-row" id="sahaPendingActions" style="display:none;">
+      <div class="btn" id="btnSahaCancelPending">Vazgeç</div>
+      <div class="btn primary" id="btnSahaSavePending">Kaydet</div>
+    </div>
+
+    <div class="hint" id="sahaEmptyHint" style="border:1px dashed var(--line);border-radius:2px;padding:14px;margin-top:0;">
+      Henüz saha fotoğrafı eklenmedi. Eklediğiniz fotoğraf EXIF konum verisi içeriyorsa konumu otomatik okunur; içermiyorsa "Haritada Konumla" ile bir pin bırakırsınız.
+    </div>
+
+    <span class="field-label" style="margin-bottom:0;margin-top:4px;">Kayıtlı Saha Fotoğrafları <span id="sahaSavedCount" style="font-weight:400;color:var(--text-dim);">(0)</span></span>
+    <div id="sahaSavedList"></div>
   </div>
 </div>
 
@@ -3715,9 +3773,315 @@
   });
 
   // ---------------------------------------------------------------------
+  // SAHA — konumlu fotoğraf galerisi. Bir fotoğraf eklendiğinde önce JPEG
+  // EXIF verisinden (varsa) GPS konumu ve çekim yönü (Orientation) hariçten
+  // kütüphane kullanmadan elle ayrıştırılır (bkz. parseJpegExif — bu dosyadaki
+  // WKB/GeoPackage ayrıştırıcılarıyla aynı yöntem). Konum bulunamazsa
+  // kullanıcı "Haritada Konumla" ile haritada tıklayarak elle bir pin bırakır.
+  // Kaydedilen fotoğraflar (window.parent → api.createDokuman, doc_type:
+  // 'resim', feature_id yok, lat/lng dolu) 'kroki:saha-photos-updated' ile
+  // geri gelip haritada pin+popup olarak gösterilir (bkz. ensureSahaPhotoLayer).
+  // ---------------------------------------------------------------------
+  var sahaPendingPhotos = [];      // henüz kaydedilmemiş, hazırlanan fotoğraflar
+  var sahaPendingUidCounter = 0;
+  var sahaPinPlacementMode = false;
+  var sahaPinPlacementTargetUid = null;
+  var sahaPhotos = [];             // üst pencereden senkronize edilen KAYITLI saha fotoğrafları
+  var SAHA_MAX_DIM = 1600;         // depolanacak fotoğrafın uzun kenarı (px) — orijinal EXIF/boyut sorunlarını önler
+  var SAHA_SOURCE_ID = 'saha-photos-source';
+  var SAHA_LAYER_ID = 'saha-photos-layer';
+
+  // JPEG APP1/EXIF segmentini ikili olarak okuyup GPS IFD'sini ve Orientation
+  // etiketini çözer. Yalnızca standart TIFF/EXIF IFD yapısını (bkz. EXIF 2.3
+  // spesifikasyonu §4.6.2) destekler — HEIC/PNG gibi formatlarda EXIF
+  // bulunamazsa (ya da segment yoksa) sessizce null döner.
+  function parseJpegExif(arrayBuffer){
+    var view;
+    try{ view = new DataView(arrayBuffer); }catch(e){ return null; }
+    if (view.byteLength < 4 || view.getUint16(0) !== 0xFFD8) return null;
+    var offset = 2;
+    while (offset + 4 <= view.byteLength){
+      var marker = view.getUint16(offset);
+      if ((marker & 0xFF00) !== 0xFF00) break;
+      if (marker === 0xFFD8 || marker === 0xFFD9){ offset += 2; continue; }
+      if (marker === 0xFFDA) break; // Start Of Scan — asıl görüntü verisi, EXIF'ten sonra hiç gelmez
+      var segLen = view.getUint16(offset + 2);
+      if (marker === 0xFFE1 && segLen >= 8 &&
+          view.getUint32(offset + 4) === 0x45786966 && view.getUint16(offset + 8) === 0x0000){
+        try{ return readExifTiff(view, offset + 10); }catch(e){ return null; }
+      }
+      offset += 2 + segLen;
+    }
+    return null;
+  }
+  function readExifTiff(view, tiffStart){
+    var little = view.getUint16(tiffStart) === 0x4949; // 'II' = little-endian, 'MM' = big-endian
+    function u16(o){ return view.getUint16(o, little); }
+    function u32(o){ return view.getUint32(o, little); }
+    function readIfd(ifdOffset){
+      var count = u16(ifdOffset);
+      var tags = {};
+      for (var i = 0; i < count; i++){
+        var entryOffset = ifdOffset + 2 + i * 12;
+        tags[u16(entryOffset)] = { valueOffset: entryOffset + 8 };
+      }
+      return tags;
+    }
+    var ifd0Offset = tiffStart + u32(tiffStart + 4);
+    var ifd0 = readIfd(ifd0Offset);
+    var result = { orientation: null, gps: null };
+    if (ifd0[0x0112]) result.orientation = u16(ifd0[0x0112].valueOffset);
+    if (ifd0[0x8825]){ // GPS IFD işaretçisi
+      var gpsTags = readIfd(tiffStart + u32(ifd0[0x8825].valueOffset));
+      function readRational(o){ var num = u32(o), den = u32(o + 4); return den ? num / den : 0; }
+      function readDMS(entry){
+        var base = tiffStart + u32(entry.valueOffset); // count=3 RATIONAL → 24 bayt, her zaman ayrı blokta
+        return readRational(base) + readRational(base + 8) / 60 + readRational(base + 16) / 3600;
+      }
+      if (gpsTags[0x0002] && gpsTags[0x0001] && gpsTags[0x0004] && gpsTags[0x0003]){
+        var lat = readDMS(gpsTags[0x0002]);
+        var lng = readDMS(gpsTags[0x0004]);
+        if (String.fromCharCode(view.getUint8(gpsTags[0x0001].valueOffset)) === 'S') lat = -lat;
+        if (String.fromCharCode(view.getUint8(gpsTags[0x0003].valueOffset)) === 'W') lng = -lng;
+        if (isFinite(lat) && isFinite(lng) && (lat !== 0 || lng !== 0)) result.gps = { lat: lat, lng: lng };
+      }
+    }
+    return result;
+  }
+
+  // Dosyayı, EXIF Orientation'a göre doğru yönde ve en fazla SAHA_MAX_DIM
+  // uzun kenara sahip bir JPEG data URL'ine dönüştürür — hem orijinal
+  // telefon fotoğraflarının (genelde birkaç MB) veritabanına gereksiz yere
+  // şişirmeden kaydedilmesini hem de EXIF döndürme bilgisini yoksayan
+  // tarayıcılarda fotoğrafın yamuk görünmesini önler.
+  function sahaLoadImageResized(file, orientation){
+    return new Promise(function(resolve, reject){
+      var url = URL.createObjectURL(file);
+      var img = new Image();
+      img.onload = function(){
+        URL.revokeObjectURL(url);
+        var w = img.naturalWidth, h = img.naturalHeight;
+        var scale = Math.min(1, SAHA_MAX_DIM / Math.max(w, h));
+        var outW = Math.max(1, Math.round(w * scale)), outH = Math.max(1, Math.round(h * scale));
+        var swap = orientation >= 5 && orientation <= 8;
+        var canvas = document.createElement('canvas');
+        canvas.width = swap ? outH : outW;
+        canvas.height = swap ? outW : outH;
+        var ctx = canvas.getContext('2d');
+        switch (orientation){
+          case 2: ctx.transform(-1, 0, 0, 1, outW, 0); break;
+          case 3: ctx.transform(-1, 0, 0, -1, outW, outH); break;
+          case 4: ctx.transform(1, 0, 0, -1, 0, outH); break;
+          case 5: ctx.transform(0, 1, 1, 0, 0, 0); break;
+          case 6: ctx.transform(0, 1, -1, 0, outH, 0); break;
+          case 7: ctx.transform(0, -1, -1, 0, outH, outW); break;
+          case 8: ctx.transform(0, -1, 1, 0, 0, outW); break;
+          default: break;
+        }
+        ctx.drawImage(img, 0, 0, outW, outH);
+        resolve(canvas.toDataURL('image/jpeg', 0.85));
+      };
+      img.onerror = function(){ URL.revokeObjectURL(url); reject(new Error('görsel yüklenemedi')); };
+      img.src = url;
+    });
+  }
+
+  function sahaAddFiles(fileList){
+    Array.prototype.forEach.call(fileList, function(file){
+      if (!/^image\//.test(file.type)) return;
+      var reader = new FileReader();
+      reader.onload = function(){
+        var exif = null;
+        try{ exif = parseJpegExif(reader.result); }catch(e){ /* EXIF ayrıştırılamadı — konumsuz devam edilir */ }
+        var orientation = (exif && exif.orientation) || 1;
+        sahaLoadImageResized(file, orientation).then(function(dataUrl){
+          var gps = exif && exif.gps;
+          sahaPendingPhotos.push({
+            uid: 'sp-' + (sahaPendingUidCounter++),
+            file: file,
+            name: file.name,
+            dataUrl: dataUrl,
+            lat: gps ? gps.lat : null,
+            lng: gps ? gps.lng : null,
+            hasGps: !!gps,
+            notes: ''
+          });
+          renderSahaPendingList();
+        }).catch(function(err){
+          showToast(file.name + ' işlenemedi: ' + err.message);
+        });
+      };
+      reader.onerror = function(){ showToast(file.name + ' okunamadı.'); };
+      reader.readAsArrayBuffer(file);
+    });
+  }
+
+  function sahaStartPinPlacement(uid){
+    sahaPinPlacementMode = true;
+    sahaPinPlacementTargetUid = uid;
+    map.getCanvas().style.cursor = 'crosshair';
+    showToast('Fotoğrafın konumunu belirlemek için haritada bir nokta tıklayın.');
+  }
+  function handleSahaPinPlacementClick(e){
+    var target = sahaPendingPhotos.find(function(p){ return p.uid === sahaPinPlacementTargetUid; });
+    sahaPinPlacementMode = false;
+    sahaPinPlacementTargetUid = null;
+    map.getCanvas().style.cursor = mode === 'select' ? 'default' : (isVertexDrawMode(mode) ? 'crosshair' : '');
+    if (!target) return;
+    target.lat = e.lngLat.lat;
+    target.lng = e.lngLat.lng;
+    target.hasGps = false;
+    renderSahaPendingList();
+    showToast('"' + target.name + '" için konum belirlendi.');
+  }
+
+  function renderSahaPendingList(){
+    var list = document.getElementById('sahaPendingList');
+    var actions = document.getElementById('sahaPendingActions');
+    var emptyHint = document.getElementById('sahaEmptyHint');
+    list.innerHTML = '';
+    actions.style.display = sahaPendingPhotos.length ? 'flex' : 'none';
+    emptyHint.style.display = (sahaPendingPhotos.length || sahaPhotos.length) ? 'none' : '';
+    sahaPendingPhotos.forEach(function(p){
+      var card = document.createElement('div');
+      card.className = 'saha-photo-card';
+      var badgeHtml = p.lat != null
+        ? '<span class="saha-gps-badge ' + (p.hasGps ? 'auto' : 'manual') + '">' + (p.hasGps ? '📍 Konum bulundu (EXIF)' : '📍 Elle konumlandırıldı') + '</span>'
+        : '<span class="saha-gps-badge missing">⚠ Konum yok</span>';
+      card.innerHTML =
+        '<div class="saha-photo-thumb-wrap"><img class="saha-photo-thumb" src="' + p.dataUrl + '"></div>' +
+        '<div class="saha-photo-info">' +
+          '<div class="saha-photo-name" title="' + p.name.replace(/"/g,'&quot;') + '">' + p.name.replace(/</g,'&lt;') + '</div>' +
+          badgeHtml +
+          (p.lat != null ? '<div class="saha-photo-coord">' + p.lat.toFixed(6) + ', ' + p.lng.toFixed(6) + '</div>' : '') +
+          '<textarea class="saha-photo-notes" placeholder="Açıklama / gözlem notu...">' + (p.notes || '').replace(/</g,'&lt;') + '</textarea>' +
+        '</div>' +
+        '<div class="saha-photo-actions">' +
+          (p.lat == null ? '<button class="layer-icon-btn saha-pin-btn" title="Haritada Konumla"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s-7-6.5-7-11a7 7 0 0 1 14 0c0 4.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></button>' : '') +
+          '<button class="layer-icon-btn del saha-remove-btn" title="Kaldır"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 6l12 12M18 6L6 18"/></svg></button>' +
+        '</div>';
+      card.querySelector('.saha-photo-notes').addEventListener('input', function(e){ p.notes = e.target.value; });
+      var pinBtn = card.querySelector('.saha-pin-btn');
+      if (pinBtn) pinBtn.addEventListener('click', function(){ sahaStartPinPlacement(p.uid); });
+      card.querySelector('.saha-remove-btn').addEventListener('click', function(){
+        sahaPendingPhotos = sahaPendingPhotos.filter(function(x){ return x.uid !== p.uid; });
+        renderSahaPendingList();
+      });
+      list.appendChild(card);
+    });
+  }
+
+  document.getElementById('btnSahaAddPhoto').addEventListener('click', function(){
+    document.getElementById('sahaPhotoInput').click();
+  });
+  document.getElementById('sahaPhotoInput').addEventListener('change', function(e){
+    sahaAddFiles(e.target.files);
+    e.target.value = '';
+  });
+  document.getElementById('btnSahaCancelPending').addEventListener('click', function(){
+    sahaPendingPhotos = [];
+    renderSahaPendingList();
+  });
+  document.getElementById('btnSahaSavePending').addEventListener('click', function(){
+    var ready = sahaPendingPhotos.filter(function(p){ return p.lat != null && p.lng != null; });
+    if (!ready.length){ showToast('Kaydetmeden önce en az bir fotoğrafa konum atayın (EXIF yoksa "Haritada Konumla").'); return; }
+    var payload = ready.map(function(p){
+      return { name: p.name, sizeLabel: formatFileSize(p.file.size), dataUrl: p.dataUrl, lat: p.lat, lng: p.lng, notes: p.notes || null };
+    });
+    window.parent.postMessage({ type: 'kroki:add-saha-photos', photos: payload }, '*');
+    sahaPendingPhotos = sahaPendingPhotos.filter(function(p){ return p.lat == null; });
+    renderSahaPendingList();
+    showToast(payload.length + ' fotoğraf kaydedildi.');
+  });
+
+  // Harita üzerinde saha fotoğrafı pin katmanı — GeoJSON kaynağı ilk
+  // kullanımda (kayıtlı fotoğraf listesi ilk geldiğinde) tembel oluşturulur.
+  function ensureSahaPhotoLayer(){
+    if (map.getSource(SAHA_SOURCE_ID)) return;
+    map.addSource(SAHA_SOURCE_ID, { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+    map.addLayer({
+      id: SAHA_LAYER_ID, type: 'circle', source: SAHA_SOURCE_ID,
+      paint: { 'circle-radius': 9, 'circle-color': '#ec4899', 'circle-stroke-width': 2, 'circle-stroke-color': '#ffffff' }
+    });
+    map.addLayer({
+      id: SAHA_LAYER_ID + '-icon', type: 'symbol', source: SAHA_SOURCE_ID,
+      layout: { 'text-field': '📷', 'text-size': 11, 'text-allow-overlap': true, 'text-ignore-placement': true }
+    });
+    map.on('mouseenter', SAHA_LAYER_ID, function(){ map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave', SAHA_LAYER_ID, function(){ map.getCanvas().style.cursor = mode === 'select' ? 'default' : ''; });
+    map.on('click', SAHA_LAYER_ID, function(e){
+      var f = e.features[0];
+      var p = f.properties;
+      new maplibregl.Popup({ offset: 14, closeButton: true, maxWidth: '200px' })
+        .setLngLat(f.geometry.coordinates)
+        .setHTML(
+          '<div class="saha-popup">' +
+            (p.dataUrl ? '<img src="' + p.dataUrl + '" class="saha-popup-img">' : '') +
+            '<div class="saha-popup-name">' + String(p.name || '').replace(/</g,'&lt;') + '</div>' +
+            (p.notes ? '<div class="saha-popup-notes">' + String(p.notes).replace(/</g,'&lt;') + '</div>' : '') +
+            '<div class="saha-popup-coord">' + Number(p.lat).toFixed(6) + ', ' + Number(p.lng).toFixed(6) + '</div>' +
+          '</div>'
+        )
+        .addTo(map);
+    });
+  }
+  function updateSahaPhotoSource(){
+    ensureSahaPhotoLayer();
+    var src = map.getSource(SAHA_SOURCE_ID);
+    if (!src) return;
+    src.setData({
+      type: 'FeatureCollection',
+      features: sahaPhotos.map(function(p){
+        return {
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: [p.lng, p.lat] },
+          properties: { id: p.id, name: p.name, notes: p.notes, dataUrl: p.file_data_url, lat: p.lat, lng: p.lng }
+        };
+      })
+    });
+  }
+  function renderSahaSavedList(){
+    var list = document.getElementById('sahaSavedList');
+    var countEl = document.getElementById('sahaSavedCount');
+    var emptyHint = document.getElementById('sahaEmptyHint');
+    countEl.textContent = '(' + sahaPhotos.length + ')';
+    emptyHint.style.display = (sahaPendingPhotos.length || sahaPhotos.length) ? 'none' : '';
+    list.innerHTML = '';
+    sahaPhotos.forEach(function(p){
+      var row = document.createElement('div');
+      row.className = 'saha-saved-row';
+      row.innerHTML =
+        '<img class="saha-saved-thumb" src="' + (p.file_data_url || '') + '">' +
+        '<div class="saha-saved-info">' +
+          '<div class="saha-saved-name" title="' + String(p.name || '').replace(/"/g,'&quot;') + '">' + String(p.name || '').replace(/</g,'&lt;') + '</div>' +
+          '<div class="saha-saved-coord">' + Number(p.lat).toFixed(5) + ', ' + Number(p.lng).toFixed(5) + '</div>' +
+        '</div>' +
+        '<button class="layer-icon-btn del saha-saved-del" title="Sil"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 6l12 12M18 6L6 18"/></svg></button>';
+      row.addEventListener('click', function(e){
+        if (e.target.closest('.saha-saved-del')) return;
+        map.flyTo({ center: [p.lng, p.lat], zoom: Math.max(map.getZoom(), 17), duration: 600 });
+      });
+      row.querySelector('.saha-saved-del').addEventListener('click', function(e){
+        e.stopPropagation();
+        window.parent.postMessage({ type: 'kroki:delete-saha-photo', id: p.id }, '*');
+      });
+      list.appendChild(row);
+    });
+  }
+  window.addEventListener('message', function(e){
+    var msg = e.data;
+    if (!msg || msg.type !== 'kroki:saha-photos-updated' || !Array.isArray(msg.photos)) return;
+    sahaPhotos = msg.photos;
+    updateSahaPhotoSource();
+    renderSahaSavedList();
+    renderSahaPendingList();
+  });
+
+  // ---------------------------------------------------------------------
   // Nokta / çizgi / poligon / 3B poligon / dikdörtgen / çember çizimi
   // ---------------------------------------------------------------------
   map.on('click', function(e){
+    if (sahaPinPlacementMode){ handleSahaPinPlacementClick(e); return; }
     if (attributeEditMode){ handleAttributeEditClick(e); return; }
     if (docAttachMode){ handleDocAttachClick(e); return; }
     if (infoMode){ handleInfoClick(e); return; }
@@ -4720,7 +5084,7 @@
   // Modül navigasyonu (Sorgu/Harita/Analiz/Editör/Rapor/Çıktı)
   // ---------------------------------------------------------------------
   var activeModule = 'harita';
-  var moduleTitles = { sorgu:'Sorgu', harita:'Harita', analiz:'Analiz', editor:'Editör', rapor:'Rapor', cikti:'Çıktı' };
+  var moduleTitles = { sorgu:'Sorgu', harita:'Harita', analiz:'Analiz', editor:'Editör', saha:'Saha', cikti:'Çıktı' };
   var moduleButtons = Array.prototype.slice.call(document.querySelectorAll('.mod-btn[data-module]'));
   function setModule(key){
     activeModule = key;
