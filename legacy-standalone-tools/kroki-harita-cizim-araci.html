@@ -633,6 +633,18 @@
   }
   .attr-table-close svg{width:14px;height:14px;}
   .attr-table-close:hover{color:var(--text);background:var(--bg-panel-raise);}
+  /* Toplu seçimde Bilgi'ye basılınca (bkz. openBulkSelectionAttrTable), seçim
+     birden fazla katmana yayılıyorsa her katman için ayrı bir sekme gösterir. */
+  #attrTableTabs{
+    flex:0 0 auto;display:flex;gap:2px;padding:4px 12px 0;border-bottom:1px solid var(--line);
+  }
+  #attrTableTabs.hidden{display:none;}
+  .attr-table-tab{
+    padding:5px 10px;font-size:11px;color:var(--text-dim);background:var(--bg-panel-raise);
+    border:1px solid var(--line);border-bottom:none;border-radius:3px 3px 0 0;cursor:pointer;
+  }
+  .attr-table-tab.active{color:var(--teal);background:var(--bg-panel);border-color:var(--teal);}
+  .attr-table-tab:hover{color:var(--text);}
   #attrTableBulkBar{
     flex:0 0 auto;display:flex;align-items:center;gap:8px;
     padding:6px 12px;border-bottom:1px solid var(--line);background:rgba(227,165,65,.08);
@@ -764,15 +776,23 @@
     color:var(--amber);font-size:10px;
   }
 
-  /* Sağ alt küme: dikey grup (pin/kaydırma/yenile) alttaki yatay gruple (yakınlaştır/ev/uzaklaştır/bilgi) aynı sağ kenara hizalanır */
-  #clusterBottomVertical{bottom:81px;right:14px;}
-  #clusterBottom{bottom:38px;right:14px;flex-direction:row;}
-  #clusterBottom .sep{width:1px;height:20px;margin:0 2px;}
-  #clusterBottom button[data-tip]::after, #clusterBottomVertical button[data-tip]::after{
+  /* Sağ alt küme: dikey grup (pin/kaydırma/yenile) ile alttaki yatay grup
+     (yakınlaştır/ev/uzaklaştır/bilgi) artık TEK, bitişik bir blok (bkz.
+     #clusterBottomRow) — aralarında boşluk kalmasın diye ayrı kümeler yerine
+     aynı .map-cluster içinde iç içe geçirildi. */
+  #clusterBottomVertical{bottom:38px;right:14px;border-radius:10px 10px var(--radius) 10px;}
+  #clusterBottomRow{display:flex;flex-direction:row;align-items:center;}
+  #clusterBottomRowSep{width:1px;height:20px;margin:0 2px;}
+  #clusterBottomVertical button[data-tip]::after{
     right:auto;left:50%;transform:translateX(-50%);bottom:110%;top:auto;
   }
-
-  #clusterBottom button:not(.active), #clusterBottomVertical button:not(.active){color:var(--offwhite);}
+  #clusterBottomVertical button:not(.active){color:var(--offwhite);}
+  /* Dikey grubun İLK düğmesi (Seç) ve yatay grubun İLK düğmesi (Yakınlaştır),
+     kümenin kendi köşe yuvarlaklığıyla (yukarıdaki border-radius) uyumlu
+     olacak şekilde kendi "uçlarında" daha belirgin yuvarlatılır — Bilgi
+     düğmesinin dairesel tasarımıyla aynı estetik dilde. */
+  #btnSelectMode{border-radius:10px 10px 2px 2px;}
+  #clusterBottomRow #btnZoomIn{border-radius:10px 2px 2px 10px;}
   .map-cluster button{
     width:27px;height:27px;background:transparent;border:none;color:var(--offwhite);
     cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:2px;position:relative;
@@ -797,7 +817,7 @@
   }
   #btnInfo:hover{background:#e6c667;color:#101c26;}
   #btnInfo.active{background:#e6c667;color:#101c26;box-shadow:0 0 0 2px rgba(212,175,55,.35);}
-  #btnInfo svg{width:14px;height:14px;}
+  #btnInfo svg{width:18px;height:18px;}
 
   /* Bilgi balonu artık haritada tıklanan objenin ÜZERİNDE, harita ile birlikte
      kayan bir konuşma balonu (speech-bubble) olarak açılır — sabit köşe paneli
@@ -1448,22 +1468,22 @@
   <button id="btnRefresh" data-tip="Yenile">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4v6h6"/><path d="M20 20v-6h-6"/><path d="M5 14a8 8 0 0 0 14 3l1-3M19 10A8 8 0 0 0 5 7L4 10"/></svg>
   </button>
-</div>
-
-<div class="map-cluster" id="clusterBottom">
-  <button id="btnZoomIn" data-tip="Yakınlaştır">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 5v14M5 12h14"/></svg>
-  </button>
-  <button id="btnHome" data-tip="Ana görünüm">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 11l8-7 8 7"/><path d="M6 10v9h12v-9"/></svg>
-  </button>
-  <button id="btnZoomOut" data-tip="Uzaklaştır">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 12h14"/></svg>
-  </button>
   <div class="sep"></div>
-  <button id="btnInfo" data-tip="Bilgi — objeye tıklayıp özniteliklerini gör">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.01"/></svg>
-  </button>
+  <div id="clusterBottomRow">
+    <button id="btnZoomIn" data-tip="Yakınlaştır">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 5v14M5 12h14"/></svg>
+    </button>
+    <button id="btnHome" data-tip="Ana görünüm">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 11l8-7 8 7"/><path d="M6 10v9h12v-9"/></svg>
+    </button>
+    <button id="btnZoomOut" data-tip="Uzaklaştır">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 12h14"/></svg>
+    </button>
+    <div class="sep" id="clusterBottomRowSep"></div>
+    <button id="btnInfo" data-tip="Bilgi — objeye tıklayıp özniteliklerini gör">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.01"/></svg>
+    </button>
+  </div>
 </div>
 
 <div id="treeContextMenu"></div>
@@ -1724,6 +1744,7 @@
     <div style="flex:1 1 auto;"></div>
     <button id="attrTableCloseBtn" class="attr-table-close" title="Kapat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
   </div>
+  <div id="attrTableTabs" class="hidden"></div>
   <!-- Toplu düzenleme çubuğu — 1+ satır seçilince görünür olur (bkz.
        updateAttrTableBulkBar). İlişkili (FK) sütunlar için combobox,
        diğerleri için sütun tipine uygun bir girdi gösterir. -->
@@ -2310,6 +2331,15 @@
   // (mutually exclusive) birer "mod" düğmesidir — hangisi aktifse .active
   // sınıfıyla (altın renk + hafif dolgu) belirgin şekilde vurgulanır.
   document.getElementById('btnSelectMode').addEventListener('click', function(){
+    // Seç/Düzenle, Bilgi moduyla karşılıklı dışlayan bir araçtır (bkz. btnInfo
+    // handler'ındaki ters yön) — Bilgi açıkken Seç'e basılırsa Bilgi kapanır.
+    if (infoMode){
+      infoMode = false;
+      document.getElementById('btnInfo').classList.remove('active');
+      document.getElementById('infoPopover').classList.remove('show');
+      infoHighlightId = null;
+      renderFeatures();
+    }
     setModule('editor');
     setMode('select');
     showToast('Seç / düzenle moduna geçildi.');
@@ -2331,12 +2361,22 @@
       document.getElementById('btnAddDocument').classList.remove('active');
       attributeEditMode = false;
       document.getElementById('btnAttrEdit').classList.remove('active');
+      if (selectedIds.length > 1){
+        // Toplu seçim varken Bilgi'ye basılırsa: seçim KORUNUR, mod değişmez —
+        // bunun yerine seçili objeler katman bazında (ayrı sekmelerde) alttaki
+        // öznitelik tablosunda gösterilir (bkz. openBulkSelectionAttrTable).
+        openBulkSelectionAttrTable();
+      } else if (mode === 'select'){
+        // Bilgi modu, Seç/Düzenle moduyla karşılıklı dışlayan (mutually exclusive)
+        // bir araçtır — Seç modundayken Bilgi açılırsa Kaydır moduna döner.
+        setMode('pan');
+      }
     }
     document.getElementById('infoPopover').classList.remove('show');
     infoHighlightId = null;
     renderFeatures();
     map.getCanvas().style.cursor = infoMode ? 'help' : (mode === 'select' ? 'default' : (isVertexDrawMode(mode) ? 'crosshair' : ''));
-    showToast(infoMode ? 'Bilgi modu açık — haritada bir objeye tıklayın.' : 'Bilgi modu kapatıldı.');
+    showToast(infoMode ? (selectedIds.length > 1 ? 'Seçili objelerin bilgileri aşağıda gösteriliyor.' : 'Bilgi modu açık — haritada bir objeye tıklayın.') : 'Bilgi modu kapatıldı.');
   });
   // Bilgi penceresinin sağ üstündeki X — yalnızca o an açık pencereyi kapatır,
   // Bilgi modunu KAPATMAZ (kullanıcı başka bir objeye tıklamaya devam edebilir).
@@ -6268,6 +6308,14 @@
   var attrTableRowEls = [];         // [{ tr, featureId }] — harita seçimiyle satır vurgusunu senkronlamak için
   var attrTableSelectedIds = {};    // { [featureId]: true } — toplu düzenleme için işaretlenmiş satırlar
   var attrTableCurrentColumns = []; // son render'daki dinamik sütun adları — şema yoksa toplu düzenleme sütun listesi bundan türetilir
+  // Toplu seçimde Bilgi'ye basılınca (bkz. openBulkSelectionAttrTable) devreye
+  // girer: attrTableIdFilter set'liyse tablo o katmanın TÜM featurelarını değil,
+  // yalnızca bu id'lere sahip (seçili) objeleri gösterir; attrTableLayerTabIds
+  // seçimin yayıldığı her katman için { layerId: [id, id, ...] } tutar ve
+  // birden fazla katman varsa sekme çubuğu (bkz. renderAttrTableTabs) oluşturur.
+  // Normal (tek katmanlı, sağ tık > Öznitelik Tablosu) açılışta ikisi de null'dır.
+  var attrTableIdFilter = null;
+  var attrTableLayerTabIds = null;
 
   function attrTableColumnsForFeatures(feats){
     var seen = {};
@@ -6298,7 +6346,11 @@
   function renderAttrTableRows(){
     var lyr = getLayer(attrTableLayerId);
     if (!lyr) return;
-    var feats = features.filter(function(f){ return (f.properties && f.properties.layerId) === attrTableLayerId; });
+    var feats = features.filter(function(f){
+      if ((f.properties && f.properties.layerId) !== attrTableLayerId) return false;
+      if (attrTableIdFilter && attrTableIdFilter.indexOf(f.id) === -1) return false;
+      return true;
+    });
     document.getElementById('attrTableCount').textContent = feats.length + ' kayıt';
 
     var cols = attrTableColumnsForFeatures(feats);
@@ -6385,8 +6437,13 @@
     if (!lyr) return;
     attrTableLayerId = layerId;
     attrTableSelectedIds = {};
+    // Normal (katman ağacından sağ tık) açılış, olası bir önceki toplu-seçim
+    // görünümünün filtresini/sekmelerini temizler — tüm katman gösterilir.
+    attrTableIdFilter = null;
+    attrTableLayerTabIds = null;
     document.getElementById('attrTableTitle').textContent = layerDisplayName(lyr);
     renderAttrTableRows();
+    renderAttrTableTabs();
     document.getElementById('attrTableDock').classList.remove('hidden');
   }
 
@@ -6394,7 +6451,57 @@
     attrTableLayerId = null;
     attrTableRowEls = [];
     attrTableSelectedIds = {};
+    attrTableIdFilter = null;
+    attrTableLayerTabIds = null;
     document.getElementById('attrTableDock').classList.add('hidden');
+  }
+
+  // ---------------------------------------------------------------------
+  // Toplu seçimde Bilgi'ye basılınca: seçili objeler katmanlarına göre
+  // gruplanır, alttaki öznitelik tablosu dock'unda AÇILIR — seçim birden
+  // fazla katmana yayılıyorsa her katman kendi sekmesinde gösterilir
+  // (bkz. renderAttrTableTabs). Tek bir objeyle çalışan openAttributeTable'dan
+  // farkı: TÜM katman değil, yalnızca seçili id'ler gösterilir (attrTableIdFilter).
+  // ---------------------------------------------------------------------
+  function openBulkSelectionAttrTable(){
+    var idsByLayer = {};
+    selectedIds.forEach(function(id){
+      var f = features.find(function(x){ return x.id === id; });
+      var lid = f && f.properties && f.properties.layerId;
+      if (!lid || !getLayer(lid)) return;
+      (idsByLayer[lid] = idsByLayer[lid] || []).push(id);
+    });
+    var layerIds = Object.keys(idsByLayer);
+    if (!layerIds.length) return;
+    attrTableLayerTabIds = idsByLayer;
+    openAttributeTableForTab(layerIds[0]);
+  }
+  function openAttributeTableForTab(layerId){
+    var lyr = getLayer(layerId);
+    if (!lyr || !attrTableLayerTabIds) return;
+    attrTableLayerId = layerId;
+    attrTableIdFilter = attrTableLayerTabIds[layerId] ? attrTableLayerTabIds[layerId].slice() : null;
+    attrTableSelectedIds = {};
+    document.getElementById('attrTableTitle').textContent = layerDisplayName(lyr);
+    renderAttrTableRows();
+    renderAttrTableTabs();
+    document.getElementById('attrTableDock').classList.remove('hidden');
+  }
+  function renderAttrTableTabs(){
+    var tabsEl = document.getElementById('attrTableTabs');
+    var layerIds = attrTableLayerTabIds ? Object.keys(attrTableLayerTabIds) : [];
+    if (layerIds.length < 2){ tabsEl.classList.add('hidden'); tabsEl.innerHTML = ''; return; }
+    tabsEl.innerHTML = '';
+    layerIds.forEach(function(lid){
+      var lyr = getLayer(lid);
+      if (!lyr) return;
+      var tab = document.createElement('div');
+      tab.className = 'attr-table-tab' + (lid === attrTableLayerId ? ' active' : '');
+      tab.textContent = layerDisplayName(lyr) + ' (' + attrTableLayerTabIds[lid].length + ')';
+      tab.addEventListener('click', function(){ openAttributeTableForTab(lid); });
+      tabsEl.appendChild(tab);
+    });
+    tabsEl.classList.remove('hidden');
   }
 
   // ---------------------------------------------------------------------
