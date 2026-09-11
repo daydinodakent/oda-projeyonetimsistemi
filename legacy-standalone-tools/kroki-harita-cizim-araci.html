@@ -4193,13 +4193,17 @@
       panEnded = true;
       map.off('mousemove', onMove);
       map.off('mouseup', onUp);
-      window.removeEventListener('mouseup', onUp, true);
+      window.removeEventListener('mouseup', onUp);
       window.removeEventListener('blur', onUp);
       map.getCanvas().style.cursor = prevCursor;
     }
     map.on('mousemove', onMove);
     map.on('mouseup', onUp);
-    window.addEventListener('mouseup', onUp, true);
+    // NOT: capture:true KULLANILMAZ — window'daki bu dinleyici, harita
+    // tuvali üzerinde gerçekleşen normal bir mouseup'tan SONRA (bubble
+    // fazında) tetiklenmeli; aksi halde map.on('mouseup', ...) tetiklenmeden
+    // ÖNCE devreye girip onu iptal eder (bkz. beginBoxSelect'teki aynı hata).
+    window.addEventListener('mouseup', onUp);
     window.addEventListener('blur', onUp);
   });
 
@@ -4338,7 +4342,7 @@
       if (boxEnded) return;
       boxEnded = true;
       map.off('mousemove', onMove); map.off('mouseup', onUp);
-      window.removeEventListener('mouseup', onWindowUp, true);
+      window.removeEventListener('mouseup', onWindowUp);
       window.removeEventListener('blur', onWindowUp);
       map.dragPan.enable();
       map.dragRotate.enable();
@@ -4368,10 +4372,14 @@
     // Güvenlik ağı: window seviyesinde tetiklenirse (ev, MapLibre'nin kendi
     // olayı olmadığından ev.point güvenilir değildir) seçimi TAMAMLAMAYA
     // ÇALIŞMADAN sadece sürüklemeyi güvenle sonlandırır.
+    // NOT: capture:true KULLANILMAZ — normal bir mouseup harita tuvali
+    // üzerinde gerçekleştiğinde bu dinleyici map.on('mouseup', onUp)'tan
+    // ÖNCE (capture fazında) tetiklenip cleanup() ile onUp'ı iptal ederdi;
+    // bubble fazında kalarak asıl seçim mantığının önce çalışmasını sağlar.
     function onWindowUp(){ cleanup(); }
     map.on('mousemove', onMove);
     map.on('mouseup', onUp);
-    window.addEventListener('mouseup', onWindowUp, true);
+    window.addEventListener('mouseup', onWindowUp);
     window.addEventListener('blur', onWindowUp);
   }
 
@@ -4415,7 +4423,7 @@
       if (dragEnded) return;
       dragEnded = true;
       map.off('mousemove', onMove); map.off('mouseup', onUp);
-      window.removeEventListener('mouseup', onUp, true);
+      window.removeEventListener('mouseup', onUp);
       window.removeEventListener('blur', onUp);
       map.dragPan.enable();
       map.getCanvas().style.cursor = (mode === 'select') ? 'default' : '';
@@ -4440,8 +4448,10 @@
     }
     map.on('mousemove', onMove);
     map.on('mouseup', onUp);
-    // Güvenlik ağı — bkz. onUp içindeki açıklama.
-    window.addEventListener('mouseup', onUp, true);
+    // Güvenlik ağı — bkz. onUp içindeki açıklama. capture:true KULLANILMAZ
+    // (bkz. beginBoxSelect'teki aynı hata) — bubble fazında map'in kendi
+    // dinleyicisinden SONRA çalışır.
+    window.addEventListener('mouseup', onUp);
     window.addEventListener('blur', onUp);
   }
 
