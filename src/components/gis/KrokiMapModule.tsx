@@ -10,7 +10,6 @@ import React, { useEffect, useRef, useState } from 'react';
 // iframe normal bir doküman gibi davranır ve bu sorun ortadan kalkar.
 // @ts-ignore - .html?url için tip tanımı gerekmiyor, Vite bunu string olarak çözer.
 import krokiHtmlUrl from '../../../legacy-standalone-tools/kroki-harita-cizim-araci.html?url';
-import { gisBoundaryRecords } from '../../data';
 import * as api from '../../services/api';
 
 /**
@@ -30,10 +29,10 @@ import * as api from '../../services/api';
  *
  * Proje ↔ harita entegrasyonu: `activeProjectId` her belirlendiğinde/
  * değiştiğinde (harita ilk açıldığında üst panelde zaten seçili olan proje
- * dahil, ya da kullanıcı üst panelden BAŞKA bir proje seçtiğinde),
- * gisBoundaryRecords'taki o projenin tek sınır kaydından bir bbox hesaplanıp
- * 'kroki:zoom-to-project' mesajıyla iframe'e gönderilir; Kroki doğrudan bu
- * sınıra yakınlaşır (bkz. HTML'deki ilgili dinleyici).
+ * dahil, ya da kullanıcı üst panelden BAŞKA bir proje seçtiğinde), CANLI
+ * veritabanındaki (api.getProjeSinirlari()) o projenin tek sınır kaydından
+ * bir bbox hesaplanıp 'kroki:zoom-to-project' mesajıyla iframe'e gönderilir;
+ * Kroki doğrudan bu sınıra yakınlaşır (bkz. HTML'deki ilgili dinleyici).
  */
 interface KrokiMapModuleProps {
   activeProjectId?: string;
@@ -342,20 +341,34 @@ const KrokiMapModule: React.FC<KrokiMapModuleProps> = ({ activeProjectId }) => {
     // projenin sınırına yakınlaşır — hem harita ilk açıldığında zaten seçili
     // olan proje için, hem de kullanıcı üst panelden BAŞKA bir proje
     // seçtiğinde (activeProjectId değiştiğinde) devreye girer.
+    //
+    // Not: bbox, data.ts'teki DURAĞAN (pristine) gisBoundaryRecords'tan değil,
+    // api.getProjeSinirlari() ile CANLI veritabanından hesaplanır — böylece
+    // zoom hedefi HER ZAMAN haritada GERÇEKTEN ÇİZİLEN (ve kullanıcı
+    // tarafından taşınmış/düzenlenmiş olabilecek) proje sınırı objesiyle
+    // birebir aynı kaynaktan gelir; aksi halde (statik veri kullanılsaydı)
+    // harita binalarla değil, sınırın ESKİ/durağan konumuyla hizalı olmayan
+    // yanlış bir noktaya yakınlaşabilirdi.
     if (!iframeReady || !activeProjectId) return;
     const iframeWindow = iframeRef.current?.contentWindow;
     if (!iframeWindow) return;
 
-    const boundary = gisBoundaryRecords.find((r) => r.project_id === activeProjectId);
-    if (!boundary || !boundary.geojson || !boundary.geojson.coordinates) return;
-    const ring: [number, number][] = boundary.geojson.coordinates[0];
-    const lngs = ring.map((c) => c[0]);
-    const lats = ring.map((c) => c[1]);
-    const bbox: [number, number, number, number] = [
-      Math.min(...lngs), Math.min(...lats), Math.max(...lngs), Math.max(...lats),
-    ];
+    let cancelled = false;
+    (async () => {
+      const sinirlar = await api.getProjeSinirlari();
+      if (cancelled) return;
+      const boundary = sinirlar.find((r) => r.project_id === activeProjectId);
+      const ring = boundary?.the_geom?.coordinates?.[0];
+      if (!boundary || !ring || !ring.length) return;
+      const lngs = ring.map((c) => c[0]);
+      const lats = ring.map((c) => c[1]);
+      const bbox: [number, number, number, number] = [
+        Math.min(...lngs), Math.min(...lats), Math.max(...lngs), Math.max(...lats),
+      ];
+      iframeWindow.postMessage({ type: 'kroki:zoom-to-project', bbox }, '*');
+    })();
 
-    iframeWindow.postMessage({ type: 'kroki:zoom-to-project', bbox }, '*');
+    return () => { cancelled = true; };
   }, [activeProjectId, iframeReady]);
 
   return (
