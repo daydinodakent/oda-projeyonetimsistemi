@@ -432,6 +432,43 @@
   #snapTolerancePopover.show{display:block;}
   #statusbar b{color:var(--text);font-weight:500;}
 
+  /* ---------- Öznitelik tablosu (alt dock) ---------- */
+  #attrTableDock{
+    position:absolute;left:0;right:0;bottom:26px;z-index:6;
+    height:230px;max-height:70vh;min-height:90px;
+    background:var(--bg-panel);border-top:1px solid var(--line);
+    display:flex;flex-direction:column;box-shadow:0 -4px 18px rgba(0,0,0,.35);
+  }
+  #attrTableDock.hidden{display:none;}
+  #attrTableResizeHandle{flex:0 0 auto;height:5px;cursor:ns-resize;background:transparent;}
+  #attrTableResizeHandle:hover, #attrTableResizeHandle.dragging{background:var(--teal);}
+  #attrTableHeader{
+    flex:0 0 auto;display:flex;align-items:center;gap:8px;
+    padding:6px 12px;border-bottom:1px solid var(--line);font-size:12px;color:var(--text-dim);
+  }
+  #attrTableHeader .status-icon{color:var(--teal);}
+  #attrTableTitle{color:var(--text);font-weight:600;}
+  .attr-table-count{font-family:var(--font-mono);font-size:11px;}
+  .attr-table-close{
+    background:transparent;border:none;color:var(--text-dim);cursor:pointer;
+    width:22px;height:22px;display:flex;align-items:center;justify-content:center;
+    border-radius:2px;flex:0 0 auto;
+  }
+  .attr-table-close svg{width:14px;height:14px;}
+  .attr-table-close:hover{color:var(--text);background:var(--bg-panel-raise);}
+  #attrTableBody{flex:1 1 auto;overflow:auto;}
+  #attrTableEl{border-collapse:collapse;width:100%;font-family:var(--font-mono);font-size:11.5px;}
+  #attrTableEl th{
+    position:sticky;top:0;background:var(--bg-panel-raise);color:var(--text-dim);
+    text-align:left;padding:6px 10px;border-bottom:1px solid var(--line);white-space:nowrap;font-weight:500;
+  }
+  #attrTableEl td{padding:5px 10px;border-bottom:1px solid var(--line-soft);white-space:nowrap;color:var(--text);}
+  #attrTableEl tbody tr{cursor:pointer;}
+  #attrTableEl tbody tr:hover{background:var(--bg-panel-raise);}
+  #attrTableEl tbody tr.selected{background:rgba(63,194,172,.15);}
+  #attrTableEl .attr-table-empty td{color:var(--text-dim);cursor:default;text-align:center;padding:14px;}
+  #attrTableEl .attr-table-empty:hover{background:transparent;}
+
   #toast{
     position:absolute;left:50%;bottom:44px;transform:translate(-50%,8px);
     background:#132632;border:1px solid var(--line);color:var(--text);
@@ -1456,6 +1493,23 @@
 <div id="draftControls">
   <button class="finish" id="btnFinishDraft">Bitir</button>
   <button class="cancel" id="btnCancelDraft">İptal</button>
+</div>
+
+<!-- Öznitelik tablosu — bir katmana sağ tıklayıp "Öznitelik Tablosu" seçilince
+     kanvasın alt kısmında (durum çubuğunun hemen üstünde) dock olarak açılır.
+     bkz. openAttributeTable(). -->
+<div id="attrTableDock" class="hidden">
+  <div id="attrTableResizeHandle" title="Yeniden boyutlandır"></div>
+  <div id="attrTableHeader">
+    <svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    <span id="attrTableTitle">Öznitelik Tablosu</span>
+    <span id="attrTableCount" class="attr-table-count">0 kayıt</span>
+    <div style="flex:1 1 auto;"></div>
+    <button id="attrTableCloseBtn" class="attr-table-close" title="Kapat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </div>
+  <div id="attrTableBody">
+    <table id="attrTableEl"><thead></thead><tbody></tbody></table>
+  </div>
 </div>
 
 <div id="statusbar">
@@ -4587,6 +4641,7 @@
     var src = map.getSource('features');
     if (src) src.setData(fc(visibleFeaturesForRender()));
     updateFloorSource();
+    syncAttrTableSelectionHighlight();
   }
   function selectFeatureId(id){
     selectedIds = [id];
@@ -4955,6 +5010,7 @@
       var fallback = layers.find(function(l){ return l.mapId === activeMapId; });
       activeLayerId = fallback ? fallback.id : (layers[0] ? layers[0].id : null);
     }
+    if (attrTableLayerId === layerId) closeAttributeTable();
     renderFeatures(); renderLayerTree();
   }
   var pendingLayerFolderId = null;
@@ -5055,6 +5111,130 @@
       map.fitBounds(bbox, { padding:80, duration:600, maxZoom:18 });
     }catch(e){ showToast('Bu katmana yakınlaşılamadı.'); }
   }
+
+  // ---------------------------------------------------------------------
+  // Öznitelik Tablosu — bir katmana sağ tıklayıp "Öznitelik Tablosu" seçilince
+  // kanvasın alt kısmında dock olarak açılır; katmandaki tüm objelerin
+  // özniteliklerini (DB alanları dahil) tablo halinde gösterir. Bir satıra
+  // tıklamak o objeyi haritada seçer ve ona yakınlaştırır (klasik GIS
+  // "attribute table" davranışı).
+  // ---------------------------------------------------------------------
+  var attrTableLayerId = null;   // açık öznitelik tablosunun ait olduğu katman (kapalıysa null)
+  var attrTableRowEls = [];      // [{ tr, featureId }] — harita seçimiyle satır vurgusunu senkronlamak için
+
+  function attrTableColumnsForFeatures(feats){
+    var seen = {};
+    var cols = [];
+    feats.forEach(function(f){
+      var props = f.properties || {};
+      Object.keys(props).forEach(function(k){
+        if (k === 'layerId') return; // her satırda aynı — zaten tablonun kendisiyle belli
+        if (!seen[k]){ seen[k] = true; cols.push(k); }
+      });
+    });
+    return cols;
+  }
+
+  function attrTableFormatValue(v){
+    if (v === null || v === undefined || v === '') return '—';
+    if (typeof v === 'boolean') return v ? 'Evet' : 'Hayır';
+    if (typeof v === 'object'){ try{ return JSON.stringify(v); }catch(e){ return String(v); } }
+    return String(v);
+  }
+
+  function openAttributeTable(layerId){
+    var lyr = getLayer(layerId);
+    if (!lyr) return;
+    var feats = features.filter(function(f){ return (f.properties && f.properties.layerId) === layerId; });
+    attrTableLayerId = layerId;
+
+    document.getElementById('attrTableTitle').textContent = layerDisplayName(lyr);
+    document.getElementById('attrTableCount').textContent = feats.length + (feats.length === 1 ? ' kayıt' : ' kayıt');
+
+    var cols = attrTableColumnsForFeatures(feats);
+    var table = document.getElementById('attrTableEl');
+    var thead = table.querySelector('thead');
+    var tbody = table.querySelector('tbody');
+    thead.innerHTML = '';
+    tbody.innerHTML = '';
+    attrTableRowEls = [];
+
+    var headRow = document.createElement('tr');
+    var idTh = document.createElement('th'); idTh.textContent = 'ID'; headRow.appendChild(idTh);
+    cols.forEach(function(c){ var th = document.createElement('th'); th.textContent = c; headRow.appendChild(th); });
+    thead.appendChild(headRow);
+
+    if (!feats.length){
+      var emptyRow = document.createElement('tr');
+      emptyRow.className = 'attr-table-empty';
+      var emptyTd = document.createElement('td');
+      emptyTd.colSpan = cols.length + 1;
+      emptyTd.textContent = 'Bu katmanda kayıt yok.';
+      emptyRow.appendChild(emptyTd);
+      tbody.appendChild(emptyRow);
+    } else {
+      feats.forEach(function(f){
+        var tr = document.createElement('tr');
+        var idTd = document.createElement('td'); idTd.textContent = String(f.id); tr.appendChild(idTd);
+        cols.forEach(function(c){
+          var td = document.createElement('td');
+          td.textContent = attrTableFormatValue(f.properties ? f.properties[c] : undefined);
+          tr.appendChild(td);
+        });
+        tr.addEventListener('click', function(){
+          setSelection([f.id]);
+          try{
+            var bbox = turf.bbox(f);
+            map.fitBounds(bbox, { padding:100, duration:500, maxZoom:18 });
+          }catch(err){ /* geçersiz geometri — sadece seçimle yetin */ }
+        });
+        tbody.appendChild(tr);
+        attrTableRowEls.push({ tr:tr, featureId:f.id });
+      });
+    }
+
+    syncAttrTableSelectionHighlight();
+    document.getElementById('attrTableDock').classList.remove('hidden');
+  }
+
+  function closeAttributeTable(){
+    attrTableLayerId = null;
+    attrTableRowEls = [];
+    document.getElementById('attrTableDock').classList.add('hidden');
+  }
+
+  // Haritada seçim değiştiğinde (obje tıklama, toplu seçim vb.) açık öznitelik
+  // tablosundaki ilgili satır(lar)ı da vurgular — bkz. refreshSelectionUI().
+  function syncAttrTableSelectionHighlight(){
+    if (!attrTableLayerId) return;
+    attrTableRowEls.forEach(function(r){
+      r.tr.classList.toggle('selected', selectedIds.indexOf(r.featureId) !== -1);
+    });
+  }
+
+  document.getElementById('attrTableCloseBtn').addEventListener('click', closeAttributeTable);
+
+  // Alt dock'u üst kenarından sürükleyerek yeniden boyutlandırma.
+  (function(){
+    var handle = document.getElementById('attrTableResizeHandle');
+    var dock = document.getElementById('attrTableDock');
+    var dragging = false, startY = 0, startH = 0;
+    handle.addEventListener('mousedown', function(e){
+      dragging = true; startY = e.clientY; startH = dock.getBoundingClientRect().height;
+      handle.classList.add('dragging');
+      e.preventDefault();
+    });
+    window.addEventListener('mousemove', function(e){
+      if (!dragging) return;
+      var newH = startH - (e.clientY - startY);
+      dock.style.height = Math.max(90, Math.min(newH, window.innerHeight * 0.7)) + 'px';
+    });
+    window.addEventListener('mouseup', function(){
+      if (!dragging) return;
+      dragging = false;
+      handle.classList.remove('dragging');
+    });
+  })();
 
   // ---------------------------------------------------------------------
   // GeoPackage (.gpkg) dışa aktarımı — gerçek bir GeoPackage, aslında
@@ -5381,13 +5561,13 @@
       '<span class="tree-toggle-spacer"></span>' +
       '<input type="checkbox" class="lyr-check" ' + (lyr.visible !== false ? 'checked' : '') + '>' +
       '<span class="layer-geom-icon" style="color:' + iconColor + ';">' + ((lyr.geomType === 'Point' && lyr.symbol) ? symbolIconSvg(lyr.symbol) : geomTypeIcon(lyr.geomType)) + '</span>' +
-      '<span class="layer-name">' + lyr.name.replace(/</g,'&lt;') + '</span>' +
+      '<span class="layer-name">' + layerDisplayName(lyr).replace(/</g,'&lt;') + '</span>' +
       '<span class="layer-count">' + count + '</span>';
     row.querySelector('.layer-name').addEventListener('click', function(){
       activeLayerId = lyr.id;
       renderLayerTree();
       syncDraftStyleToActiveLayer();
-      showToast('"' + lyr.name + '" aktif katman yapıldı — yeni şekiller buraya eklenecek.');
+      showToast('"' + layerDisplayName(lyr) + '" aktif katman yapıldı — yeni şekiller buraya eklenecek.');
     });
     row.querySelector('.lyr-check').addEventListener('change', function(e){
       lyr.visible = e.target.checked;
@@ -5402,8 +5582,9 @@
       var cx = e.clientX, cy = e.clientY;
       showTreeContextMenu(cx, cy, [
         { label:'Yakınlaş (Zoom To)', action:function(){ zoomToLayer(lyr.id); } },
+        { label:'Öznitelik Tablosu', action:function(){ openAttributeTable(lyr.id); } },
         { sep:true },
-        { label:'Yeniden Adlandır', action:async function(){ var n = await customPrompt('Katman adı:', lyr.name); if (n && n.trim()){ lyr.name = n.trim(); renderLayerTree(); } } },
+        { label:'Yeniden Adlandır', action:async function(){ var n = await customPrompt('Katman adı:', layerDisplayName(lyr)); if (n && n.trim()){ lyr.name = n.trim(); renderLayerTree(); } } },
         { label:'Stil', action:function(){ openLayerStyleModal(lyr.id); } },
         { sep:true },
         { label:'Sil', danger:true, action:function(){ deleteLayerConfirm(lyr.id); } },

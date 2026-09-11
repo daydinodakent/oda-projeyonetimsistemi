@@ -140,7 +140,7 @@ const KrokiMapModule: React.FC<KrokiMapModuleProps> = ({ activeProjectId }) => {
       const dbLayers = [
         {
           id: 'db-layer-sinirlar',
-          name: `Proje Sınırları — tb_proje_sinirlari (${sinirlar.length})`,
+          name: 'Proje Sınırları',
           visible: true,
           color: '#f59e0b',
           fillColor: '#f59e0b',
@@ -152,7 +152,7 @@ const KrokiMapModule: React.FC<KrokiMapModuleProps> = ({ activeProjectId }) => {
         },
         {
           id: 'db-layer-binalar',
-          name: `Binalar 3D — tb_binalar_3d (${binalar.length})`,
+          name: 'Binalar 3D',
           visible: true,
           color: '#6366f1',
           fillColor: '#6366f1',
@@ -164,7 +164,7 @@ const KrokiMapModule: React.FC<KrokiMapModuleProps> = ({ activeProjectId }) => {
         },
         {
           id: 'db-layer-altyapi',
-          name: `Altyapı Hatları — tb_altyapi_hatlari (${altyapi.length})`,
+          name: 'Altyapı Hatları',
           visible: true,
           color: '#10b981',
           lineWidth: 2,
