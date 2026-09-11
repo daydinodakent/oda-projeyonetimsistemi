@@ -73,12 +73,12 @@ export default function InsaatLeftPanel({ project, timelineDate }: InsaatLeftPan
         <div className="flex items-center justify-between mb-2.5 border-b border-[var(--border)] pb-2 pr-2">
           <div className="flex items-center gap-1.5">
             <Calendar className="w-4 h-4 text-amber-500 animate-pulse" />
-            <span className="text-[10px] font-black uppercase tracking-wider text-[var(--text-primary)]">
+            <span className="section-eyebrow">
               4D Şantiye İş Programı (Gantt)
             </span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="px-1.5 py-0.5 bg-blue-600/15 text-blue-500 text-[8px] font-black rounded uppercase">
+            <span className="px-1.5 py-0.5 bg-blue-600/15 text-blue-500 text-[10px] font-black rounded uppercase">
               Ağustos 2026
             </span>
             <button
@@ -102,9 +102,9 @@ export default function InsaatLeftPanel({ project, timelineDate }: InsaatLeftPan
                 <div className="flex justify-between items-start gap-1">
                   <div>
                     <h4 className="font-extrabold text-[var(--text-primary)] text-xs leading-tight">{phase.name}</h4>
-                    <span className="text-[9px] text-[var(--text-secondary)]">Taşeron: {phase.responsible}</span>
+                    <span className="text-[10px] text-[var(--text-secondary)]">Taşeron: {phase.responsible}</span>
                   </div>
-                  <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold ${
+                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
                     isCompleted 
                       ? 'bg-emerald-500/10 text-emerald-500' 
                       : isActive 
@@ -125,7 +125,7 @@ export default function InsaatLeftPanel({ project, timelineDate }: InsaatLeftPan
                       style={{ width: `${pct}%` }}
                     ></div>
                   </div>
-                  <div className="flex justify-between text-[9px] text-[var(--text-secondary)] font-bold">
+                  <div className="flex justify-between text-[10px] text-[var(--text-secondary)] font-bold">
                     <span>Ağu {phase.start}</span>
                     <span className={pct > 0 ? 'text-[var(--text-primary)]' : ''}>%{pct}</span>
                     <span>Ağu {phase.end}</span>
@@ -139,7 +139,7 @@ export default function InsaatLeftPanel({ project, timelineDate }: InsaatLeftPan
 
       {/* Local FeedBack Toast Banner */}
       {toastMessage && (
-        <div className="p-1.5 bg-slate-950 text-white text-[9px] rounded border border-slate-800 animate-fade-in flex justify-between items-center z-[99]">
+        <div className="p-1.5 bg-slate-950 text-white text-[10px] rounded border border-slate-800 animate-fade-in flex justify-between items-center z-[99]">
           <span>{toastMessage}</span>
           <button onClick={() => setToastMessage(null)} className="text-slate-500 hover:text-white font-bold ml-1">✕</button>
         </div>
@@ -167,7 +167,7 @@ export default function InsaatLeftPanel({ project, timelineDate }: InsaatLeftPan
               {phases.map((phase, idx) => (
                 <div key={phase.id} className="p-3 bg-slate-900/60 border border-slate-800 rounded-xl space-y-2">
                   <div className="space-y-1">
-                    <label className="block text-[8px] text-slate-400 font-bold uppercase">AŞAMA / İŞ ADI</label>
+                    <label className="block text-[10px] text-slate-400 font-bold uppercase">AŞAMA / İŞ ADI</label>
                     <input
                       type="text"
                       value={phase.name}
@@ -180,7 +180,7 @@ export default function InsaatLeftPanel({ project, timelineDate }: InsaatLeftPan
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="block text-[8px] text-slate-400 font-bold uppercase">SORUMLU TAŞERON</label>
+                    <label className="block text-[10px] text-slate-400 font-bold uppercase">SORUMLU TAŞERON</label>
                     <input
                       type="text"
                       value={phase.responsible}
@@ -194,7 +194,7 @@ export default function InsaatLeftPanel({ project, timelineDate }: InsaatLeftPan
                   </div>
                   <div className="grid grid-cols-3 gap-2">
                     <div className="space-y-1">
-                      <label className="block text-[8px] text-slate-400 font-bold uppercase">BAŞL. GÜN</label>
+                      <label className="block text-[10px] text-slate-400 font-bold uppercase">BAŞL. GÜN</label>
                       <input
                         type="number"
                         min="1"
@@ -209,7 +209,7 @@ export default function InsaatLeftPanel({ project, timelineDate }: InsaatLeftPan
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="block text-[8px] text-slate-400 font-bold uppercase">BİTİŞ GÜN</label>
+                      <label className="block text-[10px] text-slate-400 font-bold uppercase">BİTİŞ GÜN</label>
                       <input
                         type="number"
                         min="1"
@@ -224,7 +224,7 @@ export default function InsaatLeftPanel({ project, timelineDate }: InsaatLeftPan
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="block text-[8px] text-slate-400 font-bold uppercase">MANUEL %</label>
+                      <label className="block text-[10px] text-slate-400 font-bold uppercase">MANUEL %</label>
                       <input
                         type="number"
                         min="0"

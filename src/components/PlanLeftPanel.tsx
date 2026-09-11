@@ -279,15 +279,15 @@ export default function PlanLeftPanel({ project }: PlanLeftPanelProps) {
             <div className="flex flex-col min-w-0">
               <span className="text-[10px] text-[var(--text-secondary)] font-mono flex items-center gap-1">
                 {node.code}
-                {node.cpm && <span className="text-[7.5px] font-black bg-red-500/20 text-red-500 px-1 rounded">CPM</span>}
+                {node.cpm && <span className="text-[10px] font-black bg-red-500/20 text-red-500 px-1 rounded">CPM</span>}
               </span>
-              <span className="text-[11.5px] font-bold text-[var(--text-primary)] truncate">{node.name}</span>
+              <span className="text-[11px] font-bold text-[var(--text-primary)] truncate">{node.name}</span>
             </div>
           </div>
 
           <div className="flex items-center gap-1 shrink-0">
             {/* Progress Badge */}
-            <span className="text-[9px] font-extrabold bg-[var(--bg-secondary)] border border-[var(--border)] text-[var(--text-primary)] px-1.5 py-0.5 rounded-md">
+            <span className="text-[10px] font-extrabold bg-[var(--bg-secondary)] border border-[var(--border)] text-[var(--text-primary)] px-1.5 py-0.5 rounded-md">
               %{node.progress}
             </span>
 
@@ -300,7 +300,7 @@ export default function PlanLeftPanel({ project }: PlanLeftPanelProps) {
                     handleZoomToGeometry(node.id, node.geometryName);
                   }
                 }}
-                className={`text-[8.5px] font-black uppercase px-1.5 py-0.5 rounded flex items-center gap-1 cursor-pointer transition hover:scale-105 active:scale-95 ${
+                className={`text-[10px] font-black uppercase px-1.5 py-0.5 rounded flex items-center gap-1 cursor-pointer transition hover:scale-105 active:scale-95 ${
                   node.geometryType === 'polygon' 
                     ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' 
                     : node.geometryType === 'line'
@@ -348,14 +348,14 @@ export default function PlanLeftPanel({ project }: PlanLeftPanelProps) {
                 className="flex-1 flex items-center justify-between cursor-pointer"
               >
                 <div className="flex items-center gap-2.5">
-                  <span className={`w-5 h-5 rounded-md text-[9.5px] font-black flex items-center justify-center transition-colors ${activeStep === 1 ? 'bg-indigo-500 text-white shadow-[0_0_10px_rgba(99,102,241,0.4)]' : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] border border-[var(--border)]'}`}>
+                  <span className={`w-5 h-5 rounded-md text-[10px] font-black flex items-center justify-center transition-colors ${activeStep === 1 ? 'bg-indigo-500 text-white shadow-[0_0_10px_rgba(99,102,241,0.4)]' : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] border border-[var(--border)]'}`}>
                     01
                   </span>
-                  <span className="text-xs font-black text-[var(--text-primary)] uppercase tracking-wider text-left">Mekansal İş Kırılımları</span>
+                  <span className="section-eyebrow text-left">Mekansal İş Kırılımları</span>
                 </div>
               </button>
               <div className="flex items-center gap-2">
-                <span className="text-[9px] font-bold text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded">
+                <span className="text-[10px] font-bold text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded">
                   %60 Tamamlandı
                 </span>
                 <button
@@ -392,12 +392,12 @@ export default function PlanLeftPanel({ project }: PlanLeftPanelProps) {
               className="w-full p-3 flex items-center justify-between cursor-pointer"
             >
               <div className="flex items-center gap-2.5">
-                <span className={`w-5 h-5 rounded-md text-[9.5px] font-black flex items-center justify-center transition-colors ${activeStep === 2 ? 'bg-red-500 text-white shadow-[0_0_10px_rgba(239,68,68,0.4)]' : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] border border-[var(--border)]'}`}>
+                <span className={`w-5 h-5 rounded-md text-[10px] font-black flex items-center justify-center transition-colors ${activeStep === 2 ? 'bg-red-500 text-white shadow-[0_0_10px_rgba(239,68,68,0.4)]' : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] border border-[var(--border)]'}`}>
                   02
                 </span>
-                <span className="text-xs font-black text-[var(--text-primary)] uppercase tracking-wider text-left">BAĞIMLILIK & CPM ANALİZİ</span>
+                <span className="section-eyebrow text-left">BAĞIMLILIK & CPM ANALİZİ</span>
               </div>
-              <span className="text-[9px] font-bold text-red-500 bg-red-500/10 px-1.5 py-0.5 rounded">
+              <span className="text-[10px] font-bold text-red-500 bg-red-500/10 px-1.5 py-0.5 rounded">
                 1 Risk Algılandı
               </span>
             </button>
@@ -409,7 +409,7 @@ export default function PlanLeftPanel({ project }: PlanLeftPanelProps) {
                 <div className="flex items-center justify-between p-2.5 bg-[var(--bg-primary)] border border-[var(--border)] rounded-xl">
                   <div className="flex flex-col">
                     <span className="text-[10px] font-extrabold text-[var(--text-primary)]">KRİTİK YOL (CPM) GÖSTERİMİ</span>
-                    <span className="text-[8.5px] text-[var(--text-secondary)]">Kritik yoldaki işleri listede neon kırmızı ile parlat.</span>
+                    <span className="text-[10px] text-[var(--text-secondary)]">Kritik yoldaki işleri listede neon kırmızı ile parlat.</span>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer select-none">
                     <input 
@@ -439,7 +439,7 @@ export default function PlanLeftPanel({ project }: PlanLeftPanelProps) {
                   {/* Zoom to Clash Action button */}
                   <button 
                     onClick={handleZoomToClash}
-                    className="w-full mt-2 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-500 hover:text-red-400 text-[9.5px] font-black uppercase rounded-lg border border-red-500/30 transition flex items-center justify-center gap-1 cursor-pointer"
+                    className="w-full mt-2 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-500 hover:text-red-400 text-[10px] font-black uppercase rounded-lg border border-red-500/30 transition flex items-center justify-center gap-1 cursor-pointer"
                   >
                     <Sliders className="w-3 h-3" />
                     <span>Zoom-to-Clash (Çakışmaya Odaklan)</span>
@@ -454,12 +454,12 @@ export default function PlanLeftPanel({ project }: PlanLeftPanelProps) {
         {/* Selected Project Parcel Quick Box */}
         <div className="p-3 bg-[var(--bg-secondary)] rounded-xl text-xs space-y-1.5 border border-[var(--border)] relative shadow-sm">
           <div className="flex justify-between items-center">
-            <span className="text-[8px] font-black uppercase text-[var(--text-secondary)] tracking-widest">
+            <span className="text-[10px] font-black uppercase text-[var(--text-secondary)] tracking-widest">
               PARSEL & ADA ÖZETİ
             </span>
             <span className="w-1.5 h-1.5 rounded-full bg-[#10b981] animate-pulse" />
           </div>
-          <div className="grid grid-cols-2 gap-2 text-[10.5px]">
+          <div className="grid grid-cols-2 gap-2 text-[10px]">
             <div className="flex flex-col">
               <span className="text-[var(--text-secondary)]">Ada/Parsel</span>
               <span className="font-extrabold text-[var(--text-primary)] truncate font-mono">{project.adaParcel}</span>
@@ -473,7 +473,7 @@ export default function PlanLeftPanel({ project }: PlanLeftPanelProps) {
 
         {/* Dynamic Interactive Toast inside sidebar to capture user actions */}
         {toastMessage && (
-          <div className="absolute bottom-16 left-3 right-3 bg-[var(--bg-secondary)] border border-[var(--border)] p-2.5 rounded-lg text-[10.5px] text-[var(--text-primary)] shadow-xl z-50 flex gap-2 animate-fade-in">
+          <div className="absolute bottom-16 left-3 right-3 bg-[var(--bg-secondary)] border border-[var(--border)] p-2.5 rounded-lg text-[10px] text-[var(--text-primary)] shadow-xl z-50 flex gap-2 animate-fade-in">
             <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-ping shrink-0 mt-1" />
             <div className="flex-1 text-[var(--text-primary)] font-bold">
               {toastMessage}
@@ -518,12 +518,12 @@ export default function PlanLeftPanel({ project }: PlanLeftPanelProps) {
                   return flatNodes.map(node => (
                     <div key={node.id} className="p-3 bg-slate-900/60 border border-slate-800 rounded-xl space-y-2 text-left">
                       <div className="flex justify-between items-center">
-                        <span className="text-[9px] font-mono font-bold text-indigo-400">{node.code}</span>
-                        <span className="text-[8px] font-bold text-slate-500 uppercase">{node.level}</span>
+                        <span className="text-[10px] font-mono font-bold text-indigo-400">{node.code}</span>
+                        <span className="text-[10px] font-bold text-slate-500 uppercase">{node.level}</span>
                       </div>
                       
                       <div className="space-y-1">
-                        <label className="block text-[8px] text-slate-400 font-bold uppercase">İŞ ADI</label>
+                        <label className="block text-[10px] text-slate-400 font-bold uppercase">İŞ ADI</label>
                         <input 
                           type="text"
                           value={node.name}
@@ -537,7 +537,7 @@ export default function PlanLeftPanel({ project }: PlanLeftPanelProps) {
 
                       <div className="grid grid-cols-2 gap-2">
                         <div className="space-y-1">
-                          <label className="block text-[8px] text-slate-400 font-bold uppercase">İLERLEME (%)</label>
+                          <label className="block text-[10px] text-slate-400 font-bold uppercase">İLERLEME (%)</label>
                           <input 
                             type="number"
                             min="0"
@@ -552,7 +552,7 @@ export default function PlanLeftPanel({ project }: PlanLeftPanelProps) {
                           />
                         </div>
                         <div className="space-y-1">
-                          <label className="block text-[8px] text-slate-400 font-bold uppercase">DURUM</label>
+                          <label className="block text-[10px] text-slate-400 font-bold uppercase">DURUM</label>
                           <select 
                             value={node.status}
                             onChange={(e) => {
@@ -601,7 +601,7 @@ export default function PlanLeftPanel({ project }: PlanLeftPanelProps) {
           <div className="grid grid-cols-2 gap-1.5">
             <button
               onClick={handleSetBaseline}
-              className="py-1.5 px-1 bg-[var(--bg-secondary)] hover:bg-[var(--bg-primary)] border border-[var(--border)] text-[8.5px] font-black text-[var(--text-primary)] rounded-lg transition duration-200 cursor-pointer flex items-center justify-center gap-1 shadow-sm"
+              className="py-1.5 px-1 bg-[var(--bg-secondary)] hover:bg-[var(--bg-primary)] border border-[var(--border)] text-[10px] font-black text-[var(--text-primary)] rounded-lg transition duration-200 cursor-pointer flex items-center justify-center gap-1 shadow-sm"
             >
               <CheckCircle2 className="w-3 h-3 text-emerald-500" />
               <span>BASELİNE KİLİTLE</span>
@@ -609,7 +609,7 @@ export default function PlanLeftPanel({ project }: PlanLeftPanelProps) {
 
             <button
               onClick={handleRunValidation}
-              className="py-1.5 px-1 bg-[var(--bg-secondary)] hover:bg-[var(--bg-primary)] border border-[var(--border)] text-[8.5px] font-black text-[var(--text-primary)] rounded-lg transition duration-200 cursor-pointer flex items-center justify-center gap-1 shadow-sm"
+              className="py-1.5 px-1 bg-[var(--bg-secondary)] hover:bg-[var(--bg-primary)] border border-[var(--border)] text-[10px] font-black text-[var(--text-primary)] rounded-lg transition duration-200 cursor-pointer flex items-center justify-center gap-1 shadow-sm"
             >
               <RefreshCw className="w-3 h-3 text-cyan-500 animate-spin-slow" />
               <span>COĞRAFİ DOĞRULAMA</span>

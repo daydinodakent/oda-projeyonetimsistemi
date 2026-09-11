@@ -188,7 +188,7 @@ export default function IsletmeLeftPanel({ project, assets, selectedAssetId, onS
     <div className="space-y-3 relative">
       {/* SYSTEM CATEGORY FILTERS */}
       <div className="card p-0 pt-1 rounded-none bg-transparent border-0 shadow-none px-0 flex items-center justify-between gap-1 flex-wrap text-left">
-        <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider w-full mb-1">
+        <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider w-full mb-1">
           Sistem Filtreleme
         </span>
         {[
@@ -216,7 +216,7 @@ export default function IsletmeLeftPanel({ project, assets, selectedAssetId, onS
         <div className="flex items-center justify-between mb-1 pb-1 border-b border-[var(--border)] pr-2">
           <div className="flex items-center gap-1.5">
             <Radio className="w-4 h-4 text-blue-500 animate-pulse" />
-            <span className="text-[10px] font-black uppercase tracking-wider text-[var(--text-primary)]">
+            <span className="section-eyebrow">
               Kat / Mekan Hiyerarşisi
             </span>
           </div>
@@ -236,7 +236,7 @@ export default function IsletmeLeftPanel({ project, assets, selectedAssetId, onS
 
       {/* Local FeedBack Toast Banner */}
       {toastMessage && (
-        <div className="p-1.5 bg-slate-950 text-white text-[9px] rounded border border-slate-800 animate-fade-in flex justify-between items-center z-[99]">
+        <div className="p-1.5 bg-slate-950 text-white text-[10px] rounded border border-slate-800 animate-fade-in flex justify-between items-center z-[99]">
           <span>{toastMessage}</span>
           <button onClick={() => setToastMessage(null)} className="text-slate-500 hover:text-white font-bold ml-1">✕</button>
         </div>
@@ -264,7 +264,7 @@ export default function IsletmeLeftPanel({ project, assets, selectedAssetId, onS
               {hierarchy.map((building, bIdx) => (
                 <div key={building.id} className="p-3 bg-slate-900/60 border border-slate-800 rounded-xl space-y-2">
                   <div className="space-y-1">
-                    <label className="block text-[8px] text-slate-400 font-bold uppercase">BİNA / BLOK ADI</label>
+                    <label className="block text-[10px] text-slate-400 font-bold uppercase">BİNA / BLOK ADI</label>
                     <input
                       type="text"
                       value={building.name}
@@ -279,7 +279,7 @@ export default function IsletmeLeftPanel({ project, assets, selectedAssetId, onS
 
                   {building.children && building.children.map((floor, fIdx) => (
                     <div key={floor.id} className="pl-3 border-l border-blue-500/30 space-y-1.5 mt-2">
-                      <label className="block text-[8.5px] text-slate-500 font-bold uppercase">KAT ADI</label>
+                      <label className="block text-[10px] text-slate-500 font-bold uppercase">KAT ADI</label>
                       <input
                         type="text"
                         value={floor.name}

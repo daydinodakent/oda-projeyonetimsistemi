@@ -254,8 +254,8 @@ export default function PlanView({
       {/* View Header Tabs */}
       <div className="flex items-center justify-between border-b border-[var(--border)] pb-3 flex-wrap gap-2">
         <div>
-          <h2 className="text-xl font-extrabold text-[var(--text-primary)]">Plan Yönetimi (WBS & Kaynak Havuzu)</h2>
-          <p className="text-xs text-[var(--text-secondary)]">Mekansal Planlama, Earned Value Analizi ve CDE Doküman Yönetim Merkezi</p>
+          <h2 className="window-main-title">Plan Yönetimi (WBS & Kaynak Havuzu)</h2>
+          <p className="window-main-subtitle mt-0.5">Mekansal Planlama, Earned Value Analizi ve CDE Doküman Yönetim Merkezi</p>
         </div>
         <div className="flex gap-1.5 bg-[var(--bg-secondary)] p-1 rounded-lg border border-[var(--border)] flex-wrap">
           <button 
@@ -304,8 +304,8 @@ export default function PlanView({
         <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl p-5 shadow-sm flex flex-col gap-4 animate-fade-in">
           <div className="flex items-center justify-between pb-3 border-b border-[var(--border)]">
             <div>
-              <span className="text-[9px] font-black tracking-widest bg-red-500/10 text-red-500 px-2 py-0.5 rounded uppercase block w-max mb-1">CEO Portföy Özeti</span>
-              <h3 className="text-sm font-black text-[var(--text-primary)] uppercase flex items-center gap-1.5">
+              <span className="text-[10px] font-black tracking-widest bg-red-500/10 text-red-500 px-2 py-0.5 rounded uppercase block w-max mb-1">CEO Portföy Özeti</span>
+              <h3 className="card-header-title uppercase flex items-center gap-1.5">
                 <span>DİNAMİK KAZANILAN DEĞER (EVM) VE FİNANSAL SAPMALAR</span>
                 <button 
                   onClick={() => {
@@ -325,29 +325,29 @@ export default function PlanView({
                 </button>
               </h3>
             </div>
-            <span className="px-2 py-0.5 bg-[#e67e22]/10 text-[#e67e22] text-[8px] font-black rounded uppercase border border-[#e67e22]/20">CBS Senkron</span>
+            <span className="px-2 py-0.5 bg-[#e67e22]/10 text-[#e67e22] text-[10px] font-black rounded uppercase border border-[#e67e22]/20">CBS Senkron</span>
           </div>
 
           {/* EVM Scorecards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div className="p-3 bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg">
-              <span className="text-[9px] text-[var(--text-secondary)] block mb-0.5 font-semibold">Proje Durumu</span>
+              <span className="micro-label block mb-0.5">Proje Durumu</span>
               <span className="text-xs font-extrabold text-[var(--text-primary)] uppercase">{localProject.status}</span>
             </div>
             <div className="p-3 bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg">
-              <span className="text-[9px] text-[var(--text-secondary)] block mb-0.5 font-semibold">Zaman İndeksi (SPI)</span>
+              <span className="micro-label block mb-0.5">Zaman İndeksi (SPI)</span>
               <span className={`text-xs font-black ${localProject.earnedValue >= localProject.plannedSpent ? 'text-emerald-500' : 'text-red-500'}`}>
                 {(localProject.plannedSpent > 0 ? (localProject.earnedValue / localProject.plannedSpent) : 1.00).toFixed(2)}
               </span>
             </div>
             <div className="p-3 bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg">
-              <span className="text-[9px] text-[var(--text-secondary)] block mb-0.5 font-semibold">Maliyet İndeksi (CPI)</span>
+              <span className="micro-label block mb-0.5">Maliyet İndeksi (CPI)</span>
               <span className={`text-xs font-black ${localProject.earnedValue >= localProject.spent ? 'text-emerald-500' : 'text-red-500'}`}>
                 {(localProject.spent > 0 ? (localProject.earnedValue / localProject.spent) : 1.02).toFixed(2)}
               </span>
             </div>
             <div className="p-3 bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg">
-              <span className="text-[9px] text-[var(--text-secondary)] block mb-0.5 font-semibold">Kazanılan Değer</span>
+              <span className="micro-label block mb-0.5">Kazanılan Değer</span>
               <span className="text-xs font-black text-indigo-500">₺{localProject.earnedValue}M</span>
             </div>
           </div>
@@ -528,7 +528,7 @@ export default function PlanView({
                     <div className="flex justify-between items-center text-xs mb-1">
                       <div className="flex items-center gap-1.5">
                         <span className="text-[var(--text-secondary)] font-medium">SPI (Zaman Performans İndeksi)</span>
-                        <span className={`text-[9px] font-black px-1.5 py-0.2 rounded border ${
+                        <span className={`text-[10px] font-black px-1.5 py-0.5 rounded border ${
                           spi >= 1.00 
                             ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' 
                             : 'bg-red-500/10 text-red-400 border-red-500/30 animate-pulse'
@@ -553,7 +553,7 @@ export default function PlanView({
                         title="Hedef Eşik: 1.00"
                       ></div>
                     </div>
-                    <div className="flex justify-between text-[8px] text-[var(--text-secondary)] font-mono mt-0.5">
+                    <div className="flex justify-between text-[10px] text-[var(--text-secondary)] font-mono mt-0.5">
                       <span>0.00</span>
                       <span className="text-red-400 font-bold">Hedef: 1.00 (Eşik)</span>
                       <span>1.25</span>
@@ -564,7 +564,7 @@ export default function PlanView({
                     <div className="flex justify-between items-center text-xs mb-1">
                       <div className="flex items-center gap-1.5">
                         <span className="text-[var(--text-secondary)] font-medium">CPI (Maliyet Performans İndeksi)</span>
-                        <span className={`text-[9px] font-black px-1.5 py-0.2 rounded border ${
+                        <span className={`text-[10px] font-black px-1.5 py-0.5 rounded border ${
                           cpi >= 1.00 
                             ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' 
                             : 'bg-red-500/10 text-red-400 border-red-500/30 animate-pulse'
@@ -589,7 +589,7 @@ export default function PlanView({
                         title="Hedef Eşik: 1.00"
                       ></div>
                     </div>
-                    <div className="flex justify-between text-[8px] text-[var(--text-secondary)] font-mono mt-0.5">
+                    <div className="flex justify-between text-[10px] text-[var(--text-secondary)] font-mono mt-0.5">
                       <span>0.00</span>
                       <span className="text-red-400 font-bold">Hedef: 1.00 (Eşik)</span>
                       <span>1.25</span>
@@ -919,7 +919,7 @@ export default function PlanView({
                                 className="flex items-center gap-1.5 shrink-0 cursor-pointer"
                                 title={`Aşamayı ${step} olarak ayarla`}
                               >
-                                <span className={`w-5 h-5 rounded-full flex items-center justify-center font-bold text-[9px] ${
+                                <span className={`w-5 h-5 rounded-full flex items-center justify-center font-bold text-[10px] ${
                                   isCompleted 
                                     ? 'bg-emerald-500 text-white' 
                                     : isActive 
@@ -990,7 +990,7 @@ export default function PlanView({
                     <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center gap-2 flex-wrap">
                         <h4 className="text-xs font-extrabold text-[var(--text-primary)] truncate max-w-[250px] md:max-w-[400px]">{doc.name}</h4>
-                        <span className="px-1.5 py-0.2 bg-blue-600/15 text-blue-400 text-[9px] font-bold rounded">{doc.version}</span>
+                        <span className="px-1.5 py-0.5 bg-blue-600/15 text-blue-400 text-[10px] font-bold rounded">{doc.version}</span>
                         <span className="text-[10px] text-[var(--text-secondary)]">{doc.fileSize}</span>
                       </div>
                       <div className="flex items-center gap-1">
@@ -1016,7 +1016,7 @@ export default function PlanView({
                     </p>
 
                     {/* Show Revision History inline */}
-                    <div className="p-2.5 bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg text-[9px] text-[var(--text-secondary)] space-y-1.5 mt-1">
+                    <div className="p-2.5 bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg text-[10px] text-[var(--text-secondary)] space-y-1.5 mt-1">
                       <span className="font-bold text-[var(--text-primary)] block">Revizyon Geçmişi</span>
                       {doc.revisionHistory.map((rev, idx) => (
                         <div key={idx} className="flex justify-between items-center border-b border-[var(--border)] last:border-0 pb-1 last:pb-0">
@@ -1028,7 +1028,7 @@ export default function PlanView({
 
                     {/* Show approval status inline */}
                     <div className="mt-3 flex items-center gap-2 flex-wrap">
-                      <span className="text-[9px] font-bold text-slate-400">Onay Akışı:</span>
+                      <span className="text-[10px] font-bold text-slate-400">Onay Akışı:</span>
                       {doc.approvalWorkflow.map((step, idx) => (
                         <span 
                           key={idx} 
@@ -1038,7 +1038,7 @@ export default function PlanView({
                             const updatedDoc = { ...doc, approvalWorkflow: updatedWorkflow };
                             setLocalDocs(prev => prev.map(d => d.id === doc.id ? updatedDoc : d));
                           }}
-                          className={`text-[9px] px-2 py-0.5 rounded-full font-bold border cursor-pointer ${
+                          className={`text-[10px] px-2 py-0.5 rounded-full font-bold border cursor-pointer ${
                             step.status === 'Approved' 
                               ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
                               : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
@@ -1192,7 +1192,7 @@ export default function PlanView({
                     <span className="font-bold text-[var(--text-primary)] text-xs block mb-2">{pt.name}</span>
                     <div className="grid grid-cols-3 gap-2">
                       <div>
-                        <label className="text-[9px] text-[var(--text-secondary)] block">Plan (%)</label>
+                        <label className="text-[10px] text-[var(--text-secondary)] block">Plan (%)</label>
                         <input 
                           type="number"
                           value={pt.plan}
@@ -1204,7 +1204,7 @@ export default function PlanView({
                         />
                       </div>
                       <div>
-                        <label className="text-[9px] text-[var(--text-secondary)] block">Gerçekleşen Hakediş (%)</label>
+                        <label className="text-[10px] text-[var(--text-secondary)] block">Gerçekleşen Hakediş (%)</label>
                         <input 
                           type="number"
                           value={pt.hakedis !== null ? pt.hakedis : ''}
@@ -1217,7 +1217,7 @@ export default function PlanView({
                         />
                       </div>
                       <div>
-                        <label className="text-[9px] text-[var(--text-secondary)] block">Maliyet (%)</label>
+                        <label className="text-[10px] text-[var(--text-secondary)] block">Maliyet (%)</label>
                         <input 
                           type="number"
                           value={pt.maliyet !== null ? pt.maliyet : ''}

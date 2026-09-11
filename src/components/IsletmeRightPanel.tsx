@@ -95,7 +95,7 @@ export default function IsletmeRightPanel({ project, assets, selectedAssetId }: 
       {/* 1. SEÇİLİ VARLIK BİLGİ KARTI */}
       <div className="card p-0 pt-1.5 rounded-none bg-transparent border-0 shadow-none px-0">
         <div className="flex justify-between items-center mb-2 border-b border-[var(--border)] pb-2 -mt-2.5">
-          <span className="text-[10px] font-black uppercase tracking-wider text-[var(--text-primary)] flex items-center gap-1">
+          <span className="section-eyebrow flex items-center gap-1">
             <Cpu className="w-3.5 h-3.5 text-blue-500" />
             Varlık Kimlik Kartı
           </span>
@@ -112,7 +112,7 @@ export default function IsletmeRightPanel({ project, assets, selectedAssetId }: 
           {asset.name}
         </h4>
         <div className="text-left">
-          <span className={`px-2 py-0.5 rounded-none text-[9px] font-black inline-block mb-2 ${
+          <span className={`px-2 py-0.5 rounded-none text-[10px] font-black inline-block mb-2 ${
             isFaulty 
               ? 'bg-red-500/10 text-red-500 border border-red-500/20 animate-pulse' 
               : asset.status === 'Bakım Bekliyor' 
@@ -150,11 +150,11 @@ export default function IsletmeRightPanel({ project, assets, selectedAssetId }: 
       {/* 2. CANLI SCADA / SENSÖR TELEMETRİ ALANI */}
       <div className="card p-0 rounded-none bg-transparent border-0 shadow-none px-0 space-y-2 border-t border-[var(--border)] pt-2.5">
         <div className="flex justify-between items-center border-b border-[var(--border)] pb-2">
-          <span className="text-[10px] font-black uppercase tracking-wider text-[var(--text-primary)] flex items-center gap-1.5">
+          <span className="section-eyebrow flex items-center gap-1.5">
             <Zap className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
             IoT Canlı SCADA Telemetrisi
           </span>
-          <span className="px-1.5 py-0.2 bg-red-600/15 text-red-500 text-[8px] font-extrabold rounded animate-pulse">
+          <span className="px-1.5 py-0.5 bg-red-600/15 text-red-500 text-[10px] font-extrabold rounded animate-pulse">
             LIVE
           </span>
         </div>
@@ -164,14 +164,14 @@ export default function IsletmeRightPanel({ project, assets, selectedAssetId }: 
           <div className="p-2 bg-[var(--bg-primary)] border border-[var(--border)] rounded-none flex items-center gap-1.5">
             <Thermometer className="w-4 h-4 text-red-500 shrink-0" />
             <div>
-              <span className="text-[8px] text-[var(--text-secondary)] block uppercase">Sıcaklık</span>
+              <span className="text-[10px] text-[var(--text-secondary)] block uppercase">Sıcaklık</span>
               <strong className="text-xs text-[var(--text-primary)] transition-all duration-300">{liveTemp}°C</strong>
             </div>
           </div>
           <div className="p-2 bg-[var(--bg-primary)] border border-[var(--border)] rounded-none flex items-center gap-1.5">
             <Zap className="w-4 h-4 text-amber-500 shrink-0" />
             <div>
-              <span className="text-[8px] text-[var(--text-secondary)] block uppercase">Anlık Güç</span>
+              <span className="text-[10px] text-[var(--text-secondary)] block uppercase">Anlık Güç</span>
               <strong className="text-xs text-[var(--text-primary)]">
                 {liveData[liveData.length - 1]?.energy || 45} kW
               </strong>
@@ -181,7 +181,7 @@ export default function IsletmeRightPanel({ project, assets, selectedAssetId }: 
 
         {/* Rolling Live Chart */}
         <div className="space-y-1">
-          <span className="text-[9px] text-[var(--text-secondary)] font-bold block">
+          <span className="text-[10px] text-[var(--text-secondary)] font-bold block">
             Reel-Time Enerji Akış Hızı (kW)
           </span>
           <div className="h-[120px] w-full">
@@ -211,7 +211,7 @@ export default function IsletmeRightPanel({ project, assets, selectedAssetId }: 
         </div>
 
         {isFaulty && (
-          <div className="p-2.5 bg-red-500/10 border border-red-500/20 rounded-none text-[9px] text-red-400 flex gap-1.5 leading-normal">
+          <div className="p-2.5 bg-red-500/10 border border-red-500/20 rounded-none text-[10px] text-red-400 flex gap-1.5 leading-normal">
             <AlertTriangle className="w-4 h-4 text-red-500 shrink-0" />
             <span>Varlık kritik arıza modunda! Enerji tüketiminin düşmesi kompresör durmasına işaret ediyor. Acil müdahale ekibi yönlendirildi.</span>
           </div>
@@ -219,7 +219,7 @@ export default function IsletmeRightPanel({ project, assets, selectedAssetId }: 
 
         {/* Local FeedBack Toast Banner */}
         {toastMessage && (
-          <div className="p-1.5 bg-slate-950 text-white text-[9px] rounded border border-slate-800 animate-fade-in flex justify-between items-center z-[99] mt-2">
+          <div className="p-1.5 bg-slate-950 text-white text-[10px] rounded border border-slate-800 animate-fade-in flex justify-between items-center z-[99] mt-2">
             <span>{toastMessage}</span>
             <button onClick={() => setToastMessage(null)} className="text-slate-500 hover:text-white font-bold ml-1">✕</button>
           </div>
@@ -246,14 +246,14 @@ export default function IsletmeRightPanel({ project, assets, selectedAssetId }: 
 
             <div className="space-y-3 pt-1 text-left">
               <div className="space-y-1">
-                <label className="block text-[8px] text-slate-400 font-bold uppercase">VARLIK ADI</label>
+                <label className="block text-[10px] text-slate-400 font-bold uppercase">VARLIK ADI</label>
                 <div className="text-xs text-white font-bold bg-[#1c1c1e] p-2 rounded-lg border border-[#2c2c2e]">
                   {asset.name}
                 </div>
               </div>
 
               <div className="space-y-1">
-                <label className="block text-[8px] text-slate-400 font-bold uppercase">GARANTİ DURUMU</label>
+                <label className="block text-[10px] text-slate-400 font-bold uppercase">GARANTİ DURUMU</label>
                 <input
                   type="text"
                   value={assetWarranty}
@@ -263,7 +263,7 @@ export default function IsletmeRightPanel({ project, assets, selectedAssetId }: 
               </div>
 
               <div className="space-y-1">
-                <label className="block text-[8px] text-slate-400 font-bold uppercase">SON BAKIM TARİHİ</label>
+                <label className="block text-[10px] text-slate-400 font-bold uppercase">SON BAKIM TARİHİ</label>
                 <input
                   type="text"
                   value={assetLastMaintenance}
