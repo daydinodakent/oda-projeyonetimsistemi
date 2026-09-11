@@ -1461,13 +1461,15 @@
 <div id="statusbar">
   <span title="Koordinat"><svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg><b id="stCoord" style="color:var(--teal)">—</b></span>
   <div class="div"></div>
-  <span title="Yakınlaştırma"><svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><b id="stZoom">—</b></span>
-  <div class="div"></div>
   <span id="stCountWrap" title="Seçili obje sayısı" style="display:none;"><svg class="status-icon" id="stCountIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 3l14 7-6 2-2 6-6-15z"/></svg><b id="stCount">0</b></span>
   <div class="div" id="stCountDiv" style="display:none;"></div>
+  <span id="stSelNameWrap" title="Seçili objenin katmanı ve adı" style="display:none;"><svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></svg><b id="stSelName" style="color:var(--teal)">—</b></span>
+  <div class="div" id="stSelNameDiv" style="display:none;"></div>
   <span>mod <b id="stMode" style="color:var(--amber)">select</b></span>
   <div class="div"></div>
   <button id="statusSnapBtn" class="status-snap-btn active" title="Snap (sol tık: aç/kapat, sağ tık: yakalama mesafesi)"><svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3v7a6 6 0 0 0 12 0V3"/><path d="M6 3h4M14 3h4"/></svg></button>
+  <div class="div"></div>
+  <span title="Yakınlaştırma" style="margin-left:auto;"><svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><b id="stZoom">—</b></span>
 </div>
 
 <div id="snapTolerancePopover">
@@ -4165,6 +4167,43 @@
   });
 
   // ---------------------------------------------------------------------
+  // Fare tekerleğine (orta tuş) basılı sürükleme: aktif mod (seç/çiz/ölç/
+  // pan vb.) ne olursa olsun HER ZAMAN haritada kaydırma (pan) yapar — çoğu
+  // CBS/CAD aracındaki standart davranışla tutarlı. Diğer mod-özel mousedown
+  // dinleyicilerinden ÖNCE tanımlanır ve button!==1 durumunda hemen çıkar,
+  // bu yüzden onlarla çakışmaz (onSelectMouseDown zaten yalnızca sol tık
+  // (button 0) için çalışır).
+  map.on('mousedown', function(e){
+    if (!e.originalEvent || e.originalEvent.button !== 1) return;
+    e.preventDefault();
+    if (e.originalEvent.preventDefault) e.originalEvent.preventDefault();
+    var startPoint = e.point;
+    var prevCursor = map.getCanvas().style.cursor;
+    map.getCanvas().style.cursor = 'grabbing';
+    function onMove(ev){
+      map.panBy([-(ev.point.x - startPoint.x), -(ev.point.y - startPoint.y)], { animate: false });
+      startPoint = ev.point;
+    }
+    var panEnded = false;
+    function onUp(){
+      // Güvenlik ağı: fare harita DIŞINDA bırakılırsa map.on('mouseup', ...)
+      // hiç tetiklenmeyebilir — window seviyesindeki dinleyici bunu garanti
+      // altına alır; panEnded ikisinin ÇİFT çalışmasını önler.
+      if (panEnded) return;
+      panEnded = true;
+      map.off('mousemove', onMove);
+      map.off('mouseup', onUp);
+      window.removeEventListener('mouseup', onUp, true);
+      window.removeEventListener('blur', onUp);
+      map.getCanvas().style.cursor = prevCursor;
+    }
+    map.on('mousemove', onMove);
+    map.on('mouseup', onUp);
+    window.addEventListener('mouseup', onUp, true);
+    window.addEventListener('blur', onUp);
+  });
+
+  // ---------------------------------------------------------------------
   // Seçim sürükleme başlatıcı (dikdörtgen/çember artık tıklama tabanlı — aşağıda)
   // ---------------------------------------------------------------------
   map.on('mousedown', function(e){
@@ -4289,11 +4328,24 @@
       boxEl.classList.add('show');
       updateBoxEl(startPx, p);
     }
-    function onUp(ev){
+    var boxEnded = false;
+    function cleanup(){
+      // Fare harita tuvalinin DIŞINDA bırakılırsa map.on('mouseup', ...) hiç
+      // tetiklenmeyebilir — bu, dinleyicilerin asılı kalıp SONRAKİ HER fare
+      // hareketinde seçim kutusunu sessizce büyütmeye devam etmesine yol
+      // açar. boxEnded bayrağı, hem map hem window seviyesindeki güvenlik
+      // ağının ÇİFT çalışmasını önler.
+      if (boxEnded) return;
+      boxEnded = true;
       map.off('mousemove', onMove); map.off('mouseup', onUp);
+      window.removeEventListener('mouseup', onWindowUp, true);
+      window.removeEventListener('blur', onWindowUp);
       map.dragPan.enable();
       map.dragRotate.enable();
       boxEl.remove();
+    }
+    function onUp(ev){
+      cleanup();
       if (!moved) return;
 
       var p = ev.point;
@@ -4313,8 +4365,14 @@
       if (additive) addToSelection(ids); else setSelection(ids);
       showToast(ids.length + ' obje seçildi.');
     }
+    // Güvenlik ağı: window seviyesinde tetiklenirse (ev, MapLibre'nin kendi
+    // olayı olmadığından ev.point güvenilir değildir) seçimi TAMAMLAMAYA
+    // ÇALIŞMADAN sadece sürüklemeyi güvenle sonlandırır.
+    function onWindowUp(){ cleanup(); }
     map.on('mousemove', onMove);
     map.on('mouseup', onUp);
+    window.addEventListener('mouseup', onWindowUp, true);
+    window.addEventListener('blur', onWindowUp);
   }
 
   function beginDrag(kind, ctx, startLngLat){
@@ -4346,8 +4404,19 @@
       renderFeatures();
       renderVertices();
     }
+    var dragEnded = false;
     function onUp(){
+      // Fare harita tuvalinin DIŞINDA (yan panel, pencere vb.) bırakılırsa
+      // map.on('mouseup', ...) HİÇ tetiklenmeyebilir — bu, bu dinleyicilerin
+      // asılı kalıp SONRAKİ HER fare hareketinde objeyi sessizce taşımaya
+      // devam etmesine (ciddi bir veri bütünlüğü hatasına) yol açar. Bu
+      // yüzden window seviyesinde (capture) bir GÜVENLİK AĞI dinleyicisi de
+      // eklenir (aşağıda); dragEnded bayrağı ikisinin ÇİFT çalışmasını önler.
+      if (dragEnded) return;
+      dragEnded = true;
       map.off('mousemove', onMove); map.off('mouseup', onUp);
+      window.removeEventListener('mouseup', onUp, true);
+      window.removeEventListener('blur', onUp);
       map.dragPan.enable();
       map.getCanvas().style.cursor = (mode === 'select') ? 'default' : '';
       updateSnapMarker(null);
@@ -4371,6 +4440,9 @@
     }
     map.on('mousemove', onMove);
     map.on('mouseup', onUp);
+    // Güvenlik ağı — bkz. onUp içindeki açıklama.
+    window.addEventListener('mouseup', onUp, true);
+    window.addEventListener('blur', onUp);
   }
 
   function setVertexCoord(f, ringIndex, vertIndex, lngLat){
@@ -5956,6 +6028,29 @@
       wrap.style.display = 'none';
       div.style.display = 'none';
     }
+    updateStatusSelectionName();
+  }
+
+  // Tam olarak TEK bir obje seçiliyken durum çubuğunda "Katman::Ad" gösterir
+  // (ör. "Binalar 3D::A1 Blok") — birden fazla ya da hiç obje seçili değilse gizlenir.
+  function updateStatusSelectionName(){
+    var wrap = document.getElementById('stSelNameWrap');
+    var div = document.getElementById('stSelNameDiv');
+    var val = document.getElementById('stSelName');
+    if (selectedIds.length === 1){
+      var f = features.find(function(x){ return x.id === selectedIds[0]; });
+      if (f){
+        var lyr = getLayer(f.properties && f.properties.layerId);
+        var lyrLabel = layerDisplayName(lyr) || typeLabel(f);
+        var objLabel = (f.properties && f.properties.name) || typeLabel(f);
+        wrap.style.display = '';
+        div.style.display = '';
+        val.textContent = lyrLabel + '::' + objLabel;
+        return;
+      }
+    }
+    wrap.style.display = 'none';
+    div.style.display = 'none';
   }
 
   function refreshPanel(){
