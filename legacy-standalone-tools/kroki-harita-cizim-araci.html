@@ -2556,6 +2556,10 @@
   // seçime bağlı işlemleri etkilememesi için (bkz. visibleFeaturesForRender,
   // INFO_HIGHLIGHT_COLOR). Bilgi balonu kapanınca (X veya Bilgi modu kapatılınca) temizlenir.
   var infoHighlightId = null;
+  // Sağ tık > "Alanı Maskele" ile bir poligonun DIŞINDAKİ tüm alanı beyazla
+  // kaplayan maske aktifse bu, maskelenen objenin id'sidir — "Maskeyi Kaldır"
+  // menüsünün ne zaman gösterileceğini belirler (bkz. applyAreaMask/clearAreaMask).
+  var maskFeatureId = null;
   var infoPopoverAnchorLngLat = null; // Bilgi balonunun harita üzerinde iğnelendiği nokta (bkz. updateInfoPopoverPosition)
   var hoveredMidpoint = null; // Seç modunda, fare tek seçili objenin bir kenar orta noktasına yakınsa (bkz. findNearestMidpoint)
   var draftCoords = null;   // linestring / polygon çizerken tıklanan noktalar
@@ -6119,13 +6123,81 @@
       finishDraft();
       return;
     }
-    if (mode !== 'select' || selectedIds.length !== 1) return;
-    var vertexHit = map.queryRenderedFeatures(e.point, { layers:['vertex-layer'] });
-    if (!vertexHit.length) return;
+    if (mode !== 'select') return;
+
+    // Tek obje seçiliyken bir köşe tutamacına sağ tıklamak o köşeyi siler.
+    if (selectedIds.length === 1){
+      var vertexHit = map.queryRenderedFeatures(e.point, { layers:['vertex-layer'] });
+      if (vertexHit.length){
+        e.preventDefault();
+        var vp = vertexHit[0].properties;
+        deleteVertex(vp.featureId, vp.ringIndex, vp.vertIndex);
+        return;
+      }
+    }
+
+    // Bir poligon/alan objesine sağ tıklamak "Alanı Maskele" seçeneğini
+    // sunar (objeyi henüz seçili değilse önce seçer); bir maske zaten
+    // aktifse boş bir noktaya sağ tıklamak da "Maskeyi Kaldır" seçeneğini
+    // gösterir (bkz. applyAreaMask/clearAreaMask).
+    var hit = map.queryRenderedFeatures(e.point, { layers: selectableLayers() });
+    var f = null;
+    if (hit.length){
+      var hp = hit[0].properties || {};
+      var candidateId = String(hp.parentId || hp.featureId || hit[0].id);
+      f = features.find(function(x){ return x.id === candidateId; });
+    }
+    if (!f) f = geometricHitTest(e.point, e.lngLat);
+    var isAreaGeom = f && (f.geometry.type === 'Polygon' || f.geometry.type === 'MultiPolygon');
+    if (!isAreaGeom && !maskFeatureId) return;
     e.preventDefault();
-    var vp = vertexHit[0].properties;
-    deleteVertex(vp.featureId, vp.ringIndex, vp.vertIndex);
+    var menuItems = [];
+    if (isAreaGeom){
+      var areaFeature = f;
+      if (selectedIds.length !== 1 || selectedIds[0] !== areaFeature.id) selectFeatureId(areaFeature.id);
+      menuItems.push({ label:'Alanı Maskele', action: function(){ applyAreaMask(areaFeature.id); } });
+    }
+    if (maskFeatureId){
+      menuItems.push({ label:'Maskeyi Kaldır', action: clearAreaMask, danger:true });
+    }
+    showTreeContextMenu(e.originalEvent.clientX, e.originalEvent.clientY, menuItems);
   });
+
+  // "Alanı Maskele": seçilen poligonun (Polygon/MultiPolygon) DIŞINDA kalan
+  // her yeri (turf.mask ile hesaplanan, dünya boyutunda bir "delikli"
+  // poligon) opak beyazla kaplayarak yalnızca o alanı görünür bırakır —
+  // basemap ve diğer tüm objelerin ÜSTÜNE eklenen bir katmandır (bkz.
+  // ensureAreaMaskLayer, en son eklenen katman en üstte render edilir).
+  function ensureAreaMaskLayer(){
+    if (map.getSource('area-mask-source')) return;
+    map.addSource('area-mask-source', { type:'geojson', data:{ type:'FeatureCollection', features:[] } });
+    map.addLayer({
+      id:'area-mask-layer', type:'fill', source:'area-mask-source',
+      paint:{ 'fill-color':'#ffffff', 'fill-opacity':1 }
+    });
+  }
+  function applyAreaMask(featureId){
+    var f = features.find(function(x){ return x.id === featureId; });
+    if (!f || (f.geometry.type !== 'Polygon' && f.geometry.type !== 'MultiPolygon')){
+      showToast('Sadece poligon/alan objeleri maskelenebilir.');
+      return;
+    }
+    try{
+      var maskGeojson = turf.mask({ type:'Feature', properties:{}, geometry: f.geometry });
+      ensureAreaMaskLayer();
+      map.getSource('area-mask-source').setData(maskGeojson);
+      map.setLayoutProperty('area-mask-layer', 'visibility', 'visible');
+      maskFeatureId = featureId;
+      showToast('Alan maskelendi — seçili poligonun dışı beyazla kaplandı.');
+    }catch(err){
+      showToast('Bu obje maskelenemedi (geçersiz geometri).');
+    }
+  }
+  function clearAreaMask(){
+    if (map.getLayer('area-mask-layer')) map.setLayoutProperty('area-mask-layer', 'visibility', 'none');
+    maskFeatureId = null;
+    showToast('Maske kaldırıldı.');
+  }
 
   function deleteVertex(featureId, ringIndex, vertIndex){
     var f = features.find(function(x){ return x.id === featureId; });
