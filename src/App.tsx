@@ -1219,20 +1219,6 @@ export default function App() {
             <div className="flex items-center justify-center">
               <div className="flex items-center bg-[#141416] border border-[#2c2c2e] p-1 rounded-xl shadow-inner select-none transition-all duration-300">
                 <div className="flex items-center gap-1.5">
-                  {/* Harita Butonu */}
-                  <button
-                    onClick={() => setCenterTab(prev => prev === 'map' ? 'kpis' : 'map')}
-                    className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-md transition duration-200 cursor-pointer flex items-center gap-1.5 ${
-                      centerTab === 'map'
-                        ? 'bg-sky-500/15 border border-sky-500/30 text-sky-400 shadow-sm font-black'
-                        : 'text-slate-400 hover:text-white hover:bg-slate-800/50 border border-transparent font-extrabold'
-                    }`}
-                    id="center-tab-btn-map"
-                  >
-                    <Map className="w-3.5 h-3.5 text-sky-400" />
-                    <span>Harita</span>
-                  </button>
-
                   {/* Dinamik KPI Butonu */}
                   <button
                     onClick={() => setCenterTab('kpis')}
@@ -1245,6 +1231,20 @@ export default function App() {
                   >
                     <Activity className="w-3.5 h-3.5 text-amber-400" />
                     <span>Dinamik KPI</span>
+                  </button>
+
+                  {/* Harita Butonu */}
+                  <button
+                    onClick={() => setCenterTab(prev => prev === 'map' ? 'kpis' : 'map')}
+                    className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-md transition duration-200 cursor-pointer flex items-center gap-1.5 ${
+                      centerTab === 'map'
+                        ? 'bg-sky-500/15 border border-sky-500/30 text-sky-400 shadow-sm font-black'
+                        : 'text-slate-400 hover:text-white hover:bg-slate-800/50 border border-transparent font-extrabold'
+                    }`}
+                    id="center-tab-btn-map"
+                  >
+                    <Map className="w-3.5 h-3.5 text-sky-400" />
+                    <span>Harita</span>
                   </button>
                 </div>
               </div>
@@ -1386,17 +1386,6 @@ export default function App() {
               <div className="flex items-center bg-[#141416]/95 border border-[#2c2c2e]/60 p-0.5 rounded-lg shadow-inner select-none transition-all duration-300 mr-2 shrink-0">
                 <div className="flex items-center gap-1">
                   <button
-                    onClick={() => { setCenterTab('map'); setCeoPocketMode(false); }}
-                    className={`px-2 py-0.5 text-[10px] font-black uppercase tracking-wider rounded transition duration-200 cursor-pointer flex items-center gap-1 ${
-                      centerTab === 'map' && !ceoPocketMode
-                        ? 'bg-sky-500/15 border border-sky-500/30 text-sky-400 shadow-sm font-black'
-                        : 'text-slate-400 hover:text-white hover:bg-slate-800/50 border border-transparent font-bold'
-                    }`}
-                  >
-                    <Map className="w-2.5 h-2.5 text-sky-400" />
-                    <span>Harita</span>
-                  </button>
-                  <button
                     onClick={() => { setCenterTab('kpis'); setCeoPocketMode(false); }}
                     className={`px-2 py-0.5 text-[10px] font-black uppercase tracking-wider rounded transition duration-200 cursor-pointer flex items-center gap-1 ${
                       centerTab === 'kpis' && !ceoPocketMode
@@ -1406,6 +1395,17 @@ export default function App() {
                   >
                     <Activity className="w-2.5 h-2.5 text-amber-400" />
                     <span>KPI</span>
+                  </button>
+                  <button
+                    onClick={() => { setCenterTab('map'); setCeoPocketMode(false); }}
+                    className={`px-2 py-0.5 text-[10px] font-black uppercase tracking-wider rounded transition duration-200 cursor-pointer flex items-center gap-1 ${
+                      centerTab === 'map' && !ceoPocketMode
+                        ? 'bg-sky-500/15 border border-sky-500/30 text-sky-400 shadow-sm font-black'
+                        : 'text-slate-400 hover:text-white hover:bg-slate-800/50 border border-transparent font-bold'
+                    }`}
+                  >
+                    <Map className="w-2.5 h-2.5 text-sky-400" />
+                    <span>Harita</span>
                   </button>
                 </div>
               </div>
