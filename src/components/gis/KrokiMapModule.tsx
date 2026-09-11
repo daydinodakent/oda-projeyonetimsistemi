@@ -427,17 +427,35 @@ const KrokiMapModule: React.FC<KrokiMapModuleProps> = ({ activeProjectId }) => {
       }
     };
 
+    // Saha panelindeki treeview'de bir dosyayı yeniden adlandırma — sadece
+    // istemci tarafı klasör organizasyonundan farklı olarak, isim GERÇEK bir
+    // veri alanı olduğundan kalıcı olması için veritabanına yazılır.
+    const handleRenameSahaPhoto = async (event: MessageEvent) => {
+      const iframeWindow = iframeRef.current?.contentWindow;
+      if (!iframeWindow || event.source !== iframeWindow) return;
+      const msg = event.data;
+      if (!msg || msg.type !== 'kroki:rename-saha-photo' || !msg.id || !msg.name) return;
+      try {
+        await api.updateSahaFotografi(msg.id, { name: msg.name });
+        await sendSahaPhotosToIframe(iframeWindow, activeProjectIdRef.current);
+      } catch (err) {
+        console.error('Saha dosyası yeniden adlandırılamadı:', err);
+      }
+    };
+
     window.addEventListener('message', handleReady);
     window.addEventListener('message', handleAddDocuments);
     window.addEventListener('message', handleUpdateDbFeature);
     window.addEventListener('message', handleAddSahaPhotos);
     window.addEventListener('message', handleDeleteSahaPhoto);
+    window.addEventListener('message', handleRenameSahaPhoto);
     return () => {
       window.removeEventListener('message', handleReady);
       window.removeEventListener('message', handleAddDocuments);
       window.removeEventListener('message', handleUpdateDbFeature);
       window.removeEventListener('message', handleAddSahaPhotos);
       window.removeEventListener('message', handleDeleteSahaPhoto);
+      window.removeEventListener('message', handleRenameSahaPhoto);
     };
   }, []);
 

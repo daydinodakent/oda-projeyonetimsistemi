@@ -357,16 +357,10 @@
   }
   .saha-photo-actions{flex:0 0 auto;display:flex;flex-direction:column;gap:4px;}
   .saha-pin-btn{color:var(--amber);}
-  #sahaSavedList{display:flex;flex-direction:column;gap:6px;}
-  .saha-saved-row{
-    display:flex;align-items:center;gap:8px;padding:6px;background:var(--bg-panel-raise);
-    border:1px solid var(--line);border-radius:var(--radius);cursor:pointer;
-  }
-  .saha-saved-row:hover{border-color:var(--teal);}
-  .saha-saved-thumb{width:36px;height:36px;border-radius:2px;object-fit:cover;flex:0 0 auto;background:var(--bg-deep);}
-  .saha-saved-info{flex:1 1 auto;min-width:0;}
-  .saha-saved-name{font-size:11.5px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .saha-saved-coord{font-family:var(--font-mono);font-size:10px;color:var(--text-dim);}
+  /* Saha ağacındaki dosya satırlarının küçük resmi/tür simgesi (bkz.
+     buildSahaFileRow/sahaThumbHtml) — .layer-row'un diğer ikonlarıyla (13px)
+     uyumlu, biraz daha büyük bir kare. */
+  .saha-tree-thumb{width:18px;height:18px;border-radius:2px;object-fit:cover;flex:0 0 auto;background:var(--bg-deep);}
   /* Haritadaki saha fotoğrafı pin popup'ı */
   .saha-popup{max-width:180px;}
   .saha-popup-img{width:100%;border-radius:2px;display:block;margin-bottom:6px;cursor:zoom-in;}
@@ -1384,8 +1378,19 @@
       Henüz saha dosyası eklenmedi. Fotoğraf EXIF konum verisi içeriyorsa konumu otomatik okunur; diğer tüm dosya türlerinde (video/PDF/CAD/GIS/BİM/diğer) "Haritada Konumla" ile bir pin bırakırsınız.
     </div>
 
-    <span class="field-label" style="margin-bottom:0;margin-top:4px;">Kayıtlı Saha Dosyaları <span id="sahaSavedCount" style="font-weight:400;color:var(--text-dim);">(0)</span></span>
-    <div id="sahaSavedList"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px;">
+      <span class="field-label" style="margin-bottom:0;">Kayıtlı Saha Dosyaları <span id="sahaSavedCount" style="font-weight:400;color:var(--text-dim);">(0)</span></span>
+      <button type="button" class="layer-icon-btn" id="btnSahaAddFolder" title="Yeni Klasör Ekle">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7a1 1 0 0 1 1-1h5l2 2h9a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M12 12v4M10 14h4"/></svg>
+      </button>
+    </div>
+    <!-- Saha dosyaları için tam işlevli bir klasör ağacı: sağ tık ile yeni
+         klasör/yeniden adlandır/sil, sürükle-bırak ile dosyaları/klasörleri
+         taşıma (bkz. renderSahaTree). Klasör organizasyonu istemci tarafı bir
+         kavramdır (localStorage'da saklanır — bkz. SAHA_FOLDERS_STORAGE_KEY);
+         dosyaların kendisi (fotoğraf/video/pdf/vb.) her zaman gerçek veritabanı
+         kayıtları olarak kalır, yalnızca hangi klasörde göründükleri yerel bir tercihtir. -->
+    <div id="sahaTree" class="layer-tree" style="min-height:24px;" ondragover="event.preventDefault();"></div>
   </div>
 </div>
 
@@ -4907,41 +4912,248 @@
     document.getElementById('sahaFilmstripTrack').scrollBy({ left: 220, behavior: 'smooth' });
   });
 
-  function renderSahaSavedList(){
-    var list = document.getElementById('sahaSavedList');
+  // ---------------------------------------------------------------------
+  // Saha dosyaları için tam işlevli klasör ağacı — sağ tık ile yeni klasör/
+  // yeniden adlandır/sil, sürükle-bırak ile dosya/klasör taşıma. Klasör
+  // organizasyonu (hangi dosya hangi klasörde) istemci tarafı bir kavramdır
+  // ve tarayıcının localStorage'ında saklanır; dosyaların kendisi (fotoğraf/
+  // video/pdf/vb.) her zaman gerçek veritabanı kayıtlarıdır (tb_saha_fotograflari).
+  // Aynı desen: mevcut Katmanlar ağacı (bkz. buildFolderRow/buildLayerRow/
+  // showTreeContextMenu/dragState) — burada Saha'ya özel bir kopyası kullanılır.
+  // ---------------------------------------------------------------------
+  var SAHA_FOLDERS_STORAGE_KEY = 'kroki_saha_folders_v1';
+  var SAHA_FILE_FOLDERS_STORAGE_KEY = 'kroki_saha_file_folders_v1';
+  function loadSahaFolders(){
+    try{
+      var raw = localStorage.getItem(SAHA_FOLDERS_STORAGE_KEY);
+      var parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    }catch(err){ return []; }
+  }
+  function saveSahaFolders(){
+    try{ localStorage.setItem(SAHA_FOLDERS_STORAGE_KEY, JSON.stringify(sahaFolders)); }
+    catch(err){ console.error('Saha klasörleri kaydedilemedi:', err); }
+  }
+  function loadSahaFileFolders(){
+    try{
+      var raw = localStorage.getItem(SAHA_FILE_FOLDERS_STORAGE_KEY);
+      var parsed = raw ? JSON.parse(raw) : {};
+      return (parsed && typeof parsed === 'object') ? parsed : {};
+    }catch(err){ return {}; }
+  }
+  function saveSahaFileFolders(){
+    try{ localStorage.setItem(SAHA_FILE_FOLDERS_STORAGE_KEY, JSON.stringify(sahaFileFolders)); }
+    catch(err){ console.error('Saha dosya-klasör eşlemesi kaydedilemedi:', err); }
+  }
+  var sahaFolders = loadSahaFolders();         // [{id, name, parentId, expanded}]
+  var sahaFileFolders = loadSahaFileFolders(); // { [fileId]: folderId }
+  var sahaDragState = null;                    // { kind:'file'|'folder', id }
+  function sahaFolderIdFor(fileId){ return sahaFileFolders[fileId] || null; }
+  function sahaMoveFileToFolder(fileId, folderId){
+    if (folderId) sahaFileFolders[fileId] = folderId; else delete sahaFileFolders[fileId];
+    saveSahaFileFolders();
+    renderSahaTree();
+  }
+  // Bir klasörü hedef klasörün İÇİNE taşır — hedefin, taşınan klasörün kendi
+  // alt ağacında olmadığından emin olur (döngü oluşmasın diye).
+  function sahaMoveFolderToParent(folderId, newParentId){
+    if (folderId === newParentId) return;
+    var cursor = newParentId;
+    while (cursor){
+      if (cursor === folderId) return; // döngü — hedef, taşınanın kendi alt klasörü
+      var cf = sahaFolders.find(function(f){ return f.id === cursor; });
+      cursor = cf ? (cf.parentId || null) : null;
+    }
+    var folder = sahaFolders.find(function(f){ return f.id === folderId; });
+    if (!folder) return;
+    folder.parentId = newParentId || null;
+    saveSahaFolders();
+    renderSahaTree();
+  }
+  async function addSahaFolderPrompt(parentId){
+    var name = await customPrompt('Klasör adı:', 'Yeni Klasör');
+    if (!name || !name.trim()) return;
+    sahaFolders.push({ id:'saha-folder-' + uid(), name:name.trim(), parentId: parentId || null, expanded:true });
+    saveSahaFolders();
+    renderSahaTree();
+  }
+  async function deleteSahaFolderConfirm(folderId){
+    var folder = sahaFolders.find(function(f){ return f.id === folderId; });
+    if (!folder) return;
+    var descIds = sahaCollectDescendantFolderIds(folderId);
+    var fileCount = sahaPhotos.filter(function(p){ return descIds.indexOf(sahaFolderIdFor(p.id)) >= 0; }).length;
+    var msg = fileCount
+      ? ('Bu klasör silinecek; içindeki ' + fileCount + ' dosya köke (Kayıtlı Saha Dosyaları) taşınacak. Devam edilsin mi?')
+      : 'Klasör silinsin mi?';
+    if (!(await customConfirm(msg, { title:'Klasörü Sil', okLabel:'Sil', danger:true }))) return;
+    sahaPhotos.forEach(function(p){ if (descIds.indexOf(sahaFolderIdFor(p.id)) >= 0) delete sahaFileFolders[p.id]; });
+    sahaFolders = sahaFolders.filter(function(f){ return descIds.indexOf(f.id) === -1; });
+    saveSahaFolders();
+    saveSahaFileFolders();
+    renderSahaTree();
+  }
+  function sahaCollectDescendantFolderIds(folderId){
+    var ids = [folderId];
+    var changed = true;
+    while (changed){
+      changed = false;
+      sahaFolders.forEach(function(f){
+        if (ids.indexOf(f.parentId) >= 0 && ids.indexOf(f.id) === -1){ ids.push(f.id); changed = true; }
+      });
+    }
+    return ids;
+  }
+  function buildSahaFolderRow(folder, depth){
+    var row = document.createElement('div');
+    row.className = 'layer-row';
+    row.style.marginLeft = (depth * 14) + 'px';
+    var count = sahaPhotos.filter(function(p){ return sahaFolderIdFor(p.id) === folder.id; }).length;
+    row.innerHTML =
+      '<button class="tree-toggle">' + (folder.expanded !== false ? '▾' : '▸') + '</button>' +
+      '<span class="layer-geom-icon">' + FOLDER_ICON + '</span>' +
+      '<span class="layer-name">' + escapeAttrHtml(folder.name) + '</span>' +
+      '<span class="layer-count">' + count + '</span>';
+    row.querySelector('.tree-toggle').addEventListener('click', function(e){
+      e.stopPropagation();
+      folder.expanded = folder.expanded === false;
+      saveSahaFolders();
+      renderSahaTree();
+    });
+    row.querySelector('.layer-name').addEventListener('click', function(){
+      folder.expanded = folder.expanded === false;
+      saveSahaFolders();
+      renderSahaTree();
+    });
+    row.addEventListener('contextmenu', function(e){
+      e.preventDefault(); e.stopPropagation();
+      showTreeContextMenu(e.clientX, e.clientY, [
+        { label:'Yeni Klasör Ekle', action:function(){ addSahaFolderPrompt(folder.id); } },
+        { sep:true },
+        { label:'Yeniden Adlandır', action:async function(){
+            var n = await customPrompt('Klasör adı:', folder.name);
+            if (n && n.trim()){ folder.name = n.trim(); saveSahaFolders(); renderSahaTree(); }
+          } },
+        { label:'Sil', danger:true, action:function(){ deleteSahaFolderConfirm(folder.id); } }
+      ]);
+    });
+    row.setAttribute('draggable', 'true');
+    row.addEventListener('dragstart', function(e){
+      sahaDragState = { kind:'folder', id: folder.id };
+      e.dataTransfer.effectAllowed = 'move';
+      try{ e.dataTransfer.setData('text/plain', folder.id); }catch(err){ /* yoksay */ }
+      row.classList.add('dragging');
+    });
+    row.addEventListener('dragend', function(){
+      sahaDragState = null;
+      row.classList.remove('dragging');
+      document.querySelectorAll('#sahaTree .drag-over').forEach(function(el){ el.classList.remove('drag-over'); });
+    });
+    row.addEventListener('dragover', function(e){
+      if (!sahaDragState) return;
+      if (sahaDragState.kind === 'folder' && sahaDragState.id === folder.id) return;
+      e.preventDefault();
+      e.stopPropagation();
+      row.classList.add('drag-over');
+    });
+    row.addEventListener('dragleave', function(){ row.classList.remove('drag-over'); });
+    row.addEventListener('drop', function(e){
+      e.preventDefault();
+      e.stopPropagation();
+      row.classList.remove('drag-over');
+      if (!sahaDragState) return;
+      if (sahaDragState.kind === 'file') sahaMoveFileToFolder(sahaDragState.id, folder.id);
+      else if (sahaDragState.kind === 'folder') sahaMoveFolderToParent(sahaDragState.id, folder.id);
+    });
+    return row;
+  }
+  function buildSahaFileRow(p, depth){
+    var row = document.createElement('div');
+    row.className = 'layer-row';
+    row.style.marginLeft = (depth * 14) + 'px';
+    row.setAttribute('draggable', 'true');
+    row.innerHTML =
+      '<span class="tree-toggle-spacer"></span>' +
+      sahaThumbHtml(p.doc_type, p.file_data_url, 'saha-tree-thumb') +
+      '<span class="layer-name" title="' + String(p.name || '').replace(/"/g,'&quot;') + '">' + escapeAttrHtml(p.name || '') + '</span>' +
+      '<span class="layer-count">' + Number(p.lat).toFixed(5) + ', ' + Number(p.lng).toFixed(5) + '</span>' +
+      '<button class="layer-icon-btn del" title="Sil"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 6l12 12M18 6L6 18"/></svg></button>';
+    row.addEventListener('click', function(e){
+      if (e.target.closest('.del')) return;
+      sahaOpenPhotoPopup(p);
+    });
+    row.querySelector('.del').addEventListener('click', function(e){
+      e.stopPropagation();
+      window.parent.postMessage({ type: 'kroki:delete-saha-photo', id: p.id }, '*');
+    });
+    row.addEventListener('contextmenu', function(e){
+      e.preventDefault(); e.stopPropagation();
+      showTreeContextMenu(e.clientX, e.clientY, [
+        { label:'Yeniden Adlandır', action:async function(){
+            var n = await customPrompt('Dosya adı:', p.name);
+            if (n && n.trim()) window.parent.postMessage({ type:'kroki:rename-saha-photo', id:p.id, name:n.trim() }, '*');
+          } },
+        { sep:true },
+        { label:'Sil', danger:true, action:function(){ window.parent.postMessage({ type:'kroki:delete-saha-photo', id:p.id }, '*'); } }
+      ]);
+    });
+    row.addEventListener('dragstart', function(e){
+      sahaDragState = { kind:'file', id: p.id };
+      e.dataTransfer.effectAllowed = 'move';
+      try{ e.dataTransfer.setData('text/plain', String(p.id)); }catch(err){ /* yoksay */ }
+      row.classList.add('dragging');
+    });
+    row.addEventListener('dragend', function(){
+      sahaDragState = null;
+      row.classList.remove('dragging');
+      document.querySelectorAll('#sahaTree .drag-over').forEach(function(el){ el.classList.remove('drag-over'); });
+    });
+    return row;
+  }
+  function renderSahaFolderChildren(parentId, depth, container){
+    sahaFolders.filter(function(f){ return (f.parentId || null) === (parentId || null); }).forEach(function(folder){
+      container.appendChild(buildSahaFolderRow(folder, depth));
+      if (folder.expanded !== false){
+        sahaPhotos.filter(function(p){ return sahaFolderIdFor(p.id) === folder.id; })
+          .forEach(function(p){ container.appendChild(buildSahaFileRow(p, depth + 1)); });
+        renderSahaFolderChildren(folder.id, depth + 1, container);
+      }
+    });
+  }
+  function renderSahaTree(){
+    var list = document.getElementById('sahaTree');
     var countEl = document.getElementById('sahaSavedCount');
     var emptyHint = document.getElementById('sahaEmptyHint');
     countEl.textContent = '(' + sahaPhotos.length + ')';
     emptyHint.style.display = (sahaPendingPhotos.length || sahaPhotos.length) ? 'none' : '';
     list.innerHTML = '';
-    sahaPhotos.forEach(function(p){
-      var row = document.createElement('div');
-      row.className = 'saha-saved-row';
-      row.innerHTML =
-        sahaThumbHtml(p.doc_type, p.file_data_url, 'saha-saved-thumb') +
-        '<div class="saha-saved-info">' +
-          '<div class="saha-saved-name" title="' + String(p.name || '').replace(/"/g,'&quot;') + '">' + String(p.name || '').replace(/</g,'&lt;') + '</div>' +
-          '<div class="saha-saved-coord">' + Number(p.lat).toFixed(5) + ', ' + Number(p.lng).toFixed(5) + '</div>' +
-        '</div>' +
-        '<button class="layer-icon-btn del saha-saved-del" title="Sil"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 6l12 12M18 6L6 18"/></svg></button>';
-      row.addEventListener('click', function(e){
-        if (e.target.closest('.saha-saved-del')) return;
-        sahaOpenPhotoPopup(p);
-      });
-      row.querySelector('.saha-saved-del').addEventListener('click', function(e){
-        e.stopPropagation();
-        window.parent.postMessage({ type: 'kroki:delete-saha-photo', id: p.id }, '*');
-      });
-      list.appendChild(row);
-    });
+    renderSahaFolderChildren(null, 0, list);
+    sahaPhotos.filter(function(p){ return !sahaFolderIdFor(p.id); })
+      .forEach(function(p){ list.appendChild(buildSahaFileRow(p, 0)); });
   }
+  // Ağacın boş arka planına bırakma: sürüklenen dosya/klasörü KÖKE taşır
+  // (bir satırın kendi drop handler'ı zaten stopPropagation ile bunu engeller).
+  document.getElementById('sahaTree').addEventListener('dragover', function(e){ if (sahaDragState) e.preventDefault(); });
+  document.getElementById('sahaTree').addEventListener('drop', function(e){
+    e.preventDefault();
+    if (!sahaDragState) return;
+    if (sahaDragState.kind === 'file') sahaMoveFileToFolder(sahaDragState.id, null);
+    else sahaMoveFolderToParent(sahaDragState.id, null);
+  });
+  document.getElementById('sahaTree').addEventListener('contextmenu', function(e){
+    if (e.target.closest('.layer-row')) return; // satırların kendi menüsü öncelikli
+    e.preventDefault();
+    showTreeContextMenu(e.clientX, e.clientY, [
+      { label:'Yeni Klasör Ekle', action:function(){ addSahaFolderPrompt(null); } }
+    ]);
+  });
+  document.getElementById('btnSahaAddFolder').addEventListener('click', function(){ addSahaFolderPrompt(null); });
   window.addEventListener('message', function(e){
     var msg = e.data;
     if (!msg || msg.type !== 'kroki:saha-photos-updated' || !Array.isArray(msg.photos)) return;
     sahaCleanupRemovedIcons(msg.photos);
     sahaPhotos = msg.photos;
     updateSahaPhotoSource();
-    renderSahaSavedList();
+    renderSahaTree();
     renderSahaPendingList();
     applySahaVisibility();
   });

@@ -1079,6 +1079,10 @@ export async function deleteSahaFotografi(id: number | string): Promise<boolean>
   await ensureSeeded('tb_saha_fotograflari', []);
   return apiSoftDelete('tb_saha_fotograflari', id);
 }
+export async function updateSahaFotografi(id: number | string, patch: Partial<SahaFotografRecord>): Promise<SahaFotografRecord> {
+  await ensureSeeded('tb_saha_fotograflari', []);
+  return apiUpdate<SahaFotografRecord>('tb_saha_fotograflari', id, patch);
+}
 
 // 12. TABLO ADI (tb_varliklar)
 export async function getVarliklar(): Promise<VarlikRecord[]> {
