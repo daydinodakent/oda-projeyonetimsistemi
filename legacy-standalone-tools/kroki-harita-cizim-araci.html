@@ -426,6 +426,8 @@
   #sahaLightboxVideo.hidden{display:none;}
   #sahaLightboxPdf{width:min(82vw,900px);height:70vh;border:none;border-radius:4px;background:#fff;box-shadow:0 10px 40px rgba(0,0,0,.6);}
   #sahaLightboxPdf.hidden{display:none;}
+  #sahaLightboxModel{width:min(82vw,900px);height:70vh;border-radius:4px;background:#1a2a33;box-shadow:0 10px 40px rgba(0,0,0,.6);}
+  #sahaLightboxModel.hidden{display:none;}
   #sahaLightboxFallback{
     width:min(82vw,420px);padding:32px 24px;border-radius:8px;background:var(--bg-panel);
     border:1px solid var(--line);display:flex;flex-direction:column;align-items:center;gap:12px;
@@ -780,7 +782,10 @@
      (yakınlaştır/ev/uzaklaştır/bilgi) artık TEK, bitişik bir blok (bkz.
      #clusterBottomRow) — aralarında boşluk kalmasın diye ayrı kümeler yerine
      aynı .map-cluster içinde iç içe geçirildi. */
-  #clusterBottomVertical{bottom:38px;right:14px;border-radius:10px 10px var(--radius) 10px;}
+  /* Dikey grup (Seç/Kaydır/Yenile) alttaki yatay grubun SOL tarafındaki
+     Yakınlaştır/Ev/Uzaklaştır'ın değil, EN SAĞDAKİ Bilgi düğmesinin tam
+     üzerinde dursun diye sağa hizalanır (align-items:flex-end). */
+  #clusterBottomVertical{bottom:38px;right:14px;border-radius:10px 10px var(--radius) 10px;align-items:flex-end;}
   #clusterBottomRow{display:flex;flex-direction:row;align-items:center;}
   #clusterBottomRowSep{width:1px;height:20px;margin:0 2px;}
   #clusterBottomVertical button[data-tip]::after{
@@ -801,7 +806,7 @@
   .map-cluster button svg{width:14px;height:14px;flex:0 0 auto;}
   .map-cluster button:hover{background:var(--bg-panel-raise);color:var(--text);}
   .map-cluster button.active{color:var(--gold);background:rgba(212,175,55,.16);box-shadow:inset 0 0 0 1px rgba(212,175,55,.4);}
-  .map-cluster .sep{height:1px;background:var(--line);margin:2px 4px;}
+  .map-cluster .sep{height:1px;background:var(--line);margin:2px 4px;align-self:stretch;}
   .map-cluster button[data-tip]::after{
     content:attr(data-tip);position:absolute;right:110%;top:50%;transform:translateY(-50%);
     background:#0d1c26;border:1px solid var(--line);color:var(--text);
@@ -879,6 +884,19 @@
     display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;
   }
   #infoDocsPreview img{max-width:100%;max-height:140px;border-radius:2px;border:1px solid var(--line);cursor:zoom-in;}
+  #infoDocsPreview video, #infoDocsPreview model-viewer{cursor:zoom-in;}
+  /* PDF önizlemesi bir <iframe> olduğundan, içeriğine yapılan tıklamalar ayrı
+     bir document'e ait olup dışarı sızmaz — bu yüzden çift tıklama yerine
+     köşede görünür bir "Tam ekran" düğmesi (bkz. .info-doc-fullscreen-btn) kullanılır. */
+  .info-doc-preview-frame-wrap{position:relative;width:100%;}
+  .info-doc-preview-frame-wrap iframe{width:100%;height:140px;border:1px solid var(--line);border-radius:2px;background:#fff;display:block;}
+  .info-doc-fullscreen-btn{
+    position:absolute;top:4px;right:4px;width:22px;height:22px;background:rgba(15,30,41,.85);
+    border:1px solid var(--line);border-radius:3px;color:var(--text);cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .info-doc-fullscreen-btn:hover{background:var(--teal);color:#0f1e29;}
+  .info-doc-fullscreen-btn svg{width:12px;height:12px;}
 
   /* ---------- Genel modal (Yeni Katman / Veri Girişi) ---------- */
   .modal-overlay{
@@ -1777,6 +1795,7 @@
   <img id="sahaLightboxImg" src="">
   <video id="sahaLightboxVideo" class="hidden" controls></video>
   <iframe id="sahaLightboxPdf" class="hidden"></iframe>
+  <model-viewer id="sahaLightboxModel" class="hidden" camera-controls auto-rotate></model-viewer>
   <div id="sahaLightboxFallback" class="hidden">
     <div id="sahaLightboxFallbackBadge"></div>
     <div id="sahaLightboxFallbackText">Bu dosya türü için tarayıcıda önizleme mevcut değil.</div>
@@ -1884,6 +1903,10 @@
      spec-uyumlu bir GeoPackage (.gpkg) dosyası (aslında bir SQLite veritabanı)
      üretebilmek için kullanılır (bkz. exportAllAsGeoPackage). -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.14.2/sql-wasm.js"></script>
+<!-- model-viewer: Bilgi/Saha dosya önizlemelerinde .gltf/.glb (açık, WebGL
+     tabanlı) 3B model dosyalarını doğrudan tarayıcıda döndürülebilir/
+     yakınlaştırılabilir olarak göstermek için — bkz. isModel3dName/renderLightbox. -->
+<script type="module" src="https://cdnjs.cloudflare.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
 
 <script>
 (function(){
@@ -3825,17 +3848,37 @@
     });
     renderInfoDocPreview(docs[0], docs);
   }
+  // Bilgi balonundaki doküman önizlemesi — türe göre gerçek bir viewer gösterir:
+  // resim <img>, video <video controls>, PDF tarayıcının yerleşik görüntüleyicisiyle
+  // <iframe>, GLTF/GLB <model-viewer> (döndürülebilir 3B model). Hepsi çift
+  // tıklanınca (PDF'te sağ üstteki ⤢ düğmesiyle, iframe içine tıklama dışarı
+  // sızmadığından) aynı paylaşılan lightbox'ta tam ekran açılır. CAD/GIS/BİM
+  // gibi tarayıcıda gösterilemeyen ikili türlerde "önizleme mevcut değil" kartı kalır.
   function renderInfoDocPreview(d, docs){
     var previewEl = document.getElementById('infoDocsPreview');
     if (!d){ previewEl.innerHTML = ''; return; }
-    if (d.doc_type === 'resim' && d.file_data_url){
+    var kind = infoDocLightboxKind(d);
+    if (kind === 'image' && d.file_data_url){
       previewEl.innerHTML = '<img src="' + d.file_data_url + '" alt="' + escapeAttrHtml(d.name) + '" title="Tam ekran için çift tıklayın">' +
         '<span>' + escapeAttrHtml(d.name) + '</span><span style="color:var(--text-dim);">' + escapeAttrHtml(d.file_size || '') + '</span>';
-      var previewImgEl = previewEl.querySelector('img');
-      if (previewImgEl) previewImgEl.addEventListener('dblclick', function(){ openInfoDocLightbox(d, docs); });
-    } else if (d.doc_type === 'video' && d.file_data_url){
-      previewEl.innerHTML = '<video src="' + d.file_data_url + '" controls style="max-width:100%;max-height:140px;border-radius:2px;border:1px solid var(--line);"></video>' +
+      previewEl.querySelector('img').addEventListener('dblclick', function(){ openInfoDocLightbox(d, docs); });
+    } else if (kind === 'video' && d.file_data_url){
+      previewEl.innerHTML = '<video src="' + d.file_data_url + '" controls title="Tam ekran için çift tıklayın" style="max-width:100%;max-height:140px;border-radius:2px;border:1px solid var(--line);"></video>' +
         '<span>' + escapeAttrHtml(d.name) + '</span>';
+      previewEl.querySelector('video').addEventListener('dblclick', function(){ openInfoDocLightbox(d, docs); });
+    } else if (kind === 'model3d' && d.file_data_url){
+      previewEl.innerHTML = '<model-viewer src="' + d.file_data_url + '" camera-controls auto-rotate title="Tam ekran için çift tıklayın" style="width:100%;height:140px;border-radius:2px;border:1px solid var(--line);background:#1a2a33;"></model-viewer>' +
+        '<span>' + escapeAttrHtml(d.name) + '</span>';
+      previewEl.querySelector('model-viewer').addEventListener('dblclick', function(){ openInfoDocLightbox(d, docs); });
+    } else if (kind === 'pdf' && d.file_data_url){
+      previewEl.innerHTML = '<div class="info-doc-preview-frame-wrap">' +
+          '<iframe src="' + d.file_data_url + '"></iframe>' +
+          '<button type="button" class="info-doc-fullscreen-btn" title="Tam ekran">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H4v4M16 3h4v4M8 21H4v-4M16 21h4v-4"/></svg>' +
+          '</button>' +
+        '</div>' +
+        '<span>' + escapeAttrHtml(d.name) + '</span><span style="color:var(--text-dim);">' + escapeAttrHtml(d.file_size || '') + '</span>';
+      previewEl.querySelector('.info-doc-fullscreen-btn').addEventListener('click', function(){ openInfoDocLightbox(d, docs); });
     } else {
       previewEl.innerHTML = '<div style="width:100%;padding:18px 0;background:var(--bg-panel-raise);border:1px dashed var(--line);border-radius:2px;color:var(--text-dim);">' +
         (DOC_TYPE_LABELS[d.doc_type] || 'Dosya') + ' — önizleme mevcut değil</div>' +
@@ -4438,6 +4481,11 @@
   // tarayıcının yerleşik PDF görüntüleyicisiyle gerçek bir önizleme sunulabildiği
   // için popup/lightbox içeriği bu kontrolle ayrıca ele alınır.
   function sahaIsPdfName(name){ return /\.pdf$/i.test(String(name || '')); }
+  // GLTF/GLB — açık, WebGL tabanlı 3B model formatları; model-viewer web
+  // bileşeniyle (bkz. <head>'deki script) doğrudan tarayıcıda döndürülüp
+  // yakınlaştırılabilir şekilde gösterilir (DWG/DXF/IFC gibi kapalı/karmaşık
+  // CAD/BIM formatlarının aksine gerçek bir tarayıcı görüntüleyicisi vardır).
+  function isModel3dName(name){ return /\.(gltf|glb)$/i.test(String(name || '')); }
   // Saha dosyası küçük resmi: fotoğrafsa gerçek <img>, değilse (video/cad/gis/
   // bim/diğer) DOC_TYPE_ICON_COLOR/LABELS'a göre renklendirilmiş kısa tür
   // etiketli bir simge — pending kart, kayıtlı liste satırı ve filmstrip'te ortak.
@@ -4588,6 +4636,7 @@
     var videoEl = document.getElementById('sahaLightboxVideo');
     videoEl.pause(); videoEl.removeAttribute('src'); videoEl.load();
     document.getElementById('sahaLightboxPdf').src = 'about:blank';
+    document.getElementById('sahaLightboxModel').removeAttribute('src');
     lightboxItems = [];
     lightboxIndex = -1;
   }
@@ -4598,15 +4647,19 @@
     var imgEl = document.getElementById('sahaLightboxImg');
     var videoEl = document.getElementById('sahaLightboxVideo');
     var pdfEl = document.getElementById('sahaLightboxPdf');
+    var modelEl = document.getElementById('sahaLightboxModel');
     var fallbackEl = document.getElementById('sahaLightboxFallback');
     imgEl.classList.toggle('hidden', kind !== 'image');
     videoEl.classList.toggle('hidden', kind !== 'video');
     pdfEl.classList.toggle('hidden', kind !== 'pdf');
+    modelEl.classList.toggle('hidden', kind !== 'model3d');
     fallbackEl.classList.toggle('hidden', kind !== 'other');
     imgEl.src = kind === 'image' ? (it.src || '') : '';
     if (kind === 'video'){ videoEl.src = it.src || ''; videoEl.load(); }
     else { videoEl.pause(); videoEl.removeAttribute('src'); videoEl.load(); }
     pdfEl.src = kind === 'pdf' ? (it.src || 'about:blank') : 'about:blank';
+    if (kind === 'model3d') modelEl.setAttribute('src', it.src || '');
+    else modelEl.removeAttribute('src');
     if (kind === 'other'){
       var badge = document.getElementById('sahaLightboxFallbackBadge');
       badge.textContent = DOC_TYPE_LABELS[it.docType] || 'Dosya';
@@ -4633,6 +4686,7 @@
     if (p.doc_type === 'resim' || !p.doc_type) return 'image';
     if (p.doc_type === 'video') return 'video';
     if (sahaIsPdfName(p.name)) return 'pdf';
+    if (isModel3dName(p.name)) return 'model3d';
     return 'other';
   }
   function sahaOpenLightbox(p){
@@ -4645,11 +4699,23 @@
   }
   // Bilgi balonundaki doküman önizlemesinde bir resme çift tıklanınca açılır —
   // aynı objeye eklenmiş diğer resim dokümanları arasında da gezinilebilir.
+  // Bilgi balonundaki bir dokümanın lightbox'ta hangi "tür" (kind) ile
+  // gösterileceğini belirler — bkz. sahaLightboxKind ile aynı mantık, Saha
+  // dosyalarından bağımsız olarak Doküman (tb_dokumanlar) kayıtları için.
+  function infoDocLightboxKind(d){
+    if (d.doc_type === 'resim') return 'image';
+    if (d.doc_type === 'video') return 'video';
+    if (sahaIsPdfName(d.name)) return 'pdf';
+    if (isModel3dName(d.name)) return 'model3d';
+    return 'other';
+  }
   function openInfoDocLightbox(doc, allDocs){
-    var imgDocs = (allDocs || [doc]).filter(function(d){ return d.doc_type === 'resim' && d.file_data_url; });
-    var items = imgDocs.map(function(d){ return { src: d.file_data_url, name: d.name || '', notes: '', coord: '' }; });
+    var previewable = (allDocs || [doc]).filter(function(d){ return d.file_data_url && infoDocLightboxKind(d) !== 'other'; });
+    var items = previewable.map(function(d){
+      return { src: d.file_data_url, name: d.name || '', notes: '', coord: '', kind: infoDocLightboxKind(d), docType: d.doc_type };
+    });
     if (!items.length) return;
-    var idx = imgDocs.indexOf(doc);
+    var idx = previewable.indexOf(doc);
     openLightbox(items, idx === -1 ? 0 : idx);
   }
   document.getElementById('sahaLightboxClose').addEventListener('click', closeLightbox);
