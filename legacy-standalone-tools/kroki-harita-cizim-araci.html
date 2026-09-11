@@ -5337,7 +5337,11 @@
       var snap = findSnapPoint(e.point, null, fromPt2);
       updateSnapMarker(snap);
       var effectiveLngLat = snap ? snap.coord : lastMouseLngLat;
-      positionCursorInput(e.point);
+      // Ölçüm araçlarında (mesafe/alan) AutoCAD tarzı düzenlenebilir mesafe/açı
+      // kutusu artık gösterilmiyor — canlı önizleme çizgisi ve segment
+      // etiketleri (updateDraftDynamicPreview) bundan etkilenmeden aynen çalışmaya
+      // devam eder, kaldırılan yalnızca elle sayı girilebilen kutudur.
+      if (isMeasureMode(mode)) hideCursorInput(); else positionCursorInput(e.point);
       updateDraftDynamicPreview(effectiveLngLat);
     } else if (mode === 'select' && selectedIds.length === 1 && !suppressVertexHandles){
       // Tek obje seçiliyken (VE geometri düzenleme etkinken — bkz.
@@ -5608,7 +5612,7 @@
   // AutoCAD tarzı dinamik giriş: mesafe/açı cursor ucunda düzenlenir
   // ---------------------------------------------------------------------
   function commitCursorInput(){
-    if (!isCoordEntryMode(mode)) return;
+    if (!isCoordEntryMode(mode) || isMeasureMode(mode)) return;
 
     if (mode === 'point'){
       var plon = parseFloat(cursorDistInput.value);
@@ -5697,7 +5701,9 @@
   // Çizim modundayken (nokta dahil) herhangi bir sayı tuşuna basmak otomatik
   // olarak ilk kutuya odaklanır — AutoCAD'deki gibi "doğrudan yazmaya başlama".
   document.addEventListener('keydown', function(e){
-    if (!isCoordEntryMode(mode)) return;
+    // Ölçüm araçlarında mesafe/açı kutusu kaldırıldığından sayı tuşları da
+    // artık bu kutuyu açmaz (bkz. mousemove'daki aynı istisna).
+    if (!isCoordEntryMode(mode) || isMeasureMode(mode)) return;
     var ae = document.activeElement;
     if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA')) return;
     if (/^[0-9.\-]$/.test(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey){
