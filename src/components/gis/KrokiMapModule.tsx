@@ -28,13 +28,12 @@ import * as api from '../../services/api';
  * altında ekler (bkz. legacy-standalone-tools/kroki-harita-cizim-araci.html
  * içindeki 'kroki:load-db-layers' mesaj dinleyicisi).
  *
- * Proje ↔ harita entegrasyonu: `activeProjectId` değiştiğinde (üst panelden
- * bir proje seçildiğinde), gisBoundaryRecords'taki o projenin tek sınır
- * kaydından bir bbox hesaplanıp 'kroki:zoom-to-project' mesajıyla iframe'e
- * gönderilir; Kroki bu sınıra yakınlaşır (bkz. HTML'deki ilgili dinleyici).
- * İlk yüklemede (mount) zoom tetiklenmez — bu, kullanıcının "Açılış Ekranı
- * Yap" ile kaydettiği görünümü ezmemesi içindir; sadece gerçek bir SEÇİM
- * değişikliğinde devreye girer.
+ * Proje ↔ harita entegrasyonu: `activeProjectId` her belirlendiğinde/
+ * değiştiğinde (harita ilk açıldığında üst panelde zaten seçili olan proje
+ * dahil, ya da kullanıcı üst panelden BAŞKA bir proje seçtiğinde),
+ * gisBoundaryRecords'taki o projenin tek sınır kaydından bir bbox hesaplanıp
+ * 'kroki:zoom-to-project' mesajıyla iframe'e gönderilir; Kroki doğrudan bu
+ * sınıra yakınlaşır (bkz. HTML'deki ilgili dinleyici).
  */
 interface KrokiMapModuleProps {
   activeProjectId?: string;
@@ -108,7 +107,6 @@ async function sendSchemasToIframe(iframeWindow: Window) {
 const KrokiMapModule: React.FC<KrokiMapModuleProps> = ({ activeProjectId }) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [iframeReady, setIframeReady] = useState(false);
-  const isFirstProjectRender = useRef(true);
 
   useEffect(() => {
     const handleReady = async (event: MessageEvent) => {
@@ -340,12 +338,10 @@ const KrokiMapModule: React.FC<KrokiMapModuleProps> = ({ activeProjectId }) => {
   }, []);
 
   useEffect(() => {
-    // İlk render'da (uygulama açılışında) atla — sadece kullanıcı üst
-    // panelden gerçekten farklı bir proje SEÇTİĞİNDE zoom tetiklenir.
-    if (isFirstProjectRender.current) {
-      isFirstProjectRender.current = false;
-      return;
-    }
+    // Üst panelden bir proje seçili olduğunda (ilk açılış dahil) doğrudan o
+    // projenin sınırına yakınlaşır — hem harita ilk açıldığında zaten seçili
+    // olan proje için, hem de kullanıcı üst panelden BAŞKA bir proje
+    // seçtiğinde (activeProjectId değiştiğinde) devreye girer.
     if (!iframeReady || !activeProjectId) return;
     const iframeWindow = iframeRef.current?.contentWindow;
     if (!iframeWindow) return;
