@@ -266,6 +266,44 @@
   .tabpage.active{display:flex;flex-direction:column;gap:14px;}
 
   .field-label{font-size:11px;color:var(--text-dim);margin-bottom:6px;display:block;}
+  /* Analiz modülü sekmesindeki seçilebilir analiz kartları (Eğim/Görüş
+     Hattı/Kesit/Isı Haritası/Kümeleme) — bkz. activateAreaAnaliz. */
+  .analiz-option{
+    display:flex;align-items:flex-start;gap:10px;padding:9px 10px;margin-top:6px;
+    border:1px solid var(--line);border-radius:var(--radius);cursor:pointer;
+    background:var(--bg-panel-raise);transition:border-color .12s ease,background .12s ease;
+  }
+  .analiz-option:hover{border-color:var(--teal);}
+  .analiz-option.active{border-color:var(--amber);background:var(--amber-dim);}
+  .analiz-option-icon{width:20px;height:20px;flex:0 0 auto;color:var(--text-dim);margin-top:1px;}
+  .analiz-option-icon svg{width:100%;height:100%;}
+  .analiz-option.active .analiz-option-icon{color:var(--amber);}
+  .analiz-option-title{font-size:12.5px;font-weight:600;color:var(--text);}
+  .analiz-option.active .analiz-option-title{color:var(--amber);}
+  .analiz-option-desc{font-size:10.5px;color:var(--text-dim);margin-top:2px;line-height:1.4;}
+  /* Isı Haritası/Kümeleme kartlarının açılır ayar bölümü — önce katman
+     (ve istenirse ağırlık sütunu) seçilmeden analiz çalıştırılmaz. */
+  .analiz-option-config{display:flex;flex-direction:column;gap:6px;margin-top:8px;}
+  .analiz-option-config.hidden{display:none;}
+  .analiz-config-select{
+    width:100%;background:var(--bg-panel);border:1px solid var(--line);color:var(--text);
+    border-radius:2px;padding:6px 8px;font-family:var(--font-ui);font-size:11.5px;cursor:pointer;
+  }
+  .analiz-option-config .btn{padding:6px 0;font-size:11.5px;}
+  /* Kesit (Profil) Analizi grafik paneli — harita altında ortalanmış küçük
+     bir SVG çizgi grafiği (bkz. renderProfileChart). */
+  #profileChartPanel{
+    position:absolute;left:50%;bottom:40px;transform:translateX(-50%);z-index:7;
+    width:420px;max-width:calc(100vw - 100px);background:rgba(15,30,41,.97);
+    border:1px solid var(--line);border-radius:var(--radius);padding:10px 12px;
+    box-shadow:0 8px 24px rgba(0,0,0,.4);
+  }
+  #profileChartPanel.hidden{display:none;}
+  #profileChartHeader{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:12px;font-weight:600;color:var(--text);}
+  #profileChartClose{background:transparent;border:none;color:var(--text-dim);cursor:pointer;font-size:17px;line-height:1;padding:0;}
+  #profileChartClose:hover{color:var(--text);}
+  #profileChartSvg{width:100%;height:110px;display:block;}
+  #profileChartStats{font-size:10.5px;color:var(--text-dim);margin-top:6px;display:flex;gap:12px;flex-wrap:wrap;font-family:var(--font-mono);}
   .group-label{display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;letter-spacing:.3px;color:var(--text-dim);text-transform:uppercase;}
   .accordion-header{display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:2px 0;}
   .accordion-chevron{width:14px;height:14px;flex:0 0 auto;color:var(--text-dim);transition:transform .15s ease;}
@@ -1305,8 +1343,57 @@
 
   <!-- ================= ANALİZ MODÜLÜ ================= -->
   <div class="module-page" data-module-page="analiz" style="display:none;">
-    <div class="hint" style="border:1px dashed var(--line);border-radius:2px;padding:14px;margin-top:0;">
-      Analiz araçları (4D Analizi, Gölge Analizi, Görüntü Karşılaştırma) artık haritanın sağ üst köşesindeki analiz düğmesinden (varsayılan: 4D Analizi) açılır — seçilen analiz kanvasın alt kısmında bir araç çubuğu olarak görünür.
+    <span class="field-label">Yükseklik / Arazi Analizleri <span style="font-weight:400;color:var(--text-dim);">(DEM verisi gerektirir)</span></span>
+    <div class="analiz-option" id="analizOptSlope" data-analiz-opt="slope">
+      <div class="analiz-option-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 20L14 4l7 16z"/><path d="M9 12h5"/></svg></div>
+      <div class="analiz-option-text">
+        <div class="analiz-option-title">Eğim (Slope) Analizi</div>
+        <div class="analiz-option-desc">Arazinin eğimi, inşaat uygunluğu için kritik</div>
+      </div>
+    </div>
+    <div class="analiz-option" id="analizOptViewshed" data-analiz-opt="viewshed">
+      <div class="analiz-option-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></div>
+      <div class="analiz-option-text">
+        <div class="analiz-option-title">Görüş Hattı (Viewshed) Analizi</div>
+        <div class="analiz-option-desc">Bir noktadan görülebilen alanlar</div>
+      </div>
+    </div>
+    <div class="analiz-option" id="analizOptProfile" data-analiz-opt="profile">
+      <div class="analiz-option-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 17l4-4 3 3 5-7 6 8"/><path d="M3 20h18"/></svg></div>
+      <div class="analiz-option-text">
+        <div class="analiz-option-title">Kesit (Profil) Analizi</div>
+        <div class="analiz-option-desc">Bir hat boyunca yükseklik değişimi</div>
+      </div>
+    </div>
+
+    <span class="field-label" style="margin-top:14px;">Yoğunluk ve Dağılım</span>
+    <div class="analiz-option" id="analizOptHeatmap" data-analiz-opt="heatmap">
+      <div class="analiz-option-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5" fill="currentColor" stroke="none" opacity=".5"/><circle cx="12" cy="12" r="2" fill="currentColor" stroke="none"/></svg></div>
+      <div class="analiz-option-text">
+        <div class="analiz-option-title">Isı Haritası (Heatmap)</div>
+        <div class="analiz-option-desc">Proje/olay yoğunluğunun görselleştirilmesi</div>
+        <div class="analiz-option-config hidden" id="analizHeatmapConfig">
+          <select class="analiz-config-select" id="analizHeatmapLayerSelect"></select>
+          <select class="analiz-config-select" id="analizHeatmapColumnSelect"></select>
+          <button type="button" class="btn primary" id="analizHeatmapApply">Uygula</button>
+        </div>
+      </div>
+    </div>
+    <div class="analiz-option" id="analizOptCluster" data-analiz-opt="cluster">
+      <div class="analiz-option-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="7" cy="7" r="2.4"/><circle cx="17" cy="7" r="2.4"/><circle cx="7" cy="17" r="2.4"/><circle cx="17" cy="17" r="2.4"/><circle cx="12" cy="12" r="3.2" fill="currentColor" stroke="none"/></svg></div>
+      <div class="analiz-option-text">
+        <div class="analiz-option-title">Kümeleme (Clustering)</div>
+        <div class="analiz-option-desc">Yakın noktaların gruplanması</div>
+        <div class="analiz-option-config hidden" id="analizClusterConfig">
+          <select class="analiz-config-select" id="analizClusterLayerSelect"></select>
+          <select class="analiz-config-select" id="analizClusterColumnSelect"></select>
+          <button type="button" class="btn primary" id="analizClusterApply">Uygula</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="hint" id="analizOptHint" style="border:1px dashed var(--line);border-radius:2px;padding:10px;margin-top:12px;">
+      Bir analiz seçin — haritada uygulanır, tekrar tıklayınca kapanır. Aynı anda yalnızca bir analiz etkin olabilir.
     </div>
   </div>
 
@@ -1800,6 +1887,18 @@
 </div>
 
 <div id="measureSummary"></div>
+
+<!-- Kesit (Profil) Analizi sonucu — bir hat boyunca yükseklik değişimini
+     gösteren küçük SVG grafik paneli (bkz. Analiz modülü > Kesit Analizi,
+     renderProfileChart/teardownProfileAnalysis). -->
+<div id="profileChartPanel" class="hidden">
+  <div id="profileChartHeader">
+    <span>Kesit (Profil) Analizi</span>
+    <button type="button" id="profileChartClose" title="Grafiği kapat">×</button>
+  </div>
+  <svg id="profileChartSvg" viewBox="0 0 400 130" preserveAspectRatio="none"></svg>
+  <div id="profileChartStats"></div>
+</div>
 
 <div id="draftControls">
   <button class="finish" id="btnFinishDraft">Bitir</button>
@@ -9671,6 +9770,510 @@
       console.error('Proje sınırına yakınlaşılamadı:', err);
     }
   });
+
+  // =========================================================================
+  // GELİŞMİŞ ANALİZLER (Analiz modülü sekmesi, sol panel): Eğim/Görüş Hattı/
+  // Kesit (DEM tabanlı, map.queryTerrainElevation ile) + Isı Haritası/
+  // Kümeleme (nokta yoğunluğu, MapLibre'nin yerleşik heatmap/cluster
+  // desteğiyle). Aynı anda yalnızca biri etkin olabilir — sağ üstteki Analiz
+  // split-butonundaki 4D/Gölge/Karşılaştırma araçlarından TAMAMEN AYRI bir
+  // sistemdir (bu panel harita 3B DEM yüzeyi/nokta verisi üzerinde çalışır).
+  //
+  // Eğim ve Görüş Hattı analizleri, sınırlı sayıda ışın/hücre örnekleyen
+  // BASİTLEŞTİRİLMİŞ (client-side, sunucu/GPU işleme olmadan) hesaplamalardır
+  // — hafif GIS araçlarında yaygın bir yaklaşımdır, ancak profesyonel bir
+  // ArcGIS/QGIS analizinin hassasiyetini iddia etmez.
+  // =========================================================================
+  var activeAreaAnaliz = null; // 'slope'|'viewshed'|'profile'|'heatmap'|'cluster'|null
+  var AREA_ANALIZ_DEFAULT_HINT = 'Bir analiz seçin — haritada uygulanır, tekrar tıklayınca kapanır. Aynı anda yalnızca bir analiz etkin olabilir.';
+  var clusterClickHandlersBound = false; // map.on('click'/'mouseenter'/'mouseleave', 'analiz-cluster-circles', ...) yalnızca bir kez bağlanır
+
+  // Bir objenin geometrisini Isı Haritası/Kümeleme için TEK bir noktaya
+  // indirger — Point objeler olduğu gibi kullanılır, Polygon/LineString
+  // objeler için ağırlık merkezi (turf.centroid) alınır.
+  function areaAnalizRepresentativePoint(geom){
+    if (!geom) return null;
+    if (geom.type === 'Point') return geom.coordinates;
+    try{
+      return turf.centroid({ type:'Feature', properties:{}, geometry:geom }).geometry.coordinates;
+    }catch(err){ return null; }
+  }
+  // Isı haritası/kümeleme için seçilen KATMANIN objelerinden nokta veri
+  // kümesi üretir; bir ağırlık sütunu seçildiyse (column) her noktaya o
+  // sütunun sayısal değeri "weight" özelliği olarak eklenir (seçilmediyse
+  // veya sayısal değilse 1 — yani yalnızca konum/adet baz alınır).
+  function areaAnalizPointDataset(layerId, column){
+    var feats = [];
+    features.forEach(function(f){
+      if (!f.properties || f.properties.layerId !== layerId) return;
+      var coord = areaAnalizRepresentativePoint(f.geometry);
+      if (!coord) return;
+      var weight = 1;
+      if (column){
+        var num = parseFloat(f.properties[column]);
+        if (!isNaN(num)) weight = num;
+      }
+      feats.push({ type:'Feature', properties:{ weight: weight }, geometry:{ type:'Point', coordinates: coord } });
+    });
+    return feats;
+  }
+  // Analiz için katman <select>'ini doldurur — ölçüm katmanı (kalıcı obje
+  // taşımadığından) hariç tutulur.
+  function populateAreaAnalizLayerSelect(selectEl){
+    selectEl.innerHTML = '';
+    var opt0 = document.createElement('option');
+    opt0.value = ''; opt0.textContent = 'Katman seçin…';
+    selectEl.appendChild(opt0);
+    layers.forEach(function(l){
+      if (l.id === MEASURE_LAYER_ID) return;
+      var opt = document.createElement('option');
+      opt.value = l.id; opt.textContent = l.name;
+      selectEl.appendChild(opt);
+    });
+  }
+  // Seçilen katmanın (varsa) veritabanı şemasındaki SAYISAL sütunlarını
+  // ağırlık seçeneği olarak doldurur — kullanıcı tanımlı (PostGIS-dışı)
+  // katmanların şeması olmadığından bu durumda yalnızca "ağırlık yok" kalır.
+  function populateAreaAnalizColumnSelect(selectEl, layerId){
+    selectEl.innerHTML = '';
+    var opt0 = document.createElement('option');
+    opt0.value = ''; opt0.textContent = '— Ağırlık yok (yalnızca konum/adet) —';
+    selectEl.appendChild(opt0);
+    (dbTableSchemas[layerId] || []).forEach(function(col){
+      if (inputTypeForColumn(col) !== 'number') return;
+      var opt = document.createElement('option');
+      opt.value = col.column_name;
+      opt.textContent = col.display_name || col.column_name;
+      selectEl.appendChild(opt);
+    });
+  }
+  function closeAreaAnalizConfigs(){
+    ['analizHeatmapConfig','analizClusterConfig'].forEach(function(id){
+      var el = document.getElementById(id);
+      if (el) el.classList.add('hidden');
+    });
+  }
+  function openAreaAnalizConfig(kind){
+    deactivateAreaAnaliz();
+    closeAreaAnalizConfigs();
+    var prefix = kind === 'heatmap' ? 'analizHeatmap' : 'analizCluster';
+    var layerSelect = document.getElementById(prefix + 'LayerSelect');
+    var columnSelect = document.getElementById(prefix + 'ColumnSelect');
+    populateAreaAnalizLayerSelect(layerSelect);
+    populateAreaAnalizColumnSelect(columnSelect, '');
+    layerSelect.onchange = function(){ populateAreaAnalizColumnSelect(columnSelect, layerSelect.value); };
+    document.getElementById(prefix + 'Config').classList.remove('hidden');
+  }
+  ['analizHeatmapConfig','analizClusterConfig'].forEach(function(id){
+    var el = document.getElementById(id);
+    if (el) el.addEventListener('click', function(e){ e.stopPropagation(); });
+  });
+  document.getElementById('analizHeatmapApply').addEventListener('click', function(){
+    var layerId = document.getElementById('analizHeatmapLayerSelect').value;
+    if (!layerId){ showToast('Lütfen önce bir katman seçin.'); return; }
+    var column = document.getElementById('analizHeatmapColumnSelect').value;
+    closeAreaAnalizConfigs();
+    activeAreaAnaliz = 'heatmap';
+    setAreaAnalizOptionUI('heatmap', true);
+    setupHeatmapAnalysis(layerId, column);
+  });
+  document.getElementById('analizClusterApply').addEventListener('click', function(){
+    var layerId = document.getElementById('analizClusterLayerSelect').value;
+    if (!layerId){ showToast('Lütfen önce bir katman seçin.'); return; }
+    var column = document.getElementById('analizClusterColumnSelect').value;
+    closeAreaAnalizConfigs();
+    activeAreaAnaliz = 'cluster';
+    setAreaAnalizOptionUI('cluster', true);
+    setupClusterAnalysis(layerId, column);
+  });
+
+  // DEM tabanlı analizlerden önce terrain'i açar (kapalıysa) ve o bölgenin
+  // DEM karoları gerçekten yüklenene kadar (queryTerrainElevation null
+  // dönmeyi bırakana kadar) kısa aralıklarla yoklayıp öyle devam eder.
+  function ensureTerrainForAnalysis(callback){
+    if (!terrainActive){
+      terrainActive = true;
+      try{ map.setTerrain({ source:'dem-source', exaggeration:1 }); }catch(err){ /* stil hazır değilse yoksay */ }
+      var terrainBtn = document.getElementById('btnTerrainToggle');
+      if (terrainBtn) terrainBtn.classList.add('active');
+    }
+    var c = map.getCenter();
+    var centerArr = [c.lng, c.lat];
+    if (map.queryTerrainElevation(centerArr) != null){ callback(); return; }
+    showToast('DEM verisi yükleniyor…');
+    var tries = 0;
+    var timer = setInterval(function(){
+      tries++;
+      if (map.queryTerrainElevation(centerArr) != null || tries > 20){
+        clearInterval(timer);
+        callback();
+      }
+    }, 250);
+  }
+
+  function setAreaAnalizOptionUI(kind, active){
+    var el = document.getElementById('analizOpt' + kind.charAt(0).toUpperCase() + kind.slice(1));
+    if (el) el.classList.toggle('active', active);
+  }
+
+  function deactivateAreaAnaliz(){
+    if (!activeAreaAnaliz) return;
+    var prev = activeAreaAnaliz;
+    activeAreaAnaliz = null;
+    setAreaAnalizOptionUI(prev, false);
+    if (prev === 'slope') teardownSlopeAnalysis();
+    else if (prev === 'viewshed') teardownViewshedAnalysis();
+    else if (prev === 'profile') teardownProfileAnalysis();
+    else if (prev === 'heatmap') teardownHeatmapAnalysis();
+    else if (prev === 'cluster') teardownClusterAnalysis();
+    var hintEl = document.getElementById('analizOptHint');
+    if (hintEl) hintEl.textContent = AREA_ANALIZ_DEFAULT_HINT;
+  }
+  function activateAreaAnaliz(kind){
+    if (activeAreaAnaliz === kind){ deactivateAreaAnaliz(); return; }
+    // Isı Haritası/Kümeleme doğrudan çalışmaz — önce katman (ve istenirse
+    // ağırlık sütunu) seçilip "Uygula"ya basılması gerekir (bkz.
+    // openAreaAnalizConfig ve #analizHeatmapApply/#analizClusterApply).
+    if (kind === 'heatmap' || kind === 'cluster'){ openAreaAnalizConfig(kind); return; }
+    deactivateAreaAnaliz();
+    closeAreaAnalizConfigs();
+    activeAreaAnaliz = kind;
+    setAreaAnalizOptionUI(kind, true);
+    if (kind === 'slope') setupSlopeAnalysis();
+    else if (kind === 'viewshed') setupViewshedAnalysis();
+    else if (kind === 'profile') setupProfileAnalysis();
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('.analiz-option[data-analiz-opt]'), function(el){
+    el.addEventListener('click', function(){ activateAreaAnaliz(el.getAttribute('data-analiz-opt')); });
+  });
+
+  // ---------------------------------------------------------------------
+  // Eğim (Slope) Analizi — görünen harita alanını bir ızgaraya bölüp her
+  // hücrenin merkezinden doğu/kuzey komşularına olan yükseklik farkından
+  // eğim (derece) hesaplar; yeşil (düz) → kırmızı (çok dik) renklendirir.
+  // Harita gezindikçe (moveend) otomatik yeniden hesaplanır.
+  // ---------------------------------------------------------------------
+  var SLOPE_GRID_COLS = 26, SLOPE_GRID_ROWS = 18;
+  function onSlopeMapMove(){
+    if (activeAreaAnaliz === 'slope') computeAndRenderSlope();
+  }
+  function setupSlopeAnalysis(){
+    ensureTerrainForAnalysis(function(){
+      if (activeAreaAnaliz !== 'slope') return;
+      computeAndRenderSlope();
+      showToast('Eğim analizi açıldı.');
+    });
+    map.on('moveend', onSlopeMapMove);
+  }
+  function computeAndRenderSlope(){
+    var bounds = map.getBounds();
+    var west = bounds.getWest(), east = bounds.getEast(), south = bounds.getSouth(), north = bounds.getNorth();
+    var lngStep = (east - west) / SLOPE_GRID_COLS;
+    var latStep = (north - south) / SLOPE_GRID_ROWS;
+    var feats = [];
+    if (lngStep > 0 && latStep > 0){
+      for (var r = 0; r < SLOPE_GRID_ROWS; r++){
+        for (var c = 0; c < SLOPE_GRID_COLS; c++){
+          var lng0 = west + c * lngStep, lat0 = south + r * latStep;
+          var lng1 = lng0 + lngStep, lat1 = lat0 + latStep;
+          var cLng = (lng0 + lng1) / 2, cLat = (lat0 + lat1) / 2;
+          var eC = map.queryTerrainElevation([cLng, cLat]);
+          var eE = map.queryTerrainElevation([lng1, cLat]);
+          var eN = map.queryTerrainElevation([cLng, lat1]);
+          if (eC == null || eE == null || eN == null) continue;
+          var dxM = turf.distance([cLng, cLat], [lng1, cLat], { units:'kilometers' }) * 1000;
+          var dyM = turf.distance([cLng, cLat], [cLng, lat1], { units:'kilometers' }) * 1000;
+          if (!(dxM > 0) || !(dyM > 0)) continue;
+          var gx = (eE - eC) / dxM, gy = (eN - eC) / dyM;
+          var slopeDeg = Math.atan(Math.sqrt(gx * gx + gy * gy)) * 180 / Math.PI;
+          feats.push({
+            type:'Feature', properties:{ slope: slopeDeg },
+            geometry:{ type:'Polygon', coordinates:[[[lng0,lat0],[lng1,lat0],[lng1,lat1],[lng0,lat1],[lng0,lat0]]] }
+          });
+        }
+      }
+    }
+    var data = { type:'FeatureCollection', features: feats };
+    if (!map.getSource('analiz-slope-source')){
+      map.addSource('analiz-slope-source', { type:'geojson', data: data });
+      map.addLayer({
+        id:'analiz-slope-layer', type:'fill', source:'analiz-slope-source',
+        paint:{
+          'fill-color':['interpolate',['linear'],['get','slope'], 0,'#2ecc71', 5,'#a4d65e', 10,'#f1c40f', 20,'#e67e22', 35,'#e02424'],
+          'fill-opacity':0.55
+        }
+      });
+    } else {
+      map.getSource('analiz-slope-source').setData(data);
+    }
+    var hintEl = document.getElementById('analizOptHint');
+    if (hintEl){
+      hintEl.textContent = feats.length
+        ? 'Eğim analizi aktif — yeşil düz/yapılabilir, kırmızı çok dik. Haritayı gezdikçe güncellenir.'
+        : 'Bu bölgede DEM verisi henüz yüklenemedi — biraz bekleyip veya uzaklaşıp tekrar deneyin.';
+    }
+  }
+  function teardownSlopeAnalysis(){
+    map.off('moveend', onSlopeMapMove);
+    if (map.getLayer('analiz-slope-layer')) map.removeLayer('analiz-slope-layer');
+    if (map.getSource('analiz-slope-source')) map.removeSource('analiz-slope-source');
+  }
+
+  // ---------------------------------------------------------------------
+  // Görüş Hattı (Viewshed) Analizi — tıklanan noktadan (gözlem yüksekliği
+  // +1.7 m) 360° çevresine ışınlar yollayıp her ışın boyunca en yakın
+  // engelleyen tepe noktasına kadarki mesafeyi bulur; bu uç noktaları
+  // birleştiren poligon BASİTLEŞTİRİLMİŞ görüş alanını gösterir.
+  // ---------------------------------------------------------------------
+  var VIEWSHED_RAYS = 72, VIEWSHED_MAX_DIST_M = 1200, VIEWSHED_STEP_M = 25, VIEWSHED_EYE_HEIGHT = 1.7;
+  function onViewshedMapClick(e){
+    if (activeAreaAnaliz !== 'viewshed') return;
+    computeAndRenderViewshed([e.lngLat.lng, e.lngLat.lat]);
+  }
+  function setupViewshedAnalysis(){
+    ensureTerrainForAnalysis(function(){
+      if (activeAreaAnaliz !== 'viewshed') return;
+      showToast('Görüş hattı analizi: gözlem noktası seçmek için haritaya tıklayın.');
+    });
+    map.on('click', onViewshedMapClick);
+    map.getCanvas().style.cursor = 'crosshair';
+  }
+  function computeAndRenderViewshed(center){
+    var eyeElev = map.queryTerrainElevation(center);
+    if (eyeElev == null){ showToast('Bu noktada DEM verisi bulunamadı — başka bir noktayı deneyin.'); return; }
+    var eyeZ = eyeElev + VIEWSHED_EYE_HEIGHT;
+    var steps = Math.round(VIEWSHED_MAX_DIST_M / VIEWSHED_STEP_M);
+    var ring = [];
+    for (var i = 0; i < VIEWSHED_RAYS; i++){
+      var bearing = (360 / VIEWSHED_RAYS) * i;
+      var maxAngle = -Infinity, visibleDist = 0;
+      for (var s = 1; s <= steps; s++){
+        var d = s * VIEWSHED_STEP_M;
+        var dest = turf.destination(center, d / 1000, bearing, { units:'kilometers' });
+        var elev = map.queryTerrainElevation(dest.geometry.coordinates);
+        if (elev == null) break;
+        var angle = Math.atan2(elev - eyeZ, d);
+        if (angle >= maxAngle){ maxAngle = angle; visibleDist = d; }
+      }
+      var edge = turf.destination(center, visibleDist / 1000, bearing, { units:'kilometers' });
+      ring.push(edge.geometry.coordinates);
+    }
+    ring.push(ring[0]);
+    var data = {
+      type:'FeatureCollection',
+      features:[
+        { type:'Feature', properties:{}, geometry:{ type:'Polygon', coordinates:[ring] } },
+        { type:'Feature', properties:{}, geometry:{ type:'Point', coordinates: center } }
+      ]
+    };
+    if (!map.getSource('analiz-viewshed-source')){
+      map.addSource('analiz-viewshed-source', { type:'geojson', data: data });
+      map.addLayer({ id:'analiz-viewshed-fill', type:'fill', source:'analiz-viewshed-source', filter:['==',['geometry-type'],'Polygon'], paint:{ 'fill-color':'#3fc2ac', 'fill-opacity':0.35 } });
+      map.addLayer({ id:'analiz-viewshed-outline', type:'line', source:'analiz-viewshed-source', filter:['==',['geometry-type'],'Polygon'], paint:{ 'line-color':'#3fc2ac', 'line-width':2 } });
+      map.addLayer({ id:'analiz-viewshed-point', type:'circle', source:'analiz-viewshed-source', filter:['==',['geometry-type'],'Point'], paint:{ 'circle-color':'#e02424', 'circle-radius':6, 'circle-stroke-width':2, 'circle-stroke-color':'#fff' } });
+    } else {
+      map.getSource('analiz-viewshed-source').setData(data);
+      ['analiz-viewshed-fill','analiz-viewshed-outline','analiz-viewshed-point'].forEach(function(id){ map.setLayoutProperty(id, 'visibility', 'visible'); });
+    }
+    var hintEl = document.getElementById('analizOptHint');
+    if (hintEl) hintEl.textContent = 'Görüş hattı analizi — kırmızı nokta gözlem yeri, yeşil alan (basitleştirilmiş) görünür bölge. Yeni bir nokta için tekrar tıklayın.';
+    showToast('Görüş alanı hesaplandı.');
+  }
+  function teardownViewshedAnalysis(){
+    map.off('click', onViewshedMapClick);
+    updateCanvasCursor();
+    ['analiz-viewshed-fill','analiz-viewshed-outline','analiz-viewshed-point'].forEach(function(id){
+      if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', 'none');
+    });
+  }
+
+  // ---------------------------------------------------------------------
+  // Kesit (Profil) Analizi — iki nokta (tıkla-tıkla) arasındaki doğru
+  // boyunca DEM'den örnekler alıp mesafe/yükseklik grafiği çizer.
+  // ---------------------------------------------------------------------
+  var profileClickCoords = [];
+  var PROFILE_SAMPLE_COUNT = 60;
+  function onProfileMapClick(e){
+    if (activeAreaAnaliz !== 'profile') return;
+    profileClickCoords.push([e.lngLat.lng, e.lngLat.lat]);
+    if (profileClickCoords.length === 1){
+      showToast('Şimdi bitiş noktasına tıklayın.');
+    } else {
+      computeAndRenderProfile(profileClickCoords[0], profileClickCoords[1]);
+      profileClickCoords = [];
+    }
+  }
+  function setupProfileAnalysis(){
+    ensureTerrainForAnalysis(function(){
+      if (activeAreaAnaliz !== 'profile') return;
+      profileClickCoords = [];
+      showToast('Kesit analizi: haritada başlangıç noktasına tıklayın.');
+    });
+    map.on('click', onProfileMapClick);
+    map.getCanvas().style.cursor = 'crosshair';
+  }
+  function computeAndRenderProfile(a, b){
+    var distM = turf.distance(a, b, { units:'kilometers' }) * 1000;
+    var samples = [];
+    for (var i = 0; i <= PROFILE_SAMPLE_COUNT; i++){
+      var t = i / PROFILE_SAMPLE_COUNT;
+      var lng = a[0] + (b[0] - a[0]) * t, lat = a[1] + (b[1] - a[1]) * t;
+      var elev = map.queryTerrainElevation([lng, lat]);
+      samples.push({ dist: distM * t, elev: elev == null ? 0 : elev });
+    }
+    var lineFeat = { type:'Feature', properties:{}, geometry:{ type:'LineString', coordinates:[a, b] } };
+    if (!map.getSource('analiz-profile-source')){
+      map.addSource('analiz-profile-source', { type:'geojson', data: lineFeat });
+      map.addLayer({ id:'analiz-profile-layer', type:'line', source:'analiz-profile-source', paint:{ 'line-color':'#3fc2ac', 'line-width':3, 'line-dasharray':[2,1.5] } });
+    } else {
+      map.getSource('analiz-profile-source').setData(lineFeat);
+      map.setLayoutProperty('analiz-profile-layer', 'visibility', 'visible');
+    }
+    renderProfileChart(samples, distM);
+    var hintEl = document.getElementById('analizOptHint');
+    if (hintEl) hintEl.textContent = 'Kesit analizi — yeni bir kesit için tekrar iki nokta seçin.';
+  }
+  function renderProfileChart(samples, totalDist){
+    var elevs = samples.map(function(s){ return s.elev; });
+    var minE = Math.min.apply(null, elevs), maxE = Math.max.apply(null, elevs);
+    var rangeE = Math.max(1, maxE - minE);
+    var w = 400, h = 130, pad = 4;
+    var pts = samples.map(function(s){
+      var x = pad + (totalDist > 0 ? (s.dist / totalDist) : 0) * (w - pad * 2);
+      var y = pad + (1 - (s.elev - minE) / rangeE) * (h - pad * 2);
+      return x.toFixed(1) + ',' + y.toFixed(1);
+    }).join(' ');
+    var svg = document.getElementById('profileChartSvg');
+    svg.innerHTML =
+      '<polyline points="' + pad + ',' + (h - pad) + ' ' + pts + ' ' + (w - pad) + ',' + (h - pad) + '" fill="rgba(63,194,172,.18)" stroke="none"/>' +
+      '<polyline points="' + pts + '" fill="none" stroke="#3fc2ac" stroke-width="2"/>';
+    var gain = 0, loss = 0;
+    for (var i = 1; i < elevs.length; i++){
+      var d = elevs[i] - elevs[i - 1];
+      if (d > 0) gain += d; else loss += -d;
+    }
+    document.getElementById('profileChartStats').innerHTML =
+      '<span>Mesafe: ' + (totalDist >= 1000 ? (totalDist / 1000).toFixed(2) + ' km' : totalDist.toFixed(0) + ' m') + '</span>' +
+      '<span>Min: ' + minE.toFixed(1) + ' m</span>' +
+      '<span>Maks: ' + maxE.toFixed(1) + ' m</span>' +
+      '<span>Yükseliş: +' + gain.toFixed(1) + ' m</span>' +
+      '<span>İniş: -' + loss.toFixed(1) + ' m</span>';
+    document.getElementById('profileChartPanel').classList.remove('hidden');
+  }
+  document.getElementById('profileChartClose').addEventListener('click', function(){
+    document.getElementById('profileChartPanel').classList.add('hidden');
+  });
+  function teardownProfileAnalysis(){
+    map.off('click', onProfileMapClick);
+    updateCanvasCursor();
+    profileClickCoords = [];
+    if (map.getLayer('analiz-profile-layer')) map.setLayoutProperty('analiz-profile-layer', 'visibility', 'none');
+    document.getElementById('profileChartPanel').classList.add('hidden');
+  }
+
+  // ---------------------------------------------------------------------
+  // Isı Haritası (Heatmap) — önce seçilen KATMANIN (ve varsa ağırlık
+  // sütununun) nokta veri kümesini MapLibre'nin yerleşik 'heatmap' katman
+  // türüyle gösterir.
+  // ---------------------------------------------------------------------
+  function setupHeatmapAnalysis(layerId, column){
+    var layer = getLayer(layerId);
+    var data = { type:'FeatureCollection', features: areaAnalizPointDataset(layerId, column) };
+    if (!data.features.length){
+      showToast((layer ? '"' + layer.name + '" katmanında' : 'Seçilen katmanda') + ' hiç obje bulunamadı.');
+      deactivateAreaAnaliz();
+      return;
+    }
+    if (!map.getSource('analiz-heatmap-source')){
+      map.addSource('analiz-heatmap-source', { type:'geojson', data: data });
+      map.addLayer({
+        id:'analiz-heatmap-layer', type:'heatmap', source:'analiz-heatmap-source',
+        paint:{
+          'heatmap-weight':['get','weight'],
+          'heatmap-intensity':['interpolate',['linear'],['zoom'], 0,1, 15,3],
+          'heatmap-radius':['interpolate',['linear'],['zoom'], 0,8, 15,40],
+          'heatmap-opacity':0.75,
+          'heatmap-color':['interpolate',['linear'],['heatmap-density'], 0,'rgba(0,0,0,0)', 0.2,'#3fc2ac', 0.4,'#4fd1ff', 0.6,'#f1c40f', 0.8,'#e67e22', 1,'#e02424']
+        }
+      });
+    } else {
+      map.getSource('analiz-heatmap-source').setData(data);
+      map.setLayoutProperty('analiz-heatmap-layer', 'visibility', 'visible');
+    }
+    var hintEl = document.getElementById('analizOptHint');
+    var layerLabel = layer ? layer.name : 'seçilen katman';
+    if (hintEl) hintEl.textContent = 'Isı haritası aktif — "' + layerLabel + '" katmanından ' + data.features.length + ' nokta' + (column ? (' ("' + column + '" ağırlıklı)') : '') + ' baz alındı.';
+    showToast('Isı haritası açıldı (' + data.features.length + ' nokta).');
+  }
+  function teardownHeatmapAnalysis(){
+    if (map.getLayer('analiz-heatmap-layer')) map.setLayoutProperty('analiz-heatmap-layer', 'visibility', 'none');
+  }
+
+  // ---------------------------------------------------------------------
+  // Kümeleme (Clustering) — seçilen katmanın nokta veri kümesini
+  // MapLibre'nin yerleşik GeoJSON cluster desteğiyle gruplar; bir ağırlık
+  // sütunu seçildiyse küme etiketi nokta SAYISI yerine o sütunun TOPLAMINI
+  // gösterir (clusterProperties). Bir kümeye tıklamak yakınlaştırır.
+  // ---------------------------------------------------------------------
+  function setupClusterAnalysis(layerId, column){
+    var layer = getLayer(layerId);
+    var data = { type:'FeatureCollection', features: areaAnalizPointDataset(layerId, column) };
+    if (!data.features.length){
+      showToast((layer ? '"' + layer.name + '" katmanında' : 'Seçilen katmanda') + ' hiç obje bulunamadı.');
+      deactivateAreaAnaliz();
+      return;
+    }
+    // clusterProperties yalnızca KAYNAK OLUŞTURULURKEN uygulanabildiğinden
+    // (sonradan setData ile değiştirilemez), sütun seçimi her "Uygula"da
+    // değişebileceği için kaynak/katmanlar her seferinde temizlenip
+    // yeniden kurulur.
+    ['analiz-cluster-circles','analiz-cluster-count','analiz-cluster-unclustered'].forEach(function(id){
+      if (map.getLayer(id)) map.removeLayer(id);
+    });
+    if (map.getSource('analiz-cluster-source')) map.removeSource('analiz-cluster-source');
+    var sourceDef = { type:'geojson', data:data, cluster:true, clusterMaxZoom:16, clusterRadius:50 };
+    if (column) sourceDef.clusterProperties = { sum: ['+', ['get', 'weight']] };
+    map.addSource('analiz-cluster-source', sourceDef);
+    var countField = column ? ['get','sum'] : ['get','point_count_abbreviated'];
+    map.addLayer({
+      id:'analiz-cluster-circles', type:'circle', source:'analiz-cluster-source', filter:['has','point_count'],
+      paint:{
+        'circle-color':['step',['get','point_count'], '#3fc2ac', 10, '#f1c40f', 30, '#e02424'],
+        'circle-radius':['step',['get','point_count'], 14, 10, 18, 30, 24],
+        'circle-opacity':0.85, 'circle-stroke-width':2, 'circle-stroke-color':'#0f1e29'
+      }
+    });
+    map.addLayer({
+      id:'analiz-cluster-count', type:'symbol', source:'analiz-cluster-source', filter:['has','point_count'],
+      layout:{ 'text-field':countField, 'text-size':12, 'text-font':['Open Sans Bold','Arial Unicode MS Bold'] },
+      paint:{ 'text-color':'#0f1e29' }
+    });
+    map.addLayer({
+      id:'analiz-cluster-unclustered', type:'circle', source:'analiz-cluster-source', filter:['!',['has','point_count']],
+      paint:{ 'circle-color':'#3fc2ac', 'circle-radius':6, 'circle-stroke-width':2, 'circle-stroke-color':'#0f1e29' }
+    });
+    if (!clusterClickHandlersBound){
+      map.on('click', 'analiz-cluster-circles', function(e){
+        var clusterId = e.features[0].properties.cluster_id;
+        map.getSource('analiz-cluster-source').getClusterExpansionZoom(clusterId, function(err, zoom){
+          if (err) return;
+          map.easeTo({ center: e.features[0].geometry.coordinates, zoom: zoom });
+        });
+      });
+      map.on('mouseenter', 'analiz-cluster-circles', function(){ map.getCanvas().style.cursor = 'pointer'; });
+      map.on('mouseleave', 'analiz-cluster-circles', function(){ updateCanvasCursor(); });
+      clusterClickHandlersBound = true;
+    }
+    var hintEl = document.getElementById('analizOptHint');
+    var layerLabel2 = layer ? layer.name : 'seçilen katman';
+    hintEl.textContent = 'Kümeleme aktif — "' + layerLabel2 + '" katmanından ' + data.features.length + ' nokta' + (column ? (' ("' + column + '" toplamıyla etiketli)') : '') + ' gruplanıyor; bir kümeye tıklayınca yakınlaşır.';
+    showToast('Kümeleme açıldı (' + data.features.length + ' nokta).');
+  }
+  function teardownClusterAnalysis(){
+    ['analiz-cluster-circles','analiz-cluster-count','analiz-cluster-unclustered'].forEach(function(id){
+      if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', 'none');
+    });
+  }
 
   // Üst pencereye "haritaya katman göndermeye hazırım" sinyali — üst pencere
   // bu mesajı bekleyip ardından 'kroki:load-db-layers' mesajını gönderir.
