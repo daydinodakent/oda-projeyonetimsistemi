@@ -217,6 +217,22 @@
   }
   .split-btn-arrow:hover{background:var(--amber-dim);}
   .split-btn-arrow svg{width:11px;height:11px;}
+  /* CBS Haritası split-butonunun ok kısmı — istendiği üzere diğer
+     split-butonlardan (ör. Analiz) BAĞIMSIZ olarak %30 daraltılır
+     (22px→15px, ikon 11px→8px) — yalnızca #mapSplitBtn kapsamında. */
+  #mapSplitBtn .split-btn-arrow{width:15px;}
+  #mapSplitBtn .split-btn-arrow svg{width:8px;height:8px;}
+  /* "Import" — artık açılır menü İÇİNDE değil, split-butonun SAĞINDA,
+     tek başına ikon-only bir buton (bkz. showAddContentPopover ile aynı
+     tetikleyici, id="btnMapImport" korunur). Görsel dili split-btn ile
+     aynı (amber çerçeve, aynı yükseklik). */
+  .map-import-icon-btn{
+    display:flex;align-items:center;justify-content:center;flex:0 0 auto;
+    width:32px;height:30px;background:transparent;border:1px solid var(--amber);
+    border-radius:2px;color:var(--amber);cursor:pointer;
+  }
+  .map-import-icon-btn:hover{background:var(--amber-dim);}
+  .map-import-icon-btn svg{width:15px;height:15px;flex:0 0 auto;}
   .split-btn-menu{
     display:none;flex-direction:column;gap:2px;position:absolute;top:34px;right:0;z-index:10;
     min-width:150px;background:var(--bg-panel-raise);border:1px solid var(--line);border-radius:2px;
@@ -1147,7 +1163,7 @@
             <span id="mapSelectName" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Genel</span>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;color:var(--text-dim);flex:0 0 auto;"><path d="M6 9l6 6 6-6"/></svg>
           </div>
-          <div id="mapSelectDropList" class="active-layer-drop-list" style="position:absolute;top:38px;left:0;right:40px;"></div>
+          <div id="mapSelectDropList" class="active-layer-drop-list" style="position:absolute;top:38px;left:0;right:76px;"></div>
           <div class="split-btn" id="mapSplitBtn">
             <button class="split-btn-main" id="btnMapSave" title="Kaydet (oturumu tarayıcıda sakla)">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
@@ -1156,16 +1172,15 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 9l6 6 6-6"/></svg>
             </button>
             <div id="mapSplitMenu" class="split-btn-menu">
-              <div class="split-btn-menu-item" id="btnMapImport">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 21h16"/></svg>
-                <span>Import</span>
-              </div>
               <div class="split-btn-menu-item" id="btnMapExport">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 15V3"/><path d="M7 8l5-5 5 5"/><path d="M4 21h16"/></svg>
                 <span>Export (GeoPackage)</span>
               </div>
             </div>
           </div>
+          <button type="button" id="btnMapImport" class="map-import-icon-btn" title="Veri Ekle (İçe Aktar)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 21h16"/></svg>
+          </button>
           <div id="addContentPopover" class="active-layer-drop-list" style="position:absolute;top:38px;right:0;min-width:270px;max-width:calc(100vw - 40px);"></div>
         </div>
       </div>
