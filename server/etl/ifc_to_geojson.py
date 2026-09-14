@@ -11,19 +11,38 @@
 # (coğrafi referans yoksa harita CRS'ine otomatik dönüştürülemez) — bu,
 # BIM dosyalarının doğası gereği bir sınırlamadır, GDAL/OGR için de geçerlidir.
 #
-# Kullanım: python ifc_to_geojson.py <dosya.ifc>
-# Çıktı (stdout): {"type":"FeatureCollection","features":[...],"count":N}
+# FAZ 6 (büyük dosya performansı) — çok büyük (ör. 2GB) IFC dosyaları
+# yüz binlerce/milyonlarca IfcProduct içerebilir; her birinin GeoJSON olarak
+# TARAYICIYA dökülmesi hem HTTP yanıtını hem de MapLibre'nin render süresini
+# pratik olmayan boyutlara taşır. Bu yüzden pointcloud_to_geojson.py'daki
+# MAX_POINTS örnekleme deseniyle AYNI mantıkla, aday ürün listesi eşit
+# aralıklı (evenly-spaced) örneklenir — pahalı olan create_shape() ÇAĞRISI
+# ÖNCESİNDE, yalnızca seçilen elemanlar için geometri üretilir.
+#
+# Kullanım: python ifc_to_geojson.py <dosya.ifc> [max_elements]
+# Çıktı (stdout): {"type":"FeatureCollection","features":[...],"count":N,
+#                  "totalElements":M,"sampled":bool,"skipped":K}
 #                 veya hata durumunda {"error":"..."}
 import sys
 import json
 
 
+def evenly_spaced_indices(total, count):
+    if count >= total:
+        return list(range(total))
+    if count <= 1:
+        return [0]
+    step = (total - 1) / (count - 1)
+    return sorted(set(round(i * step) for i in range(count)))
+
+
 def main():
     if len(sys.argv) < 2:
-        print(json.dumps({"error": "Kullanım: ifc_to_geojson.py <dosya.ifc>"}))
+        print(json.dumps({"error": "Kullanım: ifc_to_geojson.py <dosya.ifc> [max_elements]"}))
         sys.exit(1)
 
     ifc_path = sys.argv[1]
+    max_elements = int(sys.argv[2]) if len(sys.argv) > 2 else 50000
 
     try:
         import ifcopenshell
@@ -41,9 +60,18 @@ def main():
     settings = ifcopenshell.geom.settings()
     settings.set(settings.USE_WORLD_COORDS, True)
 
+    all_products = list(model.by_type("IfcProduct"))
+    total_products = len(all_products)
+    if total_products > max_elements:
+        products = [all_products[i] for i in evenly_spaced_indices(total_products, max_elements)]
+        sampled = True
+    else:
+        products = all_products
+        sampled = False
+
     features = []
     skipped = 0
-    for product in model.by_type("IfcProduct"):
+    for product in products:
         if not getattr(product, "Representation", None):
             continue
         try:
@@ -98,6 +126,8 @@ def main():
         "type": "FeatureCollection",
         "features": features,
         "count": len(features),
+        "totalElements": total_products,
+        "sampled": sampled,
         "skipped": skipped,
     }))
 

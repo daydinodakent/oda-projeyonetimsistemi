@@ -38,6 +38,7 @@ import { fileURLToPath } from 'node:url';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import duckdb from 'duckdb';
+import multer from 'multer';
 
 const execFileAsync = promisify(execFile);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -101,25 +102,42 @@ app.get('/api/export/gpkg', (req, res) => {
 // tanımlanmalıdır — aksi halde Express "/api/etl/ifc"i table="etl" id="ifc"
 // olarak eşleştirir.
 //
-// İstemci dosyayı base64 olarak JSON gövdesinde gönderir (mevcut doküman
-// yükleme akışıyla aynı desen — bkz. src/services/api.ts), sunucu geçici
-// bir dosyaya yazıp ilgili Python script'ini child_process ile çalıştırır,
-// stdout'taki GeoJSON'u olduğu gibi istemciye döner. Python veya ilgili
-// kütüphane (ifcopenshell/laspy) bu ortamda yoksa 500 ile AÇIK bir hata
-// mesajı döner — sessizce başarısız olmaz.
+// FAZ 6 (büyük dosya performansı) — dosya artık base64+JSON YERİNE gerçek
+// bir multipart/form-data akışıyla (multer, disk storage) doğrudan diske
+// YAZILARAK alınır: ne istemci dosyayı ~1.33x büyüklüğünde bir base64
+// string'e çevirip belleğe alır, ne de sunucu tüm gövdeyi TEK bir JSON
+// string olarak parse edip BİR KEZ DAHA Buffer'a çevirir (eski yöntemde
+// ~150MB'lık pratik bir tavan vardı — 2GB'lık dosyalarda tarayıcı sekmesini
+// çökertme riski yüksekti). Python script'i ilgili kütüphane (ifcopenshell/
+// laspy) bu ortamda yoksa yine 500 ile AÇIK bir hata mesajı döner.
+const ETL_MAX_UPLOAD_BYTES = 2 * 1024 * 1024 * 1024; // 2GB — hedeflenen üst sınır
+const etlUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => cb(null, os.tmpdir()),
+    filename: (req, file, cb) => cb(null, `oda_etl_${Date.now()}_${file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_')}`),
+  }),
+  limits: { fileSize: ETL_MAX_UPLOAD_BYTES },
+});
+function etlUploadErrorHandler(err, req, res, next) {
+  if (!err) return next();
+  const msg = err.code === 'LIMIT_FILE_SIZE'
+    ? `Dosya çok büyük (limit: ${(ETL_MAX_UPLOAD_BYTES / (1024 * 1024 * 1024)).toFixed(1)}GB).`
+    : String(err.message || err);
+  res.status(400).json({ error: msg });
+}
+
 function runEtlScript(scriptName, tmpPath, extraArgs = []) {
   const scriptPath = path.join(__dirname, 'etl', scriptName);
   return execFileAsync('python', [scriptPath, tmpPath, ...extraArgs], { maxBuffer: 200 * 1024 * 1024 });
 }
 
 async function handleEtlUpload(req, res, scriptName, extraArgs) {
-  const { fileName, dataBase64 } = req.body || {};
-  if (!fileName || !dataBase64) {
-    return res.status(400).json({ error: 'fileName ve dataBase64 (base64 dosya içeriği) gerekli.' });
+  const file = req.file;
+  if (!file) {
+    return res.status(400).json({ error: 'Yüklenecek dosya bulunamadı (multipart/form-data, "file" alanı gerekli).' });
   }
-  const tmpPath = path.join(os.tmpdir(), `oda_etl_${Date.now()}_${fileName.replace(/[^a-zA-Z0-9._-]/g, '_')}`);
+  const tmpPath = file.path;
   try {
-    fs.writeFileSync(tmpPath, Buffer.from(dataBase64, 'base64'));
     const { stdout } = await runEtlScript(scriptName, tmpPath, extraArgs);
     let parsed;
     try { parsed = JSON.parse(stdout); }
@@ -137,12 +155,15 @@ async function handleEtlUpload(req, res, scriptName, extraArgs) {
   }
 }
 
-// IFC/nokta bulutu dosyaları genelde doküman önizlemelerinden (25mb) daha
-// büyük olabildiğinden bu iki rotaya özel, daha yüksek bir JSON gövde
-// limiti tanımlanır (yalnızca bu rotalarda — global limit değişmez).
-const etlBodyParser = express.json({ limit: '150mb' });
-app.post('/api/etl/ifc', etlBodyParser, (req, res) => handleEtlUpload(req, res, 'ifc_to_geojson.py', []));
-app.post('/api/etl/pointcloud', etlBodyParser, (req, res) => {
+app.post('/api/etl/ifc', etlUpload.single('file'), etlUploadErrorHandler, (req, res) => {
+  // FAZ 6 — çok büyük (2GB'a kadar) IFC dosyalarında yüz binlerce eleman
+  // olabileceğinden, yanıtı pratik bir üst sınıra göre eşit aralıklı
+  // örnekler (bkz. ifc_to_geojson.py — pointcloud'daki maxPoints ile AYNI
+  // desen). Client hardcoded 50000 gönderir; body'de yoksa yine 50000.
+  const maxElements = req.body && req.body.maxElements ? String(req.body.maxElements) : '50000';
+  return handleEtlUpload(req, res, 'ifc_to_geojson.py', [maxElements]);
+});
+app.post('/api/etl/pointcloud', etlUpload.single('file'), etlUploadErrorHandler, (req, res) => {
   const maxPoints = req.body && req.body.maxPoints ? String(req.body.maxPoints) : '20000';
   return handleEtlUpload(req, res, 'pointcloud_to_geojson.py', [maxPoints]);
 });

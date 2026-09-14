@@ -9727,6 +9727,14 @@
       script.onerror = function(){ reject(new Error('gdal3.js yüklenemedi (internet/CDN erişimi gerekli).')); };
       document.head.appendChild(script);
     }).then(function(){
+      // useWorker:true DENENDİ (FAZ 6, büyük dosya performansı) — ama
+      // gdal3.js@2.8.1, worker script'ini jsdelivr CDN'den (GDAL_CDN_BASE,
+      // farklı origin) `new Worker(url)` ile yüklemeye çalışıyor ve bu,
+      // tarayıcıda "Script ... cannot be accessed from origin ..." hatasıyla
+      // SESSİZCE ana thread'e düşmek yerine İÇE AKTARMAYI TAMAMEN
+      // BOZUYOR (canlı testte doğrulandı). Worker script'ini kendi
+      // sunucumuzdan (aynı origin) servis etmeden bu mod güvenle
+      // açılamaz — bkz. server/etl (Faz 6 notu). Şimdilik false'ta kalır.
       return window.initGdalJs({ path: GDAL_CDN_BASE, useWorker: false });
     }).then(function(Gdal){
       gdalInstance = Gdal;
@@ -9788,36 +9796,29 @@
   // -------------------------------------------------------------------
   // FAZ 2 — Gelişmiş IFC/BIM ve Nokta Bulutu (LAS/LAZ) içe aktarma.
   // Sunucudaki Python ETL uç noktalarını (IfcOpenShell/laspy, bkz.
-  // server/index.js /api/etl/*) çağırır — dosya base64 olarak gönderilir,
-  // dönen GeoJSON addImportedFeatures() ile haritaya eklenir. Mevcut
-  // client-side importIFC()'ye (kaba tek-poligon) DOKUNULMADI; bu, "IFC/BIM
-  // İçe Aktar" ile aynı anda seçilebilen, AYRI ve daha hassas bir yoldur.
+  // server/index.js /api/etl/*) çağırır, dönen GeoJSON addImportedFeatures()
+  // ile haritaya eklenir. Mevcut client-side importIFC()'ye (kaba
+  // tek-poligon) DOKUNULMADI; bu, "IFC/BIM İçe Aktar" ile aynı anda
+  // seçilebilen, AYRI ve daha hassas bir yoldur.
+  //
+  // FAZ 6 (büyük dosya performansı) — dosya artık base64'e çevrilip TEK
+  // bir JSON string'i olarak belleğe ALINMIYOR (eski yöntemde ~100MB'lık
+  // bir dosya bile ~1.33 katı büyüklüğünde bir string'e dönüşüp hem
+  // tarayıcı sekmesini hem sunucunun JSON gövde limitini zorluyordu) —
+  // gerçek bir multipart/form-data akışıyla (FormData) doğrudan
+  // gönderiliyor; tarayıcı dosyayı olduğu haliyle stream eder, sunucu da
+  // (bkz. server/index.js — multer, disk storage) doğrudan diske yazar.
   // -------------------------------------------------------------------
-  function fileToBase64(file){
-    return new Promise(function(resolve, reject){
-      var reader = new FileReader();
-      reader.onload = function(){
-        var result = reader.result; // "data:<mime>;base64,AAAA..."
-        var commaIdx = result.indexOf(',');
-        resolve(commaIdx >= 0 ? result.slice(commaIdx + 1) : result);
-      };
-      reader.onerror = function(){ reject(new Error('Dosya okunamadı.')); };
-      reader.readAsDataURL(file);
-    });
-  }
-
   async function handleEtlServerImport(file, endpoint, extraBody, labelForLog, reprojectLocal){
     var statusEl = document.getElementById('gdalImportStatus');
     statusEl.style.display = '';
     statusEl.textContent = labelForLog + ' sunucuya gönderiliyor…';
     showLoading(labelForLog + ' işleniyor…');
     try{
-      var dataBase64 = await fileToBase64(file);
-      var resp = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(Object.assign({ fileName: file.name, dataBase64: dataBase64 }, extraBody || {}))
-      });
+      var formData = new FormData();
+      formData.append('file', file, file.name);
+      Object.keys(extraBody || {}).forEach(function(k){ formData.append(k, extraBody[k]); });
+      var resp = await fetch(endpoint, { method: 'POST', body: formData });
       var body = await resp.json();
       if (!resp.ok || body.error){
         throw new Error(body.error || ('Sunucu hatası (' + resp.status + ')'));
@@ -9835,7 +9836,13 @@
       }
       addImportedFeatures(rawFeats, file.name);
       if (reprojectLocal) ensure3DView();
-      var extra = (body.totalPoints && body.sampled) ? (' (' + body.totalPoints + ' noktadan ' + body.count + ' tanesi örneklendi)') : '';
+      // FAZ 6 — hem nokta bulutu (totalPoints, laspy) hem de büyük IFC
+      // (totalElements, IfcOpenShell) uç noktaları çok büyük girişleri
+      // eşit aralıklı örnekleyip "sampled:true" ile işaretler; ikisi de
+      // AYNI şekilde ama doğru birim adıyla (nokta/eleman) bildirilir.
+      var extra = (body.sampled && body.totalPoints) ? (' (' + body.totalPoints + ' noktadan ' + body.count + ' tanesi örneklendi)')
+        : (body.sampled && body.totalElements) ? (' (' + body.totalElements + ' elemandan ' + body.count + ' tanesi örneklendi)')
+        : '';
       statusEl.textContent = rawFeats.length + ' obje ' + labelForLog + ' ile içe aktarıldı.' + extra;
     }catch(err){
       console.error(labelForLog + ' içe aktarma hatası:', err);
@@ -9851,7 +9858,7 @@
   document.getElementById('ifcImportInput').addEventListener('change', function(e){
     var file = e.target.files && e.target.files[0];
     e.target.value = '';
-    if (file) handleEtlServerImport(file, '/api/etl/ifc', null, 'IFC/BIM (IfcOpenShell)', true);
+    if (file) handleEtlServerImport(file, '/api/etl/ifc', { maxElements: 50000 }, 'IFC/BIM (IfcOpenShell)', true);
   });
   document.getElementById('btnPointCloudImport').addEventListener('click', function(){
     document.getElementById('pointCloudImportInput').click();
