@@ -15,6 +15,9 @@ export default defineConfig(() => {
       },
     },
     server: {
+      // Harness'ın atadığı port varsa onu kullanır (bkz. .claude/launch.json
+      // "autoPort": true) — aksi halde (elle `npm run dev` ile) 3000'de çalışır.
+      port: process.env.PORT ? Number(process.env.PORT) : 3000,
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
       // Do not modifyâfile watching is disabled to prevent flickering during agent edits.
       hmr: process.env.DISABLE_HMR !== 'true',
@@ -31,7 +34,10 @@ export default defineConfig(() => {
       // CORS/port bilmeye gerek kalmaz.
       proxy: {
         '/api': {
-          target: 'http://localhost:4001',
+          // scripts/dev-full.mjs ile aynı mantık: API sunucusunun portu
+          // ODA_API_PORT ile türetilir (sabit 4001, paralel worktree/
+          // oturumlarda EADDRINUSE'a yol açıyordu).
+          target: 'http://localhost:' + (process.env.ODA_API_PORT || 4001),
           changeOrigin: true,
         },
       },
