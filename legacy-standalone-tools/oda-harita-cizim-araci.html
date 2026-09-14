@@ -304,6 +304,22 @@
   #profileChartClose:hover{color:var(--text);}
   #profileChartSvg{width:100%;height:110px;display:block;}
   #profileChartStats{font-size:10.5px;color:var(--text-dim);margin-top:6px;display:flex;gap:12px;flex-wrap:wrap;font-family:var(--font-mono);}
+  /* Toplu İstatistik (DuckDB) sonuç paneli — profileChartPanel ile AYNI
+     konumlandırma/görsel dili paylaşır (bkz. FAZ 4, ETL yol haritası). */
+  #spatialStatsPanel{
+    position:absolute;left:50%;bottom:40px;transform:translateX(-50%);z-index:7;
+    width:440px;max-width:calc(100vw - 100px);max-height:60vh;overflow-y:auto;
+    background:rgba(15,30,41,.97);border:1px solid var(--line);border-radius:var(--radius);
+    padding:10px 12px;box-shadow:0 8px 24px rgba(0,0,0,.4);
+  }
+  #spatialStatsPanel.hidden{display:none;}
+  .floating-panel-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:12px;font-weight:600;color:var(--text);}
+  .floating-panel-header button{background:transparent;border:none;color:var(--text-dim);cursor:pointer;font-size:17px;line-height:1;padding:0;}
+  .floating-panel-header button:hover{color:var(--text);}
+  #spatialStatsBody table{width:100%;border-collapse:collapse;font-size:11px;font-family:var(--font-mono);}
+  #spatialStatsBody th{text-align:left;color:var(--text-dim);font-weight:600;padding:4px 6px;border-bottom:1px solid var(--line);}
+  #spatialStatsBody td{padding:4px 6px;border-bottom:1px solid var(--line-soft);color:var(--text);}
+  #spatialStatsBody .stats-summary{font-size:11px;color:var(--text-dim);margin-bottom:6px;}
   .group-label{display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;letter-spacing:.3px;color:var(--text-dim);text-transform:uppercase;}
   .accordion-header{display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:2px 0;}
   .accordion-chevron{width:14px;height:14px;flex:0 0 auto;color:var(--text-dim);transition:transform .15s ease;}
@@ -1923,6 +1939,16 @@
   </div>
   <svg id="profileChartSvg" viewBox="0 0 400 130" preserveAspectRatio="none"></svg>
   <div id="profileChartStats"></div>
+</div>
+
+<!-- Toplu İstatistik (DuckDB Spatial) sonuç paneli — bkz. Katmanlar sağ
+     tık > "Toplu İstatistik (DuckDB)" (FAZ 4, ETL yol haritası). -->
+<div id="spatialStatsPanel" class="hidden">
+  <div class="floating-panel-header">
+    <span id="spatialStatsTitle">Toplu İstatistik (DuckDB)</span>
+    <button type="button" id="spatialStatsClose" title="Kapat">×</button>
+  </div>
+  <div id="spatialStatsBody"></div>
 </div>
 
 <div id="draftControls">
@@ -7562,6 +7588,85 @@
     }
   }
 
+  // ---------------------------------------------------------------------
+  // FAZ 4 — Toplu İstatistik (DuckDB Spatial, sunucu). Katman sağ tık >
+  // "Toplu İstatistik" — o katmanın objelerini GeoJSON olarak sunucudaki
+  // /api/etl/spatial-stats'e gönderir (bkz. server/index.js), isteğe bağlı
+  // bir özniteliğe göre GRUPLANMIŞ sayı/toplam alan/çevre döner. Sonuç
+  // #spatialStatsPanel'de bir tablo olarak gösterilir.
+  // ---------------------------------------------------------------------
+  async function showLayerSpatialStats(layerId){
+    var lyr = getLayer(layerId);
+    if (!lyr) return;
+    var feats = features.filter(function(f){ return (f.properties && f.properties.layerId) === layerId; });
+    if (!feats.length){ showToast('Bu katmanda istatistik çıkarılacak şekil yok.'); return; }
+
+    // Katmandaki objelerin ortak özniteliklerinden (layerId hariç) basit bir
+    // grupla-ile / topla-ile seçim istemi — ikisi de boş bırakılabilir.
+    // "sumProperty" ÖNCELİKLİDİR: objede zaten bilinen doğru bir sayısal
+    // öznitelik (ör. footprint_area_sqm) varsa, onun toplamı GEOMETRİDEN
+    // (coğrafi/derece koordinatlardan) hesaplanan yaklaşık alandan daha
+    // güvenilirdir (bkz. server/index.js /api/etl/spatial-stats notu).
+    var propKeys = {};
+    feats.forEach(function(f){
+      Object.keys(f.properties || {}).forEach(function(k){ if (k !== 'layerId') propKeys[k] = true; });
+    });
+    var propList = Object.keys(propKeys);
+    var groupBy = null, sumProperty = null;
+    if (propList.length){
+      var groupAnswer = await customPrompt('Gruplamak için bir öznitelik adı girin (boş bırakırsanız gruplanmaz):\nMevcut: ' + propList.join(', '), '');
+      if (groupAnswer && groupAnswer.trim()) groupBy = groupAnswer.trim();
+      var sumAnswer = await customPrompt('Toplamı/ortalaması alınacak SAYISAL bir öznitelik girin (boş bırakırsanız yalnızca yaklaşık geometrik alan gösterilir):', '');
+      if (sumAnswer && sumAnswer.trim()) sumProperty = sumAnswer.trim();
+    }
+
+    var titleEl = document.getElementById('spatialStatsTitle');
+    var bodyEl = document.getElementById('spatialStatsBody');
+    titleEl.textContent = 'Toplu İstatistik — ' + (lyr.name || 'Katman');
+    bodyEl.innerHTML = '<div class="stats-summary">Hesaplanıyor…</div>';
+    document.getElementById('spatialStatsPanel').classList.remove('hidden');
+    showLoading('DuckDB ile hesaplanıyor…');
+    try{
+      var resp = await fetch('/api/etl/spatial-stats', {
+        method:'POST', headers:{ 'Content-Type':'application/json' },
+        body: JSON.stringify({ features: feats, groupBy: groupBy, sumProperty: sumProperty })
+      });
+      var body = await resp.json();
+      if (!resp.ok || body.error) throw new Error(body.error || ('Sunucu hatası (' + resp.status + ')'));
+      renderSpatialStatsTable(bodyEl, body.rows, groupBy, sumProperty, feats.length);
+    }catch(err){
+      console.error('DuckDB toplu istatistik hatası:', err);
+      bodyEl.innerHTML = '<div class="stats-summary">Hata: ' + (err && err.message ? err.message : 'bilinmeyen hata') + ' (sunucuda DuckDB kurulu olmayabilir).</div>';
+    }finally{
+      hideLoading();
+    }
+  }
+  function renderSpatialStatsTable(bodyEl, rows, groupBy, sumProperty, totalCount){
+    if (!rows || !rows.length){ bodyEl.innerHTML = '<div class="stats-summary">Sonuç yok.</div>'; return; }
+    var html = '<div class="stats-summary">' + totalCount + ' obje' + (groupBy ? (', "' + groupBy + '" özniteliğine göre gruplandı') : '') + '.</div>';
+    html += '<table><thead><tr>';
+    if (groupBy) html += '<th>' + groupBy + '</th>';
+    html += '<th>Adet</th><th>Alan ≈ (m², Web Mercator)</th>';
+    if (sumProperty) html += '<th>Toplam "' + sumProperty + '"</th><th>Ort. "' + sumProperty + '"</th>';
+    html += '</tr></thead><tbody>';
+    rows.forEach(function(r){
+      html += '<tr>';
+      if (groupBy) html += '<td>' + String(r.grp == null ? '—' : r.grp).replace(/</g,'&lt;') + '</td>';
+      html += '<td>' + r.n + '</td>';
+      html += '<td>' + (r.approx_area_m2 != null ? Number(r.approx_area_m2).toFixed(2) : '—') + '</td>';
+      if (sumProperty){
+        html += '<td>' + (r.sum_value != null ? Number(r.sum_value).toFixed(2) : '—') + '</td>';
+        html += '<td>' + (r.avg_value != null ? Number(r.avg_value).toFixed(2) : '—') + '</td>';
+      }
+      html += '</tr>';
+    });
+    html += '</tbody></table>';
+    bodyEl.innerHTML = html;
+  }
+  document.getElementById('spatialStatsClose').addEventListener('click', function(){
+    document.getElementById('spatialStatsPanel').classList.add('hidden');
+  });
+
   function openLayerModalForFolder(folderId){
     pendingLayerFolderId = folderId || null;
     document.getElementById('newLayerName').value = 'Yeni Katman';
@@ -7659,6 +7764,7 @@
       showTreeContextMenu(cx, cy, [
         { label:'Yakınlaş (Zoom To)', action:function(){ zoomToLayer(lyr.id); } },
         { label:'Öznitelik Tablosu', action:function(){ openAttributeTable(lyr.id); } },
+        { label:'Toplu İstatistik (DuckDB)', action:function(){ showLayerSpatialStats(lyr.id); } },
         { sep:true },
         { label:'Yeniden Adlandır', action:async function(){ var n = await customPrompt('Katman adı:', layerDisplayName(lyr)); if (n && n.trim()){ lyr.name = n.trim(); renderLayerTree(); } } },
         { label:'Stil', action:function(){ openLayerStyleModal(lyr.id); } },
