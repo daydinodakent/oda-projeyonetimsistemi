@@ -1142,7 +1142,18 @@
       </div>
 
       <div>
-        <span class="field-label">Katmanlar <span style="font-weight:400;">(sağ tık: klasör/katman ekle, yeniden adlandır, sil, stil)</span></span>
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <span class="field-label" style="margin-bottom:0;">Katmanlar <span style="font-weight:400;">(sağ tık: klasör/katman ekle, yeniden adlandır, sil, stil)</span></span>
+          <button type="button" class="layer-icon-btn" id="btnGdalImport" title="Genel Format İçe Aktar (GDAL/OGR) — SHP, TAB, GPX, MapInfo, GeoTIFF ve daha fazlası">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 20h16"/></svg>
+          </button>
+          <input type="file" id="gdalImportInput" multiple hidden>
+        </div>
+        <!-- GDAL/OGR (gdal3.js, tarayıcıda WASM) ile genel format içe aktarma —
+             mevcut el yazması DXF/SHP/KML/GML parser'larına HİÇ dokunmaz, ayrı
+             ve katma değerli bir yoldur (bkz. ensureGdalReady/handleGdalImportFiles).
+             gdal3.js paketi ~40MB olduğundan yalnızca İLK kullanımda indirilir. -->
+        <div id="gdalImportStatus" class="field-label" style="display:none;margin-top:4px;margin-bottom:0;"></div>
         <div class="layer-tree" id="layerTree" style="margin-top:8px;min-height:40px;"></div>
       </div>
 
@@ -9426,6 +9437,90 @@
     }catch(e){ /* yoksay */ }
     showToast((sourceLabel ? sourceLabel + ': ' : '') + converted.length + ' şekil "' + layerName + '" katmanına içe aktarıldı.');
   }
+
+  // =========================================================================
+  // FAZ 1 — Genel Format İçe Aktar (GDAL/OGR, gdal3.js ile TARAYICIDA çalışır)
+  // Yol haritası: ETL araştırması sonucu — GDAL/OGR'ın WASM'a derlenmiş hâli
+  // (gdal3.js) sunucuya hiç dosya göndermeden SHP/TAB/GPX/MapInfo/GeoTIFF gibi
+  // onlarca formatı GeoJSON'a çevirir. Mevcut el yazması DXF/SHP/KML/GML
+  // parser'larına (importSingleFile, addImportedFeatures'ın üstündeki kod)
+  // KESİNLİKLE DOKUNULMADI — bu tamamen ayrı, katma değerli bir yoldur; ikisi
+  // de aynı addImportedFeatures() ile haritaya eklenir.
+  //
+  // ÖNEMLİ: gdal3.js WASM paketi (~40MB) yalnızca kullanıcı bu özelliği İLK
+  // KEZ kullandığında indirilir (tembel yükleme) — sayfa açılışını YAVAŞLATMAZ.
+  // =========================================================================
+  var gdalInstance = null;
+  var gdalLoadingPromise = null;
+  var GDAL_CDN_BASE = 'https://cdn.jsdelivr.net/npm/gdal3.js@2.8.1/dist/package';
+  function ensureGdalReady(){
+    if (gdalInstance) return Promise.resolve(gdalInstance);
+    if (gdalLoadingPromise) return gdalLoadingPromise;
+    gdalLoadingPromise = new Promise(function(resolve, reject){
+      if (typeof window.initGdalJs === 'function'){ resolve(); return; }
+      var script = document.createElement('script');
+      script.src = GDAL_CDN_BASE + '/gdal3.js';
+      script.onload = function(){ resolve(); };
+      script.onerror = function(){ reject(new Error('gdal3.js yüklenemedi (internet/CDN erişimi gerekli).')); };
+      document.head.appendChild(script);
+    }).then(function(){
+      return window.initGdalJs({ path: GDAL_CDN_BASE, useWorker: false });
+    }).then(function(Gdal){
+      gdalInstance = Gdal;
+      return Gdal;
+    });
+    return gdalLoadingPromise;
+  }
+
+  async function handleGdalImportFiles(fileList){
+    if (!fileList || !fileList.length) return;
+    // ÖNEMLİ: fileList (input.files), çağıran 'change' dinleyicisi işi bu
+    // fonksiyona bıraktıktan HEMEN sonra input.value='' ile temizlenir — bu
+    // fonksiyon async olduğundan, dosyaları ilk await'ten (ensureGdalReady)
+    // SONRA okumaya çalışsaydık liste zaten boşalmış olurdu. Bu yüzden
+    // dosyalar İLK İŞ olarak, herhangi bir await'ten ÖNCE gerçek bir diziye
+    // kopyalanır (snapshot).
+    var files = Array.prototype.slice.call(fileList);
+    var statusEl = document.getElementById('gdalImportStatus');
+    statusEl.style.display = '';
+    statusEl.textContent = 'GDAL motoru hazırlanıyor (ilk kullanımda ~40MB indirilir, birkaç dakika sürebilir)…';
+    showLoading('GDAL motoru hazırlanıyor…');
+    try{
+      var Gdal = await ensureGdalReady();
+      statusEl.textContent = 'Dosya(lar) GDAL/OGR ile dönüştürülüyor…';
+      var result = await Gdal.open(files);
+      if (!result || !result.datasets || !result.datasets.length){
+        throw new Error('GDAL bu dosyada okunabilir bir veri kümesi bulamadı.');
+      }
+      var totalFeatures = 0;
+      for (var i = 0; i < result.datasets.length; i++){
+        var dataset = result.datasets[i];
+        var output = await Gdal.ogr2ogr(dataset, ['-f', 'GeoJSON', '-t_srs', 'EPSG:4326']);
+        var bytes = await Gdal.getFileBytes(output);
+        var geojson = JSON.parse(new TextDecoder('utf-8').decode(bytes));
+        var rawFeats = geojson.type === 'FeatureCollection' ? (geojson.features || [])
+          : geojson.type === 'Feature' ? [geojson]
+          : geojson.type ? [{ type:'Feature', geometry:geojson, properties:{} }] : [];
+        addImportedFeatures(rawFeats, dataset.name || dataset.path || (files[0] && files[0].name) || 'GDAL');
+        totalFeatures += rawFeats.length;
+        Gdal.close(dataset);
+      }
+      statusEl.textContent = totalFeatures ? (totalFeatures + ' obje GDAL/OGR ile içe aktarıldı.') : 'Dönüştürüldü ama geometri bulunamadı.';
+    }catch(err){
+      console.error('GDAL içe aktarma hatası:', err);
+      statusEl.textContent = 'Hata: ' + (err && err.message ? err.message : String(err));
+      showToast('GDAL ile içe aktarma başarısız: ' + (err && err.message ? err.message : 'bilinmeyen hata'));
+    }finally{
+      hideLoading();
+    }
+  }
+  document.getElementById('btnGdalImport').addEventListener('click', function(){
+    document.getElementById('gdalImportInput').click();
+  });
+  document.getElementById('gdalImportInput').addEventListener('change', function(e){
+    handleGdalImportFiles(e.target.files);
+    e.target.value = '';
+  });
 
   document.getElementById('btnImport').addEventListener('click', function(){
     document.getElementById('importInput').click();
