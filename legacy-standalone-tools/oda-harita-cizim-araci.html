@@ -875,18 +875,22 @@
      (yatay çizgi/sütun ayracı) yerine burada dikey bir çizgi/satır ayracı gerekir. */
   #clusterBottom > .sep{width:1px;height:20px;margin:0 2px;}
   #clusterBottomVertical{
-    position:absolute;bottom:100%;right:0;flex-direction:column;
+    /* right:-1px — clusterBottom'un PADDING kutusuna göre right:0, kendi
+       1px'lik border'ı yüzünden düğmeleri clusterBottom'daki (ör. Bilgi)
+       düğmelerine göre 1px SOLA kaydırıyordu; bu fark burada telafi edilir
+       ki iki grup görsel olarak tam hizalı görünsün. */
+    position:absolute;bottom:100%;right:-1px;flex-direction:column;
     border-radius:10px 10px var(--radius) var(--radius);
   }
   #clusterBottom button[data-tip]::after, #clusterBottomVertical button[data-tip]::after{
     right:auto;left:50%;transform:translateX(-50%);bottom:110%;top:auto;
   }
   #clusterBottom button:not(.active), #clusterBottomVertical button:not(.active){color:var(--offwhite);}
-  /* Dikey grubun İLK düğmesi (Seç) ve yatay grubun İLK düğmesi (Yakınlaştır),
-     kendi kutularının köşe yuvarlaklığıyla uyumlu olacak şekilde kendi
-     "uçlarında" daha belirgin yuvarlatılır — Bilgi düğmesinin dairesel
-     tasarımıyla aynı estetik dilde. */
-  #btnSelectMode{border-radius:10px 10px 2px 2px;}
+  /* Yatay grubun İLK düğmesi (Yakınlaştır), kendi kutusunun köşe
+     yuvarlaklığıyla uyumlu olacak şekilde kendi "ucunda" daha belirgin
+     yuvarlatılır — Bilgi düğmesinin dairesel tasarımıyla aynı estetik dilde.
+     Dikey gruptaki Seç düğmesi ise grubun DİĞER düğmeleriyle (Kaydır/Yenile)
+     aynı standart köşe yuvarlaklığını kullanır (bkz. .map-cluster button). */
   #clusterBottom #btnZoomIn{border-radius:10px 2px 2px 10px;}
   .map-cluster button{
     width:27px;height:27px;background:transparent;border:none;color:var(--offwhite);
