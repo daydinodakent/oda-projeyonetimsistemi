@@ -7458,6 +7458,12 @@
   }
 
   // "Farklı Kaydet..." — tek bir katmanın şekillerini seçilen formatta indirir.
+  // FlatGeobuf/PMTiles (FAZ 3 — ETL yol haritası, bulut-yerel formatlar):
+  // GDAL/OGR (gdal3.js, bkz. FAZ 1/ensureGdalReady) üzerinden üretilir.
+  // NOT: GeoParquet DENENDİ ama bu ortamdaki gdal3.js WASM derlemesinde
+  // Parquet/Arrow sürücüsü YOK (canlı testte doğrulandı) — bu yüzden
+  // menüde YOK; FlatGeobuf aynı "bulut-yerel, tek dosya, hızlı okunur"
+  // amacı GeoParquet'e çok yakın bir düzeyde karşılıyor.
   function showExportFormatMenu(x, y, layerId){
     showTreeContextMenu(x, y, [
       { label:'GeoJSON', action:function(){ exportLayerAs(layerId, 'geojson'); } },
@@ -7465,7 +7471,10 @@
       { label:'KMZ', action:function(){ exportLayerAs(layerId, 'kmz'); } },
       { label:'Shapefile (.zip)', action:function(){ exportLayerAs(layerId, 'shp'); } },
       { label:'GeoPackage (.gpkg)', action:function(){ exportLayerAs(layerId, 'gpkg'); } },
-      { label:'DXF', action:function(){ exportLayerAs(layerId, 'dxf'); } }
+      { label:'DXF', action:function(){ exportLayerAs(layerId, 'dxf'); } },
+      { sep:true },
+      { label:'FlatGeobuf (.fgb)', action:function(){ exportLayerAs(layerId, 'fgb'); } },
+      { label:'PMTiles (.pmtiles)', action:function(){ exportLayerAs(layerId, 'pmtiles'); } }
     ]);
   }
   function exportLayerAs(layerId, format){
@@ -7520,6 +7529,36 @@
       });
     } else if (format === 'gpkg'){
       exportFeaturesAsGeoPackage(feats, baseName);
+    } else if (format === 'fgb' || format === 'pmtiles'){
+      exportLayerViaGdal(feats, baseName, format);
+    }
+  }
+
+  // FlatGeobuf/PMTiles dışa aktarma — GDAL/OGR'ı (gdal3.js) FAZ 1'deki genel
+  // içe aktarma ile AYNI tembel-yükleme altyapısından (ensureGdalReady)
+  // kullanır, ayrıca bir kopya WASM indirmez.
+  async function exportLayerViaGdal(feats, baseName, format){
+    showLoading('GDAL motoru hazırlanıyor…');
+    var Gdal = null, dataset = null;
+    try{
+      Gdal = await ensureGdalReady();
+      var geojsonContent = JSON.stringify(fc(feats));
+      var srcFile = new File([geojsonContent], baseName + '.geojson', { type:'application/geo+json' });
+      var openResult = await Gdal.open([srcFile]);
+      dataset = openResult.datasets && openResult.datasets[0];
+      if (!dataset) throw new Error('GDAL veri kümesi oluşturulamadı.');
+      var driverName = format === 'fgb' ? 'FlatGeobuf' : 'PMTiles';
+      var ext = format === 'fgb' ? '.fgb' : '.pmtiles';
+      var output = await Gdal.ogr2ogr(dataset, ['-f', driverName]);
+      var bytes = await Gdal.getFileBytes(output);
+      downloadBlob(new Blob([bytes]), baseName + ext);
+      showToast(baseName + ext + ' indirildi (GDAL/OGR ile).');
+    }catch(err){
+      console.error('GDAL dışa aktarma hatası:', err);
+      showToast('Dışa aktarma başarısız: ' + (err && err.message ? err.message : 'bilinmeyen hata'));
+    }finally{
+      if (Gdal && dataset) try{ Gdal.close(dataset); }catch(e){ /* yoksay */ }
+      hideLoading();
     }
   }
 
