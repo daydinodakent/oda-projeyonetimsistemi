@@ -83,6 +83,13 @@ def main():
                 "global_id": product.GlobalId,
                 "height": height,
                 "base": round(min_z, 3),
+                # extrude/floors/floorHeight: legacy-standalone-tools/oda-harita-cizim-araci.html
+                # tarafında poligonun DÜZ değil 3B (fill-extrusion) katmanında
+                # çizilmesi için gereken bayrak/alanlar — istemci tarafındaki
+                # importIFC()/importGLTF() ile AYNI sözleşme (bkz. f.properties.extrude).
+                "extrude": True,
+                "floors": 1,
+                "floorHeight": height,
             },
             "geometry": {"type": "Polygon", "coordinates": [ring]},
         })

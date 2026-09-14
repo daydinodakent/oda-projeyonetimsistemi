@@ -9794,7 +9794,7 @@
     });
   }
 
-  async function handleEtlServerImport(file, endpoint, extraBody, labelForLog){
+  async function handleEtlServerImport(file, endpoint, extraBody, labelForLog, reprojectLocal){
     var statusEl = document.getElementById('gdalImportStatus');
     statusEl.style.display = '';
     statusEl.textContent = labelForLog + ' sunucuya gönderiliyor…';
@@ -9811,7 +9811,18 @@
         throw new Error(body.error || ('Sunucu hatası (' + resp.status + ')'));
       }
       var rawFeats = body.features || [];
+      // IFC/BIM elemanları dosyanın kendi yerel/proje koordinat sisteminde
+      // gelir (coğrafi referans YOKTUR — bkz. ifc_to_geojson.py başındaki
+      // not); doğrudan çizilirse harita üzerinde devasa/yanlış konumlu bir
+      // şekil olarak görünür. İstemci tarafındaki importIFC()/importGLTF()
+      // ile AYNI çözüm: placeDXFOnMap() ile mevcut harita merkezine göre
+      // yeniden konumlandırılır (bkz. dxfScaleInput — birim ölçeği).
+      if (reprojectLocal){
+        var scale = parseFloat(document.getElementById('dxfScaleInput').value) || 1;
+        rawFeats = placeDXFOnMap(rawFeats, scale);
+      }
       addImportedFeatures(rawFeats, file.name);
+      if (reprojectLocal) ensure3DView();
       var extra = (body.totalPoints && body.sampled) ? (' (' + body.totalPoints + ' noktadan ' + body.count + ' tanesi örneklendi)') : '';
       statusEl.textContent = rawFeats.length + ' obje ' + labelForLog + ' ile içe aktarıldı.' + extra;
     }catch(err){
@@ -9828,7 +9839,7 @@
   document.getElementById('ifcImportInput').addEventListener('change', function(e){
     var file = e.target.files && e.target.files[0];
     e.target.value = '';
-    if (file) handleEtlServerImport(file, '/api/etl/ifc', null, 'IFC/BIM (IfcOpenShell)');
+    if (file) handleEtlServerImport(file, '/api/etl/ifc', null, 'IFC/BIM (IfcOpenShell)', true);
   });
   document.getElementById('btnPointCloudImport').addEventListener('click', function(){
     document.getElementById('pointCloudImportInput').click();
