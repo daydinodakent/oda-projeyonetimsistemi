@@ -9287,6 +9287,49 @@
     return lower.concat(upper);
   }
 
+  // FAZ 6 (büyük dosya performansı) — GLTF/GLB ve eski (regex tabanlı, kaba)
+  // IFC içe aktarımının ORTAK darboğazı: potansiyel olarak milyonlarca köşe
+  // noktasını convexHull2D'ye (O(n log n) sıralama) TÜMÜYLE vermek hem
+  // belleği hem ana thread'i tehlikeye atar; eski kod ayrıca
+  // Math.max.apply(null, arr) kullanıyordu ki bu ~100 binin üzerindeki
+  // dizilerde "Maximum call stack size exceeded" ile TAMAMEN ÇÖKER (bir
+  // fonksiyona argüman olarak geçirilebilecek dizi uzunluğu sınırı) — yani
+  // eski kod büyük dosyalarda içe aktarmayı TAMAMLAMADAN önce zaten
+  // patlıyordu. Bu yardımcı, nokta akışını TEK GEÇİŞTE işler:
+  // - Yükseklik (üçüncü eksen) min/max'ı basit bir akan karşılaştırmayla
+  //   hesaplanır (çöküş riski YOK, ekstra dizi geçişi YOK).
+  // - Taban izdüşümü noktaları "dinamik seyreltme" ile sınırlı tutulur —
+  //   arabellek dolunca yarısı atılıp adım ikiye katlanır; böylece bellek,
+  //   girdi boyutundan BAĞIMSIZ olarak sabit kalır (~2×maxPoints) VE
+  //   convexHull2D'ye giden nokta sayısı (dolayısıyla sıralama maliyeti)
+  //   sınırlanmış olur — sunucu tarafındaki IFC ETL'nin maxElements
+  //   deseniyle AYNI fikir, istemci tarafında.
+  function createFootprintCollector(maxPoints){
+    var footprintPts = [];
+    var seen = 0;
+    var stride = 1;
+    var minH = Infinity, maxH = -Infinity;
+    return {
+      add: function(x, y, h){
+        if (h < minH) minH = h;
+        if (h > maxH) maxH = h;
+        seen++;
+        if (seen % stride !== 0) return;
+        footprintPts.push([x, y]);
+        if (footprintPts.length >= maxPoints * 2){
+          var compact = [];
+          for (var i = 0; i < footprintPts.length; i += 2) compact.push(footprintPts[i]);
+          footprintPts = compact;
+          stride *= 2;
+        }
+      },
+      finish: function(){
+        return { footprintPts: footprintPts, height: (minH === Infinity) ? 0 : Math.max(0.5, maxH - minH) };
+      }
+    };
+  }
+  var CLIENT_FOOTPRINT_MAX_POINTS = 50000; // sunucu tarafı IFC ETL'nin varsayılan maxElements'iyle AYNI
+
   // =======================================================================
   // ANALİZ — Bina gölge analizi (güneş konumu) ve zamana bağlı görüntü
   // karşılaştırma (Analiz sekmesi)
@@ -9527,24 +9570,28 @@
       buffers = await gltfLoadBuffers(gltf, siblingFiles);
     }
 
-    var points3D = [];
+    // FAZ 6 — bkz. createFootprintCollector: Y-yukarı modelde taban X,Z
+    // düzlemi, yükseklik Y ekseni. Noktalar TEK GEÇİŞTE, çöküş riski
+    // olmadan ve sınırlı bellekle toplanır (bkz. yukarıdaki yorum).
+    var collector = createFootprintCollector(CLIENT_FOOTPRINT_MAX_POINTS);
     var sceneDef = (gltf.scenes && gltf.scenes[gltf.scene||0]) || { nodes: (gltf.nodes||[]).map(function(_,i){return i;}) };
     gltfTraverseNodes(gltf, sceneDef.nodes, GLTF_IDENTITY, function(meshIndex, worldMatrix){
       var mesh = gltf.meshes[meshIndex];
       (mesh.primitives||[]).forEach(function(prim){
         var posIdx = prim.attributes && prim.attributes.POSITION;
         if (posIdx === undefined) return;
-        gltfAccessorData(gltf, buffers, posIdx).forEach(function(p){ points3D.push(gltfTransformPoint(worldMatrix, p)); });
+        gltfAccessorData(gltf, buffers, posIdx).forEach(function(p){
+          var wp = gltfTransformPoint(worldMatrix, p);
+          collector.add(wp[0], wp[2], wp[1]);
+        });
       });
     });
-    if (!points3D.length) throw new Error('modelde geometri (POSITION) bulunamadı');
+    var result = collector.finish();
+    if (!result.footprintPts.length) throw new Error('modelde geometri (POSITION) bulunamadı');
 
-    var pts2D = points3D.map(function(p){ return [p[0], p[2]]; }); // Y-yukarı: taban = X,Z düzlemi
-    var ys = points3D.map(function(p){ return p[1]; });
-    var height = Math.max(0.5, Math.max.apply(null, ys) - Math.min.apply(null, ys));
-    var hull = convexHull2D(pts2D);
+    var hull = convexHull2D(result.footprintPts);
     if (hull.length < 3) throw new Error('model için düzlemsel bir taban çıkarılamadı');
-    return { footprint: hull, height: height };
+    return { footprint: hull, height: result.height };
   }
 
   function placeLocalRingOnMap(ring2D, scale){
@@ -9589,27 +9636,29 @@
     var prefixScale = { MILLI:0.001, CENTI:0.01, DECI:0.1, DECA:10, HECTO:100, KILO:1000 };
     return (m[1] && prefixScale[m[1]] !== undefined) ? prefixScale[m[1]] : 1;
   }
-  function ifcExtractCartesianPoints(flatText, scale){
-    var points = [];
+  // FAZ 6 — GLTF ile AYNI tek-geçiş/sınırlı-bellek deseni (bkz.
+  // createFootprintCollector) burada da kullanılır; eski kod TÜM
+  // IFCCARTESIANPOINT'leri önce bir diziye toplayıp SONRA Math.max.apply
+  // ile yüksekliği hesaplıyordu — büyük bir IFC dosyasında (yüz binlerce
+  // nokta) bu, "Maximum call stack size exceeded" ile doğrudan çöküyordu.
+  function ifcExtractFootprint(flatText, scale, maxPoints){
     var re = /IFCCARTESIANPOINT\(\(\s*([\-0-9.eE]+)\s*,\s*([\-0-9.eE]+)\s*(?:,\s*([\-0-9.eE]+)\s*)?\)\)/g;
     var m;
+    var collector = createFootprintCollector(maxPoints);
     while ((m = re.exec(flatText))){
       var x = parseFloat(m[1]), y = parseFloat(m[2]), z = m[3]!==undefined ? parseFloat(m[3]) : 0;
-      if (!isNaN(x) && !isNaN(y)) points.push([x*scale, y*scale, (isNaN(z)?0:z)*scale]);
+      if (!isNaN(x) && !isNaN(y)) collector.add(x*scale, y*scale, (isNaN(z)?0:z)*scale); // IFC Z-yukarı: taban X,Y; yükseklik Z
     }
-    return points;
+    return collector.finish();
   }
   async function parseIFCFile(file){
     var flat = (await file.text()).replace(/\r?\n/g, '');
     var scale = ifcLengthUnitScale(flat);
-    var points = ifcExtractCartesianPoints(flat, scale);
-    if (!points.length) throw new Error('dosyada IFCCARTESIANPOINT bulunamadı');
-    var pts2D = points.map(function(p){ return [p[0], p[1]]; }); // IFC Z-yukarı: taban = X,Y
-    var zs = points.map(function(p){ return p[2]; });
-    var height = Math.max(0.5, Math.max.apply(null, zs) - Math.min.apply(null, zs));
-    var hull = convexHull2D(pts2D);
+    var result = ifcExtractFootprint(flat, scale, CLIENT_FOOTPRINT_MAX_POINTS);
+    if (!result.footprintPts.length) throw new Error('dosyada IFCCARTESIANPOINT bulunamadı');
+    var hull = convexHull2D(result.footprintPts);
     if (hull.length < 3) throw new Error('düzlemsel bir taban çıkarılamadı');
-    return { footprint: hull, height: height };
+    return { footprint: hull, height: result.height };
   }
   async function importIFC(file){
     var manualScale = parseFloat(document.getElementById('dxfScaleInput').value) || 1;
