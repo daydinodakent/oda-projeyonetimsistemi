@@ -609,7 +609,7 @@ export const gisBoundaryRecords: GISBoundaryRecord[] = initialProjects
     };
   });
 
-// 4 bina tipi: 3, 4, 5 ve 10 katlı — kat yüksekliği 3m (Kroki aracındaki 3B
+// 4 bina tipi: 3, 4, 5 ve 10 katlı — kat yüksekliği 3m (ODA aracındaki 3B
 // ekstrüzyon varsayılanıyla tutarlı). 10 katlı ("Kule") daha derin/kare bir
 // ayak izine sahip, diğerleri sıra/blok tipi dikdörtgen ayak izli.
 const PLANNED_FLOOR_TYPES: { floors: number; label: string; footprintW: number; footprintD: number }[] = [
@@ -708,9 +708,9 @@ export const gisBuildingRecords: GISBuildingRecord[] = initialProjects
 // AYNI serpentin sıra) izleyen, birbirine paralel (gerçek bir altyapı
 // koridoru gibi birlikte döşenmiş) 6 çizgi. Her tipin rengi burada DEĞİL,
 // tb_altyapi_tipi liste tablosunda (bkz. api.ts) tanımlıdır — line_type
-// sütunu o tabloya FK ile bağlıdır; Kroki tarafı her hattı kendi tipinin
-// rengiyle çizer (bkz. KrokiMapModule.tsx'in eklediği 'line_color'
-// özniteliği ve kroki-harita-cizim-araci.html'deki __layerColor override'ı).
+// sütunu o tabloya FK ile bağlıdır; ODA tarafı her hattı kendi tipinin
+// rengiyle çizer (bkz. OdaMapModule.tsx'in eklediği 'line_color'
+// özniteliği ve oda-harita-cizim-araci.html'deki __layerColor override'ı).
 // ---------------------------------------------------------------------
 const INFRA_TYPES: { code: GISInfrastructureRecord['line_type']; label: string; spec: string; depth: number; voltageOrPressure: string }[] = [
   { code: 'icmesuyu',   label: 'İçmesuyu',   spec: 'HDPE Ø110mm PE100',      depth: 1.2, voltageOrPressure: '10 bar' },

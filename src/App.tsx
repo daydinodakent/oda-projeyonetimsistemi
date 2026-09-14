@@ -24,7 +24,7 @@ import InsaatView from './components/InsaatView';
 import IsletmeView from './components/IsletmeView';
 import CEODashboard from './components/CEODashboard';
 import AdminPanel from './components/AdminPanel';
-import KrokiMapModule from './components/gis/KrokiMapModule';
+import OdaMapModule from './components/gis/OdaMapModule';
 
 // Dynamic Side Panels (One Map, One Timeline, One Truth)
 import PlanLeftPanel from './components/PlanLeftPanel';
@@ -1814,7 +1814,7 @@ export default function App() {
                 {centerTab === 'map' && (
                   // Köşe yuvarlaklığı kullanıcı isteğiyle %90 azaltıldı (rounded-2xl=16px → ~1.6px).
                   <div className="w-full h-[calc(100vh-170px)] min-h-[500px] bg-[var(--bg-secondary)] border border-[var(--border)] rounded-[1.6px] overflow-hidden shadow-2xl relative animate-fade-in">
-                    <KrokiMapModule activeProjectId={selectedProjectId} />
+                    <OdaMapModule activeProjectId={selectedProjectId} />
                   </div>
                 )}
 

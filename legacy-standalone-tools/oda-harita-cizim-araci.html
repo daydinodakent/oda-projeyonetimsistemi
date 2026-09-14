@@ -2135,10 +2135,10 @@
   // tıklayıp "Açılış Ekranı Yap" seçilince, o anki harita sınırları
   // (center/zoom/bearing/pitch) tarayıcının localStorage'ında saklanır ve
   // bundan sonraki her açılışta haritanın başlangıç görünümü olarak kullanılır.
-  var KROKI_HOME_VIEW_STORAGE_KEY = 'kroki_home_view_v1';
+  var ODA_HOME_VIEW_STORAGE_KEY = 'oda_home_view_v1';
   function loadHomeView(){
     try{
-      var raw = localStorage.getItem(KROKI_HOME_VIEW_STORAGE_KEY);
+      var raw = localStorage.getItem(ODA_HOME_VIEW_STORAGE_KEY);
       if (!raw) return null;
       var v = JSON.parse(raw);
       if (!v || !Array.isArray(v.center) || v.center.length !== 2) return null;
@@ -2155,13 +2155,13 @@
   // tıklayıp "Varsayılan Yap" seçilince, o altlığın id'si tarayıcının
   // localStorage'ında saklanır ve bundan sonraki her açılışta harita o altlıkla
   // başlar (bkz. loadHomeView ile aynı kalıcılık deseni).
-  var KROKI_DEFAULT_BASEMAP_STORAGE_KEY = 'kroki_default_basemap_v1';
+  var ODA_DEFAULT_BASEMAP_STORAGE_KEY = 'oda_default_basemap_v1';
   function loadDefaultBasemapId(){
-    try{ return localStorage.getItem(KROKI_DEFAULT_BASEMAP_STORAGE_KEY) || null; }
+    try{ return localStorage.getItem(ODA_DEFAULT_BASEMAP_STORAGE_KEY) || null; }
     catch(err){ return null; }
   }
   function saveDefaultBasemapId(id){
-    try{ localStorage.setItem(KROKI_DEFAULT_BASEMAP_STORAGE_KEY, id); }
+    try{ localStorage.setItem(ODA_DEFAULT_BASEMAP_STORAGE_KEY, id); }
     catch(err){ console.error('Varsayılan altlık kaydedilemedi:', err); }
   }
   var savedDefaultBasemapId = loadDefaultBasemapId();
@@ -2187,7 +2187,7 @@
     var c = map.getCenter();
     var view = { center:[c.lng, c.lat], zoom: map.getZoom(), bearing: map.getBearing(), pitch: map.getPitch() };
     try{
-      localStorage.setItem(KROKI_HOME_VIEW_STORAGE_KEY, JSON.stringify(view));
+      localStorage.setItem(ODA_HOME_VIEW_STORAGE_KEY, JSON.stringify(view));
       initialView = view;
       showToast('Açılış ekranı olarak kaydedildi — bir sonraki açılışta bu görünüm gelecek.');
     }catch(err){
@@ -3701,9 +3701,9 @@
   // ---------------------------------------------------------------------
   // Doküman Ekle: Editör > Ekle > "Doküman" — haritadaki bir objeye resim,
   // video, cad, gis, bim vb. dosyalar ekler. Eklenen dokümanlar üst pencereye
-  // (React — 'kroki:add-documents') gönderilir ve mevcut Doküman Yönetimi
+  // (React — 'oda:add-documents') gönderilir ve mevcut Doküman Yönetimi
   // altyapısına (tb_dokumanlar) kaydedilir; ardından güncel liste
-  // 'kroki:documents-updated' ile geri gelir ve featureDocumentsCache'i
+  // 'oda:documents-updated' ile geri gelir ve featureDocumentsCache'i
   // günceller (bkz. Bilgi panelindeki renderInfoDocsPanel).
   // ---------------------------------------------------------------------
   var DOC_TYPE_LABELS = { resim:'Resim', video:'Video', cad:'CAD', gis:'GIS', bim:'BIM', diger:'Diğer' };
@@ -3854,7 +3854,7 @@
     });
   }
 
-  // docUploadStagedFiles içindeki dosyaları base64'e çevirip 'kroki:add-documents'
+  // docUploadStagedFiles içindeki dosyaları base64'e çevirip 'oda:add-documents'
   // ile üst pencereye (React) gönderir — hem mevcut bir objeye anında eklerken
   // (openDocUploadModal) hem de Veri Girişi'nden gelen bekleyen dosyaları obje
   // fiilen oluşturulduğunda eklerken (bkz. addFeature) ortak kullanılır.
@@ -3873,7 +3873,7 @@
       });
     })).then(function(filesPayload){
       window.parent.postMessage({
-        type: 'kroki:add-documents',
+        type: 'oda:add-documents',
         featureId: targetFeatureId,
         projectId: projectId,
         files: filesPayload
@@ -3909,7 +3909,7 @@
   // listesini önbelleğe alır ve (varsa) o an açık olan Bilgi panelini tazeler.
   window.addEventListener('message', function(e){
     var msg = e.data;
-    if (!msg || msg.type !== 'kroki:documents-updated' || !Array.isArray(msg.documents)) return;
+    if (!msg || msg.type !== 'oda:documents-updated' || !Array.isArray(msg.documents)) return;
     featureDocumentsCache = {};
     msg.documents.forEach(function(d){
       if (!d.feature_id) return;
@@ -3930,7 +3930,7 @@
   var relationOptionsCache = {}; // { [relationTableName]: [{id, label}] } — FK combobox seçenekleri
   window.addEventListener('message', function(e){
     var msg = e.data;
-    if (!msg || msg.type !== 'kroki:load-schemas' || !msg.schemas) return;
+    if (!msg || msg.type !== 'oda:load-schemas' || !msg.schemas) return;
     Object.keys(msg.schemas).forEach(function(layerId){
       dbTableSchemas[layerId] = msg.schemas[layerId].columns || [];
     });
@@ -4107,7 +4107,7 @@
   // bir objeye tıklayınca, o objenin (veritabanı sütunlarına göre dinamik)
   // öznitelik bilgilerini VE eklenmiş dokümanlarını tek formdan güncellemeyi
   // sağlar. Kaydedilince güncel öznitelikler maybeAutoSaveDbFeature ile hem
-  // tarayıcı oturumuna hem de (kroki:update-db-feature ile) veritabanına yazılır.
+  // tarayıcı oturumuna hem de (oda:update-db-feature ile) veritabanına yazılır.
   // ---------------------------------------------------------------------
   var attributeEditMode = false;
   var attrEditTargetFeature = null;
@@ -4465,7 +4465,7 @@
   // WKB/GeoPackage ayrıştırıcılarıyla aynı yöntem). Konum bulunamazsa
   // kullanıcı "Haritada Konumla" ile haritada tıklayarak elle bir pin bırakır.
   // Kaydedilen fotoğraflar (window.parent → api.createDokuman, doc_type:
-  // 'resim', feature_id yok, lat/lng dolu) 'kroki:saha-photos-updated' ile
+  // 'resim', feature_id yok, lat/lng dolu) 'oda:saha-photos-updated' ile
   // geri gelip haritada pin+popup olarak gösterilir (bkz. ensureSahaPhotoLayer).
   // ---------------------------------------------------------------------
   var sahaPendingPhotos = [];      // henüz kaydedilmemiş, hazırlanan fotoğraflar
@@ -4697,7 +4697,7 @@
     var payload = ready.map(function(p){
       return { name: p.name, sizeLabel: formatFileSize(p.file.size), dataUrl: p.dataUrl, docType: p.docType, lat: p.lat, lng: p.lng, notes: p.notes || null };
     });
-    window.parent.postMessage({ type: 'kroki:add-saha-photos', photos: payload }, '*');
+    window.parent.postMessage({ type: 'oda:add-saha-photos', photos: payload }, '*');
     sahaPendingPhotos = sahaPendingPhotos.filter(function(p){ return p.lat == null; });
     renderSahaPendingList();
     showToast(payload.length + ' dosya kaydedildi.');
@@ -4818,7 +4818,7 @@
     return Promise.all(jobs);
   }
   // Artık listede olmayan fotoğrafların simgelerini stilden temizler (bkz.
-  // 'kroki:saha-photos-updated' dinleyicisi) — uzun oturumlarda gereksiz
+  // 'oda:saha-photos-updated' dinleyicisi) — uzun oturumlarda gereksiz
   // raster birikmesini önler.
   function sahaCleanupRemovedIcons(currentPhotos){
     var currentIds = {};
@@ -5137,8 +5137,8 @@
   // Aynı desen: mevcut Katmanlar ağacı (bkz. buildFolderRow/buildLayerRow/
   // showTreeContextMenu/dragState) — burada Saha'ya özel bir kopyası kullanılır.
   // ---------------------------------------------------------------------
-  var SAHA_FOLDERS_STORAGE_KEY = 'kroki_saha_folders_v1';
-  var SAHA_FILE_FOLDERS_STORAGE_KEY = 'kroki_saha_file_folders_v1';
+  var SAHA_FOLDERS_STORAGE_KEY = 'oda_saha_folders_v1';
+  var SAHA_FILE_FOLDERS_STORAGE_KEY = 'oda_saha_file_folders_v1';
   function loadSahaFolders(){
     try{
       var raw = localStorage.getItem(SAHA_FOLDERS_STORAGE_KEY);
@@ -5299,17 +5299,17 @@
     });
     row.querySelector('.del').addEventListener('click', function(e){
       e.stopPropagation();
-      window.parent.postMessage({ type: 'kroki:delete-saha-photo', id: p.id }, '*');
+      window.parent.postMessage({ type: 'oda:delete-saha-photo', id: p.id }, '*');
     });
     row.addEventListener('contextmenu', function(e){
       e.preventDefault(); e.stopPropagation();
       showTreeContextMenu(e.clientX, e.clientY, [
         { label:'Yeniden Adlandır', action:async function(){
             var n = await customPrompt('Dosya adı:', p.name);
-            if (n && n.trim()) window.parent.postMessage({ type:'kroki:rename-saha-photo', id:p.id, name:n.trim() }, '*');
+            if (n && n.trim()) window.parent.postMessage({ type:'oda:rename-saha-photo', id:p.id, name:n.trim() }, '*');
           } },
         { sep:true },
-        { label:'Sil', danger:true, action:function(){ window.parent.postMessage({ type:'kroki:delete-saha-photo', id:p.id }, '*'); } }
+        { label:'Sil', danger:true, action:function(){ window.parent.postMessage({ type:'oda:delete-saha-photo', id:p.id }, '*'); } }
       ]);
     });
     row.addEventListener('dragstart', function(e){
@@ -5365,7 +5365,7 @@
   document.getElementById('btnSahaAddFolder').addEventListener('click', function(){ addSahaFolderPrompt(null); });
   window.addEventListener('message', function(e){
     var msg = e.data;
-    if (!msg || msg.type !== 'kroki:saha-photos-updated' || !Array.isArray(msg.photos)) return;
+    if (!msg || msg.type !== 'oda:saha-photos-updated' || !Array.isArray(msg.photos)) return;
     sahaCleanupRemovedIcons(msg.photos);
     sahaPhotos = msg.photos;
     updateSahaPhotoSource();
@@ -6426,7 +6426,7 @@
       commitStagedDocuments(f, stagedToCommit);
     }
     // Aktif katman bir veritabanı (PostGIS) katmanıysa (id'si 'db-layer-' ile
-    // başlar — bkz. KrokiMapModule.tsx'teki postMessage köprüsü), Editör >
+    // başlar — bkz. OdaMapModule.tsx'teki postMessage köprüsü), Editör >
     // Ekle ile eklenen obje doğrudan o katmana eklenmiş sayılır ve kullanıcı
     // ayrıca "Kaydet"e basmasına gerek kalmadan oturum otomatik kaydedilir.
     if (typeof f.properties.layerId === 'string' && f.properties.layerId.indexOf('db-layer-') === 0){
@@ -6704,7 +6704,7 @@
       }
       // Altyapı hatları: katmanın TEK renginin yerine, her hattın kendi
       // altyapı tipine (içmesuyu/atıksu/yağmursuyu/doğalgaz/elektrik/fiber —
-      // bkz. tb_altyapi_tipi FK) ait rengi kullanır (KrokiMapModule.tsx'te
+      // bkz. tb_altyapi_tipi FK) ait rengi kullanır (OdaMapModule.tsx'te
       // her objeye 'line_color' özniteliği olarak eklenir).
       if (f2.properties && f2.properties.line_color) f2.properties.__layerColor = f2.properties.line_color;
       if (f2.geometry.type === 'Polygon' && f2.properties && f2.properties.extrude){
@@ -6826,12 +6826,12 @@
       saveSessionToLocalStorage();
       // Tarayıcı localStorage'ına ek olarak, bu obje asıl PostGIS veritabanı
       // (tb_proje_sinirlari / tb_binalar_3d / tb_altyapi_hatlari) katmanına
-      // aitse üst pencereye (React) 'kroki:update-db-feature' ile bildirilir;
+      // aitse üst pencereye (React) 'oda:update-db-feature' ile bildirilir;
       // üst pencere ilgili api.updateXXX() çağrısıyla güncel geometriyi/
       // öznitelikleri veritabanına (mock backend) anında yazar.
       try{
         window.parent.postMessage({
-          type: 'kroki:update-db-feature',
+          type: 'oda:update-db-feature',
           layerId: f.properties.layerId,
           featureId: f.id,
           geometry: f.geometry,
@@ -6841,11 +6841,11 @@
     }
   }
 
-  var KROKI_SESSION_STORAGE_KEY = 'kroki_session_v1';
+  var ODA_SESSION_STORAGE_KEY = 'oda_session_v1';
   function saveSessionToLocalStorage(){
     try{
       var payload = { folders: folders, layers: layers, features: features, savedAt: new Date().toISOString() };
-      localStorage.setItem(KROKI_SESSION_STORAGE_KEY, JSON.stringify(payload));
+      localStorage.setItem(ODA_SESSION_STORAGE_KEY, JSON.stringify(payload));
       showToast('Kaydedildi — ' + features.length + ' şekil tarayıcıda saklandı.');
     }catch(err){
       console.error('Oturum kaydedilemedi:', err);
@@ -6854,7 +6854,7 @@
   }
   function restoreSessionFromLocalStorage(){
     try{
-      var raw = localStorage.getItem(KROKI_SESSION_STORAGE_KEY);
+      var raw = localStorage.getItem(ODA_SESSION_STORAGE_KEY);
       if (!raw) return;
       var payload = JSON.parse(raw);
       var addedFeatureCount = 0;
@@ -7429,7 +7429,7 @@
   // haritadaki bütün katman/klasörlerin şekillerini) tek bir .gpkg dosyasında
   // (geometri türüne göre ayrı tablolar halinde) dışa aktarır.
   function exportAllAsGeoPackage(){
-    exportFeaturesAsGeoPackage(features, 'kroki_tum_cizim');
+    exportFeaturesAsGeoPackage(features, 'oda_tum_cizim');
   }
 
   // "Farklı Kaydet..." — tek bir katmanın şekillerini seçilen formatta indirir.
@@ -9722,7 +9722,7 @@
   var dbLayersLoaded = false;
   window.addEventListener('message', function(e){
     var msg = e.data;
-    if (!msg || msg.type !== 'kroki:load-db-layers' || dbLayersLoaded) return;
+    if (!msg || msg.type !== 'oda:load-db-layers' || dbLayersLoaded) return;
     dbLayersLoaded = true;
     try{
       (msg.folders || []).forEach(function(f){
@@ -9757,13 +9757,13 @@
   });
 
   // ---------------------------------------------------------------------
-  // "kroki:zoom-to-project" — üst panelden bir proje seçildiğinde
-  // (KrokiMapModule.tsx), o projenin sınır kutusuna (bbox: [minLng,minLat,
+  // "oda:zoom-to-project" — üst panelden bir proje seçildiğinde
+  // (OdaMapModule.tsx), o projenin sınır kutusuna (bbox: [minLng,minLat,
   // maxLng,maxLat]) yakınlaşır.
   // ---------------------------------------------------------------------
   window.addEventListener('message', function(e){
     var msg = e.data;
-    if (!msg || msg.type !== 'kroki:zoom-to-project' || !Array.isArray(msg.bbox)) return;
+    if (!msg || msg.type !== 'oda:zoom-to-project' || !Array.isArray(msg.bbox)) return;
     try{
       map.fitBounds(msg.bbox, { padding:60, duration:800, maxZoom:16 });
     }catch(err){
@@ -10276,18 +10276,18 @@
   }
 
   // Üst pencereye "haritaya katman göndermeye hazırım" sinyali — üst pencere
-  // bu mesajı bekleyip ardından 'kroki:load-db-layers' mesajını gönderir.
+  // bu mesajı bekleyip ardından 'oda:load-db-layers' mesajını gönderir.
   // Tek seferlik gönderim yeterli değildir: React tarafındaki 'message'
   // dinleyicisi (React 18/19 StrictMode altında efektlerin geliştirmede iki
   // kez çalıştırılması gibi nedenlerle) bu sinyal gönderildiği anda henüz
   // takılı olmayabilir — bu durumda postMessage sessizce kaybolur ve
   // veritabanı katmanları (dolayısıyla treeview) hiç yüklenmez. Bu yüzden
-  // 'kroki:load-db-layers' yanıtı gelene kadar sinyal periyodik olarak
+  // 'oda:load-db-layers' yanıtı gelene kadar sinyal periyodik olarak
   // tekrar gönderilir; alıcı taraf zaten idempotent (dbLayersLoaded bayrağı
   // ve id bazlı birleştirme) olduğu için tekrarlar zararsızdır.
   function sendReadySignal(){
     if (dbLayersLoaded) return;
-    try{ window.parent.postMessage({ type:'kroki:ready' }, '*'); }catch(e){ /* izole/erişilemez üst pencere — yoksay */ }
+    try{ window.parent.postMessage({ type:'oda:ready' }, '*'); }catch(e){ /* izole/erişilemez üst pencere — yoksay */ }
   }
   sendReadySignal();
   var readyRetryCount = 0;

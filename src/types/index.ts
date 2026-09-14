@@ -105,8 +105,8 @@ export interface Bina3DRecord extends BaseEntity {
 // 6b. Altyapı Tipleri (LISTE) — tb_altyapi_hatlari.line_type sütununun FK
 // ile bağlandığı ortak altyapı türü listesi (bkz. tb_altyapi_tipi). Her
 // türün haritada çizilirken kullanılan kendi rengi vardır (bkz.
-// KrokiMapModule.tsx'in altyapı objelerine eklediği 'line_color' özniteliği
-// ve Kroki'deki visibleFeaturesForRender → __layerColor override'ı).
+// OdaMapModule.tsx'in altyapı objelerine eklediği 'line_color' özniteliği
+// ve ODA'deki visibleFeaturesForRender → __layerColor override'ı).
 export interface AltyapiTipiRecord extends BaseEntity {
   name: string;
   code: string;
@@ -185,7 +185,7 @@ export interface DokumanRecord extends BaseEntity {
   project_id: string;
   block_id?: string | null;
   task_id?: string | null;
-  // Haritadaki (Kroki CBS aracı) bir objeye ("obje" = herhangi bir GIS
+  // Haritadaki (ODA CBS aracı) bir objeye ("obje" = herhangi bir GIS
   // şekli — bina, altyapı hattı, proje sınırı vb.) doğrudan eklenen
   // dokümanlar için: o objenin harita üzerindeki kararlı feature id'si.
   feature_id?: string | null;
