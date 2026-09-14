@@ -1540,7 +1540,7 @@ export const GisMap: React.FC = () => {
 
         {infoOpen && (
           <div className="bg-[#0f1e29] border border-[#24404f] rounded-xl p-3 w-56 text-xs text-left shadow-2xl space-y-1">
-            <h4 className="font-bold text-white uppercase text-[10px]">Kroki — Harita & Çizim Editörü</h4>
+            <h4 className="font-bold text-white uppercase text-[10px]">ODA — Harita & Çizim Editörü</h4>
             <p className="text-[#7f9aa8] leading-relaxed text-[10px]">
               Tüm harita çizimleri, 3B bina ekstrüzyonları, drone drone dronedrone dronedrone görüntü entegrasyonları tarayıcınızda güvenle işlenir ve saklanır.
             </p>

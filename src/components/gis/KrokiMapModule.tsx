@@ -508,7 +508,7 @@ const KrokiMapModule: React.FC<KrokiMapModuleProps> = ({ activeProjectId }) => {
     <iframe
       ref={iframeRef}
       src={krokiHtmlUrl}
-      title="Kroki — Harita Çizim Aracı"
+      title="ODA — Harita Çizim Aracı"
       style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
       sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals allow-downloads"
     />
