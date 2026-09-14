@@ -1172,6 +1172,11 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 9l6 6 6-6"/></svg>
             </button>
             <div id="mapSplitMenu" class="split-btn-menu">
+              <div class="split-btn-menu-item" id="btnMapNew">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z"/><path d="M9 4v14M15 6v14"/></svg>
+                <span>Yeni CBS Haritası</span>
+              </div>
+              <div class="ctx-menu-sep"></div>
               <div class="split-btn-menu-item" id="btnMapExport">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 15V3"/><path d="M7 8l5-5 5 5"/><path d="M4 21h16"/></svg>
                 <span>Export (GeoPackage)</span>
@@ -6939,7 +6944,11 @@
   var ODA_SESSION_STORAGE_KEY = 'oda_session_v1';
   function saveSessionToLocalStorage(){
     try{
-      var payload = { folders: folders, layers: layers, features: features, savedAt: new Date().toISOString() };
+      // maps: "Yeni CBS Haritası" ile oluşturulan haritalar da kalıcı
+      // olsun diye kaydedilir — aksi halde sayfa yenilendiğinde maps[]
+      // sabit ilk değerine ('Genel') dönerdi ama o haritaya ait
+      // folders/layers (mapId referanslı) sahipsiz kalırdı.
+      var payload = { maps: maps, folders: folders, layers: layers, features: features, savedAt: new Date().toISOString() };
       localStorage.setItem(ODA_SESSION_STORAGE_KEY, JSON.stringify(payload));
       showToast('Kaydedildi — ' + features.length + ' şekil tarayıcıda saklandı.');
     }catch(err){
@@ -6954,6 +6963,9 @@
       var payload = JSON.parse(raw);
       var addedFeatureCount = 0;
       var addedFolderOrLayerCount = 0;
+      (payload.maps || []).forEach(function(m){
+        if (!maps.some(function(x){ return x.id === m.id; })) maps.push(m);
+      });
       (payload.folders || []).forEach(function(f){
         if (!folders.some(function(x){ return x.id === f.id; })){ folders.push(f); addedFolderOrLayerCount++; }
       });
@@ -7522,9 +7534,39 @@
 
   // "Export (GeoPackage)" — CBS Haritası split-butonundan: TÜM çizimi (aktif
   // haritadaki bütün katman/klasörlerin şekillerini) tek bir .gpkg dosyasında
-  // (geometri türüne göre ayrı tablolar halinde) dışa aktarır.
+  // (geometri türüne göre ayrı tablolar halinde) dışa aktarır. Dosya adı
+  // aktif CBS Haritasının adıdır (bkz. exportFeaturesAsGeoPackage — adı
+  // dosya sistemi için güvenli hale getirir). Yalnızca AKTİF haritanın
+  // katmanlarına ait şekiller dahil edilir — visibleFeaturesForRender()
+  // (harita render mantığı) ile AYNI mapId filtresi kullanılır, böylece
+  // birden fazla CBS Haritası varken başka bir haritanın çizimleri
+  // dışa aktarıma karışmaz.
   function exportAllAsGeoPackage(){
-    exportFeaturesAsGeoPackage(features, 'oda_tum_cizim');
+    var activeMap = maps.find(function(m){ return m.id === activeMapId; });
+    var mapLayerIds = layers.filter(function(l){ return l.mapId === activeMapId; }).map(function(l){ return l.id; });
+    var mapFeats = features.filter(function(f){ return f.properties && mapLayerIds.indexOf(f.properties.layerId) >= 0; });
+    exportFeaturesAsGeoPackage(mapFeats, (activeMap && activeMap.name) || 'oda_tum_cizim');
+  }
+
+  // "Yeni CBS Haritası" — split-buton menüsünün en üstünde: isim sorar,
+  // onaylanınca yeni bir harita (ve tek bir varsayılan/kök klasör) oluşturup
+  // onu etkinleştirir. Katman ağacı (renderLayerTree) ve harita render'ı
+  // (renderFeatures) zaten activeMapId'ye göre filtrelendiğinden (bkz.
+  // visibleFeaturesForRender), yeni haritaya geçilince treeview otomatik
+  // olarak BOŞ (sıfırlanmış) görünür — ekstra bir "temizleme" adımı gerekmez.
+  async function createNewCbsMap(){
+    var name = await customPrompt('Yeni CBS haritası için bir ad girin:', 'Yeni Harita');
+    if (!name || !name.trim()) return;
+    var trimmed = name.trim();
+    var newMapId = 'map-' + uid();
+    maps.push({ id:newMapId, name:trimmed });
+    folders.push({ id:'folder-' + uid(), name:trimmed, mapId:newMapId, parentFolderId:null, expanded:true, deletable:false });
+    activeMapId = newMapId;
+    activeLayerId = null;
+    renderLayerTree();
+    renderFeatures();
+    saveSessionToLocalStorage();
+    showToast('"' + trimmed + '" CBS haritası oluşturuldu ve etkinleştirildi.');
   }
 
   // "Farklı Kaydet..." — tek bir katmanın şekillerini seçilen formatta indirir.
@@ -8048,6 +8090,11 @@
     e.stopPropagation();
     document.getElementById('mapSplitMenu').classList.remove('show');
     saveSessionToLocalStorage();
+  });
+  document.getElementById('btnMapNew').addEventListener('click', function(e){
+    e.stopPropagation();
+    document.getElementById('mapSplitMenu').classList.remove('show');
+    createNewCbsMap();
   });
   document.getElementById('btnMapImport').addEventListener('click', function(e){
     e.stopPropagation();
