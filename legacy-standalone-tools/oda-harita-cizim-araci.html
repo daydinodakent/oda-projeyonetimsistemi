@@ -1625,7 +1625,12 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></svg>
   </button>
   <div id="basemapPopover">
-    <span class="field-label" style="margin-bottom:2px;">Altlık Haritalar</span>
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <span class="field-label" style="margin-bottom:2px;">Altlık Haritalar</span>
+      <button type="button" class="layer-icon-btn" id="btnAddXyzLayer" title="Web Servisi Ekle (XYZ Katmanı) — özel bir tile URL'si (ör. {z}/{x}/{y}.png) ile yeni bir altlık ekle">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
+    </div>
     <div class="style-row" id="styleRow"></div>
   </div>
 </div>
@@ -8324,7 +8329,7 @@
       c.classList.toggle('is-default', c.getAttribute('data-style-id') === defId);
     });
   }
-  STYLES.forEach(function(s){
+  function createStyleButton(s){
     var b = document.createElement('div');
     b.className = 'style-btn' + (s.id === currentStyleId ? ' active' : '');
     b.setAttribute('data-style-id', s.id);
@@ -8345,8 +8350,45 @@
       showToast(s.label + ' varsayılan açılış altlığı yapıldı.');
     });
     styleRow.appendChild(b);
-  });
+    return b;
+  }
+  STYLES.forEach(createStyleButton);
   refreshDefaultBasemapMarkers();
+
+  // ---------------------------------------------------------------------
+  // FAZ 5 — Web Servisi Ekle (XYZ Katmanı). ETL yol haritasındaki GeoLibre
+  // tarzı "Veri Ekle" menüsünün "Web servisleri" kategorisinin ilk somut
+  // adımı: kullanıcı {z}/{x}/{y} içeren bir tile URL şablonu girip özel bir
+  // raster altlık ekleyebilir — MapLibre'nin YERLEŞİK raster kaynak desteğini
+  // kullanır (googleRasterStyle ile AYNI kalıp), yeni bir kütüphane/bağımlılık
+  // GEREKTİRMEZ. Eklenen altlık yalnızca bu oturumda (sayfa yenilenene kadar)
+  // kalıcıdır — Altlık Haritalar listesindeki diğerleri gibi kalıcı
+  // saklanmaz (isteğe bağlı bir sonraki adım olabilir).
+  document.getElementById('btnAddXyzLayer').addEventListener('click', async function(e){
+    e.stopPropagation();
+    var name = await customPrompt('Yeni altlık için bir ad girin:', 'Özel XYZ Katmanı');
+    if (!name || !name.trim()) return;
+    var url = await customPrompt('Tile URL şablonu girin ({z}/{x}/{y} içermeli):', 'https://example.com/tiles/{z}/{x}/{y}.png');
+    if (!url || !url.trim()) return;
+    if (url.indexOf('{z}') === -1 || url.indexOf('{x}') === -1 || url.indexOf('{y}') === -1){
+      showToast('Geçersiz URL — {z}, {x} ve {y} yer tutucularını içermeli.');
+      return;
+    }
+    var id = 'xyz-' + uid();
+    var entry = {
+      id: id, label: name.trim(),
+      style: {
+        version: 8,
+        sources: { 'xyz-custom-src': { type:'raster', tiles:[url.trim()], tileSize:256 } },
+        layers: [{ id:'xyz-custom-layer', type:'raster', source:'xyz-custom-src' }]
+      }
+    };
+    STYLES.push(entry);
+    var btn = createStyleButton(entry);
+    document.getElementById('basemapPopover').classList.remove('show');
+    btn.click();
+    showToast('"' + entry.label + '" altlığı eklendi.');
+  });
 
   // ---------------------------------------------------------------------
   // Ölçüm ve panel
