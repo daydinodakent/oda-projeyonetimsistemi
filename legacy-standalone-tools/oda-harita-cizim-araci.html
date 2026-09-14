@@ -1142,17 +1142,31 @@
       </div>
 
       <div>
-        <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:2px;">
           <span class="field-label" style="margin-bottom:0;">Katmanlar <span style="font-weight:400;">(sağ tık: klasör/katman ekle, yeniden adlandır, sil, stil)</span></span>
-          <button type="button" class="layer-icon-btn" id="btnGdalImport" title="Genel Format İçe Aktar (GDAL/OGR) — SHP, TAB, GPX, MapInfo, GeoTIFF ve daha fazlası">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 20h16"/></svg>
-          </button>
+          <div style="display:flex;gap:2px;flex:0 0 auto;">
+            <button type="button" class="layer-icon-btn" id="btnGdalImport" title="Genel Format İçe Aktar (GDAL/OGR) — SHP, TAB, GPX, MapInfo, GeoTIFF ve daha fazlası">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 20h16"/></svg>
+            </button>
+            <button type="button" class="layer-icon-btn" id="btnIfcImport" title="Gelişmiş IFC/BIM İçe Aktar (IfcOpenShell, sunucu) — her eleman ayrı taban izdüşümü + yükseklik ile">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 21V8l9-5 9 5v13"/><path d="M9 21V12h6v9"/></svg>
+            </button>
+            <button type="button" class="layer-icon-btn" id="btnPointCloudImport" title="Nokta Bulutu İçe Aktar (LAS/LAZ, sunucu) — büyük dosyalarda örneklenerek gösterilir">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="5" cy="6" r="1.3" fill="currentColor" stroke="none"/><circle cx="12" cy="4" r="1.3" fill="currentColor" stroke="none"/><circle cx="19" cy="7" r="1.3" fill="currentColor" stroke="none"/><circle cx="7" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="15" cy="11" r="1.3" fill="currentColor" stroke="none"/><circle cx="4" cy="18" r="1.3" fill="currentColor" stroke="none"/><circle cx="11" cy="17" r="1.3" fill="currentColor" stroke="none"/><circle cx="18" cy="16" r="1.3" fill="currentColor" stroke="none"/><circle cx="14" cy="20" r="1.3" fill="currentColor" stroke="none"/></svg>
+            </button>
+          </div>
           <input type="file" id="gdalImportInput" multiple hidden>
+          <input type="file" id="ifcImportInput" accept=".ifc" hidden>
+          <input type="file" id="pointCloudImportInput" accept=".las,.laz" hidden>
         </div>
         <!-- GDAL/OGR (gdal3.js, tarayıcıda WASM) ile genel format içe aktarma —
              mevcut el yazması DXF/SHP/KML/GML parser'larına HİÇ dokunmaz, ayrı
              ve katma değerli bir yoldur (bkz. ensureGdalReady/handleGdalImportFiles).
-             gdal3.js paketi ~40MB olduğundan yalnızca İLK kullanımda indirilir. -->
+             gdal3.js paketi ~40MB olduğundan yalnızca İLK kullanımda indirilir.
+             Gelişmiş IFC ve Nokta Bulutu düğmeleri ise SUNUCUDAKİ Python
+             tabanlı ETL uç noktalarını (server/etl/*.py, bkz. server/index.js
+             /api/etl/ifc ve /api/etl/pointcloud) çağırır — FAZ 2, ETL yol
+             haritası. Üçü de aynı durum satırını (gdalImportStatus) paylaşır. -->
         <div id="gdalImportStatus" class="field-label" style="display:none;margin-top:4px;margin-bottom:0;"></div>
         <div class="layer-tree" id="layerTree" style="margin-top:8px;min-height:40px;"></div>
       </div>
@@ -9520,6 +9534,72 @@
   document.getElementById('gdalImportInput').addEventListener('change', function(e){
     handleGdalImportFiles(e.target.files);
     e.target.value = '';
+  });
+
+  // -------------------------------------------------------------------
+  // FAZ 2 — Gelişmiş IFC/BIM ve Nokta Bulutu (LAS/LAZ) içe aktarma.
+  // Sunucudaki Python ETL uç noktalarını (IfcOpenShell/laspy, bkz.
+  // server/index.js /api/etl/*) çağırır — dosya base64 olarak gönderilir,
+  // dönen GeoJSON addImportedFeatures() ile haritaya eklenir. Mevcut
+  // client-side importIFC()'ye (kaba tek-poligon) DOKUNULMADI; bu, "IFC/BIM
+  // İçe Aktar" ile aynı anda seçilebilen, AYRI ve daha hassas bir yoldur.
+  // -------------------------------------------------------------------
+  function fileToBase64(file){
+    return new Promise(function(resolve, reject){
+      var reader = new FileReader();
+      reader.onload = function(){
+        var result = reader.result; // "data:<mime>;base64,AAAA..."
+        var commaIdx = result.indexOf(',');
+        resolve(commaIdx >= 0 ? result.slice(commaIdx + 1) : result);
+      };
+      reader.onerror = function(){ reject(new Error('Dosya okunamadı.')); };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function handleEtlServerImport(file, endpoint, extraBody, labelForLog){
+    var statusEl = document.getElementById('gdalImportStatus');
+    statusEl.style.display = '';
+    statusEl.textContent = labelForLog + ' sunucuya gönderiliyor…';
+    showLoading(labelForLog + ' işleniyor…');
+    try{
+      var dataBase64 = await fileToBase64(file);
+      var resp = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(Object.assign({ fileName: file.name, dataBase64: dataBase64 }, extraBody || {}))
+      });
+      var body = await resp.json();
+      if (!resp.ok || body.error){
+        throw new Error(body.error || ('Sunucu hatası (' + resp.status + ')'));
+      }
+      var rawFeats = body.features || [];
+      addImportedFeatures(rawFeats, file.name);
+      var extra = (body.totalPoints && body.sampled) ? (' (' + body.totalPoints + ' noktadan ' + body.count + ' tanesi örneklendi)') : '';
+      statusEl.textContent = rawFeats.length + ' obje ' + labelForLog + ' ile içe aktarıldı.' + extra;
+    }catch(err){
+      console.error(labelForLog + ' içe aktarma hatası:', err);
+      statusEl.textContent = 'Hata: ' + (err && err.message ? err.message : String(err));
+      showToast(labelForLog + ' ile içe aktarma başarısız: ' + (err && err.message ? err.message : 'bilinmeyen hata') + ' (sunucuda Python/IfcOpenShell/laspy kurulu olmayabilir).');
+    }finally{
+      hideLoading();
+    }
+  }
+  document.getElementById('btnIfcImport').addEventListener('click', function(){
+    document.getElementById('ifcImportInput').click();
+  });
+  document.getElementById('ifcImportInput').addEventListener('change', function(e){
+    var file = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (file) handleEtlServerImport(file, '/api/etl/ifc', null, 'IFC/BIM (IfcOpenShell)');
+  });
+  document.getElementById('btnPointCloudImport').addEventListener('click', function(){
+    document.getElementById('pointCloudImportInput').click();
+  });
+  document.getElementById('pointCloudImportInput').addEventListener('change', function(e){
+    var file = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (file) handleEtlServerImport(file, '/api/etl/pointcloud', { maxPoints: 20000 }, 'Nokta Bulutu (LAS/LAZ)');
   });
 
   document.getElementById('btnImport').addEventListener('click', function(){

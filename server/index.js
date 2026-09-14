@@ -33,8 +33,12 @@ import { listRecords, getRecord, putRecord, seedIfEmpty } from './db.js';
 import { buildGeoPackageBuffer } from './gpkg.js';
 import path from 'node:path';
 import fs from 'node:fs';
+import os from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 
+const execFileAsync = promisify(execFile);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DIST_DIR = path.join(__dirname, '..', 'dist');
 
@@ -87,6 +91,59 @@ app.get('/api/export/gpkg', (req, res) => {
     console.error('GeoPackage dışa aktarımı başarısız:', err);
     res.status(500).json({ error: String(err && err.message || err) });
   }
+});
+
+// --- FAZ 2 (ETL yol haritası): IFC/BIM ve nokta bulutu (LAS/LAZ) içe
+// aktarma — GDAL/OGR'ın kapsamadığı, Python tabanlı özel kütüphaneler
+// (IfcOpenShell, laspy) gerektiren formatlar. NOT: bu iki sabit rota da
+// (GPKG export gibi) aşağıdaki generic "/api/:table" deseninden ÖNCE
+// tanımlanmalıdır — aksi halde Express "/api/etl/ifc"i table="etl" id="ifc"
+// olarak eşleştirir.
+//
+// İstemci dosyayı base64 olarak JSON gövdesinde gönderir (mevcut doküman
+// yükleme akışıyla aynı desen — bkz. src/services/api.ts), sunucu geçici
+// bir dosyaya yazıp ilgili Python script'ini child_process ile çalıştırır,
+// stdout'taki GeoJSON'u olduğu gibi istemciye döner. Python veya ilgili
+// kütüphane (ifcopenshell/laspy) bu ortamda yoksa 500 ile AÇIK bir hata
+// mesajı döner — sessizce başarısız olmaz.
+function runEtlScript(scriptName, tmpPath, extraArgs = []) {
+  const scriptPath = path.join(__dirname, 'etl', scriptName);
+  return execFileAsync('python', [scriptPath, tmpPath, ...extraArgs], { maxBuffer: 200 * 1024 * 1024 });
+}
+
+async function handleEtlUpload(req, res, scriptName, extraArgs) {
+  const { fileName, dataBase64 } = req.body || {};
+  if (!fileName || !dataBase64) {
+    return res.status(400).json({ error: 'fileName ve dataBase64 (base64 dosya içeriği) gerekli.' });
+  }
+  const tmpPath = path.join(os.tmpdir(), `oda_etl_${Date.now()}_${fileName.replace(/[^a-zA-Z0-9._-]/g, '_')}`);
+  try {
+    fs.writeFileSync(tmpPath, Buffer.from(dataBase64, 'base64'));
+    const { stdout } = await runEtlScript(scriptName, tmpPath, extraArgs);
+    let parsed;
+    try { parsed = JSON.parse(stdout); }
+    catch { return res.status(500).json({ error: 'ETL script geçersiz çıktı üretti: ' + stdout.slice(0, 500) }); }
+    if (parsed.error) return res.status(422).json({ error: parsed.error });
+    res.json(parsed);
+  } catch (err) {
+    console.error(`ETL (${scriptName}) başarısız:`, err);
+    const msg = err && err.code === 'ENOENT'
+      ? 'Sunucuda Python bulunamadı — bu ETL özelliği bu ortamda kullanılamıyor.'
+      : String(err && err.message || err);
+    res.status(500).json({ error: msg });
+  } finally {
+    try { fs.unlinkSync(tmpPath); } catch { /* zaten silinmiş olabilir */ }
+  }
+}
+
+// IFC/nokta bulutu dosyaları genelde doküman önizlemelerinden (25mb) daha
+// büyük olabildiğinden bu iki rotaya özel, daha yüksek bir JSON gövde
+// limiti tanımlanır (yalnızca bu rotalarda — global limit değişmez).
+const etlBodyParser = express.json({ limit: '150mb' });
+app.post('/api/etl/ifc', etlBodyParser, (req, res) => handleEtlUpload(req, res, 'ifc_to_geojson.py', []));
+app.post('/api/etl/pointcloud', etlBodyParser, (req, res) => {
+  const maxPoints = req.body && req.body.maxPoints ? String(req.body.maxPoints) : '20000';
+  return handleEtlUpload(req, res, 'pointcloud_to_geojson.py', [maxPoints]);
 });
 
 // --- Generic CRUD: her tablo için aynı davranış ---
