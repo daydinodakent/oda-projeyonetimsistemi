@@ -1763,11 +1763,28 @@
     <button id="btnLayerRotate" data-tip="Katmanı döndür">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg>
     </button>
-    <div id="layerRotatePopover" class="split-btn-menu" style="top:0;right:100%;margin-right:4px;min-width:170px;flex-direction:column;padding:10px;">
-      <span class="field-label" style="margin:0 0 6px;">Döndür</span>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <input type="range" id="layerRotateSlider" min="-180" max="180" value="0" step="1" style="flex:1;">
-        <b id="layerRotateVal" style="font-family:var(--font-mono);font-size:11px;color:var(--text);width:38px;text-align:right;">0°</b>
+    <!-- Kadran (dial) — döngüsel sürükleme ile döndürme; "ilerleme çubuğu"
+         (linear slider) yerine, döndürme eylemiyle görsel/fiziksel olarak
+         eşleşen dairesel bir kontrol (bkz. dialPointerAngle/uygulanan açı
+         her zaman saat yönünde pozitif — turf.transformRotate ile AYNI
+         işaret kuralı). Sayı kutusu, kadranla TAM SENKRON (bkz.
+         applyLayerRotate — ikisi de aynı fonksiyonu çağırır) hassas/elle
+         giriş içindir. -->
+    <div id="layerRotatePopover" class="split-btn-menu" style="top:0;right:100%;margin-right:4px;min-width:0;flex-direction:column;align-items:center;padding:10px;">
+      <span class="field-label" style="margin:0 0 8px;align-self:flex-start;">Döndür</span>
+      <div id="layerRotateDial" title="Sürükleyerek döndürün" style="position:relative;width:64px;height:64px;cursor:grab;touch-action:none;">
+        <svg viewBox="0 0 64 64" width="64" height="64" style="display:block;">
+          <circle cx="32" cy="32" r="29" fill="var(--bg-panel-raise)" stroke="var(--line)" stroke-width="1.5"/>
+          <circle cx="32" cy="32" r="29" fill="none" stroke="var(--line-soft)" stroke-width="1" stroke-dasharray="1 6.5"/>
+          <g id="layerRotateNeedleGroup">
+            <line x1="32" y1="32" x2="32" y2="9" stroke="var(--amber)" stroke-width="2.5" stroke-linecap="round"/>
+            <circle cx="32" cy="32" r="3" fill="var(--amber)"/>
+          </g>
+        </svg>
+      </div>
+      <div style="display:flex;align-items:center;gap:4px;margin-top:8px;">
+        <input type="number" id="layerRotateVal" value="0" step="1" style="width:52px;background:var(--bg-panel-raise);border:1px solid var(--line);color:var(--text);border-radius:2px;padding:4px 6px;font-family:var(--font-mono);font-size:11px;text-align:right;">
+        <span class="field-label" style="margin:0;">derece</span>
       </div>
     </div>
   </div>
@@ -1780,7 +1797,10 @@
       <span class="field-label" style="margin:0 0 6px;">Ölçekle</span>
       <div style="display:flex;align-items:center;gap:8px;">
         <input type="range" id="layerScaleSlider" min="20" max="300" value="100" step="1" style="flex:1;">
-        <b id="layerScaleVal" style="font-family:var(--font-mono);font-size:11px;color:var(--text);width:38px;text-align:right;">100%</b>
+        <div style="display:flex;align-items:center;gap:2px;flex:0 0 auto;">
+          <input type="number" id="layerScaleVal" value="100" min="1" step="1" style="width:46px;background:var(--bg-panel-raise);border:1px solid var(--line);color:var(--text);border-radius:2px;padding:4px 4px;font-family:var(--font-mono);font-size:11px;text-align:right;">
+          <span style="font-family:var(--font-mono);font-size:11px;color:var(--text);">%</span>
+        </div>
       </div>
     </div>
   </div>
@@ -8840,10 +8860,22 @@
     if (!activeLayerId) return [];
     return features.filter(function(f){ return f.properties && f.properties.layerId === activeLayerId; });
   }
+  // Araç çubuğu yalnızca GERÇEK bir "dosya" katmanında görünür — DB'ye
+  // bağlı proje katmanları (tb_proje_sinirlari/tb_binalar_3d/tb_altyapi_hatlari,
+  // id'leri "db-layer-" ile başlar) ve özel Ölçüm katmanı KASITLI olarak
+  // hariç tutulur: bunlar tek bir "dosya" değil, canlı proje veritabanının
+  // ya da ölçüm aracının kendisidir — toplu taşı/döndür/ölçekle onlar için
+  // anlamsız (ve riskli) olurdu.
+  function isTransformableActiveLayer(){
+    if (!activeLayerId) return false;
+    if (activeLayerId === MEASURE_LAYER_ID) return false;
+    if (String(activeLayerId).indexOf('db-layer-') === 0) return false;
+    return true;
+  }
   function updateLayerTransformToolbar(){
     var cluster = document.getElementById('clusterLayerTransform');
     if (!cluster) return;
-    var hasFeats = activeLayerFeatures().length > 0;
+    var hasFeats = isTransformableActiveLayer() && activeLayerFeatures().length > 0;
     cluster.style.display = hasFeats ? 'flex' : 'none';
     if (!hasFeats) setLayerMoveMode(false);
   }
@@ -8931,77 +8963,162 @@
     window.addEventListener('blur', onWindowUp);
   }
 
-  // ---- Döndür ----
+  // ---- Döndür (kadran + sayı kutusu, ikisi de AYNI applyLayerRotate'i
+  // çağırır — "ilerleme çubuğu" (linear slider) yerine, döndürme eylemiyle
+  // görsel olarak eşleşen dairesel bir kadran kullanılır; sayı kutusu
+  // hassas/elle giriş için kadranla tam senkron çalışır.) ----
   var layerRotateBase = null;
   var layerRotateHistoryPushed = false;
-  var layerRotateSlider = document.getElementById('layerRotateSlider');
-  var layerRotateVal = document.getElementById('layerRotateVal');
+  var layerRotateValInput = document.getElementById('layerRotateVal');
+  var layerRotateDial = document.getElementById('layerRotateDial');
+  var layerRotateNeedle = document.getElementById('layerRotateNeedleGroup');
   document.getElementById('btnLayerRotate').addEventListener('click', function(e){
     e.stopPropagation();
     document.getElementById('layerScalePopover').classList.remove('show');
     document.getElementById('layerRotatePopover').classList.toggle('show');
   });
-  layerRotateSlider.addEventListener('pointerdown', function(){
-    layerRotateHistoryPushed = false;
-    layerRotateBase = snapshotLayerTransformBase();
-  });
-  layerRotateSlider.addEventListener('input', function(){
-    if (!layerRotateBase) return;
+  function ensureRotateBase(){
+    if (!layerRotateBase) layerRotateBase = snapshotLayerTransformBase();
+    return layerRotateBase;
+  }
+  function setRotateDialAngle(angle){
+    if (layerRotateNeedle) layerRotateNeedle.setAttribute('transform', 'rotate(' + angle + ' 32 32)');
+  }
+  // angle: pivot (katmanın ortak merkezi) etrafında, turf.transformRotate
+  // ile AYNI işaret kuralında (saat yönü pozitif) UYGULANACAK TOPLAM sapma.
+  function applyLayerRotate(angle){
+    var base = ensureRotateBase();
+    if (!base) return;
     if (!layerRotateHistoryPushed){ pushHistory(); layerRotateHistoryPushed = true; }
-    var angle = parseFloat(layerRotateSlider.value);
-    layerRotateVal.textContent = angle + '°';
-    layerRotateBase.geoms.forEach(function(g){
+    base.geoms.forEach(function(g){
       var f = features.find(function(x){ return x.id === g.id; });
       if (!f) return;
       try{
-        var base = { type:'Feature', geometry: JSON.parse(JSON.stringify(g.geometry)), properties:{} };
-        var rotated = turf.transformRotate(base, angle, { pivot: layerRotateBase.centroid });
+        var bf = { type:'Feature', geometry: JSON.parse(JSON.stringify(g.geometry)), properties:{} };
+        var rotated = turf.transformRotate(bf, angle, { pivot: base.centroid });
         f.geometry = rotated.geometry;
       }catch(err){ /* geçersiz ara durum, yoksay */ }
     });
     renderFeatures();
-  });
-  layerRotateSlider.addEventListener('change', function(){
-    layerRotateSlider.value = 0; layerRotateVal.textContent = '0°';
+    setRotateDialAngle(angle);
+  }
+  function commitLayerRotate(){
+    layerRotateValInput.value = 0;
+    setRotateDialAngle(0);
     layerRotateBase = null;
+    layerRotateHistoryPushed = false;
     finishLayerTransform();
+  }
+  // Kadran sürüklemesi: dial merkezinden imlece olan açı, "12 hizasından
+  // saat yönünde" (atan2(dx,-dy)) — dial'ın KENDİ 0°'si her zaman yukarı
+  // baktığından (bkz. commitLayerRotate'in setRotateDialAngle(0) çağrısı),
+  // sürüklemenin BAŞLADIĞI açıya göre FARK (delta) uygulanır — slider'daki
+  // "0'dan başlayıp bırakınca sıfırlanan" davranışla AYNI mantık.
+  function dialPointerAngle(clientX, clientY){
+    var rect = layerRotateDial.getBoundingClientRect();
+    var cx = rect.left + rect.width / 2, cy = rect.top + rect.height / 2;
+    return Math.atan2(clientX - cx, -(clientY - cy)) * 180 / Math.PI;
+  }
+  var layerRotateDialDragging = false;
+  var layerRotateDialStartAngle = 0;
+  layerRotateDial.addEventListener('pointerdown', function(e){
+    e.preventDefault();
+    layerRotateBase = snapshotLayerTransformBase();
+    if (!layerRotateBase) return;
+    layerRotateHistoryPushed = false;
+    layerRotateDialDragging = true;
+    layerRotateDialStartAngle = dialPointerAngle(e.clientX, e.clientY);
+    layerRotateDial.style.cursor = 'grabbing';
+    try{ layerRotateDial.setPointerCapture(e.pointerId); }catch(err){ /* yoksay */ }
   });
+  layerRotateDial.addEventListener('pointermove', function(e){
+    if (!layerRotateDialDragging) return;
+    var delta = dialPointerAngle(e.clientX, e.clientY) - layerRotateDialStartAngle;
+    layerRotateValInput.value = Math.round(delta);
+    applyLayerRotate(delta);
+  });
+  function endRotateDialDrag(){
+    if (!layerRotateDialDragging) return;
+    layerRotateDialDragging = false;
+    layerRotateDial.style.cursor = 'grab';
+    commitLayerRotate();
+  }
+  layerRotateDial.addEventListener('pointerup', endRotateDialDrag);
+  layerRotateDial.addEventListener('pointercancel', endRotateDialDrag);
+  // Sayı kutusuna doğrudan yazma — odaklanınca (focus) bir baz alınır
+  // (kadranın pointerdown'ıyla AYNI an), her tuş vuruşunda applyLayerRotate
+  // ile canlı önizleme yapılır, alan terk edilince (change/blur) commit edilir.
+  layerRotateValInput.addEventListener('focus', function(){
+    layerRotateBase = snapshotLayerTransformBase();
+    layerRotateHistoryPushed = false;
+  });
+  layerRotateValInput.addEventListener('input', function(){
+    var angle = parseFloat(layerRotateValInput.value);
+    if (isNaN(angle)) return;
+    applyLayerRotate(angle);
+  });
+  layerRotateValInput.addEventListener('change', function(){ commitLayerRotate(); });
+  layerRotateValInput.addEventListener('keydown', function(e){ if (e.key === 'Enter') layerRotateValInput.blur(); });
 
-  // ---- Ölçekle ----
+  // ---- Ölçekle (slider + sayı kutusu, ikisi de AYNI applyLayerScale'i
+  // çağırır ve birbiriyle canlı senkron kalır) ----
   var layerScaleBase = null;
   var layerScaleHistoryPushed = false;
   var layerScaleSlider = document.getElementById('layerScaleSlider');
-  var layerScaleVal = document.getElementById('layerScaleVal');
+  var layerScaleValInput = document.getElementById('layerScaleVal');
   document.getElementById('btnLayerScale').addEventListener('click', function(e){
     e.stopPropagation();
     document.getElementById('layerRotatePopover').classList.remove('show');
     document.getElementById('layerScalePopover').classList.toggle('show');
   });
+  function ensureScaleBase(){
+    if (!layerScaleBase) layerScaleBase = snapshotLayerTransformBase();
+    return layerScaleBase;
+  }
+  function applyLayerScale(pct){
+    var base = ensureScaleBase();
+    if (!base) return;
+    if (!layerScaleHistoryPushed){ pushHistory(); layerScaleHistoryPushed = true; }
+    base.geoms.forEach(function(g){
+      var f = features.find(function(x){ return x.id === g.id; });
+      if (!f) return;
+      try{
+        var bf = { type:'Feature', geometry: JSON.parse(JSON.stringify(g.geometry)), properties:{} };
+        var scaled = turf.transformScale(bf, pct / 100, { origin: base.centroid });
+        f.geometry = scaled.geometry;
+      }catch(err){ /* geçersiz ara durum, yoksay */ }
+    });
+    renderFeatures();
+  }
+  function commitLayerScale(){
+    layerScaleSlider.value = 100; layerScaleValInput.value = 100;
+    layerScaleBase = null;
+    layerScaleHistoryPushed = false;
+    finishLayerTransform();
+  }
   layerScaleSlider.addEventListener('pointerdown', function(){
     layerScaleHistoryPushed = false;
     layerScaleBase = snapshotLayerTransformBase();
   });
   layerScaleSlider.addEventListener('input', function(){
-    if (!layerScaleBase) return;
-    if (!layerScaleHistoryPushed){ pushHistory(); layerScaleHistoryPushed = true; }
     var pct = parseFloat(layerScaleSlider.value);
-    layerScaleVal.textContent = pct + '%';
-    layerScaleBase.geoms.forEach(function(g){
-      var f = features.find(function(x){ return x.id === g.id; });
-      if (!f) return;
-      try{
-        var base = { type:'Feature', geometry: JSON.parse(JSON.stringify(g.geometry)), properties:{} };
-        var scaled = turf.transformScale(base, pct / 100, { origin: layerScaleBase.centroid });
-        f.geometry = scaled.geometry;
-      }catch(err){ /* geçersiz ara durum, yoksay */ }
-    });
-    renderFeatures();
+    layerScaleValInput.value = pct;
+    applyLayerScale(pct);
   });
-  layerScaleSlider.addEventListener('change', function(){
-    layerScaleSlider.value = 100; layerScaleVal.textContent = '100%';
-    layerScaleBase = null;
-    finishLayerTransform();
+  layerScaleSlider.addEventListener('change', function(){ commitLayerScale(); });
+  layerScaleValInput.addEventListener('focus', function(){
+    layerScaleHistoryPushed = false;
+    layerScaleBase = snapshotLayerTransformBase();
   });
+  layerScaleValInput.addEventListener('input', function(){
+    var pct = parseFloat(layerScaleValInput.value);
+    if (isNaN(pct) || pct <= 0) return;
+    layerScaleSlider.value = Math.min(300, Math.max(20, pct));
+    applyLayerScale(pct);
+  });
+  layerScaleValInput.addEventListener('change', function(){ commitLayerScale(); });
+  layerScaleValInput.addEventListener('keydown', function(e){ if (e.key === 'Enter') layerScaleValInput.blur(); });
+
   document.addEventListener('click', function(e){
     var rp = document.getElementById('layerRotatePopover');
     var sp = document.getElementById('layerScalePopover');
