@@ -1492,6 +1492,51 @@
         <div class="analiz-option-desc">Bir hat boyunca yükseklik değişimi</div>
       </div>
     </div>
+    <div class="analiz-option" id="analizOptCutfill" data-analiz-opt="cutfill">
+      <div class="analiz-option-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12h18"/><path d="M6 12V6a2 2 0 0 1 2-2h3l1 3" /><path d="M18 12v6a2 2 0 0 1-2 2h-3l-1-3"/></svg></div>
+      <div class="analiz-option-text">
+        <div class="analiz-option-title">Kesim-Dolgu (Cut &amp; Fill) Analizi</div>
+        <div class="analiz-option-desc">Seçili poligonda hedef kota göre hafriyat/dolgu hacmi (DEM verisi gerektirir)</div>
+        <div class="analiz-option-config hidden" id="analizCutfillConfig">
+          <input type="number" class="analiz-config-select" id="analizCutfillTarget" placeholder="Hedef kot (m)" step="0.1">
+          <button type="button" class="btn primary" id="analizCutfillApply">Uygula</button>
+        </div>
+      </div>
+    </div>
+
+    <span class="field-label" style="margin-top:14px;">Çakışma ve Kesişim</span>
+    <div class="analiz-option" id="analizOptOverlay" data-analiz-opt="overlay">
+      <div class="analiz-option-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="12" r="7"/><circle cx="15" cy="12" r="7"/></svg></div>
+      <div class="analiz-option-text">
+        <div class="analiz-option-title">Kesişim / Çakışma Analizi</div>
+        <div class="analiz-option-desc">İki katman arasındaki kesişen objeleri işaretler — BIM/altyapı çakışması için yükseklik (Z) seçeneği ile</div>
+        <div class="analiz-option-config hidden" id="analizOverlayConfig">
+          <select class="analiz-config-select" id="analizOverlayLayerASelect"></select>
+          <select class="analiz-config-select" id="analizOverlayLayerBSelect"></select>
+          <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-dim);padding:2px 0;">
+            <input type="checkbox" id="analizOverlayZAware"> Yükseklik (Z) aralığını da dikkate al (BIM/altyapı çakışması)
+          </label>
+          <button type="button" class="btn primary" id="analizOverlayApply">Uygula</button>
+        </div>
+      </div>
+    </div>
+
+    <span class="field-label" style="margin-top:14px;">Erişilebilirlik</span>
+    <div class="analiz-option" id="analizOptIsochrone" data-analiz-opt="isochrone">
+      <div class="analiz-option-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="9" stroke-dasharray="2 2"/></svg></div>
+      <div class="analiz-option-text">
+        <div class="analiz-option-title">Erişilebilirlik (Servis Alanı) Analizi</div>
+        <div class="analiz-option-desc">Bir noktadan 5/10/15 dk eşdeğeri mesafe halkaları (basitleştirilmiş — kuş uçuşu, yol ağı dikkate alınmaz)</div>
+        <div class="analiz-option-config hidden" id="analizIsochroneConfig">
+          <select class="analiz-config-select" id="analizIsochroneProfile">
+            <option value="5">Yürüyüş (~5 km/sa)</option>
+            <option value="15">Bisiklet (~15 km/sa)</option>
+            <option value="30">Araç (~30 km/sa)</option>
+          </select>
+          <button type="button" class="btn primary" id="analizIsochroneApply">Uygula (sonra haritada bir nokta seçin)</button>
+        </div>
+      </div>
+    </div>
 
     <span class="field-label" style="margin-top:14px;">Yoğunluk ve Dağılım</span>
     <div class="analiz-option" id="analizOptHeatmap" data-analiz-opt="heatmap">
@@ -1701,6 +1746,10 @@
       <div class="split-btn-menu-item" data-analiz="compare">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="12" height="14" rx="1"/><rect x="9" y="7" width="12" height="14" rx="1"/></svg>
         <span>Görüntü Karşılaştırma</span>
+      </div>
+      <div class="split-btn-menu-item" data-analiz="solar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="10" width="18" height="10" rx="1"/><path d="M3 14h18M3 18h18M9 10v10M15 10v10"/><path d="M12 2v4M8 4l2 2M16 4l-2 2"/></svg>
+        <span>Güneşlenme Potansiyeli</span>
       </div>
     </div>
   </div>
@@ -2195,6 +2244,11 @@
     <select id="compareRasterB" class="analiz-select-sm" title="Görüntü B (yeni)"><option value="">B — seçin</option></select>
     <button class="analiz-icon-btn" id="btnCompareFlicker" title="Yanıp Sön"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3l4 4-4 4M21 7H7a4 4 0 0 0-4 4v1M7 21l-4-4 4-4M3 17h14a4 4 0 0 0 4-4v-1"/></svg></button>
   </div>
+  <div class="analiz-panel" data-analiz-panel="solar" style="display:none;">
+    <input type="date" id="solarDate" class="analiz-select-sm" title="Tarih">
+    <button class="analiz-icon-btn primary" id="btnComputeSolar" title="Güneşlenme Potansiyelini Hesapla (görünen haritadaki 3B binalar)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg></button>
+    <button class="analiz-icon-btn" id="btnClearSolar" title="Temizle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </div>
 
   <!-- Ekranda gösterilmez — mevcut computeAndRenderShadows/applyFourDDate
        mantığı bu elemanlara yazmaya devam eder (bkz. .analiz-info-sr),
@@ -2202,6 +2256,7 @@
        kaldırılmaz (kod tarafında hâlâ okunabilir/test edilebilir). -->
   <span id="fourDInfo" class="analiz-info-sr"></span>
   <span id="shadowInfo" class="analiz-info-sr"></span>
+  <span id="solarInfo" class="analiz-info-sr"></span>
 
   <button id="analizToolbarClose" class="attr-table-close" title="Kapat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
 </div>
@@ -2705,7 +2760,8 @@
   var ANALIZ_META = {
     fourd: { title:'4D Analizi', shortLabel:'4D', icon:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v16M12 13l2 2 4-4"/>' },
     shadow: { title:'Gölge Analizi', shortLabel:'Gölge', icon:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.4 1.4M17.6 17.6L19 19M19 5l-1.4 1.4M6.4 17.6L5 19"/>' },
-    compare: { title:'Görüntü Karşılaştırma', shortLabel:'Karşıl.', icon:'<rect x="3" y="4" width="12" height="14" rx="1"/><rect x="9" y="7" width="12" height="14" rx="1"/>' }
+    compare: { title:'Görüntü Karşılaştırma', shortLabel:'Karşıl.', icon:'<rect x="3" y="4" width="12" height="14" rx="1"/><rect x="9" y="7" width="12" height="14" rx="1"/>' },
+    solar: { title:'Güneşlenme Potansiyeli', shortLabel:'Güneş Pot.', icon:'<rect x="3" y="10" width="18" height="10" rx="1"/><path d="M3 14h18M3 18h18M9 10v10M15 10v10"/><path d="M12 2v4M8 4l2 2M16 4l-2 2"/>' }
   };
   // Kapatılırken veya farklı bir analize geçilirken arkada sessizce çalışmaya
   // devam eden döngüleri (4D "Oynat", Karşılaştırma "Yanıp Sön") durdurur —
@@ -2743,7 +2799,7 @@
     // olayını tetiklemek yeterli (aynı zamanda gölgeyi de günceller).
     var valueEl = document.getElementById('analizToolbarValue');
     if (kind === 'shadow') document.getElementById('shadowHourSlider').dispatchEvent(new Event('input'));
-    else if (kind === 'compare') valueEl.textContent = '';
+    else if (kind === 'compare' || kind === 'solar') valueEl.textContent = '';
   }
   function closeAnalizToolbar(){
     stopRunningAnalizEffects();
@@ -3073,6 +3129,18 @@
     if (!map.getSource('shadow-source')){
       map.addSource('shadow-source', { type:'geojson', data: fc([]) });
     }
+    if (!map.getSource('solar-source')){
+      map.addSource('solar-source', { type:'geojson', data: fc([]) });
+    }
+    if (!map.getSource('overlay-source')){
+      map.addSource('overlay-source', { type:'geojson', data: fc([]) });
+    }
+    if (!map.getSource('cutfill-source')){
+      map.addSource('cutfill-source', { type:'geojson', data: fc([]) });
+    }
+    if (!map.getSource('isochrone-source')){
+      map.addSource('isochrone-source', { type:'geojson', data: fc([]) });
+    }
     if (!map.getSource('persist-measure')){
       map.addSource('persist-measure', { type:'geojson', data: fc([]) });
       map.addSource('persist-measure-fill', { type:'geojson', data: fc([]) });
@@ -3104,6 +3172,49 @@
     ensureLayer('shadow-layer', {
       id:'shadow-layer', type:'fill', source:'shadow-source',
       paint:{ 'fill-color':'#050505', 'fill-opacity':0.35 }
+    });
+
+    // fill-extrusion olarak (binanın KENDİ yüksekliğinde, bkz.
+    // computeSolarPotential'daki properties.height/base) render edilir —
+    // düz bir zemin dolgusu olsaydı 3B bina kutusunun altında tamamen
+    // gizli kalırdı.
+    ensureLayer('solar-layer', {
+      id:'solar-layer', type:'fill-extrusion', source:'solar-source',
+      paint:{
+        'fill-extrusion-color': ['interpolate', ['linear'], ['coalesce', ['get','solarHours'], 0], 0, '#dc2626', 6, '#f59e0b', 12, '#22c55e'],
+        'fill-extrusion-height': ['coalesce', ['get','height'], 30],
+        'fill-extrusion-base': ['coalesce', ['get','base'], 0],
+        'fill-extrusion-opacity': 0.85
+      }
+    });
+
+    ensureLayer('overlay-layer', {
+      id:'overlay-layer', type:'fill', source:'overlay-source',
+      paint:{ 'fill-color':'#e11d48', 'fill-opacity':0.5 }
+    });
+    ensureLayer('overlay-outline', {
+      id:'overlay-outline', type:'line', source:'overlay-source',
+      paint:{ 'line-color':'#e11d48', 'line-width':2 }
+    });
+
+    ensureLayer('cutfill-layer', {
+      id:'cutfill-layer', type:'fill', source:'cutfill-source',
+      paint:{
+        'fill-color':['case', ['>', ['get','diff'], 0], '#dc2626', '#2563eb'],
+        'fill-opacity':0.55
+      }
+    });
+
+    ensureLayer('isochrone-layer', {
+      id:'isochrone-layer', type:'fill', source:'isochrone-source',
+      paint:{
+        'fill-color':['match', ['get','minutes'], 5, '#22c55e', 10, '#f59e0b', 15, '#dc2626', '#888'],
+        'fill-opacity':0.28
+      }
+    });
+    ensureLayer('isochrone-outline', {
+      id:'isochrone-outline', type:'line', source:'isochrone-source',
+      paint:{ 'line-color':['match', ['get','minutes'], 5, '#22c55e', 10, '#f59e0b', 15, '#dc2626', '#888'], 'line-width':1.5 }
     });
 
     ensureLayer('poly-fill', {
@@ -9959,6 +10070,117 @@
       (shadows.length ? '' : ' · Gölge hesaplanacak 3B poligon (bina) bulunamadı.');
   }
 
+  // ---- Güneşlenme Potansiyeli Analizi ----
+  // Seçilen günde, görünen harita alanındaki her 3B binanın (Gölge Analizi'yle
+  // AYNI features filtresi: Polygon + extrude) toplam güneş alan saatini
+  // hesaplar. Yöntem: günü 30 dakikalık örneklere böler; her örnekte güneş
+  // yeterince yüksekteyse (altitude>0.5°, computeShadowForFeature'daki AYNI
+  // eşik), DİĞER tüm binaların o andaki gölgesini (computeShadowForFeature
+  // ile, Gölge Analizi'yle BİREBİR AYNI hesap) çıkarıp binanın ağırlık
+  // merkezinin (turf.centroid) bu gölgelerden herhangi birinin içine düşüp
+  // düşmediğine bakar — düşmüyorsa o örnek "güneşli" sayılır. O(örnek×bina²)
+  // karmaşıklığı olduğundan (Gölge Analizi'nin aksine ikili karşılaştırma
+  // gerektirir) yalnızca GÖRÜNÜR HARİTA ALANINDAKİ binalarla sınırlanır ve
+  // bir üst sınır (SOLAR_MAX_BUILDINGS) uygulanır. Basitleştirilmiş bir
+  // görselleştirme aracıdır — mühendislik hassasiyeti iddia etmez (bkz.
+  // dosya başındaki Gölge Analizi notu).
+  var SOLAR_MAX_BUILDINGS = 60;
+  var SOLAR_SAMPLE_STEP_H = 0.5; // 30 dakika
+
+  function computeSolarPotential(){
+    var dateStr = document.getElementById('solarDate').value;
+    var info = document.getElementById('solarInfo');
+    if (!dateStr){ showToast('Bir tarih seçin.'); return; }
+    var bounds = map.getBounds();
+    var west = bounds.getWest(), east = bounds.getEast(), south = bounds.getSouth(), north = bounds.getNorth();
+
+    var candidates = [];
+    features.forEach(function(f){
+      if (f.geometry.type !== 'Polygon' || !f.properties || !f.properties.extrude) return;
+      var c;
+      try{ c = turf.centroid(f).geometry.coordinates; }catch(e){ return; }
+      if (c[0] < west || c[0] > east || c[1] < south || c[1] > north) return;
+      candidates.push({ feature:f, centroid:c });
+    });
+
+    var src = map.getSource('solar-source');
+    if (!candidates.length){
+      showToast('Görünen haritada 3B bina (extrude) bulunamadı — yakınlaşıp tekrar deneyin.');
+      if (src) src.setData(fc([]));
+      return;
+    }
+    if (candidates.length > SOLAR_MAX_BUILDINGS){
+      showToast('Görünen haritada ' + candidates.length + ' bina var — analiz en fazla ' + SOLAR_MAX_BUILDINGS + ' bina ile çalışır. Lütfen daha fazla yakınlaşın.');
+      return;
+    }
+
+    var parts = dateStr.split('-');
+    var year = parseInt(parts[0],10), month = parseInt(parts[1],10) - 1, day = parseInt(parts[2],10);
+    var center = map.getCenter();
+    var sunlitHours = candidates.map(function(){ return 0; });
+    var sampledAny = false;
+
+    for (var hourVal = 0; hourVal < 24; hourVal += SOLAR_SAMPLE_STEP_H){
+      var hh = Math.floor(hourVal), mm = Math.round((hourVal - hh) * 60);
+      var d = new Date(year, month, day, hh, mm);
+      var sun = getSunPosition(d, center.lat, center.lng);
+      if (sun.altitudeDeg <= 0.5) continue;
+      sampledAny = true;
+
+      // Bu örnek anındaki TÜM aday binaların gölgesi (Gölge Analizi'yle
+      // birebir aynı computeShadowForFeature) — her bina, KENDİ gölgesi
+      // HARİÇ diğerlerininkiyle test edilir (aksi halde bir bina kendi
+      // gölgesinin içinde sayılır, çünkü gölge hull'u kendi tabanını da içerir).
+      var shadowsThisSample = candidates.map(function(c){
+        return computeShadowForFeature(c.feature, sun);
+      });
+
+      candidates.forEach(function(c, i){
+        var shaded = false;
+        for (var j = 0; j < shadowsThisSample.length; j++){
+          if (j === i) continue;
+          var sh = shadowsThisSample[j];
+          if (!sh) continue;
+          try{
+            if (turf.booleanPointInPolygon(c.centroid, sh)){ shaded = true; break; }
+          }catch(e){ /* geçersiz geometri — gölgesiz say */ }
+        }
+        if (!shaded) sunlitHours[i] += SOLAR_SAMPLE_STEP_H;
+      });
+    }
+
+    var resultFeatures = candidates.map(function(c, i){
+      var p = c.feature.properties || {};
+      return {
+        type:'Feature',
+        geometry: c.feature.geometry,
+        properties:{
+          parentId:c.feature.id, solarHours: Math.round(sunlitHours[i]*10)/10, name: p.name || '',
+          // Sonuç bir fill-extrusion katmanı olarak (binanın KENDİ yüksekliğinde)
+          // render edilir — düz bir zemin dolgusu (ör. shadow-layer/slope-layer)
+          // olsaydı 3B bina kutusunun altında tamamen gizli kalırdı.
+          height: (parseFloat(p.height) || 30) + 0.3, base: parseFloat(p.base) || 0
+        }
+      };
+    });
+    if (src) src.setData(fc(resultFeatures));
+
+    if (!sampledAny){
+      info.textContent = 'Bu tarihte güneş görünen alanda hiç ufkun üstüne çıkmıyor.';
+      return;
+    }
+    var maxIdx = 0, minIdx = 0, sum = 0;
+    sunlitHours.forEach(function(h, i){
+      sum += h;
+      if (h > sunlitHours[maxIdx]) maxIdx = i;
+      if (h < sunlitHours[minIdx]) minIdx = i;
+    });
+    var avg = sum / sunlitHours.length;
+    info.textContent = candidates.length + ' bina · Ortalama ' + avg.toFixed(1) + ' sa · En az ' +
+      sunlitHours[minIdx].toFixed(1) + ' sa (' + (candidates[minIdx].feature.properties.name || 'isimsiz') + ') · En çok ' +
+      sunlitHours[maxIdx].toFixed(1) + ' sa (' + (candidates[maxIdx].feature.properties.name || 'isimsiz') + ')';
+  }
+
   // ---- 4D Analizi (zaman bazlı inşaat ilerlemesi simülasyonu) ----
   var FOURD_PLAY_ICON = '<path d="M8 5v14l11-7z"/>';
   var FOURD_PAUSE_ICON = '<rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/>';
@@ -10052,6 +10274,20 @@
       var src = map.getSource('shadow-source');
       if (src) src.setData(fc([]));
       document.getElementById('shadowInfo').textContent = '';
+    });
+  })();
+
+  (function initSolarControls(){
+    var dateInput = document.getElementById('solarDate');
+    if (dateInput && !dateInput.value){
+      var today = new Date();
+      dateInput.value = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
+    }
+    document.getElementById('btnComputeSolar').addEventListener('click', computeSolarPotential);
+    document.getElementById('btnClearSolar').addEventListener('click', function(){
+      var src = map.getSource('solar-source');
+      if (src) src.setData(fc([]));
+      document.getElementById('solarInfo').textContent = '';
     });
   })();
 
@@ -11063,7 +11299,7 @@
     });
   }
   function closeAreaAnalizConfigs(){
-    ['analizHeatmapConfig','analizClusterConfig'].forEach(function(id){
+    ['analizHeatmapConfig','analizClusterConfig','analizOverlayConfig','analizCutfillConfig','analizIsochroneConfig'].forEach(function(id){
       var el = document.getElementById(id);
       if (el) el.classList.add('hidden');
     });
@@ -11079,7 +11315,7 @@
     layerSelect.onchange = function(){ populateAreaAnalizColumnSelect(columnSelect, layerSelect.value); };
     document.getElementById(prefix + 'Config').classList.remove('hidden');
   }
-  ['analizHeatmapConfig','analizClusterConfig'].forEach(function(id){
+  ['analizHeatmapConfig','analizClusterConfig','analizOverlayConfig','analizCutfillConfig','analizIsochroneConfig'].forEach(function(id){
     var el = document.getElementById(id);
     if (el) el.addEventListener('click', function(e){ e.stopPropagation(); });
   });
@@ -11100,6 +11336,63 @@
     activeAreaAnaliz = 'cluster';
     setAreaAnalizOptionUI('cluster', true);
     setupClusterAnalysis(layerId, column);
+  });
+
+  // Kesişim/Çakışma, Kesim-Dolgu ve Erişilebilirlik — Isı Haritası/Kümeleme
+  // ile AYNI desen: önce bir yapılandırma kutusu açılır, "Uygula"ya
+  // basılınca activeAreaAnaliz o analize geçer ve setupXxxAnalysis çağrılır.
+  function openOverlayConfig(){
+    deactivateAreaAnaliz();
+    closeAreaAnalizConfigs();
+    var selectA = document.getElementById('analizOverlayLayerASelect');
+    var selectB = document.getElementById('analizOverlayLayerBSelect');
+    populateAreaAnalizLayerSelect(selectA);
+    populateAreaAnalizLayerSelect(selectB);
+    document.getElementById('analizOverlayConfig').classList.remove('hidden');
+  }
+  document.getElementById('analizOverlayApply').addEventListener('click', function(){
+    var layerAId = document.getElementById('analizOverlayLayerASelect').value;
+    var layerBId = document.getElementById('analizOverlayLayerBSelect').value;
+    if (!layerAId || !layerBId){ showToast('Lütfen iki katman da seçin.'); return; }
+    var zAware = document.getElementById('analizOverlayZAware').checked;
+    closeAreaAnalizConfigs();
+    activeAreaAnaliz = 'overlay';
+    setAreaAnalizOptionUI('overlay', true);
+    setupOverlayAnalysis(layerAId, layerBId, zAware);
+  });
+
+  function openCutfillConfig(){
+    deactivateAreaAnaliz();
+    closeAreaAnalizConfigs();
+    var input = document.getElementById('analizCutfillTarget');
+    if (!input.value){
+      var c = map.getCenter();
+      var e = terrainActive ? map.queryTerrainElevation([c.lng, c.lat]) : null;
+      input.value = (e != null) ? e.toFixed(1) : '';
+    }
+    document.getElementById('analizCutfillConfig').classList.remove('hidden');
+  }
+  document.getElementById('analizCutfillApply').addEventListener('click', function(){
+    var target = parseFloat(document.getElementById('analizCutfillTarget').value);
+    if (isNaN(target)){ showToast('Lütfen bir hedef kot (m) girin.'); return; }
+    if (!selectedIds.length){ showToast('Önce hafriyat hesaplanacak bir/birkaç poligon seçin.'); return; }
+    closeAreaAnalizConfigs();
+    activeAreaAnaliz = 'cutfill';
+    setAreaAnalizOptionUI('cutfill', true);
+    setupCutfillAnalysis(target);
+  });
+
+  function openIsochroneConfig(){
+    deactivateAreaAnaliz();
+    closeAreaAnalizConfigs();
+    document.getElementById('analizIsochroneConfig').classList.remove('hidden');
+  }
+  document.getElementById('analizIsochroneApply').addEventListener('click', function(){
+    var speedKmh = parseFloat(document.getElementById('analizIsochroneProfile').value) || 5;
+    closeAreaAnalizConfigs();
+    activeAreaAnaliz = 'isochrone';
+    setAreaAnalizOptionUI('isochrone', true);
+    setupIsochroneAnalysis(speedKmh);
   });
 
   // DEM tabanlı analizlerden önce terrain'i açar (kapalıysa) ve o bölgenin
@@ -11141,15 +11434,21 @@
     else if (prev === 'profile') teardownProfileAnalysis();
     else if (prev === 'heatmap') teardownHeatmapAnalysis();
     else if (prev === 'cluster') teardownClusterAnalysis();
+    else if (prev === 'overlay') teardownOverlayAnalysis();
+    else if (prev === 'cutfill') teardownCutfillAnalysis();
+    else if (prev === 'isochrone') teardownIsochroneAnalysis();
     var hintEl = document.getElementById('analizOptHint');
     if (hintEl) hintEl.textContent = AREA_ANALIZ_DEFAULT_HINT;
   }
   function activateAreaAnaliz(kind){
     if (activeAreaAnaliz === kind){ deactivateAreaAnaliz(); return; }
-    // Isı Haritası/Kümeleme doğrudan çalışmaz — önce katman (ve istenirse
-    // ağırlık sütunu) seçilip "Uygula"ya basılması gerekir (bkz.
-    // openAreaAnalizConfig ve #analizHeatmapApply/#analizClusterApply).
+    // Isı Haritası/Kümeleme/Kesişim/Kesim-Dolgu/Erişilebilirlik doğrudan
+    // çalışmaz — önce bir yapılandırma kutusu (katman/hedef kot/hız
+    // profili) doldurulup "Uygula"ya basılması gerekir.
     if (kind === 'heatmap' || kind === 'cluster'){ openAreaAnalizConfig(kind); return; }
+    if (kind === 'overlay'){ openOverlayConfig(); return; }
+    if (kind === 'cutfill'){ openCutfillConfig(); return; }
+    if (kind === 'isochrone'){ openIsochroneConfig(); return; }
     deactivateAreaAnaliz();
     closeAreaAnalizConfigs();
     activeAreaAnaliz = kind;
@@ -11488,6 +11787,160 @@
     ['analiz-cluster-circles','analiz-cluster-count','analiz-cluster-unclustered'].forEach(function(id){
       if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', 'none');
     });
+  }
+
+  // ---------------------------------------------------------------------
+  // Kesişim / Çakışma Analizi — seçilen iki katmandaki Polygon objeleri
+  // ikili olarak karşılaştırıp (turf.booleanIntersects) kesişenleri kırmızı
+  // işaretler. "Yükseklik (Z) aralığını da dikkate al" işaretliyse (BIM/
+  // altyapı çakışması için) yalnızca 2B taban kesişmesi YETMEZ — iki
+  // objenin [taban, taban+yükseklik] aralıkları da örtüşmelidir. Bu, gerçek
+  // bir 3B mesh/B-rep çakışma testi DEĞİLDİR (extrüzyon kutusu yaklaşımı —
+  // Gölge/Güneşlenme analizleriyle TUTARLI bir basitleştirme).
+  // ---------------------------------------------------------------------
+  function overlayFeatureZRange(f){
+    var base = (f.properties && parseFloat(f.properties.base)) || 0;
+    var height = (f.properties && parseFloat(f.properties.height)) || 30;
+    return { bottom: base, top: base + height };
+  }
+  function setupOverlayAnalysis(layerAId, layerBId, zAware){
+    var listA = features.filter(function(f){ return f.properties && f.properties.layerId === layerAId && f.geometry.type === 'Polygon'; });
+    var listB = features.filter(function(f){ return f.properties && f.properties.layerId === layerBId && f.geometry.type === 'Polygon'; });
+    var hits = [];
+    var pairCount = 0;
+    listA.forEach(function(a){
+      listB.forEach(function(b){
+        if (a.id === b.id) return;
+        var intersects = false;
+        try{ intersects = turf.booleanIntersects(a, b); }catch(e){ intersects = false; }
+        if (!intersects) return;
+        if (zAware){
+          var ra = overlayFeatureZRange(a), rb = overlayFeatureZRange(b);
+          if (!(ra.bottom < rb.top && rb.bottom < ra.top)) return;
+        }
+        pairCount++;
+        if (!hits.some(function(h){ return h.properties.srcId === a.id; })){
+          hits.push({ type:'Feature', geometry:a.geometry, properties:{ srcId:a.id, clashWith:(b.properties && b.properties.name) || '' } });
+        }
+        if (!hits.some(function(h){ return h.properties.srcId === b.id; })){
+          hits.push({ type:'Feature', geometry:b.geometry, properties:{ srcId:b.id, clashWith:(a.properties && a.properties.name) || '' } });
+        }
+      });
+    });
+    var src = map.getSource('overlay-source');
+    if (src) src.setData(fc(hits));
+    var hintEl = document.getElementById('analizOptHint');
+    if (hintEl){
+      hintEl.textContent = pairCount
+        ? (pairCount + ' çakışan obje çifti bulundu (' + hits.length + ' obje kırmızı işaretlendi)' + (zAware ? ' — yükseklik aralığı dahil.' : ' — yalnızca taban izdüşümü.'))
+        : 'Seçilen iki katman arasında kesişme bulunamadı.';
+    }
+    showToast(pairCount ? (pairCount + ' çakışma bulundu.') : 'Çakışma bulunamadı.');
+  }
+  function teardownOverlayAnalysis(){
+    var src = map.getSource('overlay-source');
+    if (src) src.setData(fc([]));
+  }
+
+  // ---------------------------------------------------------------------
+  // Kesim-Dolgu (Cut & Fill) Analizi — seçili poligon(lar) içinde bir ızgara
+  // (grid) oluşturup her hücre merkezinde DEM yüksekliğini
+  // (map.queryTerrainElevation, Eğim Analizi'yle AYNI kaynak) hedef kotla
+  // karşılaştırır: DEM > hedef → KESİM (hafriyat, kırmızı), DEM < hedef →
+  // DOLGU (mavi). Basitleştirilmiş bir hacim tahminidir (ızgara hücre
+  // alanı × yükseklik farkı toplamı) — jeoteknik/mühendislik hassasiyeti
+  // iddia etmez.
+  // ---------------------------------------------------------------------
+  var CUTFILL_GRID_COLS = 24, CUTFILL_GRID_ROWS = 24;
+  function setupCutfillAnalysis(targetElev){
+    ensureTerrainForAnalysis(function(){
+      if (activeAreaAnaliz !== 'cutfill') return;
+      computeAndRenderCutfill(targetElev);
+    });
+  }
+  function computeAndRenderCutfill(targetElev){
+    var polys = features.filter(function(f){ return selectedIds.indexOf(f.id) !== -1 && f.geometry.type === 'Polygon'; });
+    if (!polys.length){ showToast('Seçili poligon bulunamadı.'); return; }
+    var bbox = turf.bbox(fc(polys));
+    var west = bbox[0], south = bbox[1], east = bbox[2], north = bbox[3];
+    var lngStep = (east - west) / CUTFILL_GRID_COLS;
+    var latStep = (north - south) / CUTFILL_GRID_ROWS;
+    var feats = [];
+    var cutVol = 0, fillVol = 0, sampled = 0;
+    if (lngStep > 0 && latStep > 0){
+      for (var r = 0; r < CUTFILL_GRID_ROWS; r++){
+        for (var c = 0; c < CUTFILL_GRID_COLS; c++){
+          var lng0 = west + c*lngStep, lat0 = south + r*latStep;
+          var lng1 = lng0 + lngStep, lat1 = lat0 + latStep;
+          var cLng = (lng0+lng1)/2, cLat = (lat0+lat1)/2;
+          var inside = polys.some(function(p){
+            try{ return turf.booleanPointInPolygon([cLng,cLat], p); }catch(e){ return false; }
+          });
+          if (!inside) continue;
+          var elev = map.queryTerrainElevation([cLng, cLat]);
+          if (elev == null) continue;
+          sampled++;
+          var diff = elev - targetElev;
+          var cellPoly = { type:'Feature', properties:{}, geometry:{ type:'Polygon', coordinates:[[[lng0,lat0],[lng1,lat0],[lng1,lat1],[lng0,lat1],[lng0,lat0]]] } };
+          var cellAreaM2 = turf.area(cellPoly);
+          var vol = Math.abs(diff) * cellAreaM2;
+          if (diff > 0) cutVol += vol; else fillVol += vol;
+          feats.push({ type:'Feature', properties:{ diff: diff }, geometry: cellPoly.geometry });
+        }
+      }
+    }
+    var src = map.getSource('cutfill-source');
+    if (src) src.setData(fc(feats));
+    var hintEl = document.getElementById('analizOptHint');
+    var txt = sampled
+      ? ('Hedef kot: ' + targetElev.toFixed(1) + ' m · Kesim (hafriyat): ~' + Math.round(cutVol) + ' m³ · Dolgu: ~' + Math.round(fillVol) + ' m³ · Net: ~' + Math.round(cutVol - fillVol) + ' m³')
+      : 'Seçili alanda DEM verisi bulunamadı — biraz bekleyip tekrar deneyin.';
+    if (hintEl) hintEl.textContent = txt;
+    showToast(sampled ? 'Kesim-Dolgu hesaplandı.' : 'DEM verisi bulunamadı.');
+  }
+  function teardownCutfillAnalysis(){
+    var src = map.getSource('cutfill-source');
+    if (src) src.setData(fc([]));
+  }
+
+  // ---------------------------------------------------------------------
+  // Erişilebilirlik (basitleştirilmiş servis alanı) Analizi — haritada
+  // tıklanan noktadan seçilen hız profiline göre 5/10/15 dakika eşdeğeri
+  // KUŞ UÇUŞU mesafede halkalar (turf.circle) çizer. Gerçek bir yol ağı/
+  // routing motoru KULLANMAZ — bu nedenle gerçek bir "isochrone" değil,
+  // mesafe tabanlı bir yaklaşıklamadır (dosyadaki diğer basitleştirilmiş
+  // analizlerle — Gölge, Eğim, Görüş Hattı — TUTARLI bir yaklaşım).
+  // ---------------------------------------------------------------------
+  var isochroneSpeedKmh = 5;
+  function onIsochroneMapClick(e){
+    if (activeAreaAnaliz !== 'isochrone') return;
+    computeAndRenderIsochrone([e.lngLat.lng, e.lngLat.lat], isochroneSpeedKmh);
+  }
+  function setupIsochroneAnalysis(speedKmh){
+    isochroneSpeedKmh = speedKmh;
+    showToast('Merkez nokta seçmek için haritaya tıklayın.');
+    map.on('click', onIsochroneMapClick);
+    map.getCanvas().style.cursor = 'crosshair';
+  }
+  function computeAndRenderIsochrone(center, speedKmh){
+    var minutesList = [15, 10, 5]; // büyükten küçüğe — küçük halka üstte görünsün
+    var feats = minutesList.map(function(min){
+      var distKm = speedKmh * (min / 60);
+      var circle = turf.circle(center, distKm, { steps:64, units:'kilometers' });
+      circle.properties = { minutes: min };
+      return circle;
+    });
+    var src = map.getSource('isochrone-source');
+    if (src) src.setData(fc(feats));
+    var hintEl = document.getElementById('analizOptHint');
+    if (hintEl) hintEl.textContent = 'Erişilebilirlik: ' + speedKmh + ' km/sa hız ile 5/10/15 dk eşdeğeri mesafe halkaları (kuş uçuşu, basitleştirilmiş).';
+    showToast('Erişilebilirlik halkaları çizildi.');
+  }
+  function teardownIsochroneAnalysis(){
+    map.off('click', onIsochroneMapClick);
+    map.getCanvas().style.cursor = '';
+    var src = map.getSource('isochrone-source');
+    if (src) src.setData(fc([]));
   }
 
   // =========================================================================
