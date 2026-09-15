@@ -694,6 +694,7 @@
   .status-snap-btn .status-icon{color:inherit;}
   .status-snap-btn.active{color:#e02424;}
   .saha-toggle-btn.on{color:var(--teal);}
+  .bim-view-toggle-btn.on{color:var(--teal);}
   /* Durum çubuğundaki Saha (fotoğraf katmanı göster/gizle) düğmesi, diğer
      küçük durum çubuğu simgelerinden biraz daha büyük gösterilir — sıkça
      kullanılan bir aç/kapa olduğundan tıklaması daha kolay olsun diye. */
@@ -2247,6 +2248,8 @@
   <span title="Yakınlaştırma" style="margin-left:auto;"><svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><b id="stZoom">—</b></span>
   <div class="div"></div>
   <button id="statusSahaToggleBtn" class="status-snap-btn saha-toggle-btn on" title="Saha fotoğraflarını göster/gizle"><svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M21 15l-5-4-4 3-3-2-5 4"/></svg></button>
+  <div class="div"></div>
+  <button id="statusBimViewToggleBtn" class="status-snap-btn bim-view-toggle-btn" title="BIM Görünümü — işaretlenen binaları gerçek BIM modelleriyle göster/gizle"><svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21V8l9-5 9 5v13"/><path d="M9 21V12h6v9"/><path d="M3 8l9 5 9-5"/></svg></button>
 </div>
 
 <div id="snapTolerancePopover">
@@ -4071,7 +4074,7 @@
     video: ['mp4','mov','avi','mkv','webm'],
     cad: ['dwg','dxf','skp','rvt','ifc'],
     gis: ['shp','geojson','kml','kmz','gpkg'],
-    bim: ['ifc','rvt','nwd','nwc']
+    bim: ['ifc','rvt','nwd','nwc','gltf','glb']
   };
   function guessDocType(filename){
     var ext = (filename.split('.').pop() || '').toLowerCase();
@@ -4395,6 +4398,15 @@
   }
 
   var DOC_TYPE_ICON_COLOR = { resim:'#3fc2ac', video:'#e3a541', cad:'#6d8fe0', gis:'#e0736d', bim:'#a06de0', diger:'#8a94a6' };
+  // Bir doküman adı IFC/GLTF/GLB ile mi bitiyor — "Kanvasta 3B Bina Yerine
+  // Göster" sağ klik seçeneğinin sadece BIM dosyalarında görünmesi için.
+  function isBimDocFile(name){
+    return /\.(ifc|gltf|glb)$/i.test(name || '');
+  }
+  function bimDocFormat(name){
+    var m = /\.(ifc|gltf|glb)$/i.exec(name || '');
+    return m ? m[1].toLowerCase() : null;
+  }
   function renderInfoDocsPanel(featureId){
     activeInfoFeatureId = featureId;
     var panel = document.getElementById('infoDocsPanel');
@@ -4419,6 +4431,16 @@
         row.classList.add('active');
         renderInfoDocPreview(d, docs);
       });
+      // "Kanvasta 3B Bina Yerine Göster" — sadece IFC/GLTF/GLB dokümanlarında.
+      // Bu doküman, o an Bilgi balonunda açık olan objeye (featureId) aittir.
+      if (isBimDocFile(d.name)){
+        row.addEventListener('contextmenu', function(e){
+          e.preventDefault(); e.stopPropagation();
+          showTreeContextMenu(e.clientX, e.clientY, [
+            { label:'Kanvasta 3B Bina Yerine Göster', action:function(){ enableBimViewForFeature(featureId, d); } }
+          ]);
+        });
+      }
       listEl.appendChild(row);
     });
     renderInfoDocPreview(docs[0], docs);
@@ -7052,6 +7074,10 @@
       // ifc-mesh-layer / syncIfcMeshLayer) gösteriliyor — burada dışarıda
       // bırakılmazsa aynı eleman hem kutu hem gerçek mesh olarak çakışırdı.
       if (lyr.sourceFormat === 'ifc') return false;
+      // "BIM Görünümü" açıkken ve bu bina için bir BIM dosyası işaretliyse
+      // (bkz. enableBimViewForFeature), kaba ekstrüzyon kutusu yerine
+      // syncFeatureBimMeshes()'in eklediği gerçek mesh gösterilir.
+      if (bimViewGlobalOn && bimViewFeatures[f.id]) return false;
       return lyr.visible !== false;
     }).map(function(f){
       // MapLibre, GeoJSON kaynaklarında poligon/çizgi sorgularında (özellikle
@@ -8264,6 +8290,7 @@
     if (typeof refreshCompareRasterOptions === 'function') refreshCompareRasterOptions();
     if (typeof updateLayerTransformToolbar === 'function') updateLayerTransformToolbar();
     if (typeof syncIfcMeshLayer === 'function') syncIfcMeshLayer();
+    if (typeof syncFeatureBimMeshes === 'function') syncFeatureBimMeshes();
   }
 
   function refreshMapSelect(){
@@ -11798,8 +11825,8 @@
   // konum ve ölçekte yerleştirir. Mercator'da Y GÜNEYE artar, IFC/coğrafi
   // Y KUZEYE artar — bu yüzden Y ekseni negatiflenir (MapLibre/Mapbox'ın
   // resmi "Add a 3D model" custom layer örneğiyle AYNI, iyi bilinen desen).
-  function positionIfcMeshOuterGroup(outerGroup, lyr, THREE){
-    var anchor = lyr.bimAnchor;
+  // anchor: { lng, lat, scale } — scale: 1 BIM birimi kaç metre (varsayılan 1).
+  function positionGroupAtAnchor(outerGroup, anchor, THREE){
     var mercAnchor = maplibregl.MercatorCoordinate.fromLngLat([anchor.lng, anchor.lat], 0);
     var metersPerMercatorUnit = mercAnchor.meterInMercatorCoordinateUnits();
     var s = metersPerMercatorUnit * (anchor.scale || 1);
@@ -11811,44 +11838,80 @@
   // gerçek mesh'ini üretir; grup kendi taban-merkezine (XY ortası, Z tabanı)
   // göre ortalanır — coğrafi konumlandırma positionIfcMeshOuterGroup() ile
   // AYRICA (dış bir grup üzerinde) uygulanır.
-  async function loadIfcMeshGroupForMap(lyr, THREE){
-    var rec = await getBimFile(lyr.id);
-    if (!rec || !rec.blob || rec.format !== 'ifc') return null;
+  async function extractIfcMeshesFromBlob(blob, THREE){
     var webIfcMod = await import(WEB_IFC_CDN + 'web-ifc-api.js');
     var ifcApi = new webIfcMod.IfcAPI();
     ifcApi.SetWasmPath(WEB_IFC_CDN, true);
     await ifcApi.Init();
-    var buf = new Uint8Array(await rec.blob.arrayBuffer());
+    var buf = new Uint8Array(await blob.arrayBuffer());
     // COORDINATE_TO_ORIGIN KULLANILMIYOR (BIM Görüntüleyici'den farklı) —
-    // burada grup kendi bounding box'ına göre ortalanıyor, mutlak/ham
+    // sonuç grup kendi bounding box'ına göre ortalanıyor, mutlak/ham
     // koordinatlar sorun değil; önemli olan tutarlılık.
     var modelID = ifcApi.OpenModel(buf, {});
     var extracted = extractIfcMeshes(ifcApi, modelID, THREE);
     try{ ifcApi.CloseModel(modelID); }catch(e){ /* yoksay */ }
-    if (!extracted.meshes.length) return null;
+    return extracted.meshes;
+  }
 
-    // Merkezleme her mesh'in KENDİ position'ına doğrudan uygulanır — ayrı bir
-    // "iç" grup katmanı EKLENMEZ. Haritada 1 Mercator birimi ~metrelik
-    // ölçeklerle (ör. 3e-8) çarpılıyor; iç içe iki Object3D transformu
-    // (merkezleme grubu + coğrafi konum grubu) three.js'in Float32Array
-    // tabanlı Matrix4'ünde önlenebilir hassasiyet kaybına yol açıyordu
-    // (canlı testte doğrulandı: tek mesh'lik test küpü tek katmanla doğru
-    // görünürken, 999 mesh'lik gerçek model iç içe iki katmanla haritada
-    // görünmez küçüklükte kalıyordu). Tek seviyeli hiyerarşi bunu ortadan
-    // kaldırır.
+  async function extractGltfMeshesFromBlob(blob, THREE){
+    var GLTFLoader = (await import('three/addons/loaders/GLTFLoader.js')).GLTFLoader;
+    var buf = await blob.arrayBuffer();
+    var loader = new GLTFLoader();
+    var gltf = await new Promise(function(resolve, reject){ loader.parse(buf, '', resolve, reject); });
+    var root = gltf.scene || gltf.scenes[0];
+    root.updateMatrixWorld(true);
+    var meshes = [];
+    root.traverse(function(obj){ if (obj.isMesh){ obj.frustumCulled = false; meshes.push(obj); } });
+    return meshes;
+  }
+
+  // Verilen mesh listesini TEK bir grupta, kendi taban-merkezine (XY ortası,
+  // Z tabanı) göre ortalanmış hâlde birleştirir. group.attach() (group.add()
+  // DEĞİL) kullanılır — GLTF mesh'leri genelde iç içe node hiyerarşisinden
+  // (kendi orijinal ebeveyninin dönüşümüyle) geliyor; attach() dünya
+  // konumunu koruyarak yeniden ebeveynlendirir (IFC mesh'leri için zaten
+  // ebeveynsiz oldukları için davranış add() ile aynıdır, zararsız).
+  //
+  // TEK SEVİYELİ hiyerarşi kasıtlı: haritada 1 Mercator birimi ~metrelik
+  // ölçeklerle (ör. 3e-8) çarpılıyor; iç içe iki Object3D transformu
+  // (merkezleme grubu + coğrafi konum grubu) three.js'in Float32Array
+  // tabanlı Matrix4'ünde önlenebilir hassasiyet kaybına yol açıyordu
+  // (canlı testte doğrulandı: tek mesh'lik test küpü tek katmanla doğru
+  // görünürken, 999 mesh'lik gerçek model iç içe iki katmanla haritada
+  // görünmez küçüklükte kalıyordu).
+  function centerMeshesIntoGroup(meshes, THREE){
+    if (!meshes.length) return null;
     var box = new THREE.Box3();
-    extracted.meshes.forEach(function(m){ m.updateMatrixWorld(true); box.expandByObject(m); });
+    meshes.forEach(function(m){ m.updateMatrixWorld(true); box.expandByObject(m); });
     if (box.isEmpty()) return null;
     var center = box.getCenter(new THREE.Vector3());
     var baseZ = box.min.z;
     var group = new THREE.Group();
-    extracted.meshes.forEach(function(m){
+    meshes.forEach(function(m){ group.attach(m); });
+    group.children.forEach(function(m){
       m.position.x -= center.x;
       m.position.y -= center.y;
       m.position.z -= baseZ;
-      group.add(m);
     });
     return group;
+  }
+
+  async function loadIfcMeshGroupForMap(lyr, THREE){
+    var rec = await getBimFile(lyr.id);
+    if (!rec || !rec.blob || rec.format !== 'ifc') return null;
+    var meshes = await extractIfcMeshesFromBlob(rec.blob, THREE);
+    return centerMeshesIntoGroup(meshes, THREE);
+  }
+
+  // Bir binaya (feature) doküman olarak eklenmiş bir IFC/GLTF/GLB dosyasından
+  // (base64 data URL, bkz. featureDocumentsCache/commitStagedDocuments) mesh
+  // grubu üretir — bkz. enableBimViewForFeature.
+  async function loadBimMeshGroupFromDataUrl(dataUrl, format, THREE){
+    var blob = await (await fetch(dataUrl)).blob();
+    var meshes = (format === 'ifc')
+      ? await extractIfcMeshesFromBlob(blob, THREE)
+      : await extractGltfMeshesFromBlob(blob, THREE);
+    return centerMeshesIntoGroup(meshes, THREE);
   }
 
   // layers[] dizisindeki sourceFormat==='ifc' katmanlarını (aktif haritada,
@@ -11879,7 +11942,7 @@
       var entry = ifcMeshCache[id];
       if (entry === 'loading') return;
       if (entry){
-        positionIfcMeshOuterGroup(entry, lyr, THREE);
+        positionGroupAtAnchor(entry, lyr.bimAnchor, THREE);
         if (!entry.parent){ scene.add(entry); changed = true; }
         return;
       }
@@ -11892,7 +11955,7 @@
         // TEK seviyeli hiyerarşi: centeredGroup'un kendisine (ekstra bir
         // sarmalayıcı grup OLMADAN) doğrudan coğrafi konum/ölçek uygulanır —
         // bkz. loadIfcMeshGroupForMap'teki hassasiyet notu.
-        positionIfcMeshOuterGroup(centeredGroup, lyr, THREE);
+        positionGroupAtAnchor(centeredGroup, lyr.bimAnchor, THREE);
         ifcMeshCache[id] = centeredGroup;
         scene.add(centeredGroup);
         map.triggerRepaint();
@@ -11903,6 +11966,102 @@
     });
     if (changed) map.triggerRepaint();
   }
+
+  // =========================================================================
+  // Bina (feature) dokümanı olarak eklenmiş BIM dosyasını haritada gösterme —
+  // "Kanvasta 3B Bina Yerine Göster" (bkz. renderInfoDocsPanel'deki sağ klik)
+  // ile İŞARETLENEN binalar, durum çubuğundaki "BIM Görünümü" (bkz.
+  // #statusBimViewToggleBtn) AÇIKKEN kaba ekstrüzyon kutusu yerine GERÇEK
+  // mesh'leriyle gösterilir. sourceFormat==='ifc' katman akışından (yukarıda)
+  // TAMAMEN AYRI: burada anchor, katmanın import anındaki harita merkezi
+  // DEĞİL, binanın KENDİ poligon merkezidir (turf.centroid) — bina zaten
+  // gerçek bir coğrafi konumda durduğu için import-anchor mantığı geçersiz.
+  // =========================================================================
+  var bimViewFeatures = {};      // featureId -> doküman kaydı (işaretli binalar)
+  var bimViewGlobalOn = false;   // durum çubuğu butonunun aç/kapat durumu
+  var featureBimMeshCache = {};  // featureId -> 'loading' | THREE.Group
+
+  function featureBimAnchor(f){
+    var c = turf.centroid(f);
+    return { lng: c.geometry.coordinates[0], lat: c.geometry.coordinates[1], scale: 1 };
+  }
+
+  function enableBimViewForFeature(featureId, docRecord){
+    bimViewFeatures[featureId] = docRecord;
+    var stale = featureBimMeshCache[featureId];
+    if (stale && stale !== 'loading'){
+      if (stale.parent) stale.parent.remove(stale);
+      delete featureBimMeshCache[featureId];
+    }
+    showToast('"' + (docRecord.name || 'BIM dosyası') + '" bu bina için BIM görünümüne işaretlendi — durum çubuğundaki "BIM Görünümü" ile açabilirsiniz.');
+    syncFeatureBimMeshes();
+    renderFeatures();
+  }
+
+  // bimViewFeatures[]'daki (işaretli) binaları ifcMeshLayerCtx.scene ile
+  // senkronlar. bimViewGlobalOn KAPALIYKEN mesh'ler önbellekten SİLİNMEZ —
+  // sadece sahneden çıkarılır — böylece buton tekrar açıldığında yeniden
+  // yüklemeye gerek kalmaz ("eski 3B görünüme dönülüp geri gelinebilsin").
+  // Sadece sağ klik ile işaret TAMAMEN kaldırılmışsa (bimViewFeatures'ta
+  // artık yoksa) önbellekten de silinir.
+  function syncFeatureBimMeshes(){
+    if (!ifcMeshLayerCtx) return;
+    var THREE = ifcMeshLayerCtx.THREE;
+    var scene = ifcMeshLayerCtx.scene;
+    var wantedIds = bimViewGlobalOn ? Object.keys(bimViewFeatures) : [];
+
+    Object.keys(featureBimMeshCache).forEach(function(fid){
+      var entry = featureBimMeshCache[fid];
+      if (!bimViewFeatures[fid]){
+        if (entry && entry !== 'loading' && entry.parent) entry.parent.remove(entry);
+        delete featureBimMeshCache[fid];
+        return;
+      }
+      if (wantedIds.indexOf(fid) === -1 && entry && entry !== 'loading' && entry.parent){
+        entry.parent.remove(entry);
+      }
+    });
+
+    var changed = false;
+    wantedIds.forEach(function(fid){
+      var entry = featureBimMeshCache[fid];
+      if (entry === 'loading') return;
+      var f = features.find(function(x){ return x.id === fid; });
+      if (!f){ delete bimViewFeatures[fid]; delete featureBimMeshCache[fid]; return; }
+      if (entry){
+        positionGroupAtAnchor(entry, featureBimAnchor(f), THREE);
+        if (!entry.parent){ scene.add(entry); changed = true; }
+        return;
+      }
+      var doc = bimViewFeatures[fid];
+      var format = bimDocFormat(doc.name);
+      featureBimMeshCache[fid] = 'loading';
+      loadBimMeshGroupFromDataUrl(doc.file_data_url, format, THREE).then(function(group){
+        var stillWanted = bimViewGlobalOn && bimViewFeatures[fid];
+        var f2 = features.find(function(x){ return x.id === fid; });
+        if (!group || !stillWanted || !f2){ delete featureBimMeshCache[fid]; return; }
+        positionGroupAtAnchor(group, featureBimAnchor(f2), THREE);
+        featureBimMeshCache[fid] = group;
+        scene.add(group);
+        map.triggerRepaint();
+      }).catch(function(err){
+        console.error('Bina BIM mesh\'i yüklenemedi:', err);
+        delete featureBimMeshCache[fid];
+      });
+    });
+    if (changed) map.triggerRepaint();
+  }
+
+  document.getElementById('statusBimViewToggleBtn').addEventListener('click', function(){
+    bimViewGlobalOn = !bimViewGlobalOn;
+    this.classList.toggle('on', bimViewGlobalOn);
+    syncFeatureBimMeshes();
+    renderFeatures();
+    showToast(bimViewGlobalOn
+      ? 'BIM Görünümü açık — işaretlenen binalar gerçek modelleriyle gösteriliyor.'
+      : 'BIM Görünümü kapalı — binalar normal 3B kutu olarak gösteriliyor.');
+  });
+
 
   function createIfcMeshMapLayer(){
     return {
