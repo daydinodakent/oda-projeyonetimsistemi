@@ -2475,7 +2475,15 @@
     zoom: initialView.zoom,
     bearing: initialView.bearing || 0,
     pitch: initialView.pitch || 0,
+    maxPitch: 85,
     attributionControl: { compact: false }
+  });
+  // setSky() stil tamamen yüklenmeden çağrılırsa "Style is not done loading"
+  // hatası fırlatıyor — bu yüzden 'load' olayına kadar bekleniyor (stil
+  // değişiminde/yeniden yüklemede tekrar gerekmiyor, sky stilin bir parçası
+  // değil, ayrı bir çalışma zamanı ayarı).
+  map.on('load', function(){
+    try{ map.setSky({}); }catch(err){ console.error('Gökyüzü (sky) ayarlanamadı:', err); }
   });
   // Bilgi balonu (#infoPopover) harita ile birlikte kaymalı — kamera her
   // değiştiğinde (pan/zoom/rotate/pitch => 'move', pencere boyutu => 'resize')
@@ -2864,6 +2872,7 @@
       document.getElementById('btnInfo').classList.remove('active');
       document.getElementById('infoPopover').classList.remove('show');
       infoHighlightId = null;
+      refreshInfoHighlightFilter();
       renderFeatures();
     }
     setModule('editor');
@@ -2900,6 +2909,7 @@
     }
     document.getElementById('infoPopover').classList.remove('show');
     infoHighlightId = null;
+    refreshInfoHighlightFilter();
     renderFeatures();
     updateCanvasCursor();
     showToast(infoMode ? (selectedIds.length > 1 ? 'Seçili objelerin bilgileri aşağıda gösteriliyor.' : 'Bilgi modu açık — haritada bir objeye tıklayın.') : 'Bilgi modu kapatıldı.');
@@ -2910,6 +2920,7 @@
     e.stopPropagation();
     document.getElementById('infoPopover').classList.remove('show');
     infoHighlightId = null;
+    refreshInfoHighlightFilter();
     renderFeatures();
   });
   // Bilgi balonunun altındaki "Doküman Ekle" — o an görüntülenen objeye
@@ -3191,6 +3202,21 @@
       filter:['all', ['==', ['id'], '__none__'], ['==', ['geometry-type'], 'Point']],
       paint:{ 'circle-radius':10, 'circle-color':'rgba(0,0,0,0)', 'circle-stroke-color':'#e3a541', 'circle-stroke-width':2.5 }
     });
+    // Bilgi balonunda (handleInfoClick) gösterilen obje — visibleFeaturesForRender()'
+    // daki dolgu/çizgi renk değişimi (INFO_HIGHLIGHT_COLOR) tek başına ince
+    // çizgilerde/küçük noktalarda fark edilmiyordu; selected-outline/-halo ile
+    // AYNI desende, ayrı bir çerçeve/halka katmanı ekleniyor — böylece "info"
+    // ve "seçili" durumları görsel olarak birbirinden de ayrışıyor.
+    ensureLayer('info-outline', {
+      id:'info-outline', type:'line', source:'features',
+      filter:['==', ['id'], '__none__'],
+      paint:{ 'line-color':INFO_HIGHLIGHT_COLOR, 'line-width':3 }
+    });
+    ensureLayer('info-halo', {
+      id:'info-halo', type:'circle', source:'features',
+      filter:['all', ['==', ['id'], '__none__'], ['==', ['geometry-type'], 'Point']],
+      paint:{ 'circle-radius':12, 'circle-color':'rgba(0,0,0,0)', 'circle-stroke-color':INFO_HIGHLIGHT_COLOR, 'circle-stroke-width':2.5 }
+    });
     ensureLayer('vertex-layer', {
       id:'vertex-layer', type:'circle', source:'vertices',
       paint:{ 'circle-radius':6, 'circle-color':'#0f1e29', 'circle-stroke-color':'#e3a541', 'circle-stroke-width':2.5 },
@@ -3286,6 +3312,17 @@
         'fill-extrusion-opacity':0.9
       }
     });
+
+    // IFC katmanlarının GERÇEK mesh'ini (bkz. syncIfcMeshLayer, aşağıda IFC
+    // Görüntüleyici bölümünde tanımlı — kaba taban-izdüşümü kutusu DEĞİL,
+    // BIM Görüntüleyici ile birebir aynı geometri) gösteren özel WebGL
+    // katmanı. visibleFeaturesForRender() sourceFormat==='ifc' katmanların
+    // feature'larını zaten dışarıda bıraktığı için 'poly-extrusion' ile
+    // ÇAKIŞMAZ.
+    if (!map.getLayer('ifc-mesh-layer')){
+      try{ map.addLayer(createIfcMeshMapLayer()); }
+      catch(err){ console.error('ifc-mesh-layer eklenemedi:', err); }
+    }
 
     ensureLayer('draft-fill', {
       id:'draft-fill', type:'fill', source:'draft',
@@ -3777,6 +3814,15 @@
     if (map.getLayer('selected-halo')) map.setFilter('selected-halo', ['all', ['in', ['id'], ['literal', selectedIds]], ['==', ['geometry-type'], 'Point']]);
   }
 
+  // Bilgi balonunda (bkz. handleInfoClick) gösterilen objeyi haritada da
+  // (renk değişiminin YANI SIRA) bir çerçeve/halka ile vurgular — infoHighlightId
+  // her set/temizlendiğinde çağrılmalı.
+  function refreshInfoHighlightFilter(){
+    var idFilter = infoHighlightId != null ? ['==', ['id'], infoHighlightId] : ['==', ['id'], '__none__'];
+    if (map.getLayer('info-outline')) map.setFilter('info-outline', idFilter);
+    if (map.getLayer('info-halo')) map.setFilter('info-halo', ['all', idFilter, ['==', ['geometry-type'], 'Point']]);
+  }
+
   function renderDraftPreview(previewFeatureOrArray){
     var draftSrc = map.getSource('draft');
     var vertSrc = map.getSource('draft-vertices');
@@ -3821,6 +3867,18 @@
     measureFrozen = false; clearMeasureSummary();
     if (mode === 'select' && newMode !== 'select') deselect();
     mode = newMode;
+    // Ölçüm hassasiyeti için Snap, ölçüm araçlarına geçilince HER ZAMAN
+    // açık başlar (kullanıcı isterse durum çubuğundaki Snap butonundan yine
+    // kapatabilir) — genel Snap varsayılanını (zaten açık) etkilemez, sadece
+    // önceden kapatılmışsa ölçüme özel olarak yeniden açar.
+    if (isMeasureMode(mode) && !snapEnabled){
+      snapEnabled = true;
+      var snapBtn = document.getElementById('statusSnapBtn');
+      if (snapBtn){
+        snapBtn.classList.add('active');
+        snapBtn.title = 'Snap: Açık (sol tık: aç/kapat, sağ tık: yakalama mesafesi)';
+      }
+    }
     updateCanvasCursor();
     if (isVertexDrawMode(mode) && typeof syncDraftStyleToActiveLayer === 'function') syncDraftStyleToActiveLayer();
     if (map.getLayer('vertex-layer')) map.setLayoutProperty('vertex-layer', 'visibility', mode === 'select' ? 'visible' : 'none');
@@ -3995,6 +4053,7 @@
     document.getElementById('infoAddDocBtn').classList.remove('hidden');
     // Bilgi balonunda gösterilen obje haritada da vurgulansın (bkz. INFO_HIGHLIGHT_COLOR).
     infoHighlightId = f.id;
+    refreshInfoHighlightFilter();
     renderFeatures();
   }
 
@@ -4034,7 +4093,7 @@
       infoMode = false;
       document.getElementById('btnInfo').classList.remove('active');
       document.getElementById('infoPopover').classList.remove('show');
-      infoHighlightId = null; renderFeatures();
+      infoHighlightId = null; refreshInfoHighlightFilter(); renderFeatures();
       attributeEditMode = false;
       document.getElementById('btnAttrEdit').classList.remove('active');
     }
@@ -6988,6 +7047,11 @@
       var lyr = getLayer(f.properties && f.properties.layerId);
       if (!lyr) return true;
       if (lyr.mapId && lyr.mapId !== activeMapId) return false;
+      // IFC katmanları artık kaba taban-izdüşümü kutusu (fill-extrusion)
+      // DEĞİL, GERÇEK mesh olarak ayrı bir WebGL katmanında (bkz.
+      // ifc-mesh-layer / syncIfcMeshLayer) gösteriliyor — burada dışarıda
+      // bırakılmazsa aynı eleman hem kutu hem gerçek mesh olarak çakışırdı.
+      if (lyr.sourceFormat === 'ifc') return false;
       return lyr.visible !== false;
     }).map(function(f){
       // MapLibre, GeoJSON kaynaklarında poligon/çizgi sorgularında (özellikle
@@ -8199,6 +8263,7 @@
     refreshActiveLayerSelect();
     if (typeof refreshCompareRasterOptions === 'function') refreshCompareRasterOptions();
     if (typeof updateLayerTransformToolbar === 'function') updateLayerTransformToolbar();
+    if (typeof syncIfcMeshLayer === 'function') syncIfcMeshLayer();
   }
 
   function refreshMapSelect(){
@@ -10194,12 +10259,18 @@
   // için gerekli olan "dosya → katman" eşlemesi kurulamazdı. Diğer tüm import
   // yollarıyla (addImportedFeatures) TUTARLI, dosya adını taşıyan kendi
   // katmanını oluşturan bu ortak yardımcı, o eksikliği de gideriyor.
-  function createBimLayerForImport(file, sourceFormat){
+  function createBimLayerForImport(file, sourceFormat, placementScale){
     var newLayerId = 'layer-' + uid();
+    var center = map.getCenter();
     layers.push({
       id:newLayerId, name:file.name.replace(/\.[a-zA-Z0-9]+$/, ''), visible:true, color:null, lineWidth:null,
       dash:'solid', symbol:'circle', scale:1, geomType:'Polygon', mapId:activeMapId,
-      folderId:getDefaultFolderId(activeMapId), sourceFormat: sourceFormat
+      folderId:getDefaultFolderId(activeMapId), sourceFormat: sourceFormat,
+      // Haritadaki gerçek mesh render'ının (bkz. syncIfcMeshLayer) konumlanacağı
+      // çıpa: import anındaki harita merkezi + kullanıcının seçtiği birim
+      // ölçeği. placeLocalRingOnMap() de AYNI harita merkezini (senkron olarak,
+      // bu satırdan hemen önce) kullandığı için ikisi birbirine denk düşer.
+      bimAnchor: { lng: center.lng, lat: center.lat, scale: placementScale || 1 }
     });
     saveBimFile(newLayerId, file, sourceFormat);
     return newLayerId;
@@ -10210,7 +10281,7 @@
     var result = await parseGLTFOrGLB(file, siblingFiles);
     var ring = placeLocalRingOnMap(result.footprint, scale);
     ring.push(ring[0]);
-    var newLayerId = createBimLayerForImport(file, /\.glb$/i.test(file.name) ? 'glb' : 'gltf');
+    var newLayerId = createBimLayerForImport(file, /\.glb$/i.test(file.name) ? 'glb' : 'gltf', scale);
     var f = makeFeature('Polygon', [ring]);
     f.properties.layerId = newLayerId;
     f.properties.extrude = true;
@@ -10268,7 +10339,7 @@
     var result = await parseIFCFile(file);
     var ring = placeLocalRingOnMap(result.footprint, manualScale);
     ring.push(ring[0]);
-    var newLayerId = createBimLayerForImport(file, 'ifc');
+    var newLayerId = createBimLayerForImport(file, 'ifc', manualScale);
     var f = makeFeature('Polygon', [ring]);
     f.properties.layerId = newLayerId;
     f.properties.extrude = true;
@@ -10352,10 +10423,17 @@
     var inferredGeom = geomKeys.length === 1 ? geomKeys[0] : null;
     var newLayerId = 'layer-' + uid();
     var layerName = (sourceLabel || 'İçe Aktarılan').replace(/\.[a-zA-Z0-9]+$/, '');
+    // Haritadaki gerçek mesh render'ının (bkz. syncIfcMeshLayer) çıpası —
+    // placeDXFOnMap() de AYNI harita merkezini (senkron olarak, bu satırdan
+    // hemen önce çağrılan handleEtlServerImport içinde) kullandığı için
+    // ikisi birbirine denk düşer.
+    var bimAnchor = bimSourceFormat
+      ? { lng: map.getCenter().lng, lat: map.getCenter().lat, scale: parseFloat(document.getElementById('dxfScaleInput').value) || 1 }
+      : undefined;
     layers.push({
       id:newLayerId, name:layerName, visible:true, color:null, lineWidth:null, dash:'solid',
       symbol:'circle', scale:1, geomType:inferredGeom, mapId:activeMapId, folderId:getDefaultFolderId(activeMapId),
-      sourceFormat: bimSourceFormat || null
+      sourceFormat: bimSourceFormat || null, bimAnchor: bimAnchor
     });
     // BIM Görüntüleyici (bkz. openBimViewer) için — yalnızca çağıran taraf
     // bimSourceFormat/bimSourceFile verdiyse (şu an sadece sunucu taraflı IFC
@@ -10510,8 +10588,14 @@
         var scale = parseFloat(document.getElementById('dxfScaleInput').value) || 1;
         rawFeats = placeDXFOnMap(rawFeats, scale);
       }
-      addImportedFeatures(rawFeats, file.name, bimFormat, bimFormat ? file : undefined);
+      // ÖNEMLİ: ensure3DView() (pitch/bearing easeTo) addImportedFeatures()'ın
+      // KENDİ map.fitBounds() (zoom/merkez, duration:600) çağrısından SONRA
+      // gelirse, MapLibre ikinci easeTo çağrısını (aynı senkron tick'te,
+      // animasyon bir kare bile ilerlemeden) öncekini KESER/İPTAL EDER — sonuç
+      // olarak harita hiç yakınlaşmaz. importGLTF()/importIFC()'nin (istemci
+      // tarafı) ZATEN kullandığı GÜVENLİ sırayla AYNI: ensure3DView() ÖNCE.
       if (reprojectLocal) ensure3DView();
+      addImportedFeatures(rawFeats, file.name, bimFormat, bimFormat ? file : undefined);
       // FAZ 6 — hem nokta bulutu (totalPoints, laspy) hem de büyük IFC
       // (totalElements, IfcOpenShell) uç noktaları çok büyük girişleri
       // eşit aralıklı örnekleyip "sampled:true" ile işaretler; ikisi de
@@ -11647,21 +11731,14 @@
     return buildNode(projIds.get(0));
   }
 
-  async function loadIfcIntoViewer(blob){
-    var THREE = bimViewer.THREE;
-    var webIfcMod = await import(WEB_IFC_CDN + 'web-ifc-api.js');
-    var IfcAPI = webIfcMod.IfcAPI;
-    var ifcApi = new IfcAPI();
-    ifcApi.SetWasmPath(WEB_IFC_CDN, true);
-    await ifcApi.Init();
-    bimViewer.ifcApi = ifcApi;
-    bimViewer.format = 'ifc';
-
-    var buf = new Uint8Array(await blob.arrayBuffer());
-    var modelID = ifcApi.OpenModel(buf, { COORDINATE_TO_ORIGIN: true });
-    bimViewer.modelID = modelID;
-
-    bimViewerShowLoading('Geometri oluşturuluyor…');
+  // web-ifc'nin StreamAllMeshes/GetGeometry API'siyle HER ELEMANIN GERÇEK
+  // üçgen mesh'ini (kaba taban-izdüşümü/bounding-box DEĞİL) THREE.Mesh
+  // listesine çevirir. Hem BIM Görüntüleyici (loadIfcIntoViewer) hem de
+  // haritadaki gerçek-mesh katmanı (bkz. loadIfcMeshGroupForMap) AYNI bu
+  // fonksiyonu kullanır — iki ayrı/tutarsız implementasyon YOK.
+  function extractIfcMeshes(ifcApi, modelID, THREE){
+    var meshes = [];
+    var meshByExpressId = {};
     ifcApi.StreamAllMeshes(modelID, function(flatMesh){
       var placedGeometries = flatMesh.geometries;
       for (var i = 0; i < placedGeometries.size(); i++){
@@ -11687,11 +11764,220 @@
         var mesh = new THREE.Mesh(bufferGeom, material);
         mesh.applyMatrix4(new THREE.Matrix4().fromArray(placedGeometry.flatTransformation));
         mesh.userData.expressID = flatMesh.expressID;
-        bimViewer.group.add(mesh);
-        if (!bimViewer.meshByExpressId[flatMesh.expressID]) bimViewer.meshByExpressId[flatMesh.expressID] = [];
-        bimViewer.meshByExpressId[flatMesh.expressID].push(mesh);
+        // Haritadaki ifc-mesh-layer, kamera projectionMatrix'ini MapLibre'nin
+        // kendi matrisiyle (Mercator birim uzayı) DOĞRUDAN ezer — camera.matrixWorld
+        // GERÇEĞİ YANSITMADIĞI için three.js'in otomatik frustum culling'i
+        // (camera.matrixWorld'e dayanır) mesh'leri YANLIŞLIKLA "görünür alan
+        // dışında" sanıp ÇİZMEYİ ATLAYABİLİR — bu yüzden kapatılıyor. BIM
+        // Görüntüleyici'nin KENDİ (gerçek, normal) kamerası için zararsız.
+        mesh.frustumCulled = false;
+        meshes.push(mesh);
+        if (!meshByExpressId[flatMesh.expressID]) meshByExpressId[flatMesh.expressID] = [];
+        meshByExpressId[flatMesh.expressID].push(mesh);
       }
     });
+    return { meshes: meshes, meshByExpressId: meshByExpressId };
+  }
+
+  // =========================================================================
+  // Haritada GERÇEK IFC mesh render'ı — "bu IFC çizimi haritaya eklendiğinde
+  // BIM Görüntüleyici'de göründüğü GİBİ görünmeli" talebi üzerine: kaba
+  // taban-izdüşümü kutusu (server/etl/ifc_to_geojson.py'nin bounding-box'ı,
+  // eskiden 'poly-extrusion' ile çizilirdi — bkz. visibleFeaturesForRender'
+  // daki sourceFormat==='ifc' hariç tutma) yerine, extractIfcMeshes() ile
+  // AYNI gerçek mesh MapLibre'nin CustomLayerInterface'i (type:'custom')
+  // üzerinden, kendi three.js sahnesiyle çizilir. MapLibre'nin yerleşik
+  // katman tipleri (fill/fill-extrusion/line) keyfi 3B mesh çizemediği için
+  // bu ZORUNLU — basit bir "poligon konturunu düzelt" yeterli değil.
+  // =========================================================================
+  var ifcMeshLayerCtx = null; // onAdd() tamamlanınca { THREE, scene, camera, renderer } ile dolar
+  var ifcMeshCache = {};      // layerId -> 'loading' | THREE.Group (haritaya eklenmiş grup)
+
+  // lyr.bimAnchor (import anındaki harita merkezi + birim ölçeği — bkz.
+  // createBimLayerForImport/addImportedFeatures) ile grubu doğru coğrafi
+  // konum ve ölçekte yerleştirir. Mercator'da Y GÜNEYE artar, IFC/coğrafi
+  // Y KUZEYE artar — bu yüzden Y ekseni negatiflenir (MapLibre/Mapbox'ın
+  // resmi "Add a 3D model" custom layer örneğiyle AYNI, iyi bilinen desen).
+  function positionIfcMeshOuterGroup(outerGroup, lyr, THREE){
+    var anchor = lyr.bimAnchor;
+    var mercAnchor = maplibregl.MercatorCoordinate.fromLngLat([anchor.lng, anchor.lat], 0);
+    var metersPerMercatorUnit = mercAnchor.meterInMercatorCoordinateUnits();
+    var s = metersPerMercatorUnit * (anchor.scale || 1);
+    outerGroup.position.set(mercAnchor.x, mercAnchor.y, mercAnchor.z);
+    outerGroup.scale.set(s, -s, s);
+  }
+
+  // Bir IFC katmanının orijinal dosyasını (IndexedDB, bkz. getBimFile) okuyup
+  // gerçek mesh'ini üretir; grup kendi taban-merkezine (XY ortası, Z tabanı)
+  // göre ortalanır — coğrafi konumlandırma positionIfcMeshOuterGroup() ile
+  // AYRICA (dış bir grup üzerinde) uygulanır.
+  async function loadIfcMeshGroupForMap(lyr, THREE){
+    var rec = await getBimFile(lyr.id);
+    if (!rec || !rec.blob || rec.format !== 'ifc') return null;
+    var webIfcMod = await import(WEB_IFC_CDN + 'web-ifc-api.js');
+    var ifcApi = new webIfcMod.IfcAPI();
+    ifcApi.SetWasmPath(WEB_IFC_CDN, true);
+    await ifcApi.Init();
+    var buf = new Uint8Array(await rec.blob.arrayBuffer());
+    // COORDINATE_TO_ORIGIN KULLANILMIYOR (BIM Görüntüleyici'den farklı) —
+    // burada grup kendi bounding box'ına göre ortalanıyor, mutlak/ham
+    // koordinatlar sorun değil; önemli olan tutarlılık.
+    var modelID = ifcApi.OpenModel(buf, {});
+    var extracted = extractIfcMeshes(ifcApi, modelID, THREE);
+    try{ ifcApi.CloseModel(modelID); }catch(e){ /* yoksay */ }
+    if (!extracted.meshes.length) return null;
+
+    // Merkezleme her mesh'in KENDİ position'ına doğrudan uygulanır — ayrı bir
+    // "iç" grup katmanı EKLENMEZ. Haritada 1 Mercator birimi ~metrelik
+    // ölçeklerle (ör. 3e-8) çarpılıyor; iç içe iki Object3D transformu
+    // (merkezleme grubu + coğrafi konum grubu) three.js'in Float32Array
+    // tabanlı Matrix4'ünde önlenebilir hassasiyet kaybına yol açıyordu
+    // (canlı testte doğrulandı: tek mesh'lik test küpü tek katmanla doğru
+    // görünürken, 999 mesh'lik gerçek model iç içe iki katmanla haritada
+    // görünmez küçüklükte kalıyordu). Tek seviyeli hiyerarşi bunu ortadan
+    // kaldırır.
+    var box = new THREE.Box3();
+    extracted.meshes.forEach(function(m){ m.updateMatrixWorld(true); box.expandByObject(m); });
+    if (box.isEmpty()) return null;
+    var center = box.getCenter(new THREE.Vector3());
+    var baseZ = box.min.z;
+    var group = new THREE.Group();
+    extracted.meshes.forEach(function(m){
+      m.position.x -= center.x;
+      m.position.y -= center.y;
+      m.position.z -= baseZ;
+      group.add(m);
+    });
+    return group;
+  }
+
+  // layers[] dizisindeki sourceFormat==='ifc' katmanlarını (aktif haritada,
+  // görünür olanları) ifcMeshLayerCtx.scene ile senkronlar: yeni/görünür
+  // olanları yükleyip ekler, silinmiş/gizlenmiş/haritası değişmiş olanları
+  // çıkarır. renderLayerTree() sonunda çağrılır (bkz. updateLayerTransformToolbar
+  // ile AYNI hook deseni) — böylece import, silme, görünürlük değişimi, harita
+  // değişimi gibi HER durumda otomatik güncel kalır.
+  function syncIfcMeshLayer(){
+    if (!ifcMeshLayerCtx) return;
+    var THREE = ifcMeshLayerCtx.THREE;
+    var scene = ifcMeshLayerCtx.scene;
+    var wanted = {};
+    layers.filter(function(l){
+      return l.sourceFormat === 'ifc' && l.mapId === activeMapId && l.visible !== false && l.bimAnchor;
+    }).forEach(function(l){ wanted[l.id] = l; });
+
+    Object.keys(ifcMeshCache).forEach(function(id){
+      if (wanted[id]) return;
+      var entry = ifcMeshCache[id];
+      if (entry && entry !== 'loading' && entry.parent) entry.parent.remove(entry);
+      delete ifcMeshCache[id];
+    });
+
+    var changed = false;
+    Object.keys(wanted).forEach(function(id){
+      var lyr = wanted[id];
+      var entry = ifcMeshCache[id];
+      if (entry === 'loading') return;
+      if (entry){
+        positionIfcMeshOuterGroup(entry, lyr, THREE);
+        if (!entry.parent){ scene.add(entry); changed = true; }
+        return;
+      }
+      ifcMeshCache[id] = 'loading';
+      loadIfcMeshGroupForMap(lyr, THREE).then(function(centeredGroup){
+        var stillWanted = layers.some(function(l){
+          return l.id === id && l.sourceFormat === 'ifc' && l.mapId === activeMapId && l.visible !== false;
+        });
+        if (!centeredGroup || !stillWanted){ delete ifcMeshCache[id]; return; }
+        // TEK seviyeli hiyerarşi: centeredGroup'un kendisine (ekstra bir
+        // sarmalayıcı grup OLMADAN) doğrudan coğrafi konum/ölçek uygulanır —
+        // bkz. loadIfcMeshGroupForMap'teki hassasiyet notu.
+        positionIfcMeshOuterGroup(centeredGroup, lyr, THREE);
+        ifcMeshCache[id] = centeredGroup;
+        scene.add(centeredGroup);
+        map.triggerRepaint();
+      }).catch(function(err){
+        console.error('Harita IFC mesh\'i yüklenemedi (' + lyr.name + '):', err);
+        delete ifcMeshCache[id];
+      });
+    });
+    if (changed) map.triggerRepaint();
+  }
+
+  function createIfcMeshMapLayer(){
+    return {
+      id: 'ifc-mesh-layer',
+      type: 'custom',
+      onAdd: async function(mapRef, gl){
+        var THREE = await import('three');
+        var camera = new THREE.Camera();
+        var scene = new THREE.Scene();
+        scene.add(new THREE.HemisphereLight(0xffffff, 0x404040, 1.2));
+        var dir = new THREE.DirectionalLight(0xffffff, 0.7);
+        dir.position.set(0, -70, 100).normalize();
+        scene.add(dir);
+        var renderer = new THREE.WebGLRenderer({ canvas: mapRef.getCanvas(), context: gl, antialias:true });
+        renderer.autoClear = false;
+        // MapLibre'nin kendi canvas/context'ini PAYLAŞTIĞIMIZ için three.js
+        // setSize() ÇAĞRILMAZSA varsayılan (küçük, ör. 300x150) bir viewport
+        // kullanır — gl.viewport() bu YANLIŞ boyutla çağrılır ve çizilen her
+        // şey (haritanın gerçek boyutuyla eşleşmeyen) küçük/görünmez bir
+        // alana sıkışır. updateStyle=false ile canvas'ın CSS boyutuna
+        // DOKUNULMAZ (onu zaten MapLibre yönetiyor).
+        renderer.setPixelRatio(window.devicePixelRatio || 1);
+        renderer.setSize(mapRef.getCanvas().clientWidth, mapRef.getCanvas().clientHeight, false);
+        mapRef.on('resize', function(){
+          renderer.setSize(mapRef.getCanvas().clientWidth, mapRef.getCanvas().clientHeight, false);
+        });
+        ifcMeshLayerCtx = { THREE:THREE, scene:scene, camera:camera, renderer:renderer };
+        syncIfcMeshLayer();
+      },
+      // MapLibre GL JS 5.x'te CustomLayerInterface.render()'ın ikinci parametresi
+      // ARTIK düz bir 16 sayılık matris DİZİSİ değil (eski Mapbox/MapLibre 3B
+      // model örneklerinde ve <4.x sürümlerde geçerliydi) — çoklu projeksiyon
+      // (globe vb.) desteği için args.modelViewProjectionMatrix/.projectionMatrix/
+      // .defaultProjectionData alanları içeren bir NESNE. Canlı testte
+      // doğrulandı: args.modelViewProjectionMatrix, ham [0,1] Mercator birimi
+      // DEĞİL, "Mercator × worldSize" (worldSize = 512 * 2^zoom, MapLibre'nin
+      // dahili piksel-eşdeğeri uzayı) birimini bekliyor — bu ölçek her zoom'da
+      // değiştiği için HER render() çağrısında yeniden hesaplanır. Bu olmadan
+      // (veya matris değişikliği hiç yapılmadan önce) harita hiçbir hata
+      // vermeden sessizce hiçbir şey çizmiyordu.
+      render: function(gl, args){
+        if (!ifcMeshLayerCtx) return;
+        try{
+          var THREE = ifcMeshLayerCtx.THREE;
+          var worldSize = Math.pow(2, map.getZoom()) * 512;
+          var scaleM = new THREE.Matrix4().makeScale(worldSize, worldSize, worldSize);
+          ifcMeshLayerCtx.camera.projectionMatrix = new THREE.Matrix4().fromArray(args.modelViewProjectionMatrix).multiply(scaleM);
+          ifcMeshLayerCtx.renderer.resetState();
+          ifcMeshLayerCtx.renderer.render(ifcMeshLayerCtx.scene, ifcMeshLayerCtx.camera);
+          ifcMeshLayerCtx.renderer.resetState();
+        }catch(err){
+          console.error('ifc-mesh-layer render hatası:', err);
+        }
+      }
+    };
+  }
+
+  async function loadIfcIntoViewer(blob){
+    var THREE = bimViewer.THREE;
+    var webIfcMod = await import(WEB_IFC_CDN + 'web-ifc-api.js');
+    var IfcAPI = webIfcMod.IfcAPI;
+    var ifcApi = new IfcAPI();
+    ifcApi.SetWasmPath(WEB_IFC_CDN, true);
+    await ifcApi.Init();
+    bimViewer.ifcApi = ifcApi;
+    bimViewer.format = 'ifc';
+
+    var buf = new Uint8Array(await blob.arrayBuffer());
+    var modelID = ifcApi.OpenModel(buf, { COORDINATE_TO_ORIGIN: true });
+    bimViewer.modelID = modelID;
+
+    bimViewerShowLoading('Geometri oluşturuluyor…');
+    var extracted = extractIfcMeshes(ifcApi, modelID, THREE);
+    extracted.meshes.forEach(function(m){ bimViewer.group.add(m); });
+    bimViewer.meshByExpressId = extracted.meshByExpressId;
 
     // IFC Z-yukarı, three.js Y-yukarı — mevcut client-side ayrıştırıcıyla
     // (ifcExtractFootprint: "IFC Z-yukarı: taban X,Y; yükseklik Z") AYNI
