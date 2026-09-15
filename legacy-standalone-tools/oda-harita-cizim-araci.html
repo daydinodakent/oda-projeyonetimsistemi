@@ -4203,15 +4203,25 @@
     }
   });
 
-  // Küçük dosyaları (ör. resimler) önizleme için base64 data URL'e çevirir;
-  // büyük/ikili dosyalarda (cad/bim vb.) önizleme atlanır, sadece meta veri gönderilir.
-  var DOC_PREVIEW_MAX_BYTES = 4 * 1024 * 1024;
+  // Dosyaları base64 data URL'e çevirip 'oda:add-documents' ile üst pencereye
+  // (React, DB'ye TEXT/base64 olarak yazıyor) gönderir. ESKİDEN bu sınır
+  // 4MB'tı VE aşan dosyalarda hiçbir hata GÖSTERMEDEN sessizce dataUrl:null
+  // gönderilip yine de "eklendi" tostu basılıyordu — yani gerçek dünyadaki
+  // NEREDEYSE TÜM IFC/GLTF dosyaları (onlarca-yüzlerce MB) içeriksiz
+  // "ekleniyor", kullanıcı sonradan dosyanın gerçekte hiç yüklenmediğini
+  // fark ediyordu. Artık aşan dosyalar AÇIKÇA reddediliyor (kullanıcıya
+  // hangi dosyanın neden eklenemediği gösteriliyor) ve sınır, gerçek IFC/
+  // GLTF dosyalarının büyük kısmını kapsayacak şekilde yükseltildi.
+  var DOC_UPLOAD_MAX_BYTES = 60 * 1024 * 1024; // 60MB
   function readFileAsDataUrl(file){
-    return new Promise(function(resolve){
-      if (file.size > DOC_PREVIEW_MAX_BYTES){ resolve(null); return; }
+    return new Promise(function(resolve, reject){
+      if (file.size > DOC_UPLOAD_MAX_BYTES){
+        reject(new Error('dosya çok büyük (limit: ' + formatFileSize(DOC_UPLOAD_MAX_BYTES) + ')'));
+        return;
+      }
       var reader = new FileReader();
       reader.onload = function(){ resolve(reader.result); };
-      reader.onerror = function(){ resolve(null); };
+      reader.onerror = function(){ reject(new Error('dosya okunamadı')); };
       reader.readAsDataURL(file);
     });
   }
@@ -4220,11 +4230,14 @@
   // ile üst pencereye (React) gönderir — hem mevcut bir objeye anında eklerken
   // (openDocUploadModal) hem de Veri Girişi'nden gelen bekleyen dosyaları obje
   // fiilen oluşturulduğunda eklerken (bkz. addFeature) ortak kullanılır.
+  // Promise.allSettled KULLANILIR (Promise.all DEĞİL) — tek bir dosya limiti
+  // aşsa bile DİĞER geçerli dosyalar yine de eklenir; hangi dosyanın neden
+  // başarısız olduğu ayrı bir tost ile açıkça bildirilir.
   function commitStagedDocuments(targetFeature, stagedFiles){
     if (!stagedFiles || !stagedFiles.length) return Promise.resolve();
     var targetFeatureId = targetFeature.id;
     var projectId = (targetFeature.properties && (targetFeature.properties.proje_id || targetFeature.properties.project_id)) || undefined;
-    return Promise.all(stagedFiles.map(function(staged){
+    return Promise.allSettled(stagedFiles.map(function(staged){
       return readFileAsDataUrl(staged.file).then(function(dataUrl){
         return {
           name: staged.file.name,
@@ -4233,14 +4246,23 @@
           dataUrl: dataUrl
         };
       });
-    })).then(function(filesPayload){
-      window.parent.postMessage({
-        type: 'oda:add-documents',
-        featureId: targetFeatureId,
-        projectId: projectId,
-        files: filesPayload
-      }, '*');
-      showToast(filesPayload.length + ' doküman "' + typeLabel(targetFeature) + '" objesine eklendi.');
+    })).then(function(results){
+      var filesPayload = [];
+      var failed = [];
+      results.forEach(function(r, i){
+        if (r.status === 'fulfilled') filesPayload.push(r.value);
+        else failed.push(stagedFiles[i].file.name + ': ' + (r.reason && r.reason.message ? r.reason.message : 'yüklenemedi'));
+      });
+      if (filesPayload.length){
+        window.parent.postMessage({
+          type: 'oda:add-documents',
+          featureId: targetFeatureId,
+          projectId: projectId,
+          files: filesPayload
+        }, '*');
+        showToast(filesPayload.length + ' doküman "' + typeLabel(targetFeature) + '" objesine eklendi.');
+      }
+      if (failed.length) showToast('Eklenemedi — ' + failed.join('; '));
     });
   }
 
@@ -5002,6 +5024,8 @@
           notes: ''
         });
         renderSahaPendingList();
+      }).catch(function(err){
+        showToast(file.name + ' eklenemedi: ' + (err && err.message ? err.message : 'yüklenemedi'));
       });
     });
   }
