@@ -585,6 +585,27 @@
      tutmak için ekrandan gizlenir, DOM'dan kaldırılmaz. */
   .analiz-info-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
 
+  /* ---------- Harita lejantı — aktif renk-kodlu analiz(ler) için ----------
+     Birden fazla analiz AYNI ANDA aktif olabildiğinden (bkz. activeAreaAnaliz
+     [Eğim/Isı/Kümeleme/Kesişim/Kesim-Dolgu/Erişilebilirlik] ile split-buton
+     analizleri [Gölge/Güneşlenme] BAĞIMSIZ iki ayrı durum makinesidir),
+     lejant tek bir kutuda ama anahtarlanmış (setMapLegendEntry/key) BİRDEN
+     FAZLA bölüm olarak birikir — bkz. renderMapLegend. */
+  #mapLegend{
+    position:absolute;right:12px;bottom:104px;z-index:5;max-width:190px;
+    background:rgba(10,22,32,.95);border:1px solid var(--line);border-radius:8px;
+    padding:8px 10px;box-shadow:0 4px 18px rgba(0,0,0,.4);
+    font-family:var(--font-mono);font-size:10px;color:var(--text-dim);
+  }
+  #mapLegend.hidden{display:none;}
+  #mapLegend .legend-section + .legend-section{margin-top:8px;padding-top:8px;border-top:1px solid var(--line);}
+  #mapLegend .legend-title{color:var(--text);font-weight:600;font-size:10.5px;margin-bottom:5px;}
+  #mapLegend .legend-row{display:flex;align-items:center;gap:6px;margin-bottom:3px;}
+  #mapLegend .legend-row:last-child{margin-bottom:0;}
+  #mapLegend .legend-swatch{width:11px;height:11px;border-radius:2px;flex:0 0 auto;}
+  #mapLegend .legend-gradient{height:9px;border-radius:2px;margin-bottom:3px;}
+  #mapLegend .legend-gradient-labels{display:flex;justify-content:space-between;font-size:9px;}
+
   .fmt-grid{display:flex;flex-wrap:wrap;gap:5px;align-items:center;}
   .fmt-cat{width:100%;font-size:10px;letter-spacing:.4px;color:var(--text-dim);margin-top:6px;}
   .fmt-cat:first-child{margin-top:0;}
@@ -2261,6 +2282,10 @@
   <button id="analizToolbarClose" class="attr-table-close" title="Kapat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
 </div>
 
+<!-- Harita lejantı — aktif renk-kodlu analiz(ler) çalıştığında JS ile
+     doldurulur (bkz. setMapLegendEntry/renderMapLegend), boşken gizli. -->
+<div id="mapLegend" class="hidden"></div>
+
 <div id="statusbar">
   <span title="Koordinat"><svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg><b id="stCoord" style="color:var(--teal)">—</b></span>
   <div class="div"></div>
@@ -3097,6 +3122,38 @@
   }
 
   function fc(arr){ return { type:'FeatureCollection', features: arr }; }
+
+  // ---- Harita lejantı — bkz. #mapLegend CSS notu (üstte, birden fazla
+  // analiz aynı anda aktifken her biri kendi anahtarıyla (key) ayrı bir
+  // bölüm olarak eklenir/çıkarılır). ----
+  var mapLegendEntries = {};
+  function renderMapLegend(){
+    var el = document.getElementById('mapLegend');
+    if (!el) return;
+    var keys = Object.keys(mapLegendEntries);
+    if (!keys.length){ el.classList.add('hidden'); el.innerHTML = ''; return; }
+    el.innerHTML = keys.map(function(k){
+      var e = mapLegendEntries[k];
+      return '<div class="legend-section"><div class="legend-title">' + e.title + '</div>' + e.html + '</div>';
+    }).join('');
+    el.classList.remove('hidden');
+  }
+  function setMapLegendEntry(key, title, bodyHtml){
+    mapLegendEntries[key] = { title:title, html:bodyHtml };
+    renderMapLegend();
+  }
+  function clearMapLegendEntry(key){
+    if (!mapLegendEntries[key]) return;
+    delete mapLegendEntries[key];
+    renderMapLegend();
+  }
+  function legendSwatchRow(color, label){
+    return '<div class="legend-row"><span class="legend-swatch" style="background:' + color + '"></span><span>' + label + '</span></div>';
+  }
+  function legendGradientRow(cssGradient, minLabel, maxLabel){
+    return '<div class="legend-gradient" style="background:' + cssGradient + '"></div>' +
+      '<div class="legend-gradient-labels"><span>' + minLabel + '</span><span>' + maxLabel + '</span></div>';
+  }
 
   // ---------------------------------------------------------------------
   // Katman kurulumu (stil her değiştiğinde yeniden çağrılır)
@@ -10068,6 +10125,8 @@
     if (src) src.setData(fc(shadows));
     info.textContent = 'Güneş yüksekliği: ' + sun.altitudeDeg.toFixed(1) + '° · Gölge yönü: ' + sun.shadowBearingDeg.toFixed(0) + '°' +
       (shadows.length ? '' : ' · Gölge hesaplanacak 3B poligon (bina) bulunamadı.');
+    if (shadows.length) setMapLegendEntry('shadow', 'Gölge Analizi', legendSwatchRow('#050505', 'Gölge alanı'));
+    else clearMapLegendEntry('shadow');
   }
 
   // ---- Güneşlenme Potansiyeli Analizi ----
@@ -10179,6 +10238,7 @@
     info.textContent = candidates.length + ' bina · Ortalama ' + avg.toFixed(1) + ' sa · En az ' +
       sunlitHours[minIdx].toFixed(1) + ' sa (' + (candidates[minIdx].feature.properties.name || 'isimsiz') + ') · En çok ' +
       sunlitHours[maxIdx].toFixed(1) + ' sa (' + (candidates[maxIdx].feature.properties.name || 'isimsiz') + ')';
+    setMapLegendEntry('solar', 'Güneşlenme Potansiyeli', legendGradientRow('linear-gradient(90deg,#dc2626,#f59e0b,#22c55e)', '0 sa', '12+ sa'));
   }
 
   // ---- 4D Analizi (zaman bazlı inşaat ilerlemesi simülasyonu) ----
@@ -10274,6 +10334,7 @@
       var src = map.getSource('shadow-source');
       if (src) src.setData(fc([]));
       document.getElementById('shadowInfo').textContent = '';
+      clearMapLegendEntry('shadow');
     });
   })();
 
@@ -10288,6 +10349,7 @@
       var src = map.getSource('solar-source');
       if (src) src.setData(fc([]));
       document.getElementById('solarInfo').textContent = '';
+      clearMapLegendEntry('solar');
     });
   })();
 
@@ -11472,6 +11534,7 @@
     if (activeAreaAnaliz === 'slope') computeAndRenderSlope();
   }
   function setupSlopeAnalysis(){
+    setMapLegendEntry('slope', 'Eğim (Slope)', legendGradientRow('linear-gradient(90deg,#2ecc71,#a4d65e,#f1c40f,#e67e22,#e02424)', '0°', '35°+'));
     ensureTerrainForAnalysis(function(){
       if (activeAreaAnaliz !== 'slope') return;
       computeAndRenderSlope();
@@ -11528,6 +11591,7 @@
     }
   }
   function teardownSlopeAnalysis(){
+    clearMapLegendEntry('slope');
     map.off('moveend', onSlopeMapMove);
     if (map.getLayer('analiz-slope-layer')) map.removeLayer('analiz-slope-layer');
     if (map.getSource('analiz-slope-source')) map.removeSource('analiz-slope-source');
@@ -11718,8 +11782,10 @@
     var layerLabel = layer ? layer.name : 'seçilen katman';
     if (hintEl) hintEl.textContent = 'Isı haritası aktif — "' + layerLabel + '" katmanından ' + data.features.length + ' nokta' + (column ? (' ("' + column + '" ağırlıklı)') : '') + ' baz alındı.';
     showToast('Isı haritası açıldı (' + data.features.length + ' nokta).');
+    setMapLegendEntry('heatmap', 'Isı Haritası', legendGradientRow('linear-gradient(90deg,#3fc2ac,#4fd1ff,#f1c40f,#e67e22,#e02424)', 'Düşük', 'Yüksek'));
   }
   function teardownHeatmapAnalysis(){
+    clearMapLegendEntry('heatmap');
     if (map.getLayer('analiz-heatmap-layer')) map.setLayoutProperty('analiz-heatmap-layer', 'visibility', 'none');
   }
 
@@ -11782,8 +11848,11 @@
     var layerLabel2 = layer ? layer.name : 'seçilen katman';
     hintEl.textContent = 'Kümeleme aktif — "' + layerLabel2 + '" katmanından ' + data.features.length + ' nokta' + (column ? (' ("' + column + '" toplamıyla etiketli)') : '') + ' gruplanıyor; bir kümeye tıklayınca yakınlaşır.';
     showToast('Kümeleme açıldı (' + data.features.length + ' nokta).');
+    setMapLegendEntry('cluster', 'Kümeleme',
+      legendSwatchRow('#3fc2ac', '< 10 nokta') + legendSwatchRow('#f1c40f', '10–29 nokta') + legendSwatchRow('#e02424', '30+ nokta'));
   }
   function teardownClusterAnalysis(){
+    clearMapLegendEntry('cluster');
     ['analiz-cluster-circles','analiz-cluster-count','analiz-cluster-unclustered'].forEach(function(id){
       if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', 'none');
     });
@@ -11836,8 +11905,10 @@
         : 'Seçilen iki katman arasında kesişme bulunamadı.';
     }
     showToast(pairCount ? (pairCount + ' çakışma bulundu.') : 'Çakışma bulunamadı.');
+    setMapLegendEntry('overlay', 'Kesişim / Çakışma', legendSwatchRow('#e11d48', 'Çakışan obje' + (zAware ? ' (Z dahil)' : '')));
   }
   function teardownOverlayAnalysis(){
+    clearMapLegendEntry('overlay');
     var src = map.getSource('overlay-source');
     if (src) src.setData(fc([]));
   }
@@ -11897,8 +11968,13 @@
       : 'Seçili alanda DEM verisi bulunamadı — biraz bekleyip tekrar deneyin.';
     if (hintEl) hintEl.textContent = txt;
     showToast(sampled ? 'Kesim-Dolgu hesaplandı.' : 'DEM verisi bulunamadı.');
+    if (sampled){
+      setMapLegendEntry('cutfill', 'Kesim-Dolgu (hedef ' + targetElev.toFixed(1) + ' m)',
+        legendSwatchRow('#dc2626', 'Kesim (hafriyat)') + legendSwatchRow('#2563eb', 'Dolgu'));
+    }
   }
   function teardownCutfillAnalysis(){
+    clearMapLegendEntry('cutfill');
     var src = map.getSource('cutfill-source');
     if (src) src.setData(fc([]));
   }
@@ -11935,8 +12011,11 @@
     var hintEl = document.getElementById('analizOptHint');
     if (hintEl) hintEl.textContent = 'Erişilebilirlik: ' + speedKmh + ' km/sa hız ile 5/10/15 dk eşdeğeri mesafe halkaları (kuş uçuşu, basitleştirilmiş).';
     showToast('Erişilebilirlik halkaları çizildi.');
+    setMapLegendEntry('isochrone', 'Erişilebilirlik (' + speedKmh + ' km/sa)',
+      legendSwatchRow('#22c55e', '5 dk') + legendSwatchRow('#f59e0b', '10 dk') + legendSwatchRow('#dc2626', '15 dk'));
   }
   function teardownIsochroneAnalysis(){
+    clearMapLegendEntry('isochrone');
     map.off('click', onIsochroneMapClick);
     map.getCanvas().style.cursor = '';
     var src = map.getSource('isochrone-source');
