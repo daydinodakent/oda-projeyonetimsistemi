@@ -37,7 +37,6 @@ import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import duckdb from 'duckdb';
 import multer from 'multer';
 
 const execFileAsync = promisify(execFile);
@@ -166,95 +165,6 @@ app.post('/api/etl/ifc', etlUpload.single('file'), etlUploadErrorHandler, (req, 
 app.post('/api/etl/pointcloud', etlUpload.single('file'), etlUploadErrorHandler, (req, res) => {
   const maxPoints = req.body && req.body.maxPoints ? String(req.body.maxPoints) : '20000';
   return handleEtlUpload(req, res, 'pointcloud_to_geojson.py', [maxPoints]);
-});
-
-// --- FAZ 4 (ETL yol haritası): DuckDB Spatial ile toplu coğrafi analiz ---
-// DuckDB'nin WASM (tarayıcı) derlemesi spatial extension'ı DESTEKLEMEZ —
-// yalnızca native/sunucu tarafında çalışır (araştırmayla doğrulandı), bu
-// yüzden bu, sunucu tarafında (Node.js duckdb paketi + otomatik kurulan
-// 'spatial' eklentisi) çalışan AYRI bir uç noktadır.
-//
-// ÖNEMLİ (bu ortamda canlı test sırasında bulundu): DuckDB spatial'ın
-// GDAL tabanlı ST_Read() okuyucusu, GERÇEK server/data/oda_pys.gpkg
-// dosyasını (muhtemelen aynı anda bu API sunucusunun kendi node:sqlite
-// bağlantısıyla açık tutulduğu için) okumaya çalışırken sunucu sürecini
-// SESSİZCE ÇÖKERTİYOR (JS hatası bile fırlatmadan exit 127). Bu yüzden bu
-// uç nokta LİVE .gpkg dosyasına HİÇ dokunmaz — istemci, o an haritada
-// GÖRÜNEN objeleri (features dizisi) GeoJSON olarak gönderir, sunucu
-// bunu GEÇİCİ bir dosyaya yazıp DuckDB ile sorgular. Ayrıca GROUP BY +
-// GDAL geometri sütunu birlikteyken de (SUM(ST_Area(geom)) hiç
-// kullanılmadığında) aynı çökme tekrarlanıyor — bu yüzden sorgu HER ZAMAN
-// en az bir ST_Area(geom) ifadesi içerecek şekilde kurgulanır (bkz.
-// aşağıdaki SQL, bu spesifik kombinasyon canlı olarak test edilip
-// güvenli olduğu doğrulandıktan sonra sabitlendi).
-let duckdbSpatialLoaded = null;
-function getDuckDb() {
-  if (!duckdbSpatialLoaded) {
-    const db = new duckdb.Database(':memory:');
-    duckdbSpatialLoaded = new Promise((resolve, reject) => {
-      db.all('INSTALL spatial; LOAD spatial;', (err) => {
-        if (err) return reject(err);
-        resolve(db);
-      });
-    });
-  }
-  return duckdbSpatialLoaded;
-}
-function duckdbAll(db, sql) {
-  return new Promise((resolve, reject) => {
-    db.all(sql, (err, rows) => (err ? reject(err) : resolve(rows)));
-  });
-}
-const IDENTIFIER_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
-
-app.post('/api/etl/spatial-stats', express.json({ limit: '80mb' }), async (req, res) => {
-  const { features, groupBy, sumProperty } = req.body || {};
-  if (!features || !Array.isArray(features) || !features.length) {
-    return res.status(400).json({ error: 'features (GeoJSON Feature dizisi) gerekli ve boş olamaz.' });
-  }
-  if (groupBy && !IDENTIFIER_RE.test(groupBy)) {
-    return res.status(400).json({ error: 'groupBy geçersiz bir sütun/öznitelik adı.' });
-  }
-  if (sumProperty && !IDENTIFIER_RE.test(sumProperty)) {
-    return res.status(400).json({ error: 'sumProperty geçersiz bir sütun/öznitelik adı.' });
-  }
-  const tmpPath = path.join(os.tmpdir(), `oda_stats_${Date.now()}.geojson`);
-  try {
-    fs.writeFileSync(tmpPath, JSON.stringify({ type: 'FeatureCollection', features }));
-    const db = await getDuckDb();
-    const escapedPath = tmpPath.replace(/\\/g, '\\\\').replace(/'/g, "''");
-    // NOT: GEOM sütununu ST_Transform(...,'EPSG:3857') ÜZERİNDEN ST_Area'ya
-    // veren bir ifade SQL'de HER ZAMAN bulunur — hem (a) coğrafi (derece)
-    // koordinatlarda ham ST_Area anlamsız/yanıltıcı olacağından yaklaşık da
-    // olsa METRE CİNSİNDEN bir alan vermek için, hem de (b) bu ifade
-    // OLMADIĞINDA GROUP BY + GDAL tabanlı ST_Read birlikteyken sunucunun
-    // SESSİZCE ÇÖKTÜĞÜ canlı testte doğrulanan bir DuckDB spatial hatasını
-    // önlemek için (bkz. yukarıdaki FAZ 4 notu). Web Mercator alanı yüksek
-    // enlemlerde ŞİŞİRDİĞİNDEN (gerçek geodezik alan değildir) "≈" ile
-    // etiketlenir — objede zaten bilinen doğru bir sayısal öznitelik
-    // (ör. footprint_area_sqm) varsa onu sumProperty ile toplamak DAHA
-    // GÜVENİLİRDİR; bu yüzden istemci arayüzü sumProperty'yi ÖNCELİKLİ
-    // sonuç olarak gösterir.
-    const areaExpr = `SUM(ST_Area(ST_Transform(geom, 'EPSG:4326', 'EPSG:3857'))) AS approx_area_m2`;
-    const sumExpr = sumProperty ? `, SUM("${sumProperty}") AS sum_value, AVG("${sumProperty}") AS avg_value` : '';
-    const sql = groupBy
-      ? `SELECT "${groupBy}" AS grp, COUNT(*) AS n, ${areaExpr}${sumExpr} FROM ST_Read('${escapedPath}') GROUP BY grp ORDER BY n DESC;`
-      : `SELECT COUNT(*) AS n, ${areaExpr}${sumExpr} FROM ST_Read('${escapedPath}');`;
-    const rows = await duckdbAll(db, sql);
-    // DuckDB COUNT(*)/SUM gibi toplamları BigInt olarak döner — JSON.stringify
-    // (dolayısıyla res.json) BigInt'i serileştiremediğinden Number'a çevrilir.
-    const safeRows = rows.map((row) => {
-      const out = {};
-      for (const [k, v] of Object.entries(row)) out[k] = typeof v === 'bigint' ? Number(v) : v;
-      return out;
-    });
-    res.json({ rows: safeRows, groupBy: groupBy || null, sumProperty: sumProperty || null });
-  } catch (err) {
-    console.error('DuckDB spatial-stats başarısız:', err);
-    res.status(500).json({ error: String(err && err.message || err) });
-  } finally {
-    try { fs.unlinkSync(tmpPath); } catch { /* zaten silinmiş olabilir */ }
-  }
 });
 
 // --- Generic CRUD: her tablo için aynı davranış ---
