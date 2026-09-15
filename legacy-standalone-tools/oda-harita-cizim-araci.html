@@ -591,8 +591,11 @@
      analizleri [Gölge/Güneşlenme] BAĞIMSIZ iki ayrı durum makinesidir),
      lejant tek bir kutuda ama anahtarlanmış (setMapLegendEntry/key) BİRDEN
      FAZLA bölüm olarak birikir — bkz. renderMapLegend. */
+  /* clusterTop (sağ üstteki 4D/Analiz/Katmanlar/Ölçüm ikon sütunu, bkz.
+     .map-cluster right:14px) ile ÇAKIŞMASIN diye onun GENİŞLİĞİ kadar
+     (~37px) + boşluk bırakılarak soluna, AYNI top hizasına yerleştirilir. */
   #mapLegend{
-    position:absolute;right:12px;bottom:104px;z-index:5;max-width:190px;
+    position:absolute;top:14px;right:60px;z-index:5;max-width:190px;
     background:rgba(10,22,32,.95);border:1px solid var(--line);border-radius:8px;
     padding:8px 10px;box-shadow:0 4px 18px rgba(0,0,0,.4);
     font-family:var(--font-mono);font-size:10px;color:var(--text-dim);
