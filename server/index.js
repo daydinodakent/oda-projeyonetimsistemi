@@ -33,8 +33,14 @@ import { listRecords, getRecord, putRecord, seedIfEmpty } from './db.js';
 import { buildGeoPackageBuffer } from './gpkg.js';
 import path from 'node:path';
 import fs from 'node:fs';
+import os from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+import duckdb from 'duckdb';
+import multer from 'multer';
 
+const execFileAsync = promisify(execFile);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DIST_DIR = path.join(__dirname, '..', 'dist');
 
@@ -70,8 +76,8 @@ const GPKG_LAYERS = [
     columns: ['name', 'project_id', 'line_type', 'network_name', 'pipe_or_cable_spec', 'depth_meters', 'voltage_or_pressure', 'total_length_meters', 'status', 'veri_durumu'],
   },
   {
-    tableName: 'tb_saha_fotograflari', description: 'Saha Fotoğrafları', geomType: 'POINT',
-    columns: ['name', 'project_id', 'notes', 'upload_date'],
+    tableName: 'tb_saha_fotograflari', description: 'Saha Dosyaları', geomType: 'POINT',
+    columns: ['name', 'project_id', 'notes', 'upload_date', 'doc_type'],
   },
 ];
 
@@ -86,6 +92,168 @@ app.get('/api/export/gpkg', (req, res) => {
   } catch (err) {
     console.error('GeoPackage dışa aktarımı başarısız:', err);
     res.status(500).json({ error: String(err && err.message || err) });
+  }
+});
+
+// --- FAZ 2 (ETL yol haritası): IFC/BIM ve nokta bulutu (LAS/LAZ) içe
+// aktarma — GDAL/OGR'ın kapsamadığı, Python tabanlı özel kütüphaneler
+// (IfcOpenShell, laspy) gerektiren formatlar. NOT: bu iki sabit rota da
+// (GPKG export gibi) aşağıdaki generic "/api/:table" deseninden ÖNCE
+// tanımlanmalıdır — aksi halde Express "/api/etl/ifc"i table="etl" id="ifc"
+// olarak eşleştirir.
+//
+// FAZ 6 (büyük dosya performansı) — dosya artık base64+JSON YERİNE gerçek
+// bir multipart/form-data akışıyla (multer, disk storage) doğrudan diske
+// YAZILARAK alınır: ne istemci dosyayı ~1.33x büyüklüğünde bir base64
+// string'e çevirip belleğe alır, ne de sunucu tüm gövdeyi TEK bir JSON
+// string olarak parse edip BİR KEZ DAHA Buffer'a çevirir (eski yöntemde
+// ~150MB'lık pratik bir tavan vardı — 2GB'lık dosyalarda tarayıcı sekmesini
+// çökertme riski yüksekti). Python script'i ilgili kütüphane (ifcopenshell/
+// laspy) bu ortamda yoksa yine 500 ile AÇIK bir hata mesajı döner.
+const ETL_MAX_UPLOAD_BYTES = 2 * 1024 * 1024 * 1024; // 2GB — hedeflenen üst sınır
+const etlUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => cb(null, os.tmpdir()),
+    filename: (req, file, cb) => cb(null, `oda_etl_${Date.now()}_${file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_')}`),
+  }),
+  limits: { fileSize: ETL_MAX_UPLOAD_BYTES },
+});
+function etlUploadErrorHandler(err, req, res, next) {
+  if (!err) return next();
+  const msg = err.code === 'LIMIT_FILE_SIZE'
+    ? `Dosya çok büyük (limit: ${(ETL_MAX_UPLOAD_BYTES / (1024 * 1024 * 1024)).toFixed(1)}GB).`
+    : String(err.message || err);
+  res.status(400).json({ error: msg });
+}
+
+function runEtlScript(scriptName, tmpPath, extraArgs = []) {
+  const scriptPath = path.join(__dirname, 'etl', scriptName);
+  return execFileAsync('python', [scriptPath, tmpPath, ...extraArgs], { maxBuffer: 200 * 1024 * 1024 });
+}
+
+async function handleEtlUpload(req, res, scriptName, extraArgs) {
+  const file = req.file;
+  if (!file) {
+    return res.status(400).json({ error: 'Yüklenecek dosya bulunamadı (multipart/form-data, "file" alanı gerekli).' });
+  }
+  const tmpPath = file.path;
+  try {
+    const { stdout } = await runEtlScript(scriptName, tmpPath, extraArgs);
+    let parsed;
+    try { parsed = JSON.parse(stdout); }
+    catch { return res.status(500).json({ error: 'ETL script geçersiz çıktı üretti: ' + stdout.slice(0, 500) }); }
+    if (parsed.error) return res.status(422).json({ error: parsed.error });
+    res.json(parsed);
+  } catch (err) {
+    console.error(`ETL (${scriptName}) başarısız:`, err);
+    const msg = err && err.code === 'ENOENT'
+      ? 'Sunucuda Python bulunamadı — bu ETL özelliği bu ortamda kullanılamıyor.'
+      : String(err && err.message || err);
+    res.status(500).json({ error: msg });
+  } finally {
+    try { fs.unlinkSync(tmpPath); } catch { /* zaten silinmiş olabilir */ }
+  }
+}
+
+app.post('/api/etl/ifc', etlUpload.single('file'), etlUploadErrorHandler, (req, res) => {
+  // FAZ 6 — çok büyük (2GB'a kadar) IFC dosyalarında yüz binlerce eleman
+  // olabileceğinden, yanıtı pratik bir üst sınıra göre eşit aralıklı
+  // örnekler (bkz. ifc_to_geojson.py — pointcloud'daki maxPoints ile AYNI
+  // desen). Client hardcoded 50000 gönderir; body'de yoksa yine 50000.
+  const maxElements = req.body && req.body.maxElements ? String(req.body.maxElements) : '50000';
+  return handleEtlUpload(req, res, 'ifc_to_geojson.py', [maxElements]);
+});
+app.post('/api/etl/pointcloud', etlUpload.single('file'), etlUploadErrorHandler, (req, res) => {
+  const maxPoints = req.body && req.body.maxPoints ? String(req.body.maxPoints) : '20000';
+  return handleEtlUpload(req, res, 'pointcloud_to_geojson.py', [maxPoints]);
+});
+
+// --- FAZ 4 (ETL yol haritası): DuckDB Spatial ile toplu coğrafi analiz ---
+// DuckDB'nin WASM (tarayıcı) derlemesi spatial extension'ı DESTEKLEMEZ —
+// yalnızca native/sunucu tarafında çalışır (araştırmayla doğrulandı), bu
+// yüzden bu, sunucu tarafında (Node.js duckdb paketi + otomatik kurulan
+// 'spatial' eklentisi) çalışan AYRI bir uç noktadır.
+//
+// ÖNEMLİ (bu ortamda canlı test sırasında bulundu): DuckDB spatial'ın
+// GDAL tabanlı ST_Read() okuyucusu, GERÇEK server/data/oda_pys.gpkg
+// dosyasını (muhtemelen aynı anda bu API sunucusunun kendi node:sqlite
+// bağlantısıyla açık tutulduğu için) okumaya çalışırken sunucu sürecini
+// SESSİZCE ÇÖKERTİYOR (JS hatası bile fırlatmadan exit 127). Bu yüzden bu
+// uç nokta LİVE .gpkg dosyasına HİÇ dokunmaz — istemci, o an haritada
+// GÖRÜNEN objeleri (features dizisi) GeoJSON olarak gönderir, sunucu
+// bunu GEÇİCİ bir dosyaya yazıp DuckDB ile sorgular. Ayrıca GROUP BY +
+// GDAL geometri sütunu birlikteyken de (SUM(ST_Area(geom)) hiç
+// kullanılmadığında) aynı çökme tekrarlanıyor — bu yüzden sorgu HER ZAMAN
+// en az bir ST_Area(geom) ifadesi içerecek şekilde kurgulanır (bkz.
+// aşağıdaki SQL, bu spesifik kombinasyon canlı olarak test edilip
+// güvenli olduğu doğrulandıktan sonra sabitlendi).
+let duckdbSpatialLoaded = null;
+function getDuckDb() {
+  if (!duckdbSpatialLoaded) {
+    const db = new duckdb.Database(':memory:');
+    duckdbSpatialLoaded = new Promise((resolve, reject) => {
+      db.all('INSTALL spatial; LOAD spatial;', (err) => {
+        if (err) return reject(err);
+        resolve(db);
+      });
+    });
+  }
+  return duckdbSpatialLoaded;
+}
+function duckdbAll(db, sql) {
+  return new Promise((resolve, reject) => {
+    db.all(sql, (err, rows) => (err ? reject(err) : resolve(rows)));
+  });
+}
+const IDENTIFIER_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
+
+app.post('/api/etl/spatial-stats', express.json({ limit: '80mb' }), async (req, res) => {
+  const { features, groupBy, sumProperty } = req.body || {};
+  if (!features || !Array.isArray(features) || !features.length) {
+    return res.status(400).json({ error: 'features (GeoJSON Feature dizisi) gerekli ve boş olamaz.' });
+  }
+  if (groupBy && !IDENTIFIER_RE.test(groupBy)) {
+    return res.status(400).json({ error: 'groupBy geçersiz bir sütun/öznitelik adı.' });
+  }
+  if (sumProperty && !IDENTIFIER_RE.test(sumProperty)) {
+    return res.status(400).json({ error: 'sumProperty geçersiz bir sütun/öznitelik adı.' });
+  }
+  const tmpPath = path.join(os.tmpdir(), `oda_stats_${Date.now()}.geojson`);
+  try {
+    fs.writeFileSync(tmpPath, JSON.stringify({ type: 'FeatureCollection', features }));
+    const db = await getDuckDb();
+    const escapedPath = tmpPath.replace(/\\/g, '\\\\').replace(/'/g, "''");
+    // NOT: GEOM sütununu ST_Transform(...,'EPSG:3857') ÜZERİNDEN ST_Area'ya
+    // veren bir ifade SQL'de HER ZAMAN bulunur — hem (a) coğrafi (derece)
+    // koordinatlarda ham ST_Area anlamsız/yanıltıcı olacağından yaklaşık da
+    // olsa METRE CİNSİNDEN bir alan vermek için, hem de (b) bu ifade
+    // OLMADIĞINDA GROUP BY + GDAL tabanlı ST_Read birlikteyken sunucunun
+    // SESSİZCE ÇÖKTÜĞÜ canlı testte doğrulanan bir DuckDB spatial hatasını
+    // önlemek için (bkz. yukarıdaki FAZ 4 notu). Web Mercator alanı yüksek
+    // enlemlerde ŞİŞİRDİĞİNDEN (gerçek geodezik alan değildir) "≈" ile
+    // etiketlenir — objede zaten bilinen doğru bir sayısal öznitelik
+    // (ör. footprint_area_sqm) varsa onu sumProperty ile toplamak DAHA
+    // GÜVENİLİRDİR; bu yüzden istemci arayüzü sumProperty'yi ÖNCELİKLİ
+    // sonuç olarak gösterir.
+    const areaExpr = `SUM(ST_Area(ST_Transform(geom, 'EPSG:4326', 'EPSG:3857'))) AS approx_area_m2`;
+    const sumExpr = sumProperty ? `, SUM("${sumProperty}") AS sum_value, AVG("${sumProperty}") AS avg_value` : '';
+    const sql = groupBy
+      ? `SELECT "${groupBy}" AS grp, COUNT(*) AS n, ${areaExpr}${sumExpr} FROM ST_Read('${escapedPath}') GROUP BY grp ORDER BY n DESC;`
+      : `SELECT COUNT(*) AS n, ${areaExpr}${sumExpr} FROM ST_Read('${escapedPath}');`;
+    const rows = await duckdbAll(db, sql);
+    // DuckDB COUNT(*)/SUM gibi toplamları BigInt olarak döner — JSON.stringify
+    // (dolayısıyla res.json) BigInt'i serileştiremediğinden Number'a çevrilir.
+    const safeRows = rows.map((row) => {
+      const out = {};
+      for (const [k, v] of Object.entries(row)) out[k] = typeof v === 'bigint' ? Number(v) : v;
+      return out;
+    });
+    res.json({ rows: safeRows, groupBy: groupBy || null, sumProperty: sumProperty || null });
+  } catch (err) {
+    console.error('DuckDB spatial-stats başarısız:', err);
+    res.status(500).json({ error: String(err && err.message || err) });
+  } finally {
+    try { fs.unlinkSync(tmpPath); } catch { /* zaten silinmiş olabilir */ }
   }
 });
 

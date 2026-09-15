@@ -24,7 +24,7 @@ import InsaatView from './components/InsaatView';
 import IsletmeView from './components/IsletmeView';
 import CEODashboard from './components/CEODashboard';
 import AdminPanel from './components/AdminPanel';
-import KrokiMapModule from './components/gis/KrokiMapModule';
+import OdaMapModule from './components/gis/OdaMapModule';
 
 // Dynamic Side Panels (One Map, One Timeline, One Truth)
 import PlanLeftPanel from './components/PlanLeftPanel';
@@ -1085,14 +1085,18 @@ export default function App() {
                     AY
                   </div>
                   <span className="text-amber-500 text-[10px]">SpU</span>
-                  
-                  {/* Warning badge on top of user button */}
-                  {unreadNotifications.length > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center border-2 border-[#1c1c1e] animate-pulse">
-                      {unreadNotifications.length}
-                    </span>
-                  )}
                 </button>
+
+                {/* Warning badge on top of user button — global button CSS
+                    (index.css: button:not(.native-btn)) sets overflow:hidden
+                    on every <button>, which clipped this badge's negative
+                    offset; rendered as a sibling of the button (inside the
+                    same relative wrapper) instead so it isn't clipped. */}
+                {unreadNotifications.length > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center border-2 border-[#1c1c1e] animate-pulse pointer-events-none">
+                    {unreadNotifications.length}
+                  </span>
+                )}
 
                 {/* Dropdown Menu */}
                 {showProfileDropdown && (
@@ -1219,20 +1223,6 @@ export default function App() {
             <div className="flex items-center justify-center">
               <div className="flex items-center bg-[#141416] border border-[#2c2c2e] p-1 rounded-xl shadow-inner select-none transition-all duration-300">
                 <div className="flex items-center gap-1.5">
-                  {/* Harita Butonu */}
-                  <button
-                    onClick={() => setCenterTab(prev => prev === 'map' ? 'kpis' : 'map')}
-                    className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-md transition duration-200 cursor-pointer flex items-center gap-1.5 ${
-                      centerTab === 'map'
-                        ? 'bg-sky-500/15 border border-sky-500/30 text-sky-400 shadow-sm font-black'
-                        : 'text-slate-400 hover:text-white hover:bg-slate-800/50 border border-transparent font-extrabold'
-                    }`}
-                    id="center-tab-btn-map"
-                  >
-                    <Map className="w-3.5 h-3.5 text-sky-400" />
-                    <span>Harita</span>
-                  </button>
-
                   {/* Dinamik KPI Butonu */}
                   <button
                     onClick={() => setCenterTab('kpis')}
@@ -1245,6 +1235,20 @@ export default function App() {
                   >
                     <Activity className="w-3.5 h-3.5 text-amber-400" />
                     <span>Dinamik KPI</span>
+                  </button>
+
+                  {/* Harita Butonu */}
+                  <button
+                    onClick={() => setCenterTab(prev => prev === 'map' ? 'kpis' : 'map')}
+                    className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-md transition duration-200 cursor-pointer flex items-center gap-1.5 ${
+                      centerTab === 'map'
+                        ? 'bg-sky-500/15 border border-sky-500/30 text-sky-400 shadow-sm font-black'
+                        : 'text-slate-400 hover:text-white hover:bg-slate-800/50 border border-transparent font-extrabold'
+                    }`}
+                    id="center-tab-btn-map"
+                  >
+                    <Map className="w-3.5 h-3.5 text-sky-400" />
+                    <span>Harita</span>
                   </button>
                 </div>
               </div>
@@ -1386,17 +1390,6 @@ export default function App() {
               <div className="flex items-center bg-[#141416]/95 border border-[#2c2c2e]/60 p-0.5 rounded-lg shadow-inner select-none transition-all duration-300 mr-2 shrink-0">
                 <div className="flex items-center gap-1">
                   <button
-                    onClick={() => { setCenterTab('map'); setCeoPocketMode(false); }}
-                    className={`px-2 py-0.5 text-[10px] font-black uppercase tracking-wider rounded transition duration-200 cursor-pointer flex items-center gap-1 ${
-                      centerTab === 'map' && !ceoPocketMode
-                        ? 'bg-sky-500/15 border border-sky-500/30 text-sky-400 shadow-sm font-black'
-                        : 'text-slate-400 hover:text-white hover:bg-slate-800/50 border border-transparent font-bold'
-                    }`}
-                  >
-                    <Map className="w-2.5 h-2.5 text-sky-400" />
-                    <span>Harita</span>
-                  </button>
-                  <button
                     onClick={() => { setCenterTab('kpis'); setCeoPocketMode(false); }}
                     className={`px-2 py-0.5 text-[10px] font-black uppercase tracking-wider rounded transition duration-200 cursor-pointer flex items-center gap-1 ${
                       centerTab === 'kpis' && !ceoPocketMode
@@ -1406,6 +1399,17 @@ export default function App() {
                   >
                     <Activity className="w-2.5 h-2.5 text-amber-400" />
                     <span>KPI</span>
+                  </button>
+                  <button
+                    onClick={() => { setCenterTab('map'); setCeoPocketMode(false); }}
+                    className={`px-2 py-0.5 text-[10px] font-black uppercase tracking-wider rounded transition duration-200 cursor-pointer flex items-center gap-1 ${
+                      centerTab === 'map' && !ceoPocketMode
+                        ? 'bg-sky-500/15 border border-sky-500/30 text-sky-400 shadow-sm font-black'
+                        : 'text-slate-400 hover:text-white hover:bg-slate-800/50 border border-transparent font-bold'
+                    }`}
+                  >
+                    <Map className="w-2.5 h-2.5 text-sky-400" />
+                    <span>Harita</span>
                   </button>
                 </div>
               </div>
@@ -1435,14 +1439,16 @@ export default function App() {
                   title="Kullanıcı Menüsü"
                 >
                   AY
-                  
-                  {/* Warning badge on top of user button */}
-                  {unreadNotifications.length > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-3 h-3 rounded-full flex items-center justify-center border border-[#141416] animate-pulse">
-                      {unreadNotifications.length}
-                    </span>
-                  )}
                 </button>
+
+                {/* Warning badge on top of user button — rendered as a
+                    sibling of the button (see non-compact profile pill
+                    above for why: global button CSS clips it otherwise). */}
+                {unreadNotifications.length > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-3 h-3 rounded-full flex items-center justify-center border border-[#141416] animate-pulse pointer-events-none">
+                    {unreadNotifications.length}
+                  </span>
+                )}
 
                 {/* Dropdown Menu */}
                 {showCompactProfileDropdown && (
@@ -1808,7 +1814,7 @@ export default function App() {
                 {centerTab === 'map' && (
                   // Köşe yuvarlaklığı kullanıcı isteğiyle %90 azaltıldı (rounded-2xl=16px → ~1.6px).
                   <div className="w-full h-[calc(100vh-170px)] min-h-[500px] bg-[var(--bg-secondary)] border border-[var(--border)] rounded-[1.6px] overflow-hidden shadow-2xl relative animate-fade-in">
-                    <KrokiMapModule activeProjectId={selectedProjectId} />
+                    <OdaMapModule activeProjectId={selectedProjectId} />
                   </div>
                 )}
 

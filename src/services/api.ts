@@ -140,7 +140,7 @@ const veriDurumlariSeed: VeriDurumuRecord[] = [
 // Altyapı Tipleri (tb_altyapi_tipi) — tb_altyapi_hatlari.line_type sütununun
 // FK ile bağlandığı liste; her tipin haritada çizilirken kullanılan kendi
 // rengi vardır (bkz. sutunlarSeed'deki relation_table='tb_altyapi_tipi' ve
-// KrokiMapModule.tsx'in her altyapı objesine eklediği 'line_color').
+// OdaMapModule.tsx'in her altyapı objesine eklediği 'line_color').
 const altyapiTipleriSeed: AltyapiTipiRecord[] = [
   { id: 'icmesuyu', notes: 'İçmesuyu şebeke hattı', row_status: 1, create_uid: 1, create_date: '2026-01-01', write_uid: 1, write_date: '2026-08-27', code: 'icmesuyu', name: 'İçmesuyu', color: '#3b82f6' },
   { id: 'atiksu', notes: 'Atıksu (kanalizasyon) hattı', row_status: 1, create_uid: 1, create_date: '2026-01-01', write_uid: 1, write_date: '2026-08-27', code: 'atiksu', name: 'Atıksu', color: '#92400e' },
@@ -225,7 +225,7 @@ const binalarSeed: Bina3DRecord[] = gisBuildingRecords.map((b, idx) => ({
   srid: 5257,
   veri_durumu: (b as any).veri_durumu || 'Planlanan',
   // Not: standart (kapalı, dış halka [[...]] içinde sarılmış) GeoJSON Polygon
-  // formatında saklanır — Kroki tarafından bir obje taşınıp/düzenlenip
+  // formatında saklanır — ODA tarafından bir obje taşınıp/düzenlenip
   // veritabanına kaydedildiğinde (updateBina3D) gelen geometri de aynı
   // formatta olduğu için, orijinal (henüz düzenlenmemiş) ve sonradan
   // güncellenmiş kayıtlar haritada tutarlı şekilde render edilir.
@@ -1007,7 +1007,7 @@ export async function getDokumanById(id: number | string): Promise<DokumanRecord
   await ensureSeeded('tb_dokumanlar', dokumanlarSeed);
   return apiGet<DokumanRecord>('tb_dokumanlar', id);
 }
-// Haritadaki bir objeye (feature_id) bağlı dokümanları döner — Kroki CBS
+// Haritadaki bir objeye (feature_id) bağlı dokümanları döner — ODA CBS
 // aracının "Doküman Ekle" akışı ve Bilgi panelindeki doküman listesi/önizleme
 // alanı için kullanılır.
 export async function getDokumanlarByFeature(featureId: string): Promise<DokumanRecord[]> {
@@ -1069,6 +1069,7 @@ export async function createSahaFotografi(item: Partial<SahaFotografRecord>): Pr
     file_size: item.file_size || '0 KB',
     upload_date: item.upload_date || new Date().toISOString().slice(0, 10),
     file_data_url: item.file_data_url || null,
+    doc_type: item.doc_type || 'resim',
     srid: 4326,
     the_geom: item.the_geom
   };
@@ -1077,6 +1078,10 @@ export async function createSahaFotografi(item: Partial<SahaFotografRecord>): Pr
 export async function deleteSahaFotografi(id: number | string): Promise<boolean> {
   await ensureSeeded('tb_saha_fotograflari', []);
   return apiSoftDelete('tb_saha_fotograflari', id);
+}
+export async function updateSahaFotografi(id: number | string, patch: Partial<SahaFotografRecord>): Promise<SahaFotografRecord> {
+  await ensureSeeded('tb_saha_fotograflari', []);
+  return apiUpdate<SahaFotografRecord>('tb_saha_fotograflari', id, patch);
 }
 
 // 12. TABLO ADI (tb_varliklar)

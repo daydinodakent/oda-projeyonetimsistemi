@@ -1,0 +1,14 @@
+# server/index.js içindeki /api/etl/ifc ve /api/etl/pointcloud uç
+# noktalarının çalışması için gereken Python bağımlılıkları (FAZ 2 — ETL
+# yol haritası). Bu sunucu Python'u `child_process` ile çağırdığından,
+# dağıtım yapılan her ortamda önce şu komutun çalıştırılması gerekir:
+#
+#   pip install -r server/etl/requirements.txt
+#
+# İkisi de saf/prebuilt wheel paketleridir — C++ derleyici GEREKTİRMEZ.
+# (Not: PDAL, tam nokta bulutu işleme motoru olarak değerlendirildi ama
+# Windows'ta native derleyici + native PDAL kütüphanesi gerektirdiğinden
+# bu ortamda kurulamadı; onun yerine daha hafif, saf-Python bir alternatif
+# olan laspy kullanıldı — bkz. pointcloud_to_geojson.py başındaki not.)
+ifcopenshell>=0.8.5
+laspy[lazrs]>=2.7.0

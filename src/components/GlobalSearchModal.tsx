@@ -427,7 +427,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
       <>
         {parts.map((part, i) => 
           part.toLowerCase() === searchQuery.toLowerCase().trim() ? (
-            <span key={i} className="text-yellow-400 font-black underline decoration-yellow-400/40 bg-yellow-400/10 px-0.5 rounded">
+            <span key={i} className="text-yellow-400 underline decoration-yellow-400/40 bg-yellow-400/10 px-0.5 rounded">
               {part}
             </span>
           ) : (
@@ -543,8 +543,8 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <h4 className={`text-[11px] sm:text-xs font-bold truncate ${
-                          isSelected ? 'text-blue-400 font-extrabold' : 'text-[var(--text-primary)]'
+                        <h4 className={`text-[10px] sm:text-[11px] truncate ${
+                          isSelected ? 'text-blue-400' : 'text-[var(--text-primary)]'
                         }`}>
                           {highlightMatch(item.title, query)}
                         </h4>
