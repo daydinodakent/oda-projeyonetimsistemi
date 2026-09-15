@@ -694,6 +694,7 @@
   .status-snap-btn .status-icon{color:inherit;}
   .status-snap-btn.active{color:#e02424;}
   .saha-toggle-btn.on{color:var(--teal);}
+  .bim-view-toggle-btn.on{color:var(--teal);}
   /* Durum çubuğundaki Saha (fotoğraf katmanı göster/gizle) düğmesi, diğer
      küçük durum çubuğu simgelerinden biraz daha büyük gösterilir — sıkça
      kullanılan bir aç/kapa olduğundan tıklaması daha kolay olsun diye. */
@@ -1071,6 +1072,59 @@
   #attr3DPopover .field-label{font-size:9.5px;}
   #attr3DPopover .btn{padding:6px 8px;font-size:11px;}
   #attr3DPopover input[type="range"]{margin-top:2px;}
+
+  /* BIM Görüntüleyici — treeview'da bir IFC/GLTF/GLB katmanında sağ klik >
+     "BIM Görüntüleyicide Aç" ile açılır (bkz. JS: openBimViewer). Diğer
+     modallardan farklı olarak neredeyse tam ekran: 3B sahne (canvas) + sağda
+     yapı ağacı/öznitelik paneli + üstte araç çubuğu. */
+  .bim-viewer-box{
+    width:92vw;height:88vh;max-width:none;max-height:none;padding:0;
+    display:flex;flex-direction:column;overflow:hidden;
+  }
+  .bim-viewer-box .modal-header{flex:0 0 auto;padding:12px 14px;border-bottom:1px solid var(--line);}
+  .bim-viewer-body{flex:1 1 auto;display:flex;flex-direction:column;min-height:0;}
+  .bim-viewer-toolbar{
+    flex:0 0 auto;display:flex;align-items:center;gap:4px;padding:6px 8px;
+    border-bottom:1px solid var(--line);background:var(--bg-panel-raise);
+  }
+  .bim-tool-btn{
+    width:30px;height:30px;display:flex;align-items:center;justify-content:center;
+    background:transparent;border:1px solid transparent;border-radius:2px;color:var(--text-dim);cursor:pointer;
+  }
+  .bim-tool-btn svg{width:16px;height:16px;}
+  .bim-tool-btn:hover{background:var(--bg-panel);color:var(--text);}
+  .bim-tool-btn.active{border-color:var(--amber);color:var(--amber);background:var(--amber-dim);}
+  .bim-tool-sep{width:1px;align-self:stretch;background:var(--line-soft);margin:4px 4px;}
+  .bim-viewer-status{margin-left:auto;font-size:11px;color:var(--text-dim);padding-right:4px;white-space:nowrap;}
+  .bim-viewer-main{flex:1 1 auto;display:flex;min-height:0;}
+  .bim-viewer-canvas-host{flex:1 1 auto;position:relative;min-width:0;background:#101c24;}
+  .bim-viewer-canvas-host canvas{display:block;width:100%;height:100%;}
+  .bim-viewer-hint{
+    position:absolute;left:10px;bottom:10px;font-size:11px;color:var(--text-dim);
+    background:rgba(10,18,24,.7);padding:5px 9px;border-radius:2px;pointer-events:none;
+  }
+  .bim-viewer-loading{
+    position:absolute;inset:0;display:flex;flex-direction:column;gap:10px;align-items:center;justify-content:center;
+    background:rgba(10,18,24,.85);color:var(--text-dim);font-size:12.5px;
+  }
+  .bim-viewer-side{
+    flex:0 0 300px;width:300px;border-left:1px solid var(--line);display:flex;flex-direction:column;
+    min-height:0;background:var(--bg-panel);
+  }
+  .bim-viewer-tabs{flex:0 0 auto;display:flex;border-bottom:1px solid var(--line);}
+  .bim-tab{
+    flex:1;padding:9px 0;text-align:center;font-size:12px;font-weight:600;color:var(--text-dim);
+    cursor:pointer;border-bottom:2px solid transparent;background:transparent;
+  }
+  .bim-tab.active{color:var(--amber);border-bottom-color:var(--amber);}
+  .bim-viewer-panel{flex:1 1 auto;overflow-y:auto;padding:8px;font-size:12px;}
+  .bim-tree-node{padding:3px 4px;border-radius:2px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text-dim);}
+  .bim-tree-node:hover{background:var(--bg-panel-raise);color:var(--text);}
+  .bim-tree-node.active{background:var(--amber-dim);color:var(--amber);}
+  .bim-prop-row{display:flex;gap:8px;padding:3px 2px;border-bottom:1px solid var(--line-soft);}
+  .bim-prop-key{flex:0 0 42%;color:var(--text-dim);word-break:break-word;}
+  .bim-prop-val{flex:1;color:var(--text);word-break:break-word;}
+  .bim-viewer-empty{color:var(--text-dim);padding:10px 4px;}
   .geom-type-row{display:flex;gap:6px;}
   .geom-type-btn{
     flex:1;padding:10px 0;text-align:center;font-size:12px;font-weight:600;
@@ -2194,6 +2248,8 @@
   <span title="Yakınlaştırma" style="margin-left:auto;"><svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><b id="stZoom">—</b></span>
   <div class="div"></div>
   <button id="statusSahaToggleBtn" class="status-snap-btn saha-toggle-btn on" title="Saha fotoğraflarını göster/gizle"><svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M21 15l-5-4-4 3-3-2-5 4"/></svg></button>
+  <div class="div"></div>
+  <button id="statusBimViewToggleBtn" class="status-snap-btn bim-view-toggle-btn" title="BIM Görünümü — işaretlenen binaları gerçek BIM modelleriyle göster/gizle"><svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21V8l9-5 9 5v13"/><path d="M9 21V12h6v9"/><path d="M3 8l9 5 9-5"/></svg></button>
 </div>
 
 <div id="snapTolerancePopover">
@@ -2225,6 +2281,78 @@
     </div>
   </div>
 </div>
+
+<!-- BIM Görüntüleyici — treeview'da bir IFC/GLTF/GLB katmanında sağ klik >
+     "BIM Görüntüleyicide Aç" ile açılır (bkz. JS: openBimViewer). three.js +
+     web-ifc tamamen istemci tarafında, TEMBEL YÜKLENİR (viewer ilk açılana
+     kadar hiçbir kütüphane indirilmez, sayfa açılışını yavaşlatmaz). -->
+<div class="modal-overlay" id="bimViewerModal">
+  <div class="modal-box bim-viewer-box">
+    <div class="modal-header">
+      <div class="modal-title" id="bimViewerTitle">BIM Görüntüleyici</div>
+      <button type="button" class="modal-close-x" id="btnBimViewerClose" title="Kapat">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="bim-viewer-body">
+      <div class="bim-viewer-toolbar">
+        <button type="button" class="bim-tool-btn" id="btnBimFit" title="Sahneye sığdır">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+        </button>
+        <div class="bim-tool-sep"></div>
+        <button type="button" class="bim-tool-btn" id="btnBimIsolate" title="Seçileni izole et (diğerlerini gizle)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+        <button type="button" class="bim-tool-btn" id="btnBimShowAll" title="Tümünü göster">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        </button>
+        <div class="bim-tool-sep"></div>
+        <button type="button" class="bim-tool-btn" id="btnBimClip" title="Kesit düzlemi (aç/kapat)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12h18"/><path d="M3 6h18M3 18h18" opacity=".4"/></svg>
+        </button>
+        <button type="button" class="bim-tool-btn" id="btnBimMeasure" title="Mesafe ölç">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 17L17 3M7 13l4 4M11 9l2 2M14 6l2 2"/></svg>
+        </button>
+        <div class="bim-tool-sep"></div>
+        <button type="button" class="bim-tool-btn" id="btnBimFullscreen" title="Tam ekran">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 9V5h4M20 9V5h-4M4 15v4h4M20 15v4h-4"/></svg>
+        </button>
+        <div class="bim-viewer-status" id="bimViewerStatus"></div>
+      </div>
+      <div class="bim-viewer-main">
+        <div class="bim-viewer-canvas-host" id="bimViewerCanvasHost">
+          <div class="bim-viewer-loading" id="bimViewerLoading">
+            <div class="spinner"></div>
+            <span id="bimViewerLoadingText">Yükleniyor…</span>
+          </div>
+          <div class="bim-viewer-hint" id="bimViewerHint" style="display:none;"></div>
+        </div>
+        <div class="bim-viewer-side">
+          <div class="bim-viewer-tabs">
+            <button type="button" class="bim-tab active" data-bim-tab="tree">Yapı Ağacı</button>
+            <button type="button" class="bim-tab" data-bim-tab="props">Öznitelikler</button>
+          </div>
+          <div class="bim-viewer-panel" id="bimTreePanel"></div>
+          <div class="bim-viewer-panel" id="bimPropsPanel" style="display:none;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- BIM Görüntüleyici three.js'i CDN'den ES module olarak yükler; three.js'in
+     examples/jsm dosyaları (OrbitControls, GLTFLoader) içeride "three" bare
+     specifier'ı ile import ediyor — bu yüzden bir import map GEREKİYOR. Bu
+     import map, viewer İLK AÇILDIĞINDA çalışacak dinamik import()'lardan ÖNCE
+     (herhangi bir modül script'i çalışmadan önce) tanımlanmış olmalı. -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
 
 <script src="/vendor/maplibre-gl/5.12.0/maplibre-gl.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Turf.js/6.5.0/turf.min.js"></script>
@@ -2350,7 +2478,15 @@
     zoom: initialView.zoom,
     bearing: initialView.bearing || 0,
     pitch: initialView.pitch || 0,
+    maxPitch: 85,
     attributionControl: { compact: false }
+  });
+  // setSky() stil tamamen yüklenmeden çağrılırsa "Style is not done loading"
+  // hatası fırlatıyor — bu yüzden 'load' olayına kadar bekleniyor (stil
+  // değişiminde/yeniden yüklemede tekrar gerekmiyor, sky stilin bir parçası
+  // değil, ayrı bir çalışma zamanı ayarı).
+  map.on('load', function(){
+    try{ map.setSky({}); }catch(err){ console.error('Gökyüzü (sky) ayarlanamadı:', err); }
   });
   // Bilgi balonu (#infoPopover) harita ile birlikte kaymalı — kamera her
   // değiştiğinde (pan/zoom/rotate/pitch => 'move', pencere boyutu => 'resize')
@@ -2739,6 +2875,7 @@
       document.getElementById('btnInfo').classList.remove('active');
       document.getElementById('infoPopover').classList.remove('show');
       infoHighlightId = null;
+      refreshInfoHighlightFilter();
       renderFeatures();
     }
     setModule('editor');
@@ -2775,6 +2912,7 @@
     }
     document.getElementById('infoPopover').classList.remove('show');
     infoHighlightId = null;
+    refreshInfoHighlightFilter();
     renderFeatures();
     updateCanvasCursor();
     showToast(infoMode ? (selectedIds.length > 1 ? 'Seçili objelerin bilgileri aşağıda gösteriliyor.' : 'Bilgi modu açık — haritada bir objeye tıklayın.') : 'Bilgi modu kapatıldı.');
@@ -2785,6 +2923,7 @@
     e.stopPropagation();
     document.getElementById('infoPopover').classList.remove('show');
     infoHighlightId = null;
+    refreshInfoHighlightFilter();
     renderFeatures();
   });
   // Bilgi balonunun altındaki "Doküman Ekle" — o an görüntülenen objeye
@@ -3066,6 +3205,21 @@
       filter:['all', ['==', ['id'], '__none__'], ['==', ['geometry-type'], 'Point']],
       paint:{ 'circle-radius':10, 'circle-color':'rgba(0,0,0,0)', 'circle-stroke-color':'#e3a541', 'circle-stroke-width':2.5 }
     });
+    // Bilgi balonunda (handleInfoClick) gösterilen obje — visibleFeaturesForRender()'
+    // daki dolgu/çizgi renk değişimi (INFO_HIGHLIGHT_COLOR) tek başına ince
+    // çizgilerde/küçük noktalarda fark edilmiyordu; selected-outline/-halo ile
+    // AYNI desende, ayrı bir çerçeve/halka katmanı ekleniyor — böylece "info"
+    // ve "seçili" durumları görsel olarak birbirinden de ayrışıyor.
+    ensureLayer('info-outline', {
+      id:'info-outline', type:'line', source:'features',
+      filter:['==', ['id'], '__none__'],
+      paint:{ 'line-color':INFO_HIGHLIGHT_COLOR, 'line-width':3 }
+    });
+    ensureLayer('info-halo', {
+      id:'info-halo', type:'circle', source:'features',
+      filter:['all', ['==', ['id'], '__none__'], ['==', ['geometry-type'], 'Point']],
+      paint:{ 'circle-radius':12, 'circle-color':'rgba(0,0,0,0)', 'circle-stroke-color':INFO_HIGHLIGHT_COLOR, 'circle-stroke-width':2.5 }
+    });
     ensureLayer('vertex-layer', {
       id:'vertex-layer', type:'circle', source:'vertices',
       paint:{ 'circle-radius':6, 'circle-color':'#0f1e29', 'circle-stroke-color':'#e3a541', 'circle-stroke-width':2.5 },
@@ -3161,6 +3315,17 @@
         'fill-extrusion-opacity':0.9
       }
     });
+
+    // IFC katmanlarının GERÇEK mesh'ini (bkz. syncIfcMeshLayer, aşağıda IFC
+    // Görüntüleyici bölümünde tanımlı — kaba taban-izdüşümü kutusu DEĞİL,
+    // BIM Görüntüleyici ile birebir aynı geometri) gösteren özel WebGL
+    // katmanı. visibleFeaturesForRender() sourceFormat==='ifc' katmanların
+    // feature'larını zaten dışarıda bıraktığı için 'poly-extrusion' ile
+    // ÇAKIŞMAZ.
+    if (!map.getLayer('ifc-mesh-layer')){
+      try{ map.addLayer(createIfcMeshMapLayer()); }
+      catch(err){ console.error('ifc-mesh-layer eklenemedi:', err); }
+    }
 
     ensureLayer('draft-fill', {
       id:'draft-fill', type:'fill', source:'draft',
@@ -3652,6 +3817,15 @@
     if (map.getLayer('selected-halo')) map.setFilter('selected-halo', ['all', ['in', ['id'], ['literal', selectedIds]], ['==', ['geometry-type'], 'Point']]);
   }
 
+  // Bilgi balonunda (bkz. handleInfoClick) gösterilen objeyi haritada da
+  // (renk değişiminin YANI SIRA) bir çerçeve/halka ile vurgular — infoHighlightId
+  // her set/temizlendiğinde çağrılmalı.
+  function refreshInfoHighlightFilter(){
+    var idFilter = infoHighlightId != null ? ['==', ['id'], infoHighlightId] : ['==', ['id'], '__none__'];
+    if (map.getLayer('info-outline')) map.setFilter('info-outline', idFilter);
+    if (map.getLayer('info-halo')) map.setFilter('info-halo', ['all', idFilter, ['==', ['geometry-type'], 'Point']]);
+  }
+
   function renderDraftPreview(previewFeatureOrArray){
     var draftSrc = map.getSource('draft');
     var vertSrc = map.getSource('draft-vertices');
@@ -3696,6 +3870,18 @@
     measureFrozen = false; clearMeasureSummary();
     if (mode === 'select' && newMode !== 'select') deselect();
     mode = newMode;
+    // Ölçüm hassasiyeti için Snap, ölçüm araçlarına geçilince HER ZAMAN
+    // açık başlar (kullanıcı isterse durum çubuğundaki Snap butonundan yine
+    // kapatabilir) — genel Snap varsayılanını (zaten açık) etkilemez, sadece
+    // önceden kapatılmışsa ölçüme özel olarak yeniden açar.
+    if (isMeasureMode(mode) && !snapEnabled){
+      snapEnabled = true;
+      var snapBtn = document.getElementById('statusSnapBtn');
+      if (snapBtn){
+        snapBtn.classList.add('active');
+        snapBtn.title = 'Snap: Açık (sol tık: aç/kapat, sağ tık: yakalama mesafesi)';
+      }
+    }
     updateCanvasCursor();
     if (isVertexDrawMode(mode) && typeof syncDraftStyleToActiveLayer === 'function') syncDraftStyleToActiveLayer();
     if (map.getLayer('vertex-layer')) map.setLayoutProperty('vertex-layer', 'visibility', mode === 'select' ? 'visible' : 'none');
@@ -3870,6 +4056,7 @@
     document.getElementById('infoAddDocBtn').classList.remove('hidden');
     // Bilgi balonunda gösterilen obje haritada da vurgulansın (bkz. INFO_HIGHLIGHT_COLOR).
     infoHighlightId = f.id;
+    refreshInfoHighlightFilter();
     renderFeatures();
   }
 
@@ -3887,7 +4074,7 @@
     video: ['mp4','mov','avi','mkv','webm'],
     cad: ['dwg','dxf','skp','rvt','ifc'],
     gis: ['shp','geojson','kml','kmz','gpkg'],
-    bim: ['ifc','rvt','nwd','nwc']
+    bim: ['ifc','rvt','nwd','nwc','gltf','glb']
   };
   function guessDocType(filename){
     var ext = (filename.split('.').pop() || '').toLowerCase();
@@ -3909,7 +4096,7 @@
       infoMode = false;
       document.getElementById('btnInfo').classList.remove('active');
       document.getElementById('infoPopover').classList.remove('show');
-      infoHighlightId = null; renderFeatures();
+      infoHighlightId = null; refreshInfoHighlightFilter(); renderFeatures();
       attributeEditMode = false;
       document.getElementById('btnAttrEdit').classList.remove('active');
     }
@@ -4211,6 +4398,15 @@
   }
 
   var DOC_TYPE_ICON_COLOR = { resim:'#3fc2ac', video:'#e3a541', cad:'#6d8fe0', gis:'#e0736d', bim:'#a06de0', diger:'#8a94a6' };
+  // Bir doküman adı IFC/GLTF/GLB ile mi bitiyor — "Kanvasta 3B Bina Yerine
+  // Göster" sağ klik seçeneğinin sadece BIM dosyalarında görünmesi için.
+  function isBimDocFile(name){
+    return /\.(ifc|gltf|glb)$/i.test(name || '');
+  }
+  function bimDocFormat(name){
+    var m = /\.(ifc|gltf|glb)$/i.exec(name || '');
+    return m ? m[1].toLowerCase() : null;
+  }
   function renderInfoDocsPanel(featureId){
     activeInfoFeatureId = featureId;
     var panel = document.getElementById('infoDocsPanel');
@@ -4235,6 +4431,16 @@
         row.classList.add('active');
         renderInfoDocPreview(d, docs);
       });
+      // "Kanvasta 3B Bina Yerine Göster" — sadece IFC/GLTF/GLB dokümanlarında.
+      // Bu doküman, o an Bilgi balonunda açık olan objeye (featureId) aittir.
+      if (isBimDocFile(d.name)){
+        row.addEventListener('contextmenu', function(e){
+          e.preventDefault(); e.stopPropagation();
+          showTreeContextMenu(e.clientX, e.clientY, [
+            { label:'Kanvasta 3B Bina Yerine Göster', action:function(){ enableBimViewForFeature(featureId, d); } }
+          ]);
+        });
+      }
       listEl.appendChild(row);
     });
     renderInfoDocPreview(docs[0], docs);
@@ -6863,6 +7069,15 @@
       var lyr = getLayer(f.properties && f.properties.layerId);
       if (!lyr) return true;
       if (lyr.mapId && lyr.mapId !== activeMapId) return false;
+      // IFC katmanları artık kaba taban-izdüşümü kutusu (fill-extrusion)
+      // DEĞİL, GERÇEK mesh olarak ayrı bir WebGL katmanında (bkz.
+      // ifc-mesh-layer / syncIfcMeshLayer) gösteriliyor — burada dışarıda
+      // bırakılmazsa aynı eleman hem kutu hem gerçek mesh olarak çakışırdı.
+      if (lyr.sourceFormat === 'ifc') return false;
+      // "BIM Görünümü" açıkken ve bu bina için bir BIM dosyası işaretliyse
+      // (bkz. enableBimViewForFeature), kaba ekstrüzyon kutusu yerine
+      // syncFeatureBimMeshes()'in eklediği gerçek mesh gösterilir.
+      if (bimViewGlobalOn && bimViewFeatures[f.id]) return false;
       return lyr.visible !== false;
     }).map(function(f){
       // MapLibre, GeoJSON kaynaklarında poligon/çizgi sorgularında (özellikle
@@ -7927,18 +8142,27 @@
     row.addEventListener('contextmenu', function(e){
       e.preventDefault(); e.stopPropagation();
       var cx = e.clientX, cy = e.clientY;
-      showTreeContextMenu(cx, cy, [
+      var items = [
         { label:'Yakınlaş (Zoom To)', action:function(){ zoomToLayer(lyr.id); } },
         { label:'Öznitelik Tablosu', action:function(){ openAttributeTable(lyr.id); } },
         { label:'Toplu İstatistik (DuckDB)', action:function(){ showLayerSpatialStats(lyr.id); } },
-        { sep:true },
+        { sep:true }
+      ];
+      // BIM Görüntüleyici — yalnızca IFC/GLTF/GLB'den içe aktarılmış (bkz.
+      // createBimLayerForImport / addImportedFeatures) katmanlarda görünür.
+      if (['ifc','gltf','glb'].indexOf(lyr.sourceFormat) >= 0){
+        items.push({ label:'BIM Görüntüleyicide Aç', action:function(){ openBimViewer(lyr.id); } });
+        items.push({ sep:true });
+      }
+      items.push(
         { label:'Yeniden Adlandır', action:async function(){ var n = await customPrompt('Katman adı:', layerDisplayName(lyr)); if (n && n.trim()){ lyr.name = n.trim(); renderLayerTree(); } } },
         { label:'Stil', action:function(){ openLayerStyleModal(lyr.id); } },
         { sep:true },
         { label:'Sil', danger:true, action:function(){ deleteLayerConfirm(lyr.id); } },
         { sep:true },
         { label:'Farklı Kaydet...', action:function(){ showExportFormatMenu(cx, cy, lyr.id); } }
-      ]);
+      );
+      showTreeContextMenu(cx, cy, items);
     });
     row.addEventListener('dragstart', function(e){
       dragState = { id: lyr.id };
@@ -8065,6 +8289,8 @@
     refreshActiveLayerSelect();
     if (typeof refreshCompareRasterOptions === 'function') refreshCompareRasterOptions();
     if (typeof updateLayerTransformToolbar === 'function') updateLayerTransformToolbar();
+    if (typeof syncIfcMeshLayer === 'function') syncIfcMeshLayer();
+    if (typeof syncFeatureBimMeshes === 'function') syncFeatureBimMeshes();
   }
 
   function refreshMapSelect(){
@@ -10017,12 +10243,74 @@
     });
   }
 
+  // ---- BIM dosya deposu (IndexedDB) ---------------------------------------
+  // IFC/GLTF/GLB dosyalarının orijinal baytları, BIM Görüntüleyici'de (bkz.
+  // openBimViewer) yeniden açılabilmeleri için saklanır. localStorage/
+  // oda_session_v1 KULLANILMAZ — dosyalar 2GB'a kadar çıkabilir (bkz. Faz 6
+  // ETL_MAX_UPLOAD_BYTES) ve localStorage kotası (~5-10MB) buna yetmez.
+  // Harita render/import akışını ETKİLEMEZ — sadece BIM Görüntüleyici okur.
+  var BIM_DB_NAME = 'odaBimFiles';
+  var BIM_DB_STORE = 'files';
+  function openBimFileDb(){
+    return new Promise(function(resolve, reject){
+      var req = indexedDB.open(BIM_DB_NAME, 1);
+      req.onupgradeneeded = function(){ req.result.createObjectStore(BIM_DB_STORE); };
+      req.onsuccess = function(){ resolve(req.result); };
+      req.onerror = function(){ reject(req.error); };
+    });
+  }
+  async function saveBimFile(layerId, fileOrBlob, sourceFormat){
+    try{
+      var db = await openBimFileDb();
+      await new Promise(function(resolve, reject){
+        var tx = db.transaction(BIM_DB_STORE, 'readwrite');
+        tx.objectStore(BIM_DB_STORE).put({ blob: fileOrBlob, name: fileOrBlob.name || '', format: sourceFormat, savedAt: Date.now() }, layerId);
+        tx.oncomplete = resolve; tx.onerror = function(){ reject(tx.error); };
+      });
+    }catch(err){ console.error('BIM dosyası IndexedDB\'ye kaydedilemedi:', err); }
+  }
+  function getBimFile(layerId){
+    return openBimFileDb().then(function(db){
+      return new Promise(function(resolve, reject){
+        var tx = db.transaction(BIM_DB_STORE, 'readonly');
+        var req = tx.objectStore(BIM_DB_STORE).get(layerId);
+        req.onsuccess = function(){ resolve(req.result || null); };
+        req.onerror = function(){ reject(req.error); };
+      });
+    });
+  }
+  // İstemci tarafı IFC/GLTF/GLB import'ları (importIFC/importGLTF) — GDAL/ETL
+  // yolunun (addImportedFeatures) aksine — önceden kendi katmanlarını
+  // oluşturmuyor, ham şekli doğrudan features'a itiyorlardı; bu yüzden
+  // "hangi katman hangi dosyadan geldi" bilgisi kaybolur ve BIM Görüntüleyici
+  // için gerekli olan "dosya → katman" eşlemesi kurulamazdı. Diğer tüm import
+  // yollarıyla (addImportedFeatures) TUTARLI, dosya adını taşıyan kendi
+  // katmanını oluşturan bu ortak yardımcı, o eksikliği de gideriyor.
+  function createBimLayerForImport(file, sourceFormat, placementScale){
+    var newLayerId = 'layer-' + uid();
+    var center = map.getCenter();
+    layers.push({
+      id:newLayerId, name:file.name.replace(/\.[a-zA-Z0-9]+$/, ''), visible:true, color:null, lineWidth:null,
+      dash:'solid', symbol:'circle', scale:1, geomType:'Polygon', mapId:activeMapId,
+      folderId:getDefaultFolderId(activeMapId), sourceFormat: sourceFormat,
+      // Haritadaki gerçek mesh render'ının (bkz. syncIfcMeshLayer) konumlanacağı
+      // çıpa: import anındaki harita merkezi + kullanıcının seçtiği birim
+      // ölçeği. placeLocalRingOnMap() de AYNI harita merkezini (senkron olarak,
+      // bu satırdan hemen önce) kullandığı için ikisi birbirine denk düşer.
+      bimAnchor: { lng: center.lng, lat: center.lat, scale: placementScale || 1 }
+    });
+    saveBimFile(newLayerId, file, sourceFormat);
+    return newLayerId;
+  }
+
   async function importGLTF(file, siblingFiles){
     var scale = parseFloat(document.getElementById('dxfScaleInput').value) || 1;
     var result = await parseGLTFOrGLB(file, siblingFiles);
     var ring = placeLocalRingOnMap(result.footprint, scale);
     ring.push(ring[0]);
+    var newLayerId = createBimLayerForImport(file, /\.glb$/i.test(file.name) ? 'glb' : 'gltf', scale);
     var f = makeFeature('Polygon', [ring]);
+    f.properties.layerId = newLayerId;
     f.properties.extrude = true;
     f.properties.floors = 1;
     f.properties.floorHeight = result.height * scale;
@@ -10030,6 +10318,7 @@
     f.properties.base = 0;
     pushHistory();
     features.push(f);
+    activeLayerId = newLayerId;
     renderFeatures();
     ensure3DView();
     try{ var bbox = turf.bbox(f); map.fitBounds(bbox, { padding:80, duration:600, maxZoom:18 }); }catch(e){ /* yoksay */ }
@@ -10077,7 +10366,9 @@
     var result = await parseIFCFile(file);
     var ring = placeLocalRingOnMap(result.footprint, manualScale);
     ring.push(ring[0]);
+    var newLayerId = createBimLayerForImport(file, 'ifc', manualScale);
     var f = makeFeature('Polygon', [ring]);
+    f.properties.layerId = newLayerId;
     f.properties.extrude = true;
     f.properties.floors = 1;
     f.properties.floorHeight = result.height * manualScale;
@@ -10085,6 +10376,7 @@
     f.properties.base = 0;
     pushHistory();
     features.push(f);
+    activeLayerId = newLayerId;
     renderFeatures();
     ensure3DView();
     try{ var bbox = turf.bbox(f); map.fitBounds(bbox, { padding:80, duration:600, maxZoom:18 }); }catch(e){ /* yoksay */ }
@@ -10144,7 +10436,7 @@
   }
 
   // ---- Ortak: ayrıştırılan ham GeoJSON benzeri özellikleri ekle ---------
-  function addImportedFeatures(rawFeats, sourceLabel){
+  function addImportedFeatures(rawFeats, sourceLabel, bimSourceFormat, bimSourceFile){
     var rawValid = (rawFeats||[]).filter(function(f){
       return f && f.geometry && ['Point','LineString','Polygon'].indexOf(f.geometry.type) >= 0;
     });
@@ -10158,10 +10450,23 @@
     var inferredGeom = geomKeys.length === 1 ? geomKeys[0] : null;
     var newLayerId = 'layer-' + uid();
     var layerName = (sourceLabel || 'İçe Aktarılan').replace(/\.[a-zA-Z0-9]+$/, '');
+    // Haritadaki gerçek mesh render'ının (bkz. syncIfcMeshLayer) çıpası —
+    // placeDXFOnMap() de AYNI harita merkezini (senkron olarak, bu satırdan
+    // hemen önce çağrılan handleEtlServerImport içinde) kullandığı için
+    // ikisi birbirine denk düşer.
+    var bimAnchor = bimSourceFormat
+      ? { lng: map.getCenter().lng, lat: map.getCenter().lat, scale: parseFloat(document.getElementById('dxfScaleInput').value) || 1 }
+      : undefined;
     layers.push({
       id:newLayerId, name:layerName, visible:true, color:null, lineWidth:null, dash:'solid',
-      symbol:'circle', scale:1, geomType:inferredGeom, mapId:activeMapId, folderId:getDefaultFolderId(activeMapId)
+      symbol:'circle', scale:1, geomType:inferredGeom, mapId:activeMapId, folderId:getDefaultFolderId(activeMapId),
+      sourceFormat: bimSourceFormat || null, bimAnchor: bimAnchor
     });
+    // BIM Görüntüleyici (bkz. openBimViewer) için — yalnızca çağıran taraf
+    // bimSourceFormat/bimSourceFile verdiyse (şu an sadece sunucu taraflı IFC
+    // importu, bkz. handleEtlServerImport) orijinal dosya IndexedDB'ye yazılır;
+    // nokta bulutu gibi diğer addImportedFeatures çağrıları ETKİLENMEZ.
+    if (bimSourceFormat && bimSourceFile) saveBimFile(newLayerId, bimSourceFile, bimSourceFormat);
 
     var converted = rawValid.map(function(f){
       return { id: uid(), type:'Feature', geometry:f.geometry, properties: Object.assign({ layerId:newLayerId }, f.properties || {}) };
@@ -10285,7 +10590,7 @@
   // gönderiliyor; tarayıcı dosyayı olduğu haliyle stream eder, sunucu da
   // (bkz. server/index.js — multer, disk storage) doğrudan diske yazar.
   // -------------------------------------------------------------------
-  async function handleEtlServerImport(file, endpoint, extraBody, labelForLog, reprojectLocal){
+  async function handleEtlServerImport(file, endpoint, extraBody, labelForLog, reprojectLocal, bimFormat){
     var statusEl = document.getElementById('gdalImportStatus');
     statusEl.style.display = '';
     statusEl.textContent = labelForLog + ' sunucuya gönderiliyor…';
@@ -10310,8 +10615,14 @@
         var scale = parseFloat(document.getElementById('dxfScaleInput').value) || 1;
         rawFeats = placeDXFOnMap(rawFeats, scale);
       }
-      addImportedFeatures(rawFeats, file.name);
+      // ÖNEMLİ: ensure3DView() (pitch/bearing easeTo) addImportedFeatures()'ın
+      // KENDİ map.fitBounds() (zoom/merkez, duration:600) çağrısından SONRA
+      // gelirse, MapLibre ikinci easeTo çağrısını (aynı senkron tick'te,
+      // animasyon bir kare bile ilerlemeden) öncekini KESER/İPTAL EDER — sonuç
+      // olarak harita hiç yakınlaşmaz. importGLTF()/importIFC()'nin (istemci
+      // tarafı) ZATEN kullandığı GÜVENLİ sırayla AYNI: ensure3DView() ÖNCE.
       if (reprojectLocal) ensure3DView();
+      addImportedFeatures(rawFeats, file.name, bimFormat, bimFormat ? file : undefined);
       // FAZ 6 — hem nokta bulutu (totalPoints, laspy) hem de büyük IFC
       // (totalElements, IfcOpenShell) uç noktaları çok büyük girişleri
       // eşit aralıklı örnekleyip "sampled:true" ile işaretler; ikisi de
@@ -10334,7 +10645,7 @@
   document.getElementById('ifcImportInput').addEventListener('change', function(e){
     var file = e.target.files && e.target.files[0];
     e.target.value = '';
-    if (file) handleEtlServerImport(file, '/api/etl/ifc', { maxElements: 50000 }, 'IFC/BIM (IfcOpenShell)', true);
+    if (file) handleEtlServerImport(file, '/api/etl/ifc', { maxElements: 50000 }, 'IFC/BIM (IfcOpenShell)', true, 'ifc');
   });
   document.getElementById('btnPointCloudImport').addEventListener('click', function(){
     document.getElementById('pointCloudImportInput').click();
@@ -11233,6 +11544,858 @@
       if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', 'none');
     });
   }
+
+  // =========================================================================
+  // BIM Görüntüleyici — treeview'da bir IFC/GLTF/GLB katmanında (bkz.
+  // createBimLayerForImport/addImportedFeatures, lyr.sourceFormat) sağ
+  // klik > "BIM Görüntüleyicide Aç" (bkz. buildLayerRow) ile açılır.
+  // Haritanın taban-izdüşümü render'ından TAMAMEN BAĞIMSIZ, ayrı bir
+  // three.js sahnesi: orijinal dosya IndexedDB'den (bkz. getBimFile)
+  // okunur; IFC ise web-ifc (WASM) ile HER ELEMANIN kendi geometrisi,
+  // GLTF/GLB ise three.js'in GLTFLoader'ı ile sahneye yüklenir. Kütüphaneler
+  // TEMBEL YÜKLENİR (dynamic import) — viewer hiç açılmazsa hiçbir ek
+  // kütüphane indirilmez, sayfa açılışını etkilemez.
+  // =========================================================================
+  var bimViewer = null;
+  var WEB_IFC_CDN = 'https://cdn.jsdelivr.net/npm/web-ifc@0.0.57/';
+
+  function bimViewerStatus(msg){ var el = document.getElementById('bimViewerStatus'); if (el) el.textContent = msg || ''; }
+  function bimViewerShowLoading(msg){
+    var el = document.getElementById('bimViewerLoading');
+    document.getElementById('bimViewerLoadingText').textContent = msg || 'Yükleniyor…';
+    if (el) el.style.display = 'flex';
+  }
+  function bimViewerHideLoading(){ var el = document.getElementById('bimViewerLoading'); if (el) el.style.display = 'none'; }
+  function bimViewerHint(msg){
+    var el = document.getElementById('bimViewerHint');
+    if (!el) return;
+    if (!msg){ el.style.display = 'none'; return; }
+    el.textContent = msg; el.style.display = 'block';
+  }
+
+  async function openBimViewer(layerId){
+    var lyr = getLayer(layerId);
+    if (!lyr) return;
+    document.getElementById('bimViewerTitle').textContent = 'BIM Görüntüleyici — ' + layerDisplayName(lyr);
+    document.getElementById('bimViewerModal').classList.add('show');
+    bimViewerShowLoading('Dosya okunuyor…');
+    bimViewerStatus('');
+    bimViewerHint('');
+    try{
+      var rec = await getBimFile(layerId);
+      if (!rec || !rec.blob){
+        bimViewerHideLoading();
+        showToast('Bu katman için orijinal dosya saklanmamış — dosyayı yeniden içe aktarın.');
+        closeBimViewer();
+        return;
+      }
+      await ensureBimViewerScene();
+      bimViewerClearModel();
+      bimViewerOnResize();
+      if (rec.format === 'ifc'){
+        bimViewerShowLoading('IFC ayrıştırılıyor (web-ifc)…');
+        await loadIfcIntoViewer(rec.blob);
+      }else{
+        bimViewerShowLoading('3B model yükleniyor…');
+        await loadGltfIntoViewer(rec.blob);
+      }
+      bimFitToScene();
+      bimViewerHideLoading();
+    }catch(err){
+      console.error('BIM Görüntüleyici yükleme hatası:', err);
+      bimViewerHideLoading();
+      showToast('BIM Görüntüleyici: ' + (err && err.message ? err.message : 'dosya yüklenemedi'));
+    }
+  }
+
+  function closeBimViewer(){
+    document.getElementById('bimViewerModal').classList.remove('show');
+    if (document.fullscreenElement) { try{ document.exitFullscreen(); }catch(e){ /* yoksay */ } }
+    window.removeEventListener('resize', bimViewerOnResize);
+    if (bimViewer){
+      if (bimViewer.animId) cancelAnimationFrame(bimViewer.animId);
+      if (bimViewer.ifcApi && bimViewer.modelID !== null && bimViewer.modelID !== undefined){
+        try{ bimViewer.ifcApi.CloseModel(bimViewer.modelID); }catch(e){ /* yoksay */ }
+      }
+      if (bimViewer.renderer){
+        try{ bimViewer.renderer.dispose(); }catch(e){ /* yoksay */ }
+        var host = document.getElementById('bimViewerCanvasHost');
+        var canvas = bimViewer.renderer.domElement;
+        if (canvas && canvas.parentNode === host) host.removeChild(canvas);
+      }
+    }
+    bimViewer = null;
+  }
+  document.getElementById('btnBimViewerClose').addEventListener('click', closeBimViewer);
+
+  async function ensureBimViewerScene(){
+    if (bimViewer && bimViewer.renderer) return;
+    var THREE = await import('three');
+    var OrbitControls = (await import('three/addons/controls/OrbitControls.js')).OrbitControls;
+
+    var host = document.getElementById('bimViewerCanvasHost');
+    var w = host.clientWidth || 800, h = host.clientHeight || 600;
+
+    var renderer = new THREE.WebGLRenderer({ antialias:true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setSize(w, h);
+    renderer.localClippingEnabled = true;
+    renderer.setClearColor(0x101c24, 1);
+    host.insertBefore(renderer.domElement, host.firstChild);
+
+    var scene = new THREE.Scene();
+    var camera = new THREE.PerspectiveCamera(60, w / h, 0.05, 100000);
+    camera.position.set(20, 20, 20);
+
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x30302a, 1.1));
+    var dir1 = new THREE.DirectionalLight(0xffffff, 0.9); dir1.position.set(30, 50, 20); scene.add(dir1);
+    var dir2 = new THREE.DirectionalLight(0xffffff, 0.4); dir2.position.set(-30, 20, -20); scene.add(dir2);
+    var grid = new THREE.GridHelper(200, 40, 0x2c4250, 0x1c2e38);
+    scene.add(grid);
+
+    var controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.08;
+
+    var group = new THREE.Group();
+    scene.add(group);
+    var measureGroup = new THREE.Group();
+    scene.add(measureGroup);
+
+    bimViewer = {
+      THREE: THREE, renderer: renderer, scene: scene, camera: camera, controls: controls, grid: grid,
+      group: group, measureGroup: measureGroup, meshByExpressId: {}, ifcApi: null, modelID: null,
+      clipPlane: new THREE.Plane(new THREE.Vector3(0, -1, 0), 1000), clipEnabled: false,
+      measureMode: false, measurePoints: [], highlighted: [], raycaster: new THREE.Raycaster(),
+      format: null, lastMaxDim: 10
+    };
+
+    (function animate(){
+      bimViewer.animId = requestAnimationFrame(animate);
+      controls.update();
+      renderer.render(scene, camera);
+    })();
+
+    window.addEventListener('resize', bimViewerOnResize);
+    renderer.domElement.addEventListener('click', bimViewerOnCanvasClick);
+  }
+
+  function bimViewerOnResize(){
+    if (!bimViewer || !bimViewer.renderer) return;
+    var host = document.getElementById('bimViewerCanvasHost');
+    if (!host || host.offsetParent === null) return;
+    var w = host.clientWidth || 800, h = host.clientHeight || 600;
+    bimViewer.camera.aspect = w / h;
+    bimViewer.camera.updateProjectionMatrix();
+    bimViewer.renderer.setSize(w, h);
+  }
+
+  function bimViewerClearModel(){
+    if (!bimViewer) return;
+    while (bimViewer.group.children.length){
+      var m = bimViewer.group.children.pop();
+      if (m.traverse){
+        m.traverse(function(o){
+          if (o.geometry) o.geometry.dispose();
+          if (o.material){ (Array.isArray(o.material) ? o.material : [o.material]).forEach(function(mm){ mm.dispose(); }); }
+        });
+      }
+    }
+    while (bimViewer.measureGroup.children.length){
+      var mm2 = bimViewer.measureGroup.children.pop();
+      if (mm2.geometry) mm2.geometry.dispose();
+      if (mm2.material) mm2.material.dispose();
+    }
+    bimViewer.group.rotation.set(0, 0, 0);
+    bimViewer.meshByExpressId = {};
+    bimViewer.highlighted = [];
+    bimViewer.clipEnabled = false;
+    bimViewer.measureMode = false;
+    bimViewer.measurePoints = [];
+    document.getElementById('btnBimClip').classList.remove('active');
+    document.getElementById('btnBimMeasure').classList.remove('active');
+    if (bimViewer.ifcApi && bimViewer.modelID !== null && bimViewer.modelID !== undefined){
+      try{ bimViewer.ifcApi.CloseModel(bimViewer.modelID); }catch(e){ /* yoksay */ }
+    }
+    bimViewer.modelID = null;
+    document.getElementById('bimTreePanel').innerHTML = '';
+    document.getElementById('bimPropsPanel').innerHTML = '<div class="bim-viewer-empty">Sahnede bir eleman seçin.</div>';
+    bimViewerHint('');
+  }
+
+  // ---- IFC (web-ifc, WASM) ------------------------------------------------
+  // web-ifc'nin düşük seviyeli IfcAPI'sinde (bkz. paket sürümü WEB_IFC_CDN)
+  // hazır bir "yapı ağacı" yardımcı fonksiyonu YOK — bu üst seviye bir
+  // kolaylık olup @thatopen/components gibi sarmalayıcı kütüphanelerde
+  // bulunur. Bu yüzden IFCRELAGGREGATES (proje>saha>bina>kat hiyerarşisi) ve
+  // IFCRELCONTAINEDINSPATIALSTRUCTURE (kat>eleman) ilişkilerini kendimiz
+  // dolaşarak ağacı kuruyoruz — canlı testte doğrulanmış gerçek IfcAPI
+  // metodları (GetLineIDsWithType/GetLine) kullanılıyor.
+  function buildIfcSpatialTree(ifcApi, modelID, webIfcMod){
+    var aggByParent = {}, containByStruct = {};
+    var aggIds = ifcApi.GetLineIDsWithType(modelID, webIfcMod.IFCRELAGGREGATES);
+    for (var i = 0; i < aggIds.size(); i++){
+      var rel = ifcApi.GetLine(modelID, aggIds.get(i));
+      var parentId = rel.RelatingObject && rel.RelatingObject.value;
+      if (parentId === undefined) continue;
+      if (!aggByParent[parentId]) aggByParent[parentId] = [];
+      (rel.RelatedObjects || []).forEach(function(h){ if (h && h.value !== undefined) aggByParent[parentId].push(h.value); });
+    }
+    var containIds = ifcApi.GetLineIDsWithType(modelID, webIfcMod.IFCRELCONTAINEDINSPATIALSTRUCTURE);
+    for (var j = 0; j < containIds.size(); j++){
+      var rel2 = ifcApi.GetLine(modelID, containIds.get(j));
+      var structId = rel2.RelatingStructure && rel2.RelatingStructure.value;
+      if (structId === undefined) continue;
+      if (!containByStruct[structId]) containByStruct[structId] = [];
+      (rel2.RelatedElements || []).forEach(function(h){ if (h && h.value !== undefined) containByStruct[structId].push(h.value); });
+    }
+    function buildNode(expressID){
+      var childIds = (aggByParent[expressID] || []).concat(containByStruct[expressID] || []);
+      return { expressID: expressID, children: childIds.map(buildNode) };
+    }
+    var projIds = ifcApi.GetLineIDsWithType(modelID, webIfcMod.IFCPROJECT);
+    if (projIds.size() === 0) return null;
+    return buildNode(projIds.get(0));
+  }
+
+  // web-ifc'nin StreamAllMeshes/GetGeometry API'siyle HER ELEMANIN GERÇEK
+  // üçgen mesh'ini (kaba taban-izdüşümü/bounding-box DEĞİL) THREE.Mesh
+  // listesine çevirir. Hem BIM Görüntüleyici (loadIfcIntoViewer) hem de
+  // haritadaki gerçek-mesh katmanı (bkz. loadIfcMeshGroupForMap) AYNI bu
+  // fonksiyonu kullanır — iki ayrı/tutarsız implementasyon YOK.
+  function extractIfcMeshes(ifcApi, modelID, THREE){
+    var meshes = [];
+    var meshByExpressId = {};
+    ifcApi.StreamAllMeshes(modelID, function(flatMesh){
+      var placedGeometries = flatMesh.geometries;
+      for (var i = 0; i < placedGeometries.size(); i++){
+        var placedGeometry = placedGeometries.get(i);
+        var ifcGeometry = ifcApi.GetGeometry(modelID, placedGeometry.geometryExpressID);
+        var vertsRaw = ifcApi.GetVertexArray(ifcGeometry.GetVertexData(), ifcGeometry.GetVertexDataSize());
+        var indicesRaw = ifcApi.GetIndexArray(ifcGeometry.GetIndexData(), ifcGeometry.GetIndexDataSize());
+        var vertCount = vertsRaw.length / 6;
+        var positions = new Float32Array(vertCount * 3);
+        var normals = new Float32Array(vertCount * 3);
+        for (var v = 0, p = 0; v < vertsRaw.length; v += 6, p += 3){
+          positions[p] = vertsRaw[v]; positions[p+1] = vertsRaw[v+1]; positions[p+2] = vertsRaw[v+2];
+          normals[p] = vertsRaw[v+3]; normals[p+1] = vertsRaw[v+4]; normals[p+2] = vertsRaw[v+5];
+        }
+        var bufferGeom = new THREE.BufferGeometry();
+        bufferGeom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        bufferGeom.setAttribute('normal', new THREE.BufferAttribute(normals, 3));
+        bufferGeom.setIndex(Array.prototype.slice.call(indicesRaw));
+        var c = placedGeometry.color;
+        var material = new THREE.MeshStandardMaterial({
+          color: new THREE.Color(c.x, c.y, c.z), opacity: c.w, transparent: c.w < 1, side: THREE.DoubleSide
+        });
+        var mesh = new THREE.Mesh(bufferGeom, material);
+        mesh.applyMatrix4(new THREE.Matrix4().fromArray(placedGeometry.flatTransformation));
+        mesh.userData.expressID = flatMesh.expressID;
+        // Haritadaki ifc-mesh-layer, kamera projectionMatrix'ini MapLibre'nin
+        // kendi matrisiyle (Mercator birim uzayı) DOĞRUDAN ezer — camera.matrixWorld
+        // GERÇEĞİ YANSITMADIĞI için three.js'in otomatik frustum culling'i
+        // (camera.matrixWorld'e dayanır) mesh'leri YANLIŞLIKLA "görünür alan
+        // dışında" sanıp ÇİZMEYİ ATLAYABİLİR — bu yüzden kapatılıyor. BIM
+        // Görüntüleyici'nin KENDİ (gerçek, normal) kamerası için zararsız.
+        mesh.frustumCulled = false;
+        meshes.push(mesh);
+        if (!meshByExpressId[flatMesh.expressID]) meshByExpressId[flatMesh.expressID] = [];
+        meshByExpressId[flatMesh.expressID].push(mesh);
+      }
+    });
+    return { meshes: meshes, meshByExpressId: meshByExpressId };
+  }
+
+  // =========================================================================
+  // Haritada GERÇEK IFC mesh render'ı — "bu IFC çizimi haritaya eklendiğinde
+  // BIM Görüntüleyici'de göründüğü GİBİ görünmeli" talebi üzerine: kaba
+  // taban-izdüşümü kutusu (server/etl/ifc_to_geojson.py'nin bounding-box'ı,
+  // eskiden 'poly-extrusion' ile çizilirdi — bkz. visibleFeaturesForRender'
+  // daki sourceFormat==='ifc' hariç tutma) yerine, extractIfcMeshes() ile
+  // AYNI gerçek mesh MapLibre'nin CustomLayerInterface'i (type:'custom')
+  // üzerinden, kendi three.js sahnesiyle çizilir. MapLibre'nin yerleşik
+  // katman tipleri (fill/fill-extrusion/line) keyfi 3B mesh çizemediği için
+  // bu ZORUNLU — basit bir "poligon konturunu düzelt" yeterli değil.
+  // =========================================================================
+  var ifcMeshLayerCtx = null; // onAdd() tamamlanınca { THREE, scene, camera, renderer } ile dolar
+  var ifcMeshCache = {};      // layerId -> 'loading' | THREE.Group (haritaya eklenmiş grup)
+
+  // lyr.bimAnchor (import anındaki harita merkezi + birim ölçeği — bkz.
+  // createBimLayerForImport/addImportedFeatures) ile grubu doğru coğrafi
+  // konum ve ölçekte yerleştirir. Mercator'da Y GÜNEYE artar, IFC/coğrafi
+  // Y KUZEYE artar — bu yüzden Y ekseni negatiflenir (MapLibre/Mapbox'ın
+  // resmi "Add a 3D model" custom layer örneğiyle AYNI, iyi bilinen desen).
+  // anchor: { lng, lat, scale } — scale: 1 BIM birimi kaç metre (varsayılan 1).
+  function positionGroupAtAnchor(outerGroup, anchor, THREE){
+    var mercAnchor = maplibregl.MercatorCoordinate.fromLngLat([anchor.lng, anchor.lat], 0);
+    var metersPerMercatorUnit = mercAnchor.meterInMercatorCoordinateUnits();
+    var s = metersPerMercatorUnit * (anchor.scale || 1);
+    outerGroup.position.set(mercAnchor.x, mercAnchor.y, mercAnchor.z);
+    outerGroup.scale.set(s, -s, s);
+  }
+
+  // Bir IFC katmanının orijinal dosyasını (IndexedDB, bkz. getBimFile) okuyup
+  // gerçek mesh'ini üretir; grup kendi taban-merkezine (XY ortası, Z tabanı)
+  // göre ortalanır — coğrafi konumlandırma positionIfcMeshOuterGroup() ile
+  // AYRICA (dış bir grup üzerinde) uygulanır.
+  async function extractIfcMeshesFromBlob(blob, THREE){
+    var webIfcMod = await import(WEB_IFC_CDN + 'web-ifc-api.js');
+    var ifcApi = new webIfcMod.IfcAPI();
+    ifcApi.SetWasmPath(WEB_IFC_CDN, true);
+    await ifcApi.Init();
+    var buf = new Uint8Array(await blob.arrayBuffer());
+    // COORDINATE_TO_ORIGIN KULLANILMIYOR (BIM Görüntüleyici'den farklı) —
+    // sonuç grup kendi bounding box'ına göre ortalanıyor, mutlak/ham
+    // koordinatlar sorun değil; önemli olan tutarlılık.
+    var modelID = ifcApi.OpenModel(buf, {});
+    var extracted = extractIfcMeshes(ifcApi, modelID, THREE);
+    try{ ifcApi.CloseModel(modelID); }catch(e){ /* yoksay */ }
+    return extracted.meshes;
+  }
+
+  async function extractGltfMeshesFromBlob(blob, THREE){
+    var GLTFLoader = (await import('three/addons/loaders/GLTFLoader.js')).GLTFLoader;
+    var buf = await blob.arrayBuffer();
+    var loader = new GLTFLoader();
+    var gltf = await new Promise(function(resolve, reject){ loader.parse(buf, '', resolve, reject); });
+    var root = gltf.scene || gltf.scenes[0];
+    root.updateMatrixWorld(true);
+    var meshes = [];
+    root.traverse(function(obj){ if (obj.isMesh){ obj.frustumCulled = false; meshes.push(obj); } });
+    return meshes;
+  }
+
+  // Verilen mesh listesini TEK bir grupta, kendi taban-merkezine (XY ortası,
+  // Z tabanı) göre ortalanmış hâlde birleştirir. group.attach() (group.add()
+  // DEĞİL) kullanılır — GLTF mesh'leri genelde iç içe node hiyerarşisinden
+  // (kendi orijinal ebeveyninin dönüşümüyle) geliyor; attach() dünya
+  // konumunu koruyarak yeniden ebeveynlendirir (IFC mesh'leri için zaten
+  // ebeveynsiz oldukları için davranış add() ile aynıdır, zararsız).
+  //
+  // TEK SEVİYELİ hiyerarşi kasıtlı: haritada 1 Mercator birimi ~metrelik
+  // ölçeklerle (ör. 3e-8) çarpılıyor; iç içe iki Object3D transformu
+  // (merkezleme grubu + coğrafi konum grubu) three.js'in Float32Array
+  // tabanlı Matrix4'ünde önlenebilir hassasiyet kaybına yol açıyordu
+  // (canlı testte doğrulandı: tek mesh'lik test küpü tek katmanla doğru
+  // görünürken, 999 mesh'lik gerçek model iç içe iki katmanla haritada
+  // görünmez küçüklükte kalıyordu).
+  function centerMeshesIntoGroup(meshes, THREE){
+    if (!meshes.length) return null;
+    var box = new THREE.Box3();
+    meshes.forEach(function(m){ m.updateMatrixWorld(true); box.expandByObject(m); });
+    if (box.isEmpty()) return null;
+    var center = box.getCenter(new THREE.Vector3());
+    var baseZ = box.min.z;
+    var group = new THREE.Group();
+    meshes.forEach(function(m){ group.attach(m); });
+    group.children.forEach(function(m){
+      m.position.x -= center.x;
+      m.position.y -= center.y;
+      m.position.z -= baseZ;
+    });
+    return group;
+  }
+
+  async function loadIfcMeshGroupForMap(lyr, THREE){
+    var rec = await getBimFile(lyr.id);
+    if (!rec || !rec.blob || rec.format !== 'ifc') return null;
+    var meshes = await extractIfcMeshesFromBlob(rec.blob, THREE);
+    return centerMeshesIntoGroup(meshes, THREE);
+  }
+
+  // Bir binaya (feature) doküman olarak eklenmiş bir IFC/GLTF/GLB dosyasından
+  // (base64 data URL, bkz. featureDocumentsCache/commitStagedDocuments) mesh
+  // grubu üretir — bkz. enableBimViewForFeature.
+  async function loadBimMeshGroupFromDataUrl(dataUrl, format, THREE){
+    var blob = await (await fetch(dataUrl)).blob();
+    var meshes = (format === 'ifc')
+      ? await extractIfcMeshesFromBlob(blob, THREE)
+      : await extractGltfMeshesFromBlob(blob, THREE);
+    return centerMeshesIntoGroup(meshes, THREE);
+  }
+
+  // layers[] dizisindeki sourceFormat==='ifc' katmanlarını (aktif haritada,
+  // görünür olanları) ifcMeshLayerCtx.scene ile senkronlar: yeni/görünür
+  // olanları yükleyip ekler, silinmiş/gizlenmiş/haritası değişmiş olanları
+  // çıkarır. renderLayerTree() sonunda çağrılır (bkz. updateLayerTransformToolbar
+  // ile AYNI hook deseni) — böylece import, silme, görünürlük değişimi, harita
+  // değişimi gibi HER durumda otomatik güncel kalır.
+  function syncIfcMeshLayer(){
+    if (!ifcMeshLayerCtx) return;
+    var THREE = ifcMeshLayerCtx.THREE;
+    var scene = ifcMeshLayerCtx.scene;
+    var wanted = {};
+    layers.filter(function(l){
+      return l.sourceFormat === 'ifc' && l.mapId === activeMapId && l.visible !== false && l.bimAnchor;
+    }).forEach(function(l){ wanted[l.id] = l; });
+
+    Object.keys(ifcMeshCache).forEach(function(id){
+      if (wanted[id]) return;
+      var entry = ifcMeshCache[id];
+      if (entry && entry !== 'loading' && entry.parent) entry.parent.remove(entry);
+      delete ifcMeshCache[id];
+    });
+
+    var changed = false;
+    Object.keys(wanted).forEach(function(id){
+      var lyr = wanted[id];
+      var entry = ifcMeshCache[id];
+      if (entry === 'loading') return;
+      if (entry){
+        positionGroupAtAnchor(entry, lyr.bimAnchor, THREE);
+        if (!entry.parent){ scene.add(entry); changed = true; }
+        return;
+      }
+      ifcMeshCache[id] = 'loading';
+      loadIfcMeshGroupForMap(lyr, THREE).then(function(centeredGroup){
+        var stillWanted = layers.some(function(l){
+          return l.id === id && l.sourceFormat === 'ifc' && l.mapId === activeMapId && l.visible !== false;
+        });
+        if (!centeredGroup || !stillWanted){ delete ifcMeshCache[id]; return; }
+        // TEK seviyeli hiyerarşi: centeredGroup'un kendisine (ekstra bir
+        // sarmalayıcı grup OLMADAN) doğrudan coğrafi konum/ölçek uygulanır —
+        // bkz. loadIfcMeshGroupForMap'teki hassasiyet notu.
+        positionGroupAtAnchor(centeredGroup, lyr.bimAnchor, THREE);
+        ifcMeshCache[id] = centeredGroup;
+        scene.add(centeredGroup);
+        map.triggerRepaint();
+      }).catch(function(err){
+        console.error('Harita IFC mesh\'i yüklenemedi (' + lyr.name + '):', err);
+        delete ifcMeshCache[id];
+      });
+    });
+    if (changed) map.triggerRepaint();
+  }
+
+  // =========================================================================
+  // Bina (feature) dokümanı olarak eklenmiş BIM dosyasını haritada gösterme —
+  // "Kanvasta 3B Bina Yerine Göster" (bkz. renderInfoDocsPanel'deki sağ klik)
+  // ile İŞARETLENEN binalar, durum çubuğundaki "BIM Görünümü" (bkz.
+  // #statusBimViewToggleBtn) AÇIKKEN kaba ekstrüzyon kutusu yerine GERÇEK
+  // mesh'leriyle gösterilir. sourceFormat==='ifc' katman akışından (yukarıda)
+  // TAMAMEN AYRI: burada anchor, katmanın import anındaki harita merkezi
+  // DEĞİL, binanın KENDİ poligon merkezidir (turf.centroid) — bina zaten
+  // gerçek bir coğrafi konumda durduğu için import-anchor mantığı geçersiz.
+  // =========================================================================
+  var bimViewFeatures = {};      // featureId -> doküman kaydı (işaretli binalar)
+  var bimViewGlobalOn = false;   // durum çubuğu butonunun aç/kapat durumu
+  var featureBimMeshCache = {};  // featureId -> 'loading' | THREE.Group
+
+  function featureBimAnchor(f){
+    var c = turf.centroid(f);
+    return { lng: c.geometry.coordinates[0], lat: c.geometry.coordinates[1], scale: 1 };
+  }
+
+  function enableBimViewForFeature(featureId, docRecord){
+    bimViewFeatures[featureId] = docRecord;
+    var stale = featureBimMeshCache[featureId];
+    if (stale && stale !== 'loading'){
+      if (stale.parent) stale.parent.remove(stale);
+      delete featureBimMeshCache[featureId];
+    }
+    showToast('"' + (docRecord.name || 'BIM dosyası') + '" bu bina için BIM görünümüne işaretlendi — durum çubuğundaki "BIM Görünümü" ile açabilirsiniz.');
+    syncFeatureBimMeshes();
+    renderFeatures();
+  }
+
+  // bimViewFeatures[]'daki (işaretli) binaları ifcMeshLayerCtx.scene ile
+  // senkronlar. bimViewGlobalOn KAPALIYKEN mesh'ler önbellekten SİLİNMEZ —
+  // sadece sahneden çıkarılır — böylece buton tekrar açıldığında yeniden
+  // yüklemeye gerek kalmaz ("eski 3B görünüme dönülüp geri gelinebilsin").
+  // Sadece sağ klik ile işaret TAMAMEN kaldırılmışsa (bimViewFeatures'ta
+  // artık yoksa) önbellekten de silinir.
+  function syncFeatureBimMeshes(){
+    if (!ifcMeshLayerCtx) return;
+    var THREE = ifcMeshLayerCtx.THREE;
+    var scene = ifcMeshLayerCtx.scene;
+    var wantedIds = bimViewGlobalOn ? Object.keys(bimViewFeatures) : [];
+
+    Object.keys(featureBimMeshCache).forEach(function(fid){
+      var entry = featureBimMeshCache[fid];
+      if (!bimViewFeatures[fid]){
+        if (entry && entry !== 'loading' && entry.parent) entry.parent.remove(entry);
+        delete featureBimMeshCache[fid];
+        return;
+      }
+      if (wantedIds.indexOf(fid) === -1 && entry && entry !== 'loading' && entry.parent){
+        entry.parent.remove(entry);
+      }
+    });
+
+    var changed = false;
+    wantedIds.forEach(function(fid){
+      var entry = featureBimMeshCache[fid];
+      if (entry === 'loading') return;
+      var f = features.find(function(x){ return x.id === fid; });
+      if (!f){ delete bimViewFeatures[fid]; delete featureBimMeshCache[fid]; return; }
+      if (entry){
+        positionGroupAtAnchor(entry, featureBimAnchor(f), THREE);
+        if (!entry.parent){ scene.add(entry); changed = true; }
+        return;
+      }
+      var doc = bimViewFeatures[fid];
+      var format = bimDocFormat(doc.name);
+      featureBimMeshCache[fid] = 'loading';
+      loadBimMeshGroupFromDataUrl(doc.file_data_url, format, THREE).then(function(group){
+        var stillWanted = bimViewGlobalOn && bimViewFeatures[fid];
+        var f2 = features.find(function(x){ return x.id === fid; });
+        if (!group || !stillWanted || !f2){ delete featureBimMeshCache[fid]; return; }
+        positionGroupAtAnchor(group, featureBimAnchor(f2), THREE);
+        featureBimMeshCache[fid] = group;
+        scene.add(group);
+        map.triggerRepaint();
+      }).catch(function(err){
+        console.error('Bina BIM mesh\'i yüklenemedi:', err);
+        delete featureBimMeshCache[fid];
+      });
+    });
+    if (changed) map.triggerRepaint();
+  }
+
+  document.getElementById('statusBimViewToggleBtn').addEventListener('click', function(){
+    bimViewGlobalOn = !bimViewGlobalOn;
+    this.classList.toggle('on', bimViewGlobalOn);
+    syncFeatureBimMeshes();
+    renderFeatures();
+    showToast(bimViewGlobalOn
+      ? 'BIM Görünümü açık — işaretlenen binalar gerçek modelleriyle gösteriliyor.'
+      : 'BIM Görünümü kapalı — binalar normal 3B kutu olarak gösteriliyor.');
+  });
+
+
+  function createIfcMeshMapLayer(){
+    return {
+      id: 'ifc-mesh-layer',
+      type: 'custom',
+      onAdd: async function(mapRef, gl){
+        var THREE = await import('three');
+        var camera = new THREE.Camera();
+        var scene = new THREE.Scene();
+        scene.add(new THREE.HemisphereLight(0xffffff, 0x404040, 1.2));
+        var dir = new THREE.DirectionalLight(0xffffff, 0.7);
+        dir.position.set(0, -70, 100).normalize();
+        scene.add(dir);
+        var renderer = new THREE.WebGLRenderer({ canvas: mapRef.getCanvas(), context: gl, antialias:true });
+        renderer.autoClear = false;
+        // MapLibre'nin kendi canvas/context'ini PAYLAŞTIĞIMIZ için three.js
+        // setSize() ÇAĞRILMAZSA varsayılan (küçük, ör. 300x150) bir viewport
+        // kullanır — gl.viewport() bu YANLIŞ boyutla çağrılır ve çizilen her
+        // şey (haritanın gerçek boyutuyla eşleşmeyen) küçük/görünmez bir
+        // alana sıkışır. updateStyle=false ile canvas'ın CSS boyutuna
+        // DOKUNULMAZ (onu zaten MapLibre yönetiyor).
+        renderer.setPixelRatio(window.devicePixelRatio || 1);
+        renderer.setSize(mapRef.getCanvas().clientWidth, mapRef.getCanvas().clientHeight, false);
+        mapRef.on('resize', function(){
+          renderer.setSize(mapRef.getCanvas().clientWidth, mapRef.getCanvas().clientHeight, false);
+        });
+        ifcMeshLayerCtx = { THREE:THREE, scene:scene, camera:camera, renderer:renderer };
+        syncIfcMeshLayer();
+      },
+      // MapLibre GL JS 5.x'te CustomLayerInterface.render()'ın ikinci parametresi
+      // ARTIK düz bir 16 sayılık matris DİZİSİ değil (eski Mapbox/MapLibre 3B
+      // model örneklerinde ve <4.x sürümlerde geçerliydi) — çoklu projeksiyon
+      // (globe vb.) desteği için args.modelViewProjectionMatrix/.projectionMatrix/
+      // .defaultProjectionData alanları içeren bir NESNE. Canlı testte
+      // doğrulandı: args.modelViewProjectionMatrix, ham [0,1] Mercator birimi
+      // DEĞİL, "Mercator × worldSize" (worldSize = 512 * 2^zoom, MapLibre'nin
+      // dahili piksel-eşdeğeri uzayı) birimini bekliyor — bu ölçek her zoom'da
+      // değiştiği için HER render() çağrısında yeniden hesaplanır. Bu olmadan
+      // (veya matris değişikliği hiç yapılmadan önce) harita hiçbir hata
+      // vermeden sessizce hiçbir şey çizmiyordu.
+      render: function(gl, args){
+        if (!ifcMeshLayerCtx) return;
+        try{
+          var THREE = ifcMeshLayerCtx.THREE;
+          var worldSize = Math.pow(2, map.getZoom()) * 512;
+          var scaleM = new THREE.Matrix4().makeScale(worldSize, worldSize, worldSize);
+          ifcMeshLayerCtx.camera.projectionMatrix = new THREE.Matrix4().fromArray(args.modelViewProjectionMatrix).multiply(scaleM);
+          ifcMeshLayerCtx.renderer.resetState();
+          ifcMeshLayerCtx.renderer.render(ifcMeshLayerCtx.scene, ifcMeshLayerCtx.camera);
+          ifcMeshLayerCtx.renderer.resetState();
+        }catch(err){
+          console.error('ifc-mesh-layer render hatası:', err);
+        }
+      }
+    };
+  }
+
+  async function loadIfcIntoViewer(blob){
+    var THREE = bimViewer.THREE;
+    var webIfcMod = await import(WEB_IFC_CDN + 'web-ifc-api.js');
+    var IfcAPI = webIfcMod.IfcAPI;
+    var ifcApi = new IfcAPI();
+    ifcApi.SetWasmPath(WEB_IFC_CDN, true);
+    await ifcApi.Init();
+    bimViewer.ifcApi = ifcApi;
+    bimViewer.format = 'ifc';
+
+    var buf = new Uint8Array(await blob.arrayBuffer());
+    var modelID = ifcApi.OpenModel(buf, { COORDINATE_TO_ORIGIN: true });
+    bimViewer.modelID = modelID;
+
+    bimViewerShowLoading('Geometri oluşturuluyor…');
+    var extracted = extractIfcMeshes(ifcApi, modelID, THREE);
+    extracted.meshes.forEach(function(m){ bimViewer.group.add(m); });
+    bimViewer.meshByExpressId = extracted.meshByExpressId;
+
+    // IFC Z-yukarı, three.js Y-yukarı — mevcut client-side ayrıştırıcıyla
+    // (ifcExtractFootprint: "IFC Z-yukarı: taban X,Y; yükseklik Z") AYNI
+    // eksen dönüşümü.
+    bimViewer.group.rotation.x = -Math.PI / 2;
+
+    bimViewerShowLoading('Yapı ağacı hazırlanıyor…');
+    try{
+      var tree = buildIfcSpatialTree(ifcApi, modelID, webIfcMod);
+      renderBimTree(tree, 'ifc');
+    }catch(err){
+      console.error('IFC yapı ağacı okunamadı:', err);
+      document.getElementById('bimTreePanel').innerHTML = '<div class="bim-viewer-empty">Yapı ağacı okunamadı.</div>';
+    }
+    bimViewerStatus(Object.keys(bimViewer.meshByExpressId).length + ' eleman');
+  }
+
+  function bimNodeLabel(node, format){
+    if (format === 'ifc'){
+      try{
+        var line = bimViewer.ifcApi.GetLine(bimViewer.modelID, node.expressID);
+        var name = line && line.Name && line.Name.value;
+        return name || ('#' + node.expressID);
+      }catch(e){ return '#' + node.expressID; }
+    }
+    return node.name || ('#' + node.expressID);
+  }
+  function renderBimTree(node, format){
+    var panel = document.getElementById('bimTreePanel');
+    panel.innerHTML = '';
+    if (!node){ panel.innerHTML = '<div class="bim-viewer-empty">Yapı ağacı boş.</div>'; return; }
+    renderBimTreeNode(node, panel, 0, format);
+  }
+  function renderBimTreeNode(node, container, depth, format){
+    if (!node) return;
+    var row = document.createElement('div');
+    row.className = 'bim-tree-node';
+    row.style.marginLeft = (depth * 12) + 'px';
+    row.textContent = bimNodeLabel(node, format);
+    row.addEventListener('click', function(){
+      document.querySelectorAll('.bim-tree-node.active').forEach(function(el){ el.classList.remove('active'); });
+      row.classList.add('active');
+      bimSelectExpressId(node.expressID, format);
+    });
+    container.appendChild(row);
+    (node.children || []).forEach(function(child){ renderBimTreeNode(child, container, depth + 1, format); });
+  }
+
+  function bimHighlightMeshes(meshes){
+    (bimViewer.highlighted || []).forEach(function(m){
+      if (m.userData._origEmissive !== undefined && m.material.emissive) m.material.emissive.setHex(m.userData._origEmissive);
+    });
+    bimViewer.highlighted = meshes || [];
+    (meshes || []).forEach(function(m){
+      if (!m.material.emissive) return;
+      if (m.userData._origEmissive === undefined) m.userData._origEmissive = m.material.emissive.getHex();
+      m.material.emissive.setHex(0x3a6d8f);
+    });
+  }
+  function bimSelectExpressId(expressID, format){
+    if (format === 'ifc'){
+      bimHighlightMeshes(bimViewer.meshByExpressId[expressID] || []);
+      renderIfcProperties(expressID);
+    }else{
+      var obj = bimViewer.meshByExpressId[expressID];
+      bimHighlightMeshes(obj ? [obj] : []);
+      renderGltfProperties(obj);
+    }
+  }
+  function ifcValueToString(v){
+    if (v === null || v === undefined) return null;
+    if (typeof v === 'object'){
+      if ('value' in v) return String(v.value);
+      return null;
+    }
+    return String(v);
+  }
+  function renderIfcProperties(expressID){
+    var panel = document.getElementById('bimPropsPanel');
+    panel.innerHTML = '';
+    try{
+      var line = bimViewer.ifcApi.GetLine(bimViewer.modelID, expressID, true);
+      var keys = Object.keys(line || {}).filter(function(k){ return k !== 'expressID' && k !== 'type'; });
+      var shown = 0;
+      keys.forEach(function(k){
+        var display = ifcValueToString(line[k]);
+        if (display === null) return;
+        shown++;
+        var row = document.createElement('div');
+        row.className = 'bim-prop-row';
+        var kEl = document.createElement('div'); kEl.className = 'bim-prop-key'; kEl.textContent = k;
+        var vEl = document.createElement('div'); vEl.className = 'bim-prop-val'; vEl.textContent = display;
+        row.appendChild(kEl); row.appendChild(vEl);
+        panel.appendChild(row);
+      });
+      if (!shown) panel.innerHTML = '<div class="bim-viewer-empty">Öznitelik yok.</div>';
+    }catch(err){
+      panel.innerHTML = '<div class="bim-viewer-empty">Öznitelikler okunamadı.</div>';
+    }
+  }
+
+  // ---- GLTF/GLB (three.js GLTFLoader) -------------------------------------
+  async function loadGltfIntoViewer(blob){
+    var THREE = bimViewer.THREE;
+    var GLTFLoader = (await import('three/addons/loaders/GLTFLoader.js')).GLTFLoader;
+    bimViewer.format = 'gltf';
+    var buf = await blob.arrayBuffer();
+    var loader = new GLTFLoader();
+    var gltf = await new Promise(function(resolve, reject){ loader.parse(buf, '', resolve, reject); });
+    var root = gltf.scene || gltf.scenes[0];
+    var idCounter = 0;
+    root.traverse(function(obj){
+      if (obj.isMesh){
+        idCounter++;
+        obj.userData.expressID = 'n' + idCounter;
+        bimViewer.meshByExpressId[obj.userData.expressID] = obj;
+      }
+    });
+    bimViewer.group.add(root);
+    renderBimTree(bimGltfNodeToTree(root), 'gltf');
+    bimViewerStatus(idCounter + ' mesh');
+  }
+  function bimGltfNodeToTree(obj){
+    return {
+      expressID: obj.userData.expressID || null,
+      name: obj.name || (obj.isMesh ? 'Mesh' : 'Grup'),
+      children: (obj.children || []).map(bimGltfNodeToTree)
+    };
+  }
+  function renderGltfProperties(obj){
+    var panel = document.getElementById('bimPropsPanel');
+    panel.innerHTML = '';
+    if (!obj){ panel.innerHTML = '<div class="bim-viewer-empty">Grup — öznitelik yok.</div>'; return; }
+    var rows = [
+      ['Ad', obj.name || '(adsız)'],
+      ['Tür', obj.type],
+      ['Konum', obj.position.toArray().map(function(n){ return n.toFixed(2); }).join(', ')]
+    ];
+    if (obj.material && obj.material.name) rows.push(['Materyal', obj.material.name]);
+    rows.forEach(function(r){
+      var row = document.createElement('div');
+      row.className = 'bim-prop-row';
+      var kEl = document.createElement('div'); kEl.className = 'bim-prop-key'; kEl.textContent = r[0];
+      var vEl = document.createElement('div'); vEl.className = 'bim-prop-val'; vEl.textContent = r[1];
+      row.appendChild(kEl); row.appendChild(vEl);
+      panel.appendChild(row);
+    });
+  }
+
+  // ---- Araç çubuğu: sığdır / izole et / tümünü göster / kesit / ölçüm ----
+  function bimFitToScene(){
+    if (!bimViewer) return;
+    var THREE = bimViewer.THREE;
+    var box = new THREE.Box3().setFromObject(bimViewer.group);
+    if (box.isEmpty()) return;
+    var size = box.getSize(new THREE.Vector3());
+    var center = box.getCenter(new THREE.Vector3());
+    var maxDim = Math.max(size.x, size.y, size.z) || 1;
+    bimViewer.lastMaxDim = maxDim;
+    var dist = maxDim * 1.6;
+    bimViewer.camera.position.set(center.x + dist, center.y + dist * 0.8, center.z + dist);
+    bimViewer.camera.near = Math.max(maxDim / 1000, 0.01);
+    bimViewer.camera.far = maxDim * 100;
+    bimViewer.camera.updateProjectionMatrix();
+    bimViewer.controls.target.copy(center);
+    bimViewer.controls.update();
+    bimViewer.clipPlane.constant = box.max.y;
+    bimViewer.grid.position.y = box.min.y;
+  }
+  document.getElementById('btnBimFit').addEventListener('click', bimFitToScene);
+  document.getElementById('btnBimShowAll').addEventListener('click', function(){
+    if (!bimViewer) return;
+    bimViewer.group.traverse(function(o){ if (o.isMesh) o.visible = true; });
+  });
+  document.getElementById('btnBimIsolate').addEventListener('click', function(){
+    if (!bimViewer || !bimViewer.highlighted.length){ showToast('Önce yapı ağacından veya sahneden bir eleman seçin.'); return; }
+    var keep = bimViewer.highlighted;
+    bimViewer.group.traverse(function(o){ if (o.isMesh) o.visible = keep.indexOf(o) >= 0; });
+  });
+  document.getElementById('btnBimClip').addEventListener('click', function(e){
+    if (!bimViewer) return;
+    bimViewer.clipEnabled = !bimViewer.clipEnabled;
+    e.currentTarget.classList.toggle('active', bimViewer.clipEnabled);
+    bimViewer.group.traverse(function(o){
+      if (!o.isMesh) return;
+      (Array.isArray(o.material) ? o.material : [o.material]).forEach(function(m){
+        m.clippingPlanes = bimViewer.clipEnabled ? [bimViewer.clipPlane] : [];
+      });
+    });
+    bimViewerHint(bimViewer.clipEnabled ? 'Kesit aktif — düzlemi kaydırmak için Shift + fare tekerleği.' : '');
+  });
+  document.getElementById('bimViewerCanvasHost').addEventListener('wheel', function(e){
+    if (!bimViewer || !bimViewer.clipEnabled || !e.shiftKey) return;
+    e.preventDefault();
+    bimViewer.clipPlane.constant += (e.deltaY > 0 ? -1 : 1) * Math.max(0.05, bimViewer.lastMaxDim * 0.01);
+  }, { passive:false });
+
+  function bimViewerSetMeasureMode(on){
+    if (!bimViewer) return;
+    bimViewer.measureMode = on;
+    bimViewer.measurePoints = [];
+    document.getElementById('btnBimMeasure').classList.toggle('active', !!on);
+    bimViewerHint(on ? 'Mesafe ölçmek için sahnede iki nokta seçin.' : '');
+  }
+  document.getElementById('btnBimMeasure').addEventListener('click', function(){
+    bimViewerSetMeasureMode(!(bimViewer && bimViewer.measureMode));
+  });
+
+  function bimViewerOnCanvasClick(e){
+    if (!bimViewer) return;
+    var THREE = bimViewer.THREE;
+    var host = document.getElementById('bimViewerCanvasHost');
+    var rect = host.getBoundingClientRect();
+    var mouse = new THREE.Vector2(
+      ((e.clientX - rect.left) / rect.width) * 2 - 1,
+      -((e.clientY - rect.top) / rect.height) * 2 + 1
+    );
+    bimViewer.raycaster.setFromCamera(mouse, bimViewer.camera);
+    var hits = bimViewer.raycaster.intersectObjects(bimViewer.group.children, true).filter(function(h){ return h.object.visible; });
+    if (!hits.length) return;
+    var hit = hits[0];
+    if (bimViewer.measureMode){ bimViewerAddMeasurePoint(hit.point); return; }
+    var expressID = hit.object.userData.expressID;
+    if (expressID === undefined) return;
+    document.querySelectorAll('.bim-tree-node.active').forEach(function(el){ el.classList.remove('active'); });
+    bimSelectExpressId(expressID, bimViewer.format);
+  }
+  function bimViewerAddMeasurePoint(point){
+    var THREE = bimViewer.THREE;
+    bimViewer.measurePoints.push(point.clone());
+    var r = Math.max(0.03, bimViewer.lastMaxDim * 0.006);
+    var marker = new THREE.Mesh(new THREE.SphereGeometry(r, 12, 12), new THREE.MeshBasicMaterial({ color:0xffb703 }));
+    marker.position.copy(point);
+    bimViewer.measureGroup.add(marker);
+    if (bimViewer.measurePoints.length === 2){
+      var a = bimViewer.measurePoints[0], b = bimViewer.measurePoints[1];
+      var geom = new THREE.BufferGeometry().setFromPoints([a, b]);
+      bimViewer.measureGroup.add(new THREE.Line(geom, new THREE.LineBasicMaterial({ color:0xffb703 })));
+      bimViewerHint('Mesafe: ' + a.distanceTo(b).toFixed(3) + ' m (yeni ölçüm için tekrar iki nokta seçin)');
+      bimViewer.measurePoints = [];
+    }
+  }
+
+  document.getElementById('btnBimFullscreen').addEventListener('click', function(){
+    var box = document.querySelector('.bim-viewer-box');
+    if (!document.fullscreenElement){ box.requestFullscreen && box.requestFullscreen(); }
+    else{ document.exitFullscreen && document.exitFullscreen(); }
+  });
+  document.addEventListener('fullscreenchange', function(){ setTimeout(bimViewerOnResize, 50); });
+
+  document.querySelectorAll('.bim-tab').forEach(function(tab){
+    tab.addEventListener('click', function(){
+      document.querySelectorAll('.bim-tab').forEach(function(t){ t.classList.remove('active'); });
+      tab.classList.add('active');
+      var which = tab.getAttribute('data-bim-tab');
+      document.getElementById('bimTreePanel').style.display = which === 'tree' ? 'block' : 'none';
+      document.getElementById('bimPropsPanel').style.display = which === 'props' ? 'block' : 'none';
+    });
+  });
 
   // Üst pencereye "haritaya katman göndermeye hazırım" sinyali — üst pencere
   // bu mesajı bekleyip ardından 'oda:load-db-layers' mesajını gönderir.
