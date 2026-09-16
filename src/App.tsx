@@ -1797,8 +1797,13 @@ export default function App() {
               
 
 
-              {/* HARİTA / 3D, İŞ-ZAMAN VEYA DİNAMİK KPI PROCESS VIEWS CONTAINER */}
-              <div className="relative w-full">
+              {/* HARİTA / 3D, İŞ-ZAMAN VEYA DİNAMİK KPI PROCESS VIEWS CONTAINER
+                  flex-1 min-h-0 — üst panel küçültülüp büyütüldüğünde (gerçek
+                  yüksekliği değişince) harita kartının sabit bir viewport
+                  yüzdesi yerine `main`in (zaten flex flex-col h-full olan)
+                  KALAN yüksekliğini dinamik doldurması için; aksi halde alt
+                  tarafta boş bir şerit kalıyordu (bkz. aşağıdaki h-full). */}
+              <div className="relative w-full flex-1 min-h-0 flex flex-col">
                  {centerTab === 'gantt' && (
                   <div className="w-full animate-fade-in relative bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl p-6 shadow-2xl text-[var(--text-primary)]">
                     <GanttView 
@@ -1813,7 +1818,11 @@ export default function App() {
 
                 {centerTab === 'map' && (
                   // Köşe yuvarlaklığı kullanıcı isteğiyle %90 azaltıldı (rounded-2xl=16px → ~1.6px).
-                  <div className="w-full h-[calc(100vh-170px)] min-h-[500px] bg-[var(--bg-secondary)] border border-[var(--border)] rounded-[1.6px] overflow-hidden shadow-2xl relative animate-fade-in">
+                  // h-full: artık flex-1 olan üst kapsayıcının (bkz. yukarıdaki
+                  // not) KALAN yüksekliğini doldurur — sabit bir "100vh-170px"
+                  // varsayımı DEĞİL, böylece üst panel küçültülünce/büyütülünce
+                  // altta boşluk kalmaz.
+                  <div className="w-full h-full min-h-[500px] bg-[var(--bg-secondary)] border border-[var(--border)] rounded-[1.6px] overflow-hidden shadow-2xl relative animate-fade-in">
                     <OdaMapModule activeProjectId={selectedProjectId} />
                   </div>
                 )}
