@@ -731,7 +731,16 @@
     background:rgba(10,22,32,.95);border-top:1px solid var(--line);
     display:flex;align-items:center;padding:0 12px;gap:14px;
     font-family:var(--font-mono);font-size:11px;color:var(--text-dim);
+    transition:background .2s ease,border-top-color .2s ease;
   }
+  /* Bölünmüş Görünüm aktifken durum çubuğu renklenir — kullanıcı isteğiyle
+     (bkz. setSplitCount). */
+  #statusbar.split-active{ background:var(--amber-dim); border-top-color:var(--amber); }
+  #statusSplitViewCount{
+    display:none;color:#1a1206;background:var(--amber);border-radius:3px;
+    padding:1px 5px;font-weight:700;margin-left:2px;
+  }
+  #statusbar.split-active #statusSplitViewCount{ display:inline; }
   #statusbar .div{width:1px;height:12px;background:var(--line);}
   #statusbar span{display:inline-flex;align-items:center;gap:5px;}
   .status-icon{width:12px;height:12px;flex:0 0 auto;color:var(--text-dim);}
@@ -2389,7 +2398,7 @@
   <!-- Bölünmüş Görünüm (2/3/4 pencere) — zoom ölçeğinin SAĞINDA, kullanıcı
        isteğiyle. bkz. #splitViewPopover / initSplitView. -->
   <span style="position:relative;">
-    <button id="statusSplitViewBtn" class="status-snap-btn" title="Bölünmüş Görünüm (2/3/4 pencere)"><svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="1.5"/><path d="M12 4v16"/></svg></button>
+    <button id="statusSplitViewBtn" class="status-snap-btn" title="Bölünmüş Görünüm (2/3/4 pencere)"><svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="1.5"/><path d="M12 4v16"/></svg><b id="statusSplitViewCount"></b></button>
     <div id="splitViewPopover" class="status-mini-popover">
       <button type="button" data-split="1" class="active">Tek</button>
       <button type="button" data-split="2">2</button>
@@ -13069,6 +13078,10 @@
     Array.prototype.slice.call(document.getElementById('splitViewPopover').children).forEach(function(b){
       b.classList.toggle('active', b.getAttribute('data-split') === String(n));
     });
+    // Durum çubuğu Bölünmüş Görünüm'de renklenir + kaça bölündüğünü rakamla
+    // gösterir — kullanıcı isteğiyle.
+    document.getElementById('statusbar').classList.toggle('split-active', n > 1);
+    document.getElementById('statusSplitViewCount').textContent = n > 1 ? String(n) : '';
   }
 
   document.getElementById('statusSplitViewBtn').addEventListener('click', function(e){
