@@ -73,8 +73,9 @@
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
   }
   .pane-header button{
-    flex:0 0 auto;background:rgba(10,22,32,.92);border:1px solid var(--line);color:var(--text-dim);
+    flex:0 1 40%;max-width:40%;background:rgba(10,22,32,.92);border:1px solid var(--line);color:var(--text-dim);
     border-radius:3px;padding:3px 6px;font-size:10px;cursor:pointer;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
   }
   .pane-header button.active{color:var(--amber);border-color:var(--amber);}
   /* "Seç" modunda boş bir noktadan sürükleyerek pencere (kutu) ile toplu
@@ -12970,8 +12971,24 @@
 
   // Bölmenin üst başlığını (CBS Haritası / Taban Harita / BIM seçenekleri)
   // kurar — yalnızca BİR KEZ, bölme ilk oluşturulduğunda çağrılır.
+  // Bölme başlığının İKİ modu vardır (kullanıcı isteğiyle):
+  // 'map' (varsayılan) — CBS Haritası + Taban Harita comboları + (bu CBS
+  //   Haritası'nda IFC/GLTF/GLB katmanı VARSA) bir "BIM" butonu.
+  // 'bim' — "BIM" butonuna basılınca: ilk iki combo GİZLENİR, yerine BIM
+  //   dosyası seçme combosu (openBimViewer'ı otomatik açar) VE ilk iki
+  //   komboyu geri getiren bir "Harita" butonu gösterilir.
   function buildPaneHeader(pane, paneNum, headerEl){
+    pane.headerMode = 'map';
+    renderPaneHeaderControls(pane, paneNum, headerEl);
+  }
+
+  function renderPaneHeaderControls(pane, paneNum, headerEl){
     headerEl.innerHTML = '';
+    if (pane.headerMode === 'bim') renderBimHeaderControls(pane, paneNum, headerEl);
+    else renderMapHeaderControls(pane, paneNum, headerEl);
+  }
+
+  function renderMapHeaderControls(pane, paneNum, headerEl){
     var mapSel = document.createElement('select');
     mapSel.title = 'CBS Haritası';
     maps.forEach(function(m){
@@ -12983,7 +13000,9 @@
     mapSel.addEventListener('change', function(){
       pane.mapId = mapSel.value;
       renderPaneData(pane);
-      refreshPaneBimCombo(pane, bimSel);
+      // CBS Haritası değişince o haritada BIM katmanı olup olmadığı da
+      // değişebilir — başlığı (BIM butonunun görünürlüğü dahil) yeniden kur.
+      renderPaneHeaderControls(pane, paneNum, headerEl);
     });
     headerEl.appendChild(mapSel);
 
@@ -13002,33 +13021,49 @@
     });
     headerEl.appendChild(styleSel);
 
-    // BIM Görüntüleyici combosu — treeview'da (bu CBS Haritası'nda) IFC/GLTF/
-    // GLB katmanı YOKSA hiç görünmez; 1 tane varsa doğrudan o seçilip
+    var bimLayers = layers.filter(function(l){ return l.mapId === pane.mapId && l.sourceFormat; });
+    if (!bimLayers.length) return; // treeview'da BIM dosyası yoksa buton hiç yok
+
+    var bimBtn = document.createElement('button');
+    bimBtn.type = 'button';
+    bimBtn.textContent = 'BIM';
+    bimBtn.title = 'BIM Görüntüleyici — dosya seç';
+    bimBtn.addEventListener('click', function(){
+      pane.headerMode = 'bim';
+      renderPaneHeaderControls(pane, paneNum, headerEl);
+    });
+    headerEl.appendChild(bimBtn);
+  }
+
+  function renderBimHeaderControls(pane, paneNum, headerEl){
+    var bimLayers = layers.filter(function(l){ return l.mapId === pane.mapId && l.sourceFormat; });
+    if (!bimLayers.length){ pane.headerMode = 'map'; renderPaneHeaderControls(pane, paneNum, headerEl); return; }
+
+    // BIM Görüntüleyici combosu — 1 dosya varsa doğrudan o seçilip
     // görüntüleyici açılır; 2+ varsa 1. sıradaki otomatik açılır, diğerleri
     // combodan seçilince mevcut openBimViewer() modalını (aynı, tek modal —
     // bimViewerClearModel() ile önceki model temizlenip yenisi yüklenir) açar.
     var bimSel = document.createElement('select');
     bimSel.title = 'BIM Görüntüleyici';
-    bimSel.style.display = 'none';
-    bimSel.addEventListener('change', function(){ if (bimSel.value) openBimViewer(bimSel.value); });
-    headerEl.appendChild(bimSel);
-    refreshPaneBimCombo(pane, bimSel);
-  }
-
-  function refreshPaneBimCombo(pane, bimSel){
-    var bimLayers = layers.filter(function(l){ return l.mapId === pane.mapId && l.sourceFormat; });
-    bimSel.innerHTML = '';
-    if (!bimLayers.length){
-      bimSel.style.display = 'none';
-      return;
-    }
     bimLayers.forEach(function(l){
       var opt = document.createElement('option');
       opt.value = l.id; opt.textContent = l.name;
       bimSel.appendChild(opt);
     });
-    bimSel.style.display = '';
     bimSel.value = bimLayers[0].id;
+    bimSel.addEventListener('change', function(){ if (bimSel.value) openBimViewer(bimSel.value); });
+    headerEl.appendChild(bimSel);
+
+    var mapBtn = document.createElement('button');
+    mapBtn.type = 'button';
+    mapBtn.textContent = 'Harita';
+    mapBtn.title = 'CBS Haritası / Taban Harita kontrollerine dön';
+    mapBtn.addEventListener('click', function(){
+      pane.headerMode = 'map';
+      renderPaneHeaderControls(pane, paneNum, headerEl);
+    });
+    headerEl.appendChild(mapBtn);
+
     openBimViewer(bimLayers[0].id);
   }
 
