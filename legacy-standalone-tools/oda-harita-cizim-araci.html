@@ -3597,15 +3597,14 @@
       }
     });
 
-    // IFC katmanlarının GERÇEK mesh'ini (bkz. syncIfcMeshLayer, aşağıda IFC
-    // Görüntüleyici bölümünde tanımlı — kaba taban-izdüşümü kutusu DEĞİL,
-    // BIM Görüntüleyici ile birebir aynı geometri) gösteren özel WebGL
-    // katmanı. visibleFeaturesForRender() sourceFormat==='ifc' katmanların
-    // feature'larını zaten dışarıda bıraktığı için 'poly-extrusion' ile
-    // ÇAKIŞMAZ.
+    // IFC/GLTF/GLB katmanlarının GERÇEK mesh'ini (bkz. syncIfcMeshLayer,
+    // aşağıda IFC Görüntüleyici bölümünde tanımlı — kaba taban-izdüşümü
+    // kutusu DEĞİL, BIM Görüntüleyici ile birebir aynı geometri) gösteren
+    // özel WebGL katmanı. visibleFeaturesForRender() bu formatlardaki
+    // katmanların feature'larını zaten dışarıda bıraktığı için
+    // 'poly-extrusion' ile ÇAKIŞMAZ.
     if (!map.getLayer('ifc-mesh-layer')){
-      try{ map.addLayer(createIfcMeshMapLayer()); }
-      catch(err){ console.error('ifc-mesh-layer eklenemedi:', err); }
+      map.addLayer(createIfcMeshMapLayer());
     }
 
     ensureLayer('draft-fill', {
@@ -7375,7 +7374,7 @@
       // DEĞİL, GERÇEK mesh olarak ayrı bir WebGL katmanında (bkz.
       // ifc-mesh-layer / syncIfcMeshLayer) gösteriliyor — burada dışarıda
       // bırakılmazsa aynı eleman hem kutu hem gerçek mesh olarak çakışırdı.
-      if (lyr.sourceFormat === 'ifc') return false;
+      if (lyr.sourceFormat === 'ifc' || lyr.sourceFormat === 'gltf' || lyr.sourceFormat === 'glb') return false;
       // "BIM Görünümü" açıkken ve bu bina için bir BIM dosyası işaretliyse
       // (bkz. enableBimViewForFeature), kaba ekstrüzyon kutusu yerine
       // syncFeatureBimMeshes()'in eklediği gerçek mesh gösterilir.
@@ -12556,8 +12555,13 @@
 
   async function loadIfcMeshGroupForMap(lyr, THREE){
     var rec = await getBimFile(lyr.id);
-    if (!rec || !rec.blob || rec.format !== 'ifc') return null;
-    var meshes = await extractIfcMeshesFromBlob(rec.blob, THREE);
+    if (!rec || !rec.blob) return null;
+    var meshes = (rec.format === 'ifc')
+      ? await extractIfcMeshesFromBlob(rec.blob, THREE)
+      : (rec.format === 'gltf' || rec.format === 'glb')
+        ? await extractGltfMeshesFromBlob(rec.blob, THREE)
+        : null;
+    if (!meshes) return null;
     return centerMeshesIntoGroup(meshes, THREE);
   }
 
@@ -12572,19 +12576,20 @@
     return centerMeshesIntoGroup(meshes, THREE);
   }
 
-  // layers[] dizisindeki sourceFormat==='ifc' katmanlarını (aktif haritada,
-  // görünür olanları) ifcMeshLayerCtx.scene ile senkronlar: yeni/görünür
-  // olanları yükleyip ekler, silinmiş/gizlenmiş/haritası değişmiş olanları
-  // çıkarır. renderLayerTree() sonunda çağrılır (bkz. updateLayerTransformToolbar
-  // ile AYNI hook deseni) — böylece import, silme, görünürlük değişimi, harita
-  // değişimi gibi HER durumda otomatik güncel kalır.
+  // layers[] dizisindeki sourceFormat===ifc/gltf/glb katmanlarını (aktif
+  // haritada, görünür olanları) ifcMeshLayerCtx.scene ile senkronlar:
+  // yeni/görünür olanları yükleyip ekler, silinmiş/gizlenmiş/haritası
+  // değişmiş olanları çıkarır. renderLayerTree() sonunda çağrılır (bkz.
+  // updateLayerTransformToolbar ile AYNI hook deseni) — böylece import,
+  // silme, görünürlük değişimi, harita değişimi gibi HER durumda otomatik
+  // güncel kalır.
   function syncIfcMeshLayer(){
     if (!ifcMeshLayerCtx) return;
     var THREE = ifcMeshLayerCtx.THREE;
     var scene = ifcMeshLayerCtx.scene;
     var wanted = {};
     layers.filter(function(l){
-      return l.sourceFormat === 'ifc' && l.mapId === activeMapId && l.visible !== false && l.bimAnchor;
+      return (l.sourceFormat === 'ifc' || l.sourceFormat === 'gltf' || l.sourceFormat === 'glb') && l.mapId === activeMapId && l.visible !== false && l.bimAnchor;
     }).forEach(function(l){ wanted[l.id] = l; });
 
     Object.keys(ifcMeshCache).forEach(function(id){
@@ -12607,7 +12612,7 @@
       ifcMeshCache[id] = 'loading';
       loadIfcMeshGroupForMap(lyr, THREE).then(function(centeredGroup){
         var stillWanted = layers.some(function(l){
-          return l.id === id && l.sourceFormat === 'ifc' && l.mapId === activeMapId && l.visible !== false;
+          return l.id === id && (l.sourceFormat === 'ifc' || l.sourceFormat === 'gltf' || l.sourceFormat === 'glb') && l.mapId === activeMapId && l.visible !== false;
         });
         if (!centeredGroup || !stillWanted){ delete ifcMeshCache[id]; return; }
         // TEK seviyeli hiyerarşi: centeredGroup'un kendisine (ekstra bir
