@@ -12177,10 +12177,15 @@
   // dolduracağı için) ayrı/tam ekran bir pencere yerine bölmenin İÇİNDE açar.
   // closeBimViewer() kapanışta modalı document.body'ye GERİ TAŞIR — böylece
   // treeview'dan normal (tam ekran) açılış etkilenmez.
-  function openBimViewerInPane(layerId, paneBodyEl){
+  // bimEmbeddedPane: viewer'ı hangi bölmenin açtığını (paneNum/pane/headerEl)
+  // hatırlar — closeBimViewer()'ın, kapanınca o bölmenin başlığını OTOMATİK
+  // "Harita" moduna döndürebilmesi için (kullanıcı isteğiyle).
+  var bimEmbeddedPane = null;
+  function openBimViewerInPane(layerId, paneBodyEl, paneNum, pane, headerEl){
     var modal = document.getElementById('bimViewerModal');
     if (modal.parentElement !== paneBodyEl) paneBodyEl.appendChild(modal);
     modal.classList.add('embedded-in-pane');
+    bimEmbeddedPane = { paneNum:paneNum, pane:pane, headerEl:headerEl };
     openBimViewer(layerId);
   }
 
@@ -12225,6 +12230,14 @@
     if (modal.classList.contains('embedded-in-pane')){
       modal.classList.remove('embedded-in-pane');
       document.body.appendChild(modal); // treeview'dan normal (tam ekran) açılışa geri dön
+      // Kullanıcı isteğiyle: viewer'ı açan bölmenin başlığı otomatik "Harita"
+      // moduna döner — aksi halde harita tekrar görünür olsa bile başlık BIM
+      // combo'sunda takılı kalırdı.
+      if (bimEmbeddedPane){
+        bimEmbeddedPane.pane.headerMode = 'map';
+        renderPaneHeaderControls(bimEmbeddedPane.pane, bimEmbeddedPane.paneNum, bimEmbeddedPane.headerEl);
+        bimEmbeddedPane = null;
+      }
     }
     if (document.fullscreenElement) { try{ document.exitFullscreen(); }catch(e){ /* yoksay */ } }
     window.removeEventListener('resize', bimViewerOnResize);
@@ -13078,7 +13091,7 @@
       bimSel.appendChild(opt);
     });
     bimSel.value = bimLayers[0].id;
-    bimSel.addEventListener('change', function(){ if (bimSel.value) openBimViewerInPane(bimSel.value, bodyEl); });
+    bimSel.addEventListener('change', function(){ if (bimSel.value) openBimViewerInPane(bimSel.value, bodyEl, paneNum, pane, headerEl); });
     headerEl.appendChild(bimSel);
 
     var mapBtn = document.createElement('button');
@@ -13096,7 +13109,7 @@
     });
     headerEl.appendChild(mapBtn);
 
-    openBimViewerInPane(bimLayers[0].id, bodyEl);
+    openBimViewerInPane(bimLayers[0].id, bodyEl, paneNum, pane, headerEl);
   }
 
   function createSplitPane(paneNum){
