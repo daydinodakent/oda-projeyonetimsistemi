@@ -1274,6 +1274,12 @@
             <button type="button" class="layer-icon-btn" id="btnPointCloudImport" title="Nokta Bulutu İçe Aktar (LAS/LAZ, sunucu) — büyük dosyalarda örneklenerek gösterilir">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="5" cy="6" r="1.3" fill="currentColor" stroke="none"/><circle cx="12" cy="4" r="1.3" fill="currentColor" stroke="none"/><circle cx="19" cy="7" r="1.3" fill="currentColor" stroke="none"/><circle cx="7" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="15" cy="11" r="1.3" fill="currentColor" stroke="none"/><circle cx="4" cy="18" r="1.3" fill="currentColor" stroke="none"/><circle cx="11" cy="17" r="1.3" fill="currentColor" stroke="none"/><circle cx="18" cy="16" r="1.3" fill="currentColor" stroke="none"/><circle cx="14" cy="20" r="1.3" fill="currentColor" stroke="none"/></svg>
             </button>
+            <!-- 3D Tiles (Cesium tileset.json) — dosya değil UZAK URL (karo
+                 akışı/LOD doğası gereği tek dosya seçimi uygun değil, bkz.
+                 load3dTiles). Toggle: zaten yüklüyse tekrar tıklamak kaldırır. -->
+            <button type="button" class="layer-icon-btn" id="btn3dTilesImport" title="3D Tiles (Cesium tileset.json URL'si) — akışlı/LOD'lu karo seti ekle">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2 3 7l9 5 9-5-9-5z"/><path d="M3 12l9 5 9-5"/><path d="M3 17l9 5 9-5"/></svg>
+            </button>
           </div>
           <input type="file" id="gdalImportInput" multiple hidden>
           <input type="file" id="ifcImportInput" accept=".ifc" hidden>
@@ -2406,7 +2412,8 @@
 {
   "imports": {
     "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+    "3d-tiles-renderer": "https://cdn.jsdelivr.net/npm/3d-tiles-renderer@0.5.2/+esm"
   }
 }
 </script>
@@ -12619,6 +12626,189 @@
       }
     };
   }
+
+  // =========================================================================
+  // 3D Tiles (Cesium tileset.json + akışlı/LOD'lu .glb/.b3dm karo) — resmi
+  // MapLibre "Add 3D tiles using three.js" örneğiyle (3d-tiles-renderer
+  // kütüphanesi, bkz. importmap'teki pin) BİREBİR AYNI teknik. ifc-mesh-layer'dan
+  // TAMAMEN BAĞIMSIZ, paralel bir CustomLayerInterface katmanı — onu hiç
+  // değiştirmez. Kütüphaneler TEMBEL yüklenir (dinamik import()) — kullanıcı
+  // bu özelliği hiç kullanmazsa hiçbir ek kütüphane indirilmez.
+  // Tek seferde en fazla BİR tileset (#btn3dTilesImport toggle: yüklüyken
+  // tekrar tıklamak kaldırır/yeni bir URL sorar) — bkz. active3dTilesLayer.
+  // =========================================================================
+  var active3dTilesLayer = null; // { id, tiles } | null
+
+  // ECEF (Earth-Centered, Earth-Fixed) kartezyen koordinatı WGS84 lng/lat/alt'a
+  // çevirir — 3D Tiles tileset'leri (IFC/GLTF'nin aksine) coğrafi olarak
+  // ECEF'te konumlanır, bu yüzden import'lardaki bimAnchor (harita merkezi)
+  // yaklaşımı GEÇERSİZDİR; tileset'in KENDİ bounding-sphere merkezinden
+  // gerçek konumu hesaplanır.
+  function ecefToLngLatAlt(x, y, z){
+    var a = 6378137.0, e2 = 6.69437999014e-3;
+    var b = a * Math.sqrt(1 - e2);
+    var ep2 = (a * a - b * b) / (b * b);
+    var p = Math.sqrt(x * x + y * y);
+    var th = Math.atan2(a * z, b * p);
+    var lon = Math.atan2(y, x);
+    var lat = Math.atan2(z + ep2 * b * Math.pow(Math.sin(th), 3), p - e2 * a * Math.pow(Math.cos(th), 3));
+    var n = a / Math.sqrt(1 - e2 * Math.sin(lat) * Math.sin(lat));
+    var alt = p / Math.cos(lat) - n;
+    return { lng: (lon * 180) / Math.PI, lat: (lat * 180) / Math.PI, alt: alt };
+  }
+
+  function remove3dTilesLayer(){
+    if (!active3dTilesLayer) return;
+    try{ if (map.getLayer(active3dTilesLayer.id)) map.removeLayer(active3dTilesLayer.id); }
+    catch(err){ console.error('3D Tiles katmanı kaldırılamadı:', err); }
+    try{ if (active3dTilesLayer.tiles) active3dTilesLayer.tiles.dispose(); }
+    catch(err){ /* yoksay */ }
+    active3dTilesLayer = null;
+  }
+
+  async function load3dTiles(url){
+    remove3dTilesLayer();
+
+    var THREE = await import('three');
+    var TilesRenderer = (await import('3d-tiles-renderer')).TilesRenderer;
+    var GLTFLoader = (await import('three/addons/loaders/GLTFLoader.js')).GLTFLoader;
+    var DRACOLoader = (await import('three/addons/loaders/DRACOLoader.js')).DRACOLoader;
+    var KTX2Loader = (await import('three/addons/loaders/KTX2Loader.js')).KTX2Loader;
+
+    var scene, camera, renderer, tiles, tilesCamera, localTransform;
+    var layerId = 'tiles-3d-layer-' + uid();
+
+    // Resmi ornekteki getModelTransform/updateLocalTransform ile AYNI —
+    // tileset'in ECEF merkezini (lng/lat/alt) Mercator birimine cevirip
+    // bir sahne-donusum matrisi kurar (positionGroupAtAnchor'daki tekle
+    // AYNI MercatorCoordinate/meterInMercatorCoordinateUnits yaklasimi).
+    function updateLocalTransform(modelOrigin){
+      var o = modelOrigin || [0, 0, 0];
+      var mercAnchor = maplibregl.MercatorCoordinate.fromLngLat([o[0], o[1]], o[2]);
+      var s = mercAnchor.meterInMercatorCoordinateUnits();
+      var scaleVec = new THREE.Vector3(s, -s, s);
+      var rotationX = new THREE.Matrix4().makeRotationAxis(new THREE.Vector3(1, 0, 0), Math.PI / 2);
+      localTransform = new THREE.Matrix4()
+        .makeTranslation(mercAnchor.x, mercAnchor.y, mercAnchor.z)
+        .scale(scaleVec)
+        .multiply(rotationX);
+    }
+
+    function initTiles(sceneInst, cameraInst, rendererInst){
+      var gltfLoader = new GLTFLoader();
+      var dracoLoader = new DRACOLoader();
+      dracoLoader.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/draco/');
+      gltfLoader.setDRACOLoader(dracoLoader);
+      var ktx2Loader = new KTX2Loader();
+      ktx2Loader.setTranscoderPath('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/basis/');
+      ktx2Loader.detectSupport(rendererInst);
+      gltfLoader.setKTX2Loader(ktx2Loader);
+
+      tiles = new TilesRenderer(url);
+      tiles.group.name = 'tiles';
+      sceneInst.add(tiles.group);
+      tiles.setCamera(cameraInst);
+      tiles.setResolutionFromRenderer(cameraInst, rendererInst);
+      tiles.manager.addHandler(/\.(gltf|glb)$/g, gltfLoader);
+
+      // tileset ilk yuklendiginde BIR KEZ: bounding-sphere merkezinden
+      // gercek lng/lat/alt hesaplanip harita o noktaya goturulur ve
+      // tiles.group'un kendi donusum matrisi (root.transform varsa —
+      // tileset'in ECEF yuzey normaline gore yerel dogu-kuzey-yukari
+      // yonelimi) dogrudan uygulanir — resmi ornekteki loadTileSet ile
+      // BIREBIR AYNI.
+      var handled = false;
+      function onLoadTileset(){
+        if (handled){ tiles.removeEventListener('load-tileset', onLoadTileset); return; }
+        handled = true;
+        var sphere = new THREE.Sphere();
+        tiles.getBoundingSphere(sphere);
+        var center = sphere.center.clone();
+        var root = tiles.root;
+        var m = [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1];
+        if (root && root.transform) m = root.transform;
+
+        var geo = ecefToLngLatAlt(center.x, center.y, center.z);
+        updateLocalTransform([geo.lng, geo.lat, geo.alt]);
+        try{ map.jumpTo({ center: [geo.lng, geo.lat], zoom: 17 }); }catch(err){ /* yoksay */ }
+
+        var rotationMat3 = new THREE.Matrix3().set(m[0], m[1], m[2], m[8], m[9], m[10], -m[4], -m[5], -m[6]);
+        var rotationMat4 = new THREE.Matrix4().setFromMatrix3(rotationMat3);
+        var moveToOrigin = new THREE.Matrix4().makeTranslation(-center.x, -center.y, -center.z);
+        var finalMatrix = new THREE.Matrix4().multiplyMatrices(rotationMat4, moveToOrigin);
+        tiles.group.matrix.copy(finalMatrix);
+        tiles.group.matrixAutoUpdate = false;
+        tiles.group.updateMatrixWorld(true);
+
+        showToast('3D Tiles yüklendi: ' + geo.lat.toFixed(5) + ', ' + geo.lng.toFixed(5));
+      }
+      tiles.addEventListener('load-tileset', onLoadTileset);
+      updateLocalTransform();
+    }
+
+    var customLayer = {
+      id: layerId,
+      type: 'custom',
+      renderingMode: '3d',
+      onAdd: function(mapRef, gl){
+        camera = new THREE.PerspectiveCamera();
+        scene = new THREE.Scene();
+        scene.add(new THREE.AmbientLight(0xffffff, 3));
+        renderer = new THREE.WebGLRenderer({ canvas: mapRef.getCanvas(), context: gl, antialias:true });
+        renderer.autoClear = false;
+        tilesCamera = new THREE.PerspectiveCamera();
+        initTiles(scene, tilesCamera, renderer);
+      },
+      // render() args.defaultProjectionData.mainMatrix/args.projectionMatrix
+      // kullanımı resmi 3D Tiles örneğiyle BİREBİR AYNI — ifc-mesh-layer'ın
+      // worldSize-ölçekli modelViewProjectionMatrix yaklaşımından FARKLI ama
+      // eşdeğer bir teknik (MapLibre 5.x'in aynı args nesnesinin başka
+      // alanları kullanılıyor); tilesCamera SADECE TilesRenderer'ın LOD/akış
+      // kararları için (bkz. tiles.update()) — asıl çizim `camera` ile olur.
+      render: function(gl, args){
+        if (!camera || !renderer || !scene || !localTransform || !tilesCamera) return;
+        try{
+          camera.projectionMatrix.fromArray(args.defaultProjectionData.mainMatrix);
+          camera.projectionMatrix.multiply(localTransform);
+
+          var P = new THREE.Matrix4().fromArray(args.projectionMatrix);
+          var invP = P.clone().invert();
+          var V = new THREE.Matrix4().multiplyMatrices(invP, camera.projectionMatrix);
+
+          tilesCamera.projectionMatrix.copy(P);
+          tilesCamera.matrixWorldInverse.copy(V);
+          tilesCamera.matrixWorld.copy(V).invert();
+
+          renderer.resetState();
+          renderer.render(scene, camera);
+          renderer.resetState();
+          if (tiles) tiles.update();
+          map.triggerRepaint();
+        }catch(err){
+          console.error('tiles-3d-layer render hatası:', err);
+        }
+      }
+    };
+
+    map.addLayer(customLayer);
+    active3dTilesLayer = { id: layerId, tiles: tiles };
+  }
+
+  document.getElementById('btn3dTilesImport').addEventListener('click', async function(){
+    if (active3dTilesLayer){
+      remove3dTilesLayer();
+      showToast('3D Tiles katmanı kaldırıldı.');
+      return;
+    }
+    var url = await customPrompt('3D Tiles tileset.json URL\'si:', '');
+    if (!url || !url.trim()) return;
+    try{
+      await load3dTiles(url.trim());
+    }catch(err){
+      console.error('3D Tiles yüklenemedi:', err);
+      showToast('3D Tiles yüklenemedi: ' + (err && err.message ? err.message : 'bilinmeyen hata'));
+    }
+  });
 
   async function loadIfcIntoViewer(blob){
     var THREE = bimViewer.THREE;
