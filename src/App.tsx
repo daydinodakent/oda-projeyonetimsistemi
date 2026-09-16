@@ -1793,7 +1793,7 @@ export default function App() {
             {/* Harita penceresi için padding kullanıcı isteğiyle %70 azaltıldı
                 (p-4=16px → ~4.8px); diğer sekmeler (gantt/kpis/dashboard)
                 orijinal p-4 dolgusunu korur. */}
-            <main className={`flex-1 min-w-0 flex flex-col gap-3 panel-transition overflow-y-auto h-full ${centerTab === 'map' ? 'p-[4.8px]' : 'p-4'}`}>
+            <main className={`flex-1 min-w-0 flex flex-col gap-3 panel-transition overflow-y-auto h-full ${centerTab === 'map' ? 'pt-[4.8px] px-[4.8px] pb-0' : 'p-4'}`}>
               
 
 
@@ -2359,8 +2359,10 @@ export default function App() {
               </div>
               )}
 
-              {/* Bottom spacing */}
-              <div className="h-2"></div>
+              {/* Bottom spacing — Harita sekmesinde İSTENMİYOR (kullanıcı
+                  isteğiyle: harita kartı ile alt şerit arasında hiç boşluk
+                  olmamalı); diğer sekmeler (gantt/dashboard/kpi) için korunur. */}
+              {centerTab !== 'map' && <div className="h-2"></div>}
 
             </main>
 
@@ -2698,7 +2700,7 @@ export default function App() {
       )}
 
       {/* 4. STATIC FOOTER */}
-      <footer className="bg-[var(--bg-secondary)] border-t border-[var(--border)] py-3 px-5 text-center text-[10px] text-[var(--text-secondary)] font-bold transition-colors duration-300">
+      <footer className="bg-[var(--bg-secondary)] border-t border-[var(--border)] py-2 px-5 text-center text-[10px] text-[var(--text-secondary)] font-bold transition-colors duration-300">
         ODA+PYS Platformu © 2026
       </footer>
 
