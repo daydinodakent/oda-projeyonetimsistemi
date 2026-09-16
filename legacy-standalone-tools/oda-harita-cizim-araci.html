@@ -63,9 +63,14 @@
     position:absolute;top:6px;left:6px;right:6px;z-index:6;display:flex;gap:4px;align-items:center;
     flex-wrap:wrap;
   }
+  /* max-width:40% — kullanıcı isteğiyle: bölme genişliği ne olursa olsun
+     CBS Haritası/Taban Harita comboları pencerenin en fazla %40'ını kaplar
+     (aksi halde flex:1 ile tüm genişliği paylaşıp aşırı büyük görünüyorlardı);
+     sığmayan, flex-wrap ile alt satıra geçer (bkz. .pane-header). */
   .pane-header select{
-    flex:1 1 auto;min-width:0;background:rgba(10,22,32,.92);border:1px solid var(--line);color:var(--text);
+    flex:0 1 40%;max-width:40%;min-width:0;background:rgba(10,22,32,.92);border:1px solid var(--line);color:var(--text);
     border-radius:3px;padding:3px 5px;font-size:10.5px;font-family:var(--font-mono);
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
   }
   .pane-header button{
     flex:0 0 auto;background:rgba(10,22,32,.92);border:1px solid var(--line);color:var(--text-dim);
