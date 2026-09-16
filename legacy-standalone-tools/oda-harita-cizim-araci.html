@@ -3931,17 +3931,63 @@
     return { x: aPx.x + t*dx, y: aPx.y + t*dy };
   }
 
+  // Bir geometrinin (Point/LineString/Polygon) düz lng/lat sınır kutusunu
+  // (turf/map.project KULLANILMADAN, salt aritmetikle) hesaplar — findSnapPoint'
+  // teki yakınlık ÖN-FİLTRESİ için: haritadaki TÜM şekiller yerine yalnızca
+  // imlecin yakınındakiler tam taranır (bkz. findSnapPoint'in başındaki not).
+  function geometryLngLatBBox(geom){
+    var minLng=Infinity, minLat=Infinity, maxLng=-Infinity, maxLat=-Infinity;
+    function walk(coords){
+      if (typeof coords[0] === 'number'){
+        if (coords[0] < minLng) minLng = coords[0];
+        if (coords[0] > maxLng) maxLng = coords[0];
+        if (coords[1] < minLat) minLat = coords[1];
+        if (coords[1] > maxLat) maxLat = coords[1];
+        return;
+      }
+      coords.forEach(walk);
+    }
+    walk(geom.coordinates);
+    return { minLng:minLng, minLat:minLat, maxLng:maxLng, maxLat:maxLat };
+  }
+
   // screenPoint: piksel konumu · excludeId: hariç tutulacak şekil (ör. düzenlenen) ·
   // fromLngLat: aktif çizimde son köşe — verilirse "dik (perpendicular)" adayları da hesaplanır.
+  //
+  // PERFORMANS: eskiden haritadaki TÜM şekillerin TÜM köşe/kenarlarını (her
+  // biri için map.project çağrısıyla) taryor, ÜSTÜNE ÜSTLÜK kesişim testi
+  // için TÜM kenar çiftlerini O(kenar²) karşılaştırıyordu — obje sayısı
+  // arttıkça (özellikle çizim sırasında HER fare hareketinde tekrar
+  // çalıştığı için) çizimi dramatik biçimde yavaşlatıyordu (canlı testte
+  // doğrulandı: yüzlerce şekille saniyeler süren gecikme). Şimdi önce ucuz
+  // bir lng/lat sınır-kutusu ön-filtresiyle (map.project GEREKMEZ, sadece
+  // aritmetik) yalnızca imlecin snapTolerancePx toleransı İÇİNDE olabilecek
+  // şekiller seçiliyor; pahalı map.project taraması ve O(kenar²) kesişim
+  // testi SADECE bu küçük alt kümede çalışıyor. Sonuç: maliyet artık
+  // haritadaki TOPLAM obje sayısına değil, imlecin ETRAFINDAKİ yerel
+  // yoğunluğa bağlı — tipik kullanımda sabit kalır.
   function findSnapPoint(screenPoint, excludeId, fromLngLat){
     if (!snapEnabled) return null;
     var best = null, bestDist = snapTolerancePx;
     var fromPx = fromLngLat ? map.project(fromLngLat) : null;
     var allSegments = [];
 
-    features.forEach(function(f){
-      if (excludeId && f.id === excludeId) return;
+    // Ekran toleransını (piksel) yaklaşık lng/lat toleransına çevirir — iki
+    // ucuz unproject çağrısıyla, geçerli zoom/pitch'te GERÇEK piksel/derece
+    // oranını kullanır (sabit bir katsayı varsayılmaz).
+    var cursorLL = map.unproject(screenPoint);
+    var tolLL = map.unproject({ x: screenPoint.x + snapTolerancePx, y: screenPoint.y });
+    var tolDeg = Math.max(Math.abs(tolLL.lng - cursorLL.lng), 1e-9);
+    var minLng = cursorLL.lng - tolDeg, maxLng = cursorLL.lng + tolDeg;
+    var minLat = cursorLL.lat - tolDeg, maxLat = cursorLL.lat + tolDeg;
 
+    var nearbyFeatures = features.filter(function(f){
+      if (excludeId && f.id === excludeId) return false;
+      var b = geometryLngLatBBox(f.geometry);
+      return b.maxLng >= minLng && b.minLng <= maxLng && b.maxLat >= minLat && b.minLat <= maxLat;
+    });
+
+    nearbyFeatures.forEach(function(f){
       if (f.geometry.type === 'Polygon'){
         try{
           var cen = turf.centroid(f).geometry.coordinates;
@@ -3989,7 +4035,10 @@
       });
     });
 
-    // Kesişim: tüm kenar çiftlerini tara (makul şekil sayıları için performanslı)
+    // Kesişim: yalnızca YUKARIDA bbox ön-filtresinden geçmiş (imlece yakın)
+    // şekillerin kenar çiftlerini tarar — allSegments artık haritadaki TÜM
+    // kenarları değil, bu küçük alt kümeyi içeriyor (bkz. findSnapPoint
+    // başındaki PERFORMANS notu).
     for (var i=0; i<allSegments.length; i++){
       for (var j=i+1; j<allSegments.length; j++){
         var ip = segmentIntersectionLngLat(allSegments[i][0], allSegments[i][1], allSegments[j][0], allSegments[j][1]);
@@ -12478,17 +12527,45 @@
   // syncIfcMeshLayer()/syncFeatureBimMeshes()'i tetikleyip MEVCUT
   // sahnedeki gruplar icin bu fonksiyonu yeniden cagirir (yeniden parse
   // GEREKMEZ, sadece konum guncellenir).
+  // Sabit "dikeyi düzelt" dönüşü: mesh'ler Y-yukarı (three.js/GLTF standart
+  // yönü, bkz. extractGltfMeshesFromBlob ve web-ifc'nin GERÇEK VERİ ile
+  // doğrulanmış Y-yukarı çıktısı) — ancak grubun kendi ekseni (position/
+  // scale) DOĞRUDAN Mercator X/Y/Z'ye eşleniyor ve Mercator'da DİKEY eksen
+  // Z'dir, Y DEĞİL. Bu dönüş OLMADAN model "yatık" (yüksekliği Mercator
+  // Y'sine, yani yatay kuzey-güney eksenine) render ediliyordu — canlı
+  // testte (__debugIfcGeom, test_wall3.ifc) doğrulandı: 3 m'lik duvar
+  // yüksekliği dünya-Y'sinde, 0.3 m'lik derinliği dünya-Z'sinde çıkıyordu.
+  // Object3D.matrix = T·R·S (scale ÖNCE uygulanır, bkz. three.js kaynağı)
+  // olduğundan, rotation.x = -PI/2 ile Y-yukarı → Z-yukarı doğru yönde
+  // dönüşüyor (canlı, pitch'li kamerayla görsel olarak doğrulandı).
+  var UP_FIX_QUAT = null; // THREE yüklendikten sonra ilk çağrıda oluşturulur (lazy)
+  function getUpFixQuaternion(THREE){
+    if (!UP_FIX_QUAT) UP_FIX_QUAT = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2);
+    return UP_FIX_QUAT;
+  }
+  // anchor: { lng, lat, scale, alt, heading, pitch, roll }
+  //  - alt: zemin kotunun (terrain açıksa gerçek DEM, kapalıysa 0) ÜSTÜNDE
+  //    metre cinsinden ek yükseklik (bkz. "Model Üzerinde Halka" HUD'daki
+  //    ⇅ Yükseklik tutamacı) — varsayılan 0.
+  //  - heading/pitch/roll: derece DEĞİL RADYAN, model'in KENDİ Y-yukarı
+  //    (dikey düzeltmeden ÖNCEki) yerel ekseninde uygulanır — heading
+  //    yerel Y (dikey) etrafında, yani dikey düzeltmeden sonra dünya Z
+  //    (GERÇEK dikey) etrafında dönüş anlamına gelir (bkz. HUD'daki
+  //    döndürme halkası). Varsayılan 0.
   function positionGroupAtAnchor(outerGroup, anchor, THREE){
     var elevation = 0;
     if (terrainActive){
       var e = map.queryTerrainElevation([anchor.lng, anchor.lat]);
       if (e != null) elevation = e;
     }
+    elevation += (anchor.alt || 0);
     var mercAnchor = maplibregl.MercatorCoordinate.fromLngLat([anchor.lng, anchor.lat], elevation);
     var metersPerMercatorUnit = mercAnchor.meterInMercatorCoordinateUnits();
     var s = metersPerMercatorUnit * (anchor.scale || 1);
     outerGroup.position.set(mercAnchor.x, mercAnchor.y, mercAnchor.z);
     outerGroup.scale.set(s, -s, s);
+    var qUser = new THREE.Quaternion().setFromEuler(new THREE.Euler(anchor.pitch || 0, anchor.heading || 0, anchor.roll || 0, 'YXZ'));
+    outerGroup.quaternion.copy(getUpFixQuaternion(THREE)).multiply(qUser);
   }
 
   // Bir IFC katmanının orijinal dosyasını (IndexedDB, bkz. getBimFile) okuyup
@@ -12522,9 +12599,16 @@
     return meshes;
   }
 
-  // Verilen mesh listesini TEK bir grupta, kendi taban-merkezine (XY ortası,
-  // Z tabanı) göre ortalanmış hâlde birleştirir. group.attach() (group.add()
-  // DEĞİL) kullanılır — GLTF mesh'leri genelde iç içe node hiyerarşisinden
+  // Verilen mesh listesini TEK bir grupta, kendi taban-merkezine (XZ ortası,
+  // Y tabanı) göre ortalanmış hâlde birleştirir — hem GLTF (spesifikasyon
+  // gereği HER ZAMAN Y-yukarı) hem de web-ifc'nin StreamAllMeshes/
+  // GetVertexArray çıktısı (IFC'nin kendi Z-yukarı kuralına RAĞMEN, canlı
+  // testte __debugIfcGeom ile doğrulandı: web-ifc geometriyi DAHİLİ olarak
+  // Y-yukarıya çeviriyor) Y-yukarı olduğundan taban Y ekseninde alınır —
+  // aksi halde (Z tabanlı eski davranış) modelin yüksekliği YATAY eksende
+  // ortalanır, model zeminin YARISI ALTINDA kalırdı (positionGroupAtAnchor'
+  // daki dikey-düzeltme dönüşüyle AYNI kökten bulgu). group.attach()
+  // (group.add() DEĞİL) kullanılır — GLTF mesh'leri genelde iç içe node hiyerarşisinden
   // (kendi orijinal ebeveyninin dönüşümüyle) geliyor; attach() dünya
   // konumunu koruyarak yeniden ebeveynlendirir (IFC mesh'leri için zaten
   // ebeveynsiz oldukları için davranış add() ile aynıdır, zararsız).
@@ -12542,13 +12626,13 @@
     meshes.forEach(function(m){ m.updateMatrixWorld(true); box.expandByObject(m); });
     if (box.isEmpty()) return null;
     var center = box.getCenter(new THREE.Vector3());
-    var baseZ = box.min.z;
+    var baseY = box.min.y;
     var group = new THREE.Group();
     meshes.forEach(function(m){ group.attach(m); });
     group.children.forEach(function(m){
       m.position.x -= center.x;
-      m.position.y -= center.y;
-      m.position.z -= baseZ;
+      m.position.y -= baseY;
+      m.position.z -= center.z;
     });
     return group;
   }
