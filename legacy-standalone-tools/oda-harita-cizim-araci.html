@@ -2723,6 +2723,12 @@
       map.setTerrain(null);
       showToast('DEM görünümü kapatıldı.');
     }
+    // terrain acilip/kapanmasi mevcut IFC/GLTF gruplarinin ve isaretli
+    // binalarin zemin yuksekligini (bkz. positionGroupAtAnchor) degistirir —
+    // yeniden parse ETMEDEN, sahnedeki gruplari YENI yuksekligine tasi.
+    if (typeof syncIfcMeshLayer === 'function') syncIfcMeshLayer();
+    if (typeof syncFeatureBimMeshes === 'function') syncFeatureBimMeshes();
+    map.triggerRepaint();
   }
   document.getElementById('btnTerrainToggle').addEventListener('click', function(){ doTerrainToggle(); setTopMainKind('terrain'); });
 
@@ -12306,8 +12312,23 @@
   // Y KUZEYE artar — bu yüzden Y ekseni negatiflenir (MapLibre/Mapbox'ın
   // resmi "Add a 3D model" custom layer örneğiyle AYNI, iyi bilinen desen).
   // anchor: { lng, lat, scale } — scale: 1 BIM birimi kaç metre (varsayılan 1).
+  // Yükseklik (altitude): terrainActive ACIKKEN resmi MapLibre "Adding 3D
+  // models using three.js on terrain" ornegindeki teknikle AYNI —
+  // map.queryTerrainElevation() ile o noktadaki GERCEK zemin kotu alinip
+  // MercatorCoordinate.fromLngLat'in 3. parametresi olarak verilir; aksi
+  // halde (terrain kapali VEYA o bolgede DEM henuz yuklenmemis, null doner)
+  // ESKI davranisa (0 = deniz seviyesi) dusulur — regresyon yok. DEM sonradan
+  // yuklenirse veya terrain sonradan acilip/kapanirsa, doTerrainToggle()
+  // syncIfcMeshLayer()/syncFeatureBimMeshes()'i tetikleyip MEVCUT
+  // sahnedeki gruplar icin bu fonksiyonu yeniden cagirir (yeniden parse
+  // GEREKMEZ, sadece konum guncellenir).
   function positionGroupAtAnchor(outerGroup, anchor, THREE){
-    var mercAnchor = maplibregl.MercatorCoordinate.fromLngLat([anchor.lng, anchor.lat], 0);
+    var elevation = 0;
+    if (terrainActive){
+      var e = map.queryTerrainElevation([anchor.lng, anchor.lat]);
+      if (e != null) elevation = e;
+    }
+    var mercAnchor = maplibregl.MercatorCoordinate.fromLngLat([anchor.lng, anchor.lat], elevation);
     var metersPerMercatorUnit = mercAnchor.meterInMercatorCoordinateUnits();
     var s = metersPerMercatorUnit * (anchor.scale || 1);
     outerGroup.position.set(mercAnchor.x, mercAnchor.y, mercAnchor.z);
