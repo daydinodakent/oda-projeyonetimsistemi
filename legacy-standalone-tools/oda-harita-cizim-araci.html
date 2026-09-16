@@ -1151,6 +1151,11 @@
     width:92vw;height:88vh;max-width:none;max-height:none;padding:0;
     display:flex;flex-direction:column;overflow:hidden;
   }
+  /* Bölünmüş Görünüm bölmesi içinde açıldığında (bkz. openBimViewerInPane) —
+     modal, bölmenin .pane-body'sine TAŞINDIĞI için (position:absolute;inset:0
+     zaten en yakın konumlanmış ataya göre çalışır — ayrı bir "tam ekran"
+     penceresi DEĞİL) kutunun kendisi vw/vh yerine bölmenin %100'ünü kaplar. */
+  #bimViewerModal.embedded-in-pane .bim-viewer-box{ width:100%; height:100%; }
   /* .bim-viewer-box modalı "tall" sınıfını TAŞIMADIĞI için (bkz. HTML)
      .modal-box.tall .modal-header'daki flex/space-between miras alınmıyordu
      — X butonu başlığın hemen yanına, SOL tarafta düşüyordu. Burada AYNI
@@ -12165,6 +12170,19 @@
     el.textContent = msg; el.style.display = 'block';
   }
 
+  // Bölünmüş Görünüm bölmesinden (bkz. renderBimHeaderControls) çağrılır —
+  // TEK modal DOM node'unu (bimViewerModal) o bölmenin .pane-body'sine
+  // taşıyıp (position:absolute;inset:0 zaten en yakın konumlanmış ataya göre
+  // dolduracağı için) ayrı/tam ekran bir pencere yerine bölmenin İÇİNDE açar.
+  // closeBimViewer() kapanışta modalı document.body'ye GERİ TAŞIR — böylece
+  // treeview'dan normal (tam ekran) açılış etkilenmez.
+  function openBimViewerInPane(layerId, paneBodyEl){
+    var modal = document.getElementById('bimViewerModal');
+    if (modal.parentElement !== paneBodyEl) paneBodyEl.appendChild(modal);
+    modal.classList.add('embedded-in-pane');
+    openBimViewer(layerId);
+  }
+
   async function openBimViewer(layerId){
     var lyr = getLayer(layerId);
     if (!lyr) return;
@@ -12201,7 +12219,12 @@
   }
 
   function closeBimViewer(){
-    document.getElementById('bimViewerModal').classList.remove('show');
+    var modal = document.getElementById('bimViewerModal');
+    modal.classList.remove('show');
+    if (modal.classList.contains('embedded-in-pane')){
+      modal.classList.remove('embedded-in-pane');
+      document.body.appendChild(modal); // treeview'dan normal (tam ekran) açılışa geri dön
+    }
     if (document.fullscreenElement) { try{ document.exitFullscreen(); }catch(e){ /* yoksay */ } }
     window.removeEventListener('resize', bimViewerOnResize);
     if (bimViewer){
@@ -13038,11 +13061,14 @@
   function renderBimHeaderControls(pane, paneNum, headerEl){
     var bimLayers = layers.filter(function(l){ return l.mapId === pane.mapId && l.sourceFormat; });
     if (!bimLayers.length){ pane.headerMode = 'map'; renderPaneHeaderControls(pane, paneNum, headerEl); return; }
+    var bodyEl = document.getElementById('mapPane' + paneNum).querySelector('.pane-body');
 
     // BIM Görüntüleyici combosu — 1 dosya varsa doğrudan o seçilip
     // görüntüleyici açılır; 2+ varsa 1. sıradaki otomatik açılır, diğerleri
     // combodan seçilince mevcut openBimViewer() modalını (aynı, tek modal —
     // bimViewerClearModel() ile önceki model temizlenip yenisi yüklenir) açar.
+    // openBimViewerInPane: modal AYRI bir pencere DEĞİL, bu bölmenin
+    // .pane-body'sinin İÇİNDE açılır (bkz. tanım).
     var bimSel = document.createElement('select');
     bimSel.title = 'BIM Görüntüleyici';
     bimLayers.forEach(function(l){
@@ -13051,7 +13077,7 @@
       bimSel.appendChild(opt);
     });
     bimSel.value = bimLayers[0].id;
-    bimSel.addEventListener('change', function(){ if (bimSel.value) openBimViewer(bimSel.value); });
+    bimSel.addEventListener('change', function(){ if (bimSel.value) openBimViewerInPane(bimSel.value, bodyEl); });
     headerEl.appendChild(bimSel);
 
     var mapBtn = document.createElement('button');
@@ -13059,12 +13085,17 @@
     mapBtn.textContent = 'Harita';
     mapBtn.title = 'CBS Haritası / Taban Harita kontrollerine dön';
     mapBtn.addEventListener('click', function(){
+      // BIM Görüntüleyici bu bölmede açık/gömülüyse (asıl haritayı
+      // kapatıyor), "Harita"ya dönünce onu da kapat — aksi halde harita
+      // görünümüne dönülse bile modal üstte kalmaya devam ederdi.
+      var modal = document.getElementById('bimViewerModal');
+      if (modal.classList.contains('embedded-in-pane') && modal.parentElement === bodyEl) closeBimViewer();
       pane.headerMode = 'map';
       renderPaneHeaderControls(pane, paneNum, headerEl);
     });
     headerEl.appendChild(mapBtn);
 
-    openBimViewer(bimLayers[0].id);
+    openBimViewerInPane(bimLayers[0].id, bodyEl);
   }
 
   function createSplitPane(paneNum){
@@ -13087,6 +13118,11 @@
     try{ if (pane.map) pane.map.remove(); }catch(err){ /* yoksay */ }
     var el = document.getElementById('mapPane' + paneNum);
     var bodyEl = el.querySelector('.pane-body');
+    // BIM Görüntüleyici modalı (TEK DOM node, bkz. openBimViewerInPane) bu
+    // bölmenin İÇİNE taşınmış olabilir — bodyEl.innerHTML='' onu KALICI
+    // OLARAK SİLERDİ; önce document.body'ye geri taşı (closeBimViewer).
+    var modal = document.getElementById('bimViewerModal');
+    if (modal.parentElement === bodyEl) closeBimViewer();
     bodyEl.innerHTML = '';
     delete splitViewPanes[paneNum];
   }
