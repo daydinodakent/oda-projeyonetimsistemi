@@ -77,9 +77,6 @@
     border-radius:3px;padding:3px 6px;font-size:10px;cursor:pointer;
   }
   .pane-header button.active{color:var(--amber);border-color:var(--amber);}
-  .pane-bim-list{position:absolute;inset:0;overflow-y:auto;padding:36px 8px 8px;display:flex;flex-direction:column;gap:4px;}
-  .pane-bim-list .btn{width:100%;text-align:left;font-size:11px;}
-  .pane-empty-hint{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--text-dim);font-size:11px;text-align:center;padding:20px;}
   /* "Seç" modunda boş bir noktadan sürükleyerek pencere (kutu) ile toplu
      seçim yaparken gösterilen ekran-uzayı dikdörtgeni. */
   .select-box-rect{
@@ -1153,7 +1150,15 @@
     width:92vw;height:88vh;max-width:none;max-height:none;padding:0;
     display:flex;flex-direction:column;overflow:hidden;
   }
-  .bim-viewer-box .modal-header{flex:0 0 auto;padding:12px 14px;border-bottom:1px solid var(--line);}
+  /* .bim-viewer-box modalı "tall" sınıfını TAŞIMADIĞI için (bkz. HTML)
+     .modal-box.tall .modal-header'daki flex/space-between miras alınmıyordu
+     — X butonu başlığın hemen yanına, SOL tarafta düşüyordu. Burada AYNI
+     flex deseni tekrarlanıp X sağ üst köşeye itiliyor (kullanıcı isteği). */
+  .bim-viewer-box .modal-header{
+    flex:0 0 auto;padding:12px 14px;border-bottom:1px solid var(--line);
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+  }
+  .bim-viewer-box .modal-title{margin-bottom:0;}
   .bim-viewer-body{flex:1 1 auto;display:flex;flex-direction:column;min-height:0;}
   .bim-viewer-toolbar{
     flex:0 0 auto;display:flex;align-items:center;gap:4px;padding:6px 8px;
@@ -12935,7 +12940,7 @@
   }
 
   function renderPaneData(pane){
-    if (!pane.map || pane.mode !== 'map') return;
+    if (!pane.map) return;
     var data = paneFeatureCollection(pane.mapId);
     var src = pane.map.getSource('pane-features');
     if (src){ src.setData(data); return; }
@@ -12975,7 +12980,11 @@
       if (m.id === pane.mapId) opt.selected = true;
       mapSel.appendChild(opt);
     });
-    mapSel.addEventListener('change', function(){ pane.mapId = mapSel.value; renderPaneData(pane); });
+    mapSel.addEventListener('change', function(){
+      pane.mapId = mapSel.value;
+      renderPaneData(pane);
+      refreshPaneBimCombo(pane, bimSel);
+    });
     headerEl.appendChild(mapSel);
 
     var styleSel = document.createElement('select');
@@ -12993,55 +13002,41 @@
     });
     headerEl.appendChild(styleSel);
 
-    var bimBtn = document.createElement('button');
-    bimBtn.type = 'button';
-    bimBtn.textContent = 'BIM';
-    bimBtn.title = 'BIM Görüntüleyici — bu CBS Haritası\'ndaki IFC/GLTF katmanlarını listele';
-    bimBtn.addEventListener('click', function(){ setPaneMode(pane, paneNum, pane.mode === 'bim' ? 'map' : 'bim'); bimBtn.classList.toggle('active', pane.mode === 'bim'); });
-    headerEl.appendChild(bimBtn);
+    // BIM Görüntüleyici combosu — treeview'da (bu CBS Haritası'nda) IFC/GLTF/
+    // GLB katmanı YOKSA hiç görünmez; 1 tane varsa doğrudan o seçilip
+    // görüntüleyici açılır; 2+ varsa 1. sıradaki otomatik açılır, diğerleri
+    // combodan seçilince mevcut openBimViewer() modalını (aynı, tek modal —
+    // bimViewerClearModel() ile önceki model temizlenip yenisi yüklenir) açar.
+    var bimSel = document.createElement('select');
+    bimSel.title = 'BIM Görüntüleyici';
+    bimSel.style.display = 'none';
+    bimSel.addEventListener('change', function(){ if (bimSel.value) openBimViewer(bimSel.value); });
+    headerEl.appendChild(bimSel);
+    refreshPaneBimCombo(pane, bimSel);
   }
 
-  function setPaneMode(pane, paneNum, mode){
-    pane.mode = mode;
-    var bodyEl = document.getElementById('mapPane' + paneNum).querySelector('.pane-body');
-    if (mode === 'bim'){
-      if (pane.map) pane.map.getContainer().style.display = 'none';
-      var bimLayers = layers.filter(function(l){ return l.mapId === pane.mapId && l.sourceFormat; });
-      var list = bodyEl.querySelector('.pane-bim-list');
-      if (!list){
-        list = document.createElement('div');
-        list.className = 'pane-bim-list';
-        bodyEl.appendChild(list);
-      }
-      list.innerHTML = '';
-      if (!bimLayers.length){
-        var hint = document.createElement('div');
-        hint.className = 'pane-empty-hint';
-        hint.textContent = 'Bu CBS Haritası\'nda IFC/GLTF/GLB katmanı yok.';
-        list.appendChild(hint);
-      } else {
-        bimLayers.forEach(function(l){
-          var b = document.createElement('div');
-          b.className = 'btn';
-          b.textContent = l.name;
-          b.addEventListener('click', function(){ openBimViewer(l.id); });
-          list.appendChild(b);
-        });
-      }
-      list.style.display = '';
-    } else {
-      if (pane.map) pane.map.getContainer().style.display = '';
-      var list2 = bodyEl.querySelector('.pane-bim-list');
-      if (list2) list2.style.display = 'none';
-      if (pane.map) setTimeout(function(){ pane.map.resize(); renderPaneData(pane); }, 50);
+  function refreshPaneBimCombo(pane, bimSel){
+    var bimLayers = layers.filter(function(l){ return l.mapId === pane.mapId && l.sourceFormat; });
+    bimSel.innerHTML = '';
+    if (!bimLayers.length){
+      bimSel.style.display = 'none';
+      return;
     }
+    bimLayers.forEach(function(l){
+      var opt = document.createElement('option');
+      opt.value = l.id; opt.textContent = l.name;
+      bimSel.appendChild(opt);
+    });
+    bimSel.style.display = '';
+    bimSel.value = bimLayers[0].id;
+    openBimViewer(bimLayers[0].id);
   }
 
   function createSplitPane(paneNum){
     var el = document.getElementById('mapPane' + paneNum);
     var headerEl = el.querySelector('.pane-header');
     var bodyEl = el.querySelector('.pane-body');
-    var pane = { map:null, mapId: activeMapId, styleId: currentStyleId, mode:'map' };
+    var pane = { map:null, mapId: activeMapId, styleId: currentStyleId };
     splitViewPanes[paneNum] = pane;
     pane.map = new maplibregl.Map({
       container: bodyEl, style: paneStyleUrl(pane.styleId),
