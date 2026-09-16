@@ -3509,7 +3509,7 @@
 
   map.on('load', function(){
     setupLayers();
-    document.getElementById('stZoom').textContent = map.getZoom().toFixed(2);
+    document.getElementById('stZoom').textContent = Math.round(map.getZoom());
     refreshPanel();
     restoreSessionFromLocalStorage();
     if (typeof backfillMissingBimSourceFormat === 'function') backfillMissingBimSourceFormat();
@@ -7095,23 +7095,19 @@
   var folders = [
     { id:'folder-genel', name:'Genel', mapId:'map-genel', parentFolderId:null, expanded:true, deletable:false },
     { id:'folder-yapilar', name:'Yapılar', mapId:'map-genel', parentFolderId:'folder-genel', expanded:true, deletable:true },
-    { id:'folder-altyapi', name:'Altyapı', mapId:'map-genel', parentFolderId:'folder-genel', expanded:true, deletable:true },
-    { id: MEASURE_FOLDER_ID, name:'Ölçümler', mapId:'map-genel', parentFolderId:'folder-genel', expanded:true, deletable:false }
+    { id:'folder-altyapi', name:'Altyapı', mapId:'map-genel', parentFolderId:'folder-genel', expanded:true, deletable:true }
+    // NOT: Ölçümler klasörü BİLEREK burada YOK — ilk açılışta boş/gereksiz
+    // görünmesin diye, yalnızca bir ölçüm gerçekten yerleştirildiğinde
+    // ensureMeasureLayerExists() ile TEMBEL oluşturulur (bkz. aşağıda ve
+    // measure-point click handler'ı).
   ];
   // Not: Bu araç önceden "Nokta/Çizgi/Poligon/Karma Katman" adında 4 varsayılan
   // örnek katmanla açılıyordu. Artık veritabanı (PostGIS) katmanları gerçek
   // içerikle geldiği için bu yer tutucu katmanlar kaldırıldı — treeview,
   // kullanıcı kendi katmanını oluşturana ya da veritabanı katmanları yüklenene
   // kadar boş başlar (bkz. "Yeni Katman Ekle" — bir klasöre sağ tıklayarak).
-  var layers = [
-    // Ölçüm araçlarıyla (Mesafe/Alan/Nokta) üretilen TÜM ölçümler bu karma
-    // (Point + LineString + Polygon bir arada) katmana eklenir — treeview'de
-    // ayrı bir katman olarak görünür. Sağ tıkla elle silinemez (deletable:false)
-    // ama "Yenile" butonuyla klasörü/katmanıyla birlikte tamamen temizlenir
-    // (bkz. btnRefresh) ve Editör > Aktif katman kombosunda görünmez (bkz.
-    // refreshActiveLayerSelect) — yalnızca ölçüm araçlarından üretilir.
-    { id: MEASURE_LAYER_ID, name:'Ölçüm ve Koordinatlar', mapId:'map-genel', folderId: MEASURE_FOLDER_ID, visible:true, color:'#38bdf8', fillColor:'#38bdf8', lineWidth:2, dash:'dashed', geomType:null, deletable:false }
-  ];
+  // Ölçümler katmanı da AYNI mantıkla ilk açılışta YOK — bkz. yukarıdaki not.
+  var layers = [];
   // Refresh (veya başka bir sebeple) Ölçümler klasörü/katmanı silindiyse,
   // yeni bir ölçüm eklenmeden önce ikisini de sessizce yeniden oluşturur.
   function ensureMeasureLayerExists(){
@@ -11185,7 +11181,7 @@
   // ---------------------------------------------------------------------
   // Durum çubuğu
   // ---------------------------------------------------------------------
-  map.on('zoom', function(){ document.getElementById('stZoom').textContent = map.getZoom().toFixed(2); });
+  map.on('zoom', function(){ document.getElementById('stZoom').textContent = Math.round(map.getZoom()); });
 
   // ---------------------------------------------------------------------
   // Küçük bildirim (toast)
