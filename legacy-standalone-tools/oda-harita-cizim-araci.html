@@ -38,7 +38,43 @@
   *::-webkit-scrollbar-track{background:transparent;}
   *::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px;}
   *::-webkit-scrollbar-thumb:hover{background:var(--amber-dim);}
-  #map{position:absolute;inset:0;}
+  /* Bölünmüş Görünüm — #mapGridWrapper artık #map'in eski position:absolute;
+     inset:0 rolünü üstlenir; #map (ve ek bölmeler) birer grid hücresidir.
+     split-1 (varsayılan): tek sütun/satır — #map tam ekranı kaplar (ESKİ
+     davranışla BİREBİR AYNI, diğer bölmeler display:none kalır). */
+  #mapGridWrapper{
+    position:absolute;inset:0;display:grid;gap:2px;background:#050d14;
+    grid-template-columns:1fr;grid-template-rows:1fr;
+  }
+  #mapGridWrapper.split-2{ grid-template-columns:1fr 1fr; grid-template-rows:1fr; }
+  #mapGridWrapper.split-3{
+    grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr;
+    grid-template-areas:"p1 p2" "p3 p3";
+  }
+  #mapGridWrapper.split-3 #map{ grid-area:p1; }
+  #mapGridWrapper.split-3 #mapPane2{ grid-area:p2; }
+  #mapGridWrapper.split-3 #mapPane3{ grid-area:p3; }
+  #mapGridWrapper.split-4{ grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; }
+  #map{position:relative;width:100%;height:100%;min-width:0;min-height:0;}
+  .extra-map-pane{position:relative;width:100%;height:100%;min-width:0;min-height:0;background:#0a1620;overflow:hidden;}
+  .extra-map-pane .pane-body{position:absolute;inset:0;}
+  .extra-map-pane .pane-body .maplibregl-map{width:100%;height:100%;}
+  .pane-header{
+    position:absolute;top:6px;left:6px;right:6px;z-index:6;display:flex;gap:4px;align-items:center;
+    flex-wrap:wrap;
+  }
+  .pane-header select{
+    flex:1 1 auto;min-width:0;background:rgba(10,22,32,.92);border:1px solid var(--line);color:var(--text);
+    border-radius:3px;padding:3px 5px;font-size:10.5px;font-family:var(--font-mono);
+  }
+  .pane-header button{
+    flex:0 0 auto;background:rgba(10,22,32,.92);border:1px solid var(--line);color:var(--text-dim);
+    border-radius:3px;padding:3px 6px;font-size:10px;cursor:pointer;
+  }
+  .pane-header button.active{color:var(--amber);border-color:var(--amber);}
+  .pane-bim-list{position:absolute;inset:0;overflow-y:auto;padding:36px 8px 8px;display:flex;flex-direction:column;gap:4px;}
+  .pane-bim-list .btn{width:100%;text-align:left;font-size:11px;}
+  .pane-empty-hint{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--text-dim);font-size:11px;text-align:center;padding:20px;}
   /* "Seç" modunda boş bir noktadan sürükleyerek pencere (kutu) ile toplu
      seçim yaparken gösterilen ekran-uzayı dikdörtgeni. */
   .select-box-rect{
@@ -714,6 +750,20 @@
     padding:12px;min-width:170px;box-shadow:0 4px 18px rgba(0,0,0,.4);
   }
   #snapTolerancePopover.show{display:block;}
+  /* Bölünmüş Görünüm (2/3/4 pencere) popover'ı — statusSplitViewBtn'in
+     hemen üstünde, snapTolerancePopover ile AYNI konumlama deseni. */
+  .status-mini-popover{
+    position:absolute;bottom:28px;left:0;z-index:8;display:none;gap:3px;
+    background:var(--bg-panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:5px;box-shadow:0 4px 18px rgba(0,0,0,.4);
+  }
+  .status-mini-popover.show{display:flex;}
+  .status-mini-popover button{
+    background:var(--bg-panel-raise);border:1px solid var(--line);color:var(--text-dim);
+    border-radius:3px;padding:4px 9px;font-size:11px;font-family:var(--font-mono);cursor:pointer;
+  }
+  .status-mini-popover button:hover{color:var(--text);border-color:var(--teal);}
+  .status-mini-popover button.active{color:var(--amber);border-color:var(--amber);background:var(--amber-dim);}
   #statusbar b{color:var(--text);font-weight:500;}
   /* İlk açılışta yüklenen obje sayısı — geçici bir bildirim gibi kısa süre
      görünüp yumuşakça kaybolur (bkz. showLoadedCountStatus). */
@@ -1165,7 +1215,28 @@
 <body>
 <body>
 
-<div id="map"></div>
+<!-- Bölünmüş Görünüm (2/3/4 pencere) — #map (ana, tam etkileşimli harita)
+     ARTIK bu grid'in İLK hücresi; diğer 3 hücre (mapPane2/3/4) yalnızca
+     kullanıcı bölme sayısını artırınca TEMBEL oluşturulan, salt-okunur/
+     önizleme kalitesinde BAĞIMSIZ MapLibre örnekleridir (bkz.
+     initSplitViewPane) — ana haritanın tüm çizim/analiz araçları SADECE
+     #map'te çalışır, değişmedi. Varsayılan (split-1) tek sütun/tek satır —
+     #map tam ekranı kaplar, ESKİ davranışla BİREBİR AYNI. -->
+<div id="mapGridWrapper" class="split-1">
+  <div id="map"></div>
+  <div class="extra-map-pane" id="mapPane2" data-pane="2" style="display:none;">
+    <div class="pane-header"></div>
+    <div class="pane-body"></div>
+  </div>
+  <div class="extra-map-pane" id="mapPane3" data-pane="3" style="display:none;">
+    <div class="pane-header"></div>
+    <div class="pane-body"></div>
+  </div>
+  <div class="extra-map-pane" id="mapPane4" data-pane="4" style="display:none;">
+    <div class="pane-header"></div>
+    <div class="pane-body"></div>
+  </div>
+</div>
 
 <!-- Saha filmstrip'inden bir fotoğraf seçilince, o fotoğrafın haritadaki
      pin'ine ince bir bağlantı çizgisi çizer — bkz. sahaUpdateLeaderLine(). -->
@@ -2309,6 +2380,18 @@
   <button id="statusSnapBtn" class="status-snap-btn active" title="Snap (sol tık: aç/kapat, sağ tık: yakalama mesafesi)"><svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3v7a6 6 0 0 0 12 0V3"/><path d="M6 3h4M14 3h4"/></svg></button>
   <div class="div"></div>
   <span title="Yakınlaştırma" style="margin-left:auto;"><svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><b id="stZoom">—</b></span>
+  <div class="div"></div>
+  <!-- Bölünmüş Görünüm (2/3/4 pencere) — zoom ölçeğinin SAĞINDA, kullanıcı
+       isteğiyle. bkz. #splitViewPopover / initSplitView. -->
+  <span style="position:relative;">
+    <button id="statusSplitViewBtn" class="status-snap-btn" title="Bölünmüş Görünüm (2/3/4 pencere)"><svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="1.5"/><path d="M12 4v16"/></svg></button>
+    <div id="splitViewPopover" class="status-mini-popover">
+      <button type="button" data-split="1" class="active">Tek</button>
+      <button type="button" data-split="2">2</button>
+      <button type="button" data-split="3">3</button>
+      <button type="button" data-split="4">4</button>
+    </div>
+  </span>
   <div class="div"></div>
   <button id="statusSahaToggleBtn" class="status-snap-btn saha-toggle-btn on" title="Saha fotoğraflarını göster/gizle"><svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M21 15l-5-4-4 3-3-2-5 4"/></svg></button>
   <div class="div"></div>
@@ -12803,6 +12886,201 @@
     }catch(err){
       console.error('3D Tiles yüklenemedi:', err);
       showToast('3D Tiles yüklenemedi: ' + (err && err.message ? err.message : 'bilinmeyen hata'));
+    }
+  });
+
+  // =========================================================================
+  // Bölünmüş Görünüm (2/3/4 pencere) — durum çubuğunda zoom'un sağında
+  // (#statusSplitViewBtn). #map (birinci hücre) HER ZAMAN ana, tam
+  // etkileşimli haritadır — hiç değişmez. Ek bölmeler (mapPane2/3/4) TEMBEL
+  // oluşturulan, salt-okunur/önizleme kalitesinde BAĞIMSIZ MapLibre
+  // örnekleridir: kendi CBS Haritası (maps[]) ve taban harita (STYLES)
+  // seçimine sahiptir, ana haritanın çizim/düzenleme/analiz araçlarını
+  // İÇERMEZ — yalnızca o CBS Haritası'na ait objelerin BASİT (özel stil/
+  // extrüzyon olmadan) bir önizlemesini gösterir; veya "BIM" moduna alınıp
+  // seçilen IFC/GLTF katmanı için mevcut openBimViewer() modalını açan bir
+  // buton listesi gösterebilir.
+  // =========================================================================
+  var splitViewPanes = {}; // paneNum(2|3|4) -> { map, mapId, styleId, mode:'map'|'bim' }
+  var currentSplitCount = 1;
+
+  function paneFeatureCollection(mapId){
+    var layerById = {};
+    layers.forEach(function(l){ layerById[l.id] = l; });
+    var feats = features.filter(function(f){
+      var lyr = f.properties && layerById[f.properties.layerId];
+      return lyr && lyr.mapId === mapId && lyr.visible !== false;
+    }).map(function(f){
+      var lyr = layerById[f.properties.layerId];
+      var props = Object.assign({}, f.properties);
+      if (lyr.color) props.__layerColor = lyr.color;
+      if (lyr.fillColor) props.__layerFillColor = lyr.fillColor;
+      return { type:'Feature', geometry:f.geometry, properties:props };
+    });
+    return { type:'FeatureCollection', features:feats };
+  }
+
+  function renderPaneData(pane){
+    if (!pane.map || pane.mode !== 'map') return;
+    var data = paneFeatureCollection(pane.mapId);
+    var src = pane.map.getSource('pane-features');
+    if (src){ src.setData(data); return; }
+    if (!pane.map.isStyleLoaded()){ pane.map.once('load', function(){ renderPaneData(pane); }); return; }
+    pane.map.addSource('pane-features', { type:'geojson', data:data });
+    pane.map.addLayer({
+      id:'pane-fill', type:'fill', source:'pane-features',
+      filter:['==', ['geometry-type'], 'Polygon'],
+      paint:{ 'fill-color':['coalesce', ['get','__layerFillColor'], ['get','__layerColor'], '#3fc2ac'], 'fill-opacity':0.5 }
+    });
+    pane.map.addLayer({
+      id:'pane-line', type:'line', source:'pane-features',
+      filter:['any', ['==', ['geometry-type'], 'LineString'], ['==', ['geometry-type'], 'Polygon']],
+      paint:{ 'line-color':['coalesce', ['get','__layerColor'], '#3fc2ac'], 'line-width':2 }
+    });
+    pane.map.addLayer({
+      id:'pane-point', type:'circle', source:'pane-features',
+      filter:['==', ['geometry-type'], 'Point'],
+      paint:{ 'circle-color':['coalesce', ['get','__layerColor'], '#3fc2ac'], 'circle-radius':5, 'circle-stroke-width':1.5, 'circle-stroke-color':'#0f1e29' }
+    });
+  }
+
+  function paneStyleUrl(styleId){
+    var s = STYLES.find(function(x){ return x.id === styleId; }) || STYLES[0];
+    return s.style || s.url;
+  }
+
+  // Bölmenin üst başlığını (CBS Haritası / Taban Harita / BIM seçenekleri)
+  // kurar — yalnızca BİR KEZ, bölme ilk oluşturulduğunda çağrılır.
+  function buildPaneHeader(pane, paneNum, headerEl){
+    headerEl.innerHTML = '';
+    var mapSel = document.createElement('select');
+    mapSel.title = 'CBS Haritası';
+    maps.forEach(function(m){
+      var opt = document.createElement('option');
+      opt.value = m.id; opt.textContent = m.name;
+      if (m.id === pane.mapId) opt.selected = true;
+      mapSel.appendChild(opt);
+    });
+    mapSel.addEventListener('change', function(){ pane.mapId = mapSel.value; renderPaneData(pane); });
+    headerEl.appendChild(mapSel);
+
+    var styleSel = document.createElement('select');
+    styleSel.title = 'Taban Harita';
+    STYLES.forEach(function(s){
+      var opt = document.createElement('option');
+      opt.value = s.id; opt.textContent = s.label;
+      if (s.id === pane.styleId) opt.selected = true;
+      styleSel.appendChild(opt);
+    });
+    styleSel.addEventListener('change', function(){
+      pane.styleId = styleSel.value;
+      pane.map.once('style.load', function(){ renderPaneData(pane); });
+      pane.map.setStyle(paneStyleUrl(pane.styleId));
+    });
+    headerEl.appendChild(styleSel);
+
+    var bimBtn = document.createElement('button');
+    bimBtn.type = 'button';
+    bimBtn.textContent = 'BIM';
+    bimBtn.title = 'BIM Görüntüleyici — bu CBS Haritası\'ndaki IFC/GLTF katmanlarını listele';
+    bimBtn.addEventListener('click', function(){ setPaneMode(pane, paneNum, pane.mode === 'bim' ? 'map' : 'bim'); bimBtn.classList.toggle('active', pane.mode === 'bim'); });
+    headerEl.appendChild(bimBtn);
+  }
+
+  function setPaneMode(pane, paneNum, mode){
+    pane.mode = mode;
+    var bodyEl = document.getElementById('mapPane' + paneNum).querySelector('.pane-body');
+    if (mode === 'bim'){
+      if (pane.map) pane.map.getContainer().style.display = 'none';
+      var bimLayers = layers.filter(function(l){ return l.mapId === pane.mapId && l.sourceFormat; });
+      var list = bodyEl.querySelector('.pane-bim-list');
+      if (!list){
+        list = document.createElement('div');
+        list.className = 'pane-bim-list';
+        bodyEl.appendChild(list);
+      }
+      list.innerHTML = '';
+      if (!bimLayers.length){
+        var hint = document.createElement('div');
+        hint.className = 'pane-empty-hint';
+        hint.textContent = 'Bu CBS Haritası\'nda IFC/GLTF/GLB katmanı yok.';
+        list.appendChild(hint);
+      } else {
+        bimLayers.forEach(function(l){
+          var b = document.createElement('div');
+          b.className = 'btn';
+          b.textContent = l.name;
+          b.addEventListener('click', function(){ openBimViewer(l.id); });
+          list.appendChild(b);
+        });
+      }
+      list.style.display = '';
+    } else {
+      if (pane.map) pane.map.getContainer().style.display = '';
+      var list2 = bodyEl.querySelector('.pane-bim-list');
+      if (list2) list2.style.display = 'none';
+      if (pane.map) setTimeout(function(){ pane.map.resize(); renderPaneData(pane); }, 50);
+    }
+  }
+
+  function createSplitPane(paneNum){
+    var el = document.getElementById('mapPane' + paneNum);
+    var headerEl = el.querySelector('.pane-header');
+    var bodyEl = el.querySelector('.pane-body');
+    var pane = { map:null, mapId: activeMapId, styleId: currentStyleId, mode:'map' };
+    splitViewPanes[paneNum] = pane;
+    pane.map = new maplibregl.Map({
+      container: bodyEl, style: paneStyleUrl(pane.styleId),
+      center: map.getCenter(), zoom: map.getZoom(), attributionControl:false
+    });
+    pane.map.once('load', function(){ renderPaneData(pane); });
+    buildPaneHeader(pane, paneNum, headerEl);
+  }
+
+  function destroySplitPane(paneNum){
+    var pane = splitViewPanes[paneNum];
+    if (!pane) return;
+    try{ if (pane.map) pane.map.remove(); }catch(err){ /* yoksay */ }
+    var el = document.getElementById('mapPane' + paneNum);
+    var bodyEl = el.querySelector('.pane-body');
+    bodyEl.innerHTML = '';
+    delete splitViewPanes[paneNum];
+  }
+
+  function setSplitCount(n){
+    currentSplitCount = n;
+    document.getElementById('mapGridWrapper').className = 'split-' + n;
+    [2,3,4].forEach(function(paneNum){
+      var el = document.getElementById('mapPane' + paneNum);
+      var shouldShow = paneNum <= n;
+      el.style.display = shouldShow ? '' : 'none';
+      if (shouldShow && !splitViewPanes[paneNum]) createSplitPane(paneNum);
+      else if (!shouldShow && splitViewPanes[paneNum]) destroySplitPane(paneNum);
+    });
+    // #map'in gerçek piksel boyutu grid degisince degisir — MapLibre'nin
+    // bunu fark etmesi icin resize() ZORUNLU (aksi halde eski boyutla
+    // cizmeye devam eder / bos alan birakir).
+    setTimeout(function(){ map.resize(); }, 60);
+    Array.prototype.slice.call(document.getElementById('splitViewPopover').children).forEach(function(b){
+      b.classList.toggle('active', b.getAttribute('data-split') === String(n));
+    });
+  }
+
+  document.getElementById('statusSplitViewBtn').addEventListener('click', function(e){
+    e.stopPropagation();
+    document.getElementById('splitViewPopover').classList.toggle('show');
+  });
+  document.getElementById('splitViewPopover').addEventListener('click', function(e){
+    var btn = e.target.closest('button[data-split]');
+    if (!btn) return;
+    setSplitCount(parseInt(btn.getAttribute('data-split'), 10));
+    this.classList.remove('show');
+  });
+  document.addEventListener('click', function(e){
+    var pop = document.getElementById('splitViewPopover');
+    var btn = document.getElementById('statusSplitViewBtn');
+    if (pop.classList.contains('show') && !pop.contains(e.target) && e.target !== btn && !btn.contains(e.target)){
+      pop.classList.remove('show');
     }
   });
 
