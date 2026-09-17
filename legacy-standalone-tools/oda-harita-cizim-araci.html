@@ -223,12 +223,14 @@
 
   /* ---------- Katman ağacı (Harita/CBS) ---------- */
   .layer-tree{display:flex;flex-direction:column;gap:3px;}
+  /* Kullanıcı isteğiyle %50 büyütüldü (16px/11px → 24px/16.5px) — spacer da
+     (yaprak satırların hizası bozulmasın diye) AYNI oranda büyütüldü. */
   .tree-toggle{
-    width:16px;height:16px;flex:0 0 auto;background:transparent;border:none;color:var(--text-dim);
-    cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;
+    width:24px;height:24px;flex:0 0 auto;background:transparent;border:none;color:var(--text-dim);
+    cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16.5px;
   }
   .tree-toggle:hover{color:var(--text);}
-  .tree-toggle-spacer{width:16px;height:16px;flex:0 0 auto;}
+  .tree-toggle-spacer{width:24px;height:24px;flex:0 0 auto;}
   #treeContextMenu{
     position:fixed;z-index:50;display:none;flex-direction:column;min-width:170px;
     background:var(--bg-panel);border:1px solid var(--line);border-radius:var(--radius);
@@ -286,11 +288,10 @@
   }
   .split-btn-arrow:hover{background:var(--amber-dim);}
   .split-btn-arrow svg{width:11px;height:11px;}
-  /* CBS Haritası split-butonunun ok kısmı — istendiği üzere diğer
-     split-butonlardan (ör. Analiz) BAĞIMSIZ olarak %30 daraltılır
-     (22px→15px, ikon 11px→8px) — yalnızca #mapSplitBtn kapsamında. */
-  #mapSplitBtn .split-btn-arrow{width:15px;}
-  #mapSplitBtn .split-btn-arrow svg{width:8px;height:8px;}
+  /* CBS Haritası split-butonunun ok kısmı ÖNCEDEN %30 daraltılmıştı
+     (22px→15px, ikon 11px→8px) — bu boyutta ok neredeyse görünmez hale
+     geliyordu; kullanıcı isteğiyle diğer split-butonlarla AYNI (görünür)
+     boyuta geri döndürüldü. */
   /* "Import" — artık açılır menü İÇİNDE değil, split-butonun SAĞINDA,
      tek başına ikon-only bir buton (bkz. showAddContentPopover ile aynı
      tetikleyici, id="btnMapImport" korunur). Görsel dili split-btn ile
@@ -739,22 +740,6 @@
   #bimHud .bim-hud-btn.bim-hud-height{ cursor:ns-resize; }
   #bimHud .bim-hud-btn.bim-hud-reset{ color:#7d90a6; cursor:pointer; }
   #bimHud .bim-hud-btn.bim-hud-reset:hover{ color:#e0685a; border-color:#e0685a; }
-  /* #bimHud'un İÇİNDE DEĞİL — #map'e kardeş (bkz. ensureBimHudDom): #bimHud'a
-     ring'i konumlamak için uygulanan transform, İÇİNDEKİ position:fixed
-     öğeler için viewport yerine kendisini containing block yapardı; chip bu
-     yüzden #map'e kardeş olarak eklenir ve position:fixed GERÇEKTEN
-     viewport'a göre (ekranın altına sabit) çalışır. */
-  .bim-hud-chip{
-    position:fixed; left:50%; bottom:22px; transform:translateX(-50%);
-    height:40px; display:flex; align-items:center; gap:7px;
-    background:rgba(13,21,32,.92); border:1px solid rgba(120,160,200,.18); border-radius:9px;
-    padding:5px 9px; font-family:var(--font-mono); font-size:10px; color:#cfe0f0;
-    font-variant-numeric:tabular-nums; backdrop-filter:blur(14px); white-space:nowrap;
-    pointer-events:auto; z-index:6;
-  }
-  .bim-hud-chip.hidden{ display:none; }
-  .bim-hud-chip .sep{ color:#3d4f63; }
-  .bim-hud-chip .lbl{ color:#6f8399; }
   #bimHud .bim-hud-pitchroll{
     position:absolute; left:-90px; top:120px; width:180px; display:flex; flex-direction:column; gap:6px;
     background:rgba(13,21,32,.92); border:1px solid rgba(127,215,255,.3); border-radius:9px;
@@ -1488,7 +1473,7 @@
 
       <div>
         <div style="display:flex;align-items:center;justify-content:space-between;gap:2px;">
-          <span class="field-label" style="margin-bottom:0;">Katmanlar <span style="font-weight:400;">(sağ tık: klasör/katman ekle, yeniden adlandır, sil, stil)</span></span>
+          <span class="field-label" style="margin-bottom:0;" title="Sağ tık: klasör/katman ekle, yeniden adlandır, sil, stil">Katmanlar</span>
           <div style="display:flex;gap:2px;flex:0 0 auto;">
             <button type="button" class="layer-icon-btn" id="btnGdalImport" title="Genel Format İçe Aktar (GDAL/OGR) — SHP, TAB, GPX, MapInfo, GeoTIFF ve daha fazlası">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 20h16"/></svg>
@@ -2539,6 +2524,12 @@
   <div class="div" id="stCountDiv" style="display:none;"></div>
   <span id="stSelNameWrap" title="Seçili objenin katmanı ve adı" style="display:none;"><svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></svg><b id="stSelName" style="color:var(--teal)">—</b></span>
   <div class="div" id="stSelNameDiv" style="display:none;"></div>
+  <!-- 3B model (BIM) yerleştirme HUD'u aktifken heading/scale/yükseklik/
+       koordinat bilgisi — eskiden haritanın altında yüzen ayrı bir kutuydu
+       (bim-hud-chip), kullanıcı isteğiyle KALDIRILDI, bilgi buraya taşındı
+       (bkz. refreshBimHudChip / updateBimHud / hideBimHud). -->
+  <span id="stBimInfoWrap" title="Seçili BIM modelinin heading/ölçek/yükseklik/konum bilgisi" style="display:none;"><svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21V8l9-5 9 5v13"/><path d="M9 21V12h6v9"/><path d="M3 8l9 5 9-5"/></svg><b id="stBimInfo" style="color:var(--teal);font-family:var(--font-mono);font-weight:500;"></b></span>
+  <div class="div" id="stBimInfoDiv" style="display:none;"></div>
   <span>mod <b id="stMode" style="color:var(--amber)">select</b></span>
   <div class="div"></div>
   <!-- Veri Ekle (İçe Aktar) — sol paneldeki btnMapImport ile AYNI popover'ı
@@ -6095,7 +6086,7 @@
     var count = sahaPhotos.filter(function(p){ return sahaFolderIdFor(p.id) === folder.id; }).length;
     row.innerHTML =
       '<button class="tree-toggle">' + (folder.expanded !== false ? '▾' : '▸') + '</button>' +
-      '<span class="layer-geom-icon">' + FOLDER_ICON + '</span>' +
+      '<span class="layer-geom-icon">' + folderIconFor(folder) + '</span>' +
       '<span class="layer-name">' + escapeAttrHtml(folder.name) + '</span>' +
       '<span class="layer-count">' + count + '</span>';
     row.querySelector('.tree-toggle').addEventListener('click', function(e){
@@ -7603,7 +7594,13 @@
     });
   }
 
-  var FOLDER_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7a1 1 0 0 1 1-1h5l2 2h9a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/></svg>';
+  // Standart sarı klasör ikonu — kullanıcı isteğiyle önceki tek-renk/
+  // stroke="currentColor" (teal) çizgi ikonun yerine geçti; açık/kapalı iki
+  // ayrı SVG (renkler SVG içine GÖMÜLÜ, CSS'teki .layer-geom-icon{color}
+  // ile DEĞİŞMEZ — "standart" ikon görünümü korunsun diye kasıtlı).
+  var FOLDER_ICON_CLOSED = '<svg viewBox="0 0 24 24"><path fill="#ffc72c" stroke="#c98a00" stroke-width="1" d="M3 7.5A1.5 1.5 0 0 1 4.5 6h5.17a1.5 1.5 0 0 1 1.06.44L12.06 7.7A1.5 1.5 0 0 0 13.12 8H19.5A1.5 1.5 0 0 1 21 9.5v8A1.5 1.5 0 0 1 19.5 19h-15A1.5 1.5 0 0 1 3 17.5z"/></svg>';
+  var FOLDER_ICON_OPEN = '<svg viewBox="0 0 24 24"><path fill="#e8a300" stroke="#c98a00" stroke-width="1" d="M3 7.5A1.5 1.5 0 0 1 4.5 6h5.17a1.5 1.5 0 0 1 1.06.44L12.06 7.7A1.5 1.5 0 0 0 13.12 8H19.5A1.5 1.5 0 0 1 21 9.5v.5H6.2a1.5 1.5 0 0 0-1.44 1.09l-1.9 6.7A1.5 1.5 0 0 1 1 17.4V7.5z"/><path fill="#ffc72c" stroke="#c98a00" stroke-width="1" stroke-linejoin="round" d="M6.2 11.5h16.1a1 1 0 0 1 .96 1.28l-1.72 6A1.5 1.5 0 0 1 20.11 20H4.5a1.5 1.5 0 0 1-1.44-1.91l1.72-6a1.5 1.5 0 0 1 1.44-1.09z"/></svg>';
+  function folderIconFor(folder){ return (folder.expanded !== false) ? FOLDER_ICON_OPEN : FOLDER_ICON_CLOSED; }
   var RASTER_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="1"/><circle cx="9" cy="10" r="1.4"/><path d="M21 16l-5-5-4 4-3-3-6 5"/></svg>';
 
   function collectDescendantLayerIds(folderId){
@@ -8472,7 +8469,7 @@
     row.innerHTML =
       '<button class="tree-toggle">' + (folder.expanded !== false ? '▾' : '▸') + '</button>' +
       '<input type="checkbox" class="fold-check" ' + (allVisible ? 'checked' : '') + '>' +
-      '<span class="layer-geom-icon">' + FOLDER_ICON + '</span>' +
+      '<span class="layer-geom-icon">' + folderIconFor(folder) + '</span>' +
       '<span class="layer-name">' + folder.name.replace(/</g,'&lt;') + '</span>' +
       '<span class="layer-count">' + totalCount + '</span>';
     row.querySelector('.tree-toggle').addEventListener('click', function(e){
@@ -9558,6 +9555,12 @@
     if (!activeLayerId) return false;
     if (activeLayerId === MEASURE_LAYER_ID) return false;
     if (String(activeLayerId).indexOf('db-layer-') === 0) return false;
+    // BIM (IFC/GLTF/GLB) katmanları artık "Model Üzerinde Halka" HUD'u
+    // (bkz. updateBimHud) ile taşınıyor/döndürülüyor/ölçekleniyor — bu eski
+    // Taşı/Döndür/Ölçekle araç çubuğu (clusterLayerTransform) onlar için
+    // ARTIK GEREKSİZ, kullanıcı isteğiyle gizlendi.
+    var lyr = getLayer(activeLayerId);
+    if (lyr && (lyr.sourceFormat === 'ifc' || lyr.sourceFormat === 'gltf' || lyr.sourceFormat === 'glb')) return false;
     return true;
   }
   function updateLayerTransformToolbar(){
@@ -13002,7 +13005,7 @@
   var bimHudUndoStack = [];     // [{ layerId, anchor }] — global undoStack SADECE
                                  // features'ı kapsadığından (bkz. pushHistory), HUD
                                  // sürükleme jestleri için kendi hafif geri-alma yığını.
-  var bimHudEl = null, bimHudRingEl = null, bimHudArmEl = null, bimHudChipEl = null, bimHudPitchRollEl = null;
+  var bimHudEl = null, bimHudRingEl = null, bimHudArmEl = null, bimHudPitchRollEl = null;
 
   function bimHudSnapshotUndo(lyr){
     bimHudUndoStack.push({ layerId: lyr.id, anchor: JSON.parse(JSON.stringify(lyr.bimAnchor)) });
@@ -13041,18 +13044,6 @@
         '<input type="range" class="pr-slider" data-k="roll" min="-45" max="45" step="1" value="0">' +
       '</div>';
     mapEl.appendChild(bimHudEl);
-    // Value chip #bimHud'un İÇİNE DEĞİL, #map'e KARDEŞ olarak eklenir:
-    // #bimHud'a ring'i konumlamak için verilen transform:translate(px,py)
-    // (bkz. positionBimHud), CSS'e göre transformlu bir atanın İÇİNDEKİ
-    // position:fixed öğeleri için o atayı containing block yapar — yani
-    // chip'in "bottom:22px;left:50%" kuralı viewport yerine #bimHud'un
-    // KENDİ konumuna göre hesaplanır ve chip ring'in yanına yapışık kalırdı
-    // (kullanıcı ekran görüntüsüyle bildirdi). Kardeş yapılınca #bimHud'un
-    // transformundan ETKİLENMEZ, gerçekten ekranın altında sabit kalır.
-    bimHudChipEl = document.createElement('div');
-    bimHudChipEl.className = 'bim-hud-chip hidden';
-    bimHudChipEl.id = 'bimHudChip';
-    mapEl.appendChild(bimHudChipEl);
     bimHudRingEl = bimHudEl.querySelector('.bim-hud-ring');
     bimHudArmEl = bimHudEl.querySelector('.bim-hud-arm');
     bimHudPitchRollEl = bimHudEl.querySelector('.bim-hud-pitchroll');
@@ -13084,14 +13075,20 @@
       lyr.bimAnchor._initialLat = lyr.bimAnchor.lat;
     }
     bimHudEl.classList.remove('hidden');
-    if (bimHudChipEl) bimHudChipEl.classList.remove('hidden');
+    setBimStatusInfoVisible(true);
     positionBimHud();
     refreshBimHudChip();
   }
   function hideBimHud(){
     bimHudState = null;
     if (bimHudEl) bimHudEl.classList.add('hidden');
-    if (bimHudChipEl) bimHudChipEl.classList.add('hidden');
+    setBimStatusInfoVisible(false);
+  }
+  function setBimStatusInfoVisible(show){
+    var wrap = document.getElementById('stBimInfoWrap');
+    var div = document.getElementById('stBimInfoDiv');
+    if (wrap) wrap.style.display = show ? '' : 'none';
+    if (div) div.style.display = show ? '' : 'none';
   }
   function positionBimHud(){
     if (!bimHudState || !bimHudEl) return;
@@ -13102,17 +13099,19 @@
     var headingDeg = (lyr.bimAnchor.heading || 0) * 180 / Math.PI;
     bimHudArmEl.style.transform = 'rotate(' + (headingDeg - 90) + 'deg)';
   }
+  // Eskiden haritanın altında yüzen ayrı bir kutuydu (bim-hud-chip);
+  // kullanıcı isteğiyle KALDIRILDI, aynı bilgi artık durum çubuğundaki
+  // #stBimInfo'ya yazılıyor (bkz. #stBimInfoWrap).
   function refreshBimHudChip(){
-    if (!bimHudState || !bimHudChipEl) return;
+    if (!bimHudState) return;
     var lyr = getLayer(bimHudState.layerId);
     if (!lyr || !lyr.bimAnchor) return;
+    var el = document.getElementById('stBimInfo');
+    if (!el) return;
     var a = lyr.bimAnchor;
     var headingDeg = Math.round((a.heading || 0) * 180 / Math.PI);
-    bimHudChipEl.innerHTML =
-      '<span>H ' + headingDeg + '°</span><span class="sep">|</span>' +
-      '<span>S ' + (a.scale || 1).toFixed(2) + '</span><span class="sep">|</span>' +
-      '<span>Z ' + (a.alt || 0).toFixed(2) + 'm</span><span class="sep">|</span>' +
-      '<span>' + a.lat.toFixed(6) + ', ' + a.lng.toFixed(6) + '</span>';
+    el.textContent = 'H ' + headingDeg + '°  S ' + (a.scale || 1).toFixed(2) +
+      '  Z ' + (a.alt || 0).toFixed(2) + 'm  ' + a.lat.toFixed(6) + ', ' + a.lng.toFixed(6);
   }
   // bimAnchor değiştikten sonra ortak uygulama noktası: gerçek mesh'i
   // yeniden konumlandırır (syncIfcMeshLayer, senkron — mesh zaten
