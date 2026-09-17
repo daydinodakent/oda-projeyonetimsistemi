@@ -457,9 +457,19 @@
   .add-content-group-label:first-child{padding-top:4px;}
   .add-content-item{align-items:flex-start !important;}
   .add-content-item svg{margin-top:1px;}
-  .add-content-item-text{display:flex;flex-direction:column;gap:2px;min-width:0;}
+  .add-content-item-text{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1;}
   .add-content-item-label{font-size:12.5px;color:var(--text);}
   .add-content-item-hint{font-size:10px;color:var(--text-dim);line-height:1.35;white-space:normal;}
+  /* Satırın sağındaki küçük "göz" ikonu — örnek dosyayı içe aktarmadan
+     ÖNCE görüntüleme/indirme (bkz. showSampleFileModal). stopPropagation
+     ile satırın kendi tıklama (içe aktarma) davranışını TETİKLEMEZ. */
+  .add-content-sample-btn{
+    flex:0 0 auto;width:22px;height:22px;margin-top:-1px;border-radius:4px;
+    background:transparent;border:1px solid transparent;color:var(--text-dim);cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .add-content-sample-btn svg{width:14px;height:14px;margin-top:0;}
+  .add-content-sample-btn:hover{color:var(--amber);border-color:var(--line);background:var(--bg-panel-raise);}
   .style-row{display:flex;gap:6px;}
   .style-btn{
     flex:1;padding:8px 0;text-align:center;font-size:11.5px;
@@ -777,6 +787,12 @@
   .btn.primary:hover{color:#fff;}
   .btn.primary.danger{background:rgba(224,104,90,.15);border-color:var(--danger);color:var(--danger);}
   .btn.primary.danger:hover{background:var(--danger);color:#fff;}
+  /* Örnek Dosya modali — metin/özet önizleme kutusu (bkz. showSampleFileModal). */
+  .sample-file-pre{
+    max-height:280px;overflow:auto;background:var(--bg-panel-raise);border:1px solid var(--line);
+    border-radius:2px;padding:10px;font-family:var(--font-mono);font-size:11px;color:var(--text);
+    white-space:pre-wrap;word-break:break-all;margin:0;
+  }
 
   /* ---------- Taslak çizim kontrolleri (mobil için) ---------- */
   #draftControls{
@@ -2153,6 +2169,23 @@
     <b style="color:var(--text);">Dokümanlar</b>
     <div id="infoDocsList"></div>
     <div id="infoDocsPreview"></div>
+  </div>
+</div>
+
+<!-- Örnek Dosya modali — Veri Ekle listesindeki her formatın yanındaki
+     "göz" ikonuyla açılır (bkz. showSampleFileModal). Metin tabanlı
+     formatlar (GeoJSON/KML/GML/DXF/IFC/PGW) doğrudan önizlenir; zip/las gibi
+     ikili formatlar için kısa bir açıklama + indirme sunulur; XYZ/3D Tiles
+     gibi URL tabanlı olanlar için kopyalanabilir bir örnek adres gösterilir. -->
+<div class="modal-overlay" id="sampleFileModal">
+  <div class="modal-box tall" style="width:520px;max-width:calc(100vw - 40px);">
+    <div class="modal-header">
+      <div class="modal-title" id="sampleFileModalTitle">Örnek Dosya</div>
+      <button type="button" class="modal-close-x" id="btnSampleFileClose" title="Kapat">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body" id="sampleFileModalBody"></div>
   </div>
 </div>
 
@@ -8744,27 +8777,47 @@
   // geri döndürülür — tarayıcı accept'i dialog AÇILIRKENki değeriyle
   // okuduğundan bu, sonradan başka bir satırın .accept'ini etkilemez.
   var IMPORT_INPUT_FULL_ACCEPT = '.json,.geojson,.kml,.kmz,.zip,.shp,.gml,.dxf,.gltf,.glb,.bin,.ifc,.jpg,.jpeg,.png,.jgw,.pgw,.jpw,.wld';
+  // Her formatın yanındaki küçük "göz" ikonu (bkz. showSampleFileModal),
+  // kullanıcının o formatın nasıl bir dosya olduğunu İÇE AKTARMADAN önce
+  // görebilmesi/indirebilmesi için — bkz. public/samples/ altındaki
+  // ornek.* dosyaları.
   var ADD_CONTENT_GROUPS = [
     { title:'CAD Dosyaları', items:[
-      { label:'DXF', hint:'AutoCAD çizim dosyası — birim/ölçek dönüşümü ile', icon:'vector', inputId:'importInput', accept:'.dxf' }
+      { label:'DXF', hint:'AutoCAD çizim dosyası — birim/ölçek dönüşümü ile', icon:'vector', inputId:'importInput', accept:'.dxf',
+        sample:{ kind:'file', mime:'text', path:'/samples/ornek.dxf', name:'ornek.dxf' } }
     ]},
     { title:'GIS Dosyaları', items:[
-      { label:'Shapefile (.zip)', hint:'SHP+DBF+SHX birlikte sıkıştırılmış', icon:'vector', inputId:'importInput', accept:'.zip' },
-      { label:'GeoJSON', hint:'.json / .geojson', icon:'vector', inputId:'importInput', accept:'.json,.geojson' },
-      { label:'KML / KMZ', hint:'Google Earth', icon:'vector', inputId:'importInput', accept:'.kml,.kmz' },
-      { label:'GML', hint:'Geography Markup Language', icon:'vector', inputId:'importInput', accept:'.gml' },
-      { label:'Genel Format (GDAL/OGR)', hint:'TAB, GPX, MapInfo ve daha fazlası — tarayıcıda', icon:'gdal', inputId:'gdalImportInput' }
+      { label:'Shapefile (.zip)', hint:'SHP+DBF+SHX birlikte sıkıştırılmış', icon:'vector', inputId:'importInput', accept:'.zip',
+        sample:{ kind:'file', mime:'zip', path:'/samples/ornek_shapefile.zip', name:'ornek_shapefile.zip', desc:'ornek_shapefile.shp, .shx ve .dbf dosyalarını içeren bir .zip.' } },
+      { label:'GeoJSON', hint:'.json / .geojson', icon:'vector', inputId:'importInput', accept:'.json,.geojson',
+        sample:{ kind:'file', mime:'text', path:'/samples/ornek.geojson', name:'ornek.geojson' } },
+      { label:'KML / KMZ', hint:'Google Earth', icon:'vector', inputId:'importInput', accept:'.kml,.kmz',
+        sample:{ kind:'file', mime:'text', path:'/samples/ornek.kml', name:'ornek.kml' } },
+      { label:'GML', hint:'Geography Markup Language', icon:'vector', inputId:'importInput', accept:'.gml',
+        sample:{ kind:'file', mime:'text', path:'/samples/ornek.gml', name:'ornek.gml' } },
+      { label:'Genel Format (GDAL/OGR)', hint:'TAB, GPX, MapInfo ve daha fazlası — tarayıcıda', icon:'gdal', inputId:'gdalImportInput',
+        sample:{ kind:'file', mime:'text', path:'/samples/ornek.geojson', name:'ornek.geojson', desc:'GDAL/OGR onlarca formatı destekler; burada örnek olarak GeoJSON gösteriliyor.' } }
     ]},
     { title:'BIM Dosyaları', items:[
-      { label:'3B Model (GLTF/GLB)', hint:'Taban izdüşümü + yükseklik olarak 3B poligona aktarılır — .bin/doku dosyalarınız ayrıysa modelle birlikte, ya da hepsini bir .zip içinde seçin', icon:'model3d', inputId:'gltfImportInput' },
-      { label:'IFC (Basit)', hint:'Taban izdüşümü + yükseklik olarak tek poligona aktarılır — tarayıcıda', icon:'ifc', inputId:'importInput', accept:'.ifc' },
-      { label:'IFC/BIM (Gelişmiş)', hint:'IfcOpenShell, sunucu — her eleman ayrı taban izdüşümü + yükseklik', icon:'ifc', inputId:'ifcImportInput' },
-      { label:'Nokta Bulutu (LAS/LAZ)', hint:'Sunucu — büyük dosyalar örneklenerek gösterilir', icon:'cloud', inputId:'pointCloudImportInput' }
+      { label:'3B Model (GLTF/GLB)', hint:'Taban izdüşümü + yükseklik olarak 3B poligona aktarılır — .bin/doku dosyalarınız ayrıysa modelle birlikte, ya da hepsini bir .zip içinde seçin', icon:'model3d', inputId:'gltfImportInput',
+        sample:{ kind:'file', mime:'zip', path:'/samples/ornek_model.zip', name:'ornek_model.zip', desc:'ornek_model.gltf, .bin ve doku (.png) dosyalarını içeren dokulu bir küp.' } },
+      { label:'IFC (Basit)', hint:'Taban izdüşümü + yükseklik olarak tek poligona aktarılır — tarayıcıda', icon:'ifc', inputId:'importInput', accept:'.ifc',
+        sample:{ kind:'file', mime:'text', path:'/samples/ornek.ifc', name:'ornek.ifc', desc:'Tek duvarlı, minimal ama geçerli bir IFC4 (STEP) dosyası.' } },
+      { label:'IFC/BIM (Gelişmiş)', hint:'IfcOpenShell, sunucu — her eleman ayrı taban izdüşümü + yükseklik', icon:'ifc', inputId:'ifcImportInput',
+        sample:{ kind:'file', mime:'text', path:'/samples/ornek.ifc', name:'ornek.ifc', desc:'Tek duvarlı, minimal ama geçerli bir IFC4 (STEP) dosyası.' } },
+      { label:'Nokta Bulutu (LAS/LAZ)', hint:'Sunucu — büyük dosyalar örneklenerek gösterilir', icon:'cloud', inputId:'pointCloudImportInput',
+        sample:{ kind:'file', mime:'las', path:'/samples/ornek.las', name:'ornek.las', desc:'25 noktalık minimal geçerli bir LAS 1.2 (format 0) dosyası.' } }
     ]},
     { title:'Raster Dosyalar', items:[
-      { label:'Görüntü + Dünya Dosyası', hint:'JPG/PNG + JGW/PGW/JPW/WLD — ikisini birlikte seçin', icon:'vector', inputId:'importInput', accept:'.jpg,.jpeg,.png,.jgw,.pgw,.jpw,.wld' },
-      { label:'XYZ Tile Katmanı Ekle', hint:"{z}/{x}/{y} desenli bir tile sunucusu URL'si ile yeni bir altlık", icon:'globe', triggerId:'btnAddXyzLayer' },
-      { label:'3D Tiles', hint:"Cesium tileset.json URL'si ile akışlı/LOD'lu karo seti ekle", icon:'tiles3d', triggerId:'btn3dTilesImport' }
+      { label:'Görüntü + Dünya Dosyası', hint:'JPG/PNG + JGW/PGW/JPW/WLD — ikisini birlikte seçin', icon:'vector', inputId:'importInput', accept:'.jpg,.jpeg,.png,.jgw,.pgw,.jpw,.wld',
+        sample:{ kind:'files', files:[
+          { mime:'image', path:'/samples/ornek_goruntu.png', name:'ornek_goruntu.png' },
+          { mime:'text', path:'/samples/ornek_goruntu.pgw', name:'ornek_goruntu.pgw' }
+        ] } },
+      { label:'XYZ Tile Katmanı Ekle', hint:"{z}/{x}/{y} desenli bir tile sunucusu URL'si ile yeni bir altlık", icon:'globe', triggerId:'btnAddXyzLayer',
+        sample:{ kind:'url', example:'https://tile.openstreetmap.org/{z}/{x}/{y}.png', desc:'OpenStreetMap açık raster tile sunucusu — deneme amaçlı kullanılabilir.' } },
+      { label:'3D Tiles', hint:"Cesium tileset.json URL'si ile akışlı/LOD'lu karo seti ekle", icon:'tiles3d', triggerId:'btn3dTilesImport',
+        sample:{ kind:'url', example:'https://raw.githubusercontent.com/CesiumGS/3d-tiles-samples/main/tilesets/TilesetWithDiscreteLOD/tileset.json', desc:'CesiumGS açık kaynak 3d-tiles-samples deposundan genel bir örnek tileset.' } }
     ]}
   ];
   // anchorEl — popover'ı hangi butonun yanında/altında/üstünde açacağını
@@ -8804,6 +8857,18 @@
         text.appendChild(hint);
         row.appendChild(icon);
         row.appendChild(text);
+        if (it.sample){
+          var sampleBtn = document.createElement('button');
+          sampleBtn.type = 'button';
+          sampleBtn.className = 'add-content-sample-btn';
+          sampleBtn.title = 'Örnek dosyayı görüntüle';
+          sampleBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>';
+          sampleBtn.addEventListener('click', function(e){
+            e.stopPropagation();
+            showSampleFileModal(it.label, it.sample);
+          });
+          row.appendChild(sampleBtn);
+        }
         row.addEventListener('click', function(){
           pop.classList.remove('show');
           var target = document.getElementById(it.inputId || it.triggerId);
@@ -8835,6 +8900,107 @@
       pop.style.bottom = 'auto';
     }
   }
+
+  // ---- Örnek Dosya modali (bkz. sampleFileModal, ADD_CONTENT_GROUPS.sample) ----
+  function sampleDownloadRowHtml(path, name){
+    return '<div style="margin-top:8px;"><a class="btn" href="' + path + '" download="' + name + '" ' +
+      'style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;width:auto;padding:9px 12px;">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:14px;height:14px;flex:0 0 auto;">' +
+      '<path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 21h16"/></svg>İndir</a></div>';
+  }
+  // LAS ikili — ham baytları dökmek yerine, sabit baytlık LAS 1.x public
+  // header alanlarını (bkz. ornek.las üreticisi) okunaklı bir özete çevirir.
+  async function summarizeLasSample(path){
+    var buf = await (await fetch(path)).arrayBuffer();
+    var dv = new DataView(buf);
+    var sig = String.fromCharCode(dv.getUint8(0), dv.getUint8(1), dv.getUint8(2), dv.getUint8(3));
+    var versionMajor = dv.getUint8(24), versionMinor = dv.getUint8(25);
+    var pdrf = dv.getUint8(104);
+    var numPoints = dv.getUint32(107, true);
+    var scaleX = dv.getFloat64(131, true), scaleY = dv.getFloat64(139, true), scaleZ = dv.getFloat64(147, true);
+    var maxX = dv.getFloat64(179, true), minX = dv.getFloat64(187, true);
+    var maxY = dv.getFloat64(195, true), minY = dv.getFloat64(203, true);
+    var maxZ = dv.getFloat64(211, true), minZ = dv.getFloat64(219, true);
+    return 'İmza: ' + sig + '\n' +
+      'Sürüm: ' + versionMajor + '.' + versionMinor + '\n' +
+      'Nokta veri formatı: ' + pdrf + '\n' +
+      'Nokta sayısı: ' + numPoints + '\n' +
+      'Ölçek (x,y,z): ' + scaleX + ', ' + scaleY + ', ' + scaleZ + '\n' +
+      'X aralığı: ' + minX.toFixed(3) + '  —  ' + maxX.toFixed(3) + '\n' +
+      'Y aralığı: ' + minY.toFixed(3) + '  —  ' + maxY.toFixed(3) + '\n' +
+      'Z aralığı: ' + minZ.toFixed(3) + '  —  ' + maxZ.toFixed(3);
+  }
+  async function showSampleFileModal(label, sample){
+    var modal = document.getElementById('sampleFileModal');
+    var titleEl = document.getElementById('sampleFileModalTitle');
+    var body = document.getElementById('sampleFileModalBody');
+    titleEl.textContent = 'Örnek Dosya — ' + label;
+    body.innerHTML = '<div class="hint" style="border-top:none;padding-top:0;">Yükleniyor…</div>';
+    modal.classList.add('show');
+    try{
+      if (sample.kind === 'url'){
+        body.innerHTML =
+          (sample.desc ? '<div class="field-label" style="margin-top:0;">' + sample.desc.replace(/</g,'&lt;') + '</div>' : '') +
+          '<div style="display:flex;gap:6px;margin-top:8px;">' +
+            '<input type="text" readonly id="sampleFileUrlInput" value="' + sample.example.replace(/"/g,'&quot;') + '" style="flex:1;font-family:var(--font-mono);font-size:11.5px;">' +
+            '<button type="button" class="btn" id="sampleFileCopyBtn" style="flex:0 0 auto;width:auto;padding:9px 12px;">Kopyala</button>' +
+          '</div>';
+        document.getElementById('sampleFileCopyBtn').addEventListener('click', async function(){
+          try{ await navigator.clipboard.writeText(sample.example); showToast('Örnek adres panoya kopyalandı.'); }
+          catch(err){ document.getElementById('sampleFileUrlInput').select(); showToast('Kopyalamak için metni seçip Ctrl+C kullanın.'); }
+        });
+        return;
+      }
+      if (sample.kind === 'files'){
+        var parts = [];
+        for (var i=0;i<sample.files.length;i++){
+          var f = sample.files[i];
+          if (f.mime === 'image'){
+            parts.push('<div class="field-label" style="margin-top:10px;">' + f.name + '</div>' +
+              '<img src="' + f.path + '" style="max-width:100%;border:1px solid var(--line);border-radius:2px;image-rendering:pixelated;">' +
+              sampleDownloadRowHtml(f.path, f.name));
+          } else {
+            var t = await (await fetch(f.path)).text();
+            parts.push('<div class="field-label" style="margin-top:10px;">' + f.name + '</div>' +
+              '<pre class="sample-file-pre">' + t.replace(/</g,'&lt;') + '</pre>' +
+              sampleDownloadRowHtml(f.path, f.name));
+          }
+        }
+        body.innerHTML = parts.join('');
+        return;
+      }
+      // kind === 'file'
+      if (sample.mime === 'text'){
+        var text = await (await fetch(sample.path)).text();
+        body.innerHTML =
+          (sample.desc ? '<div class="field-label" style="margin-top:0;">' + sample.desc.replace(/</g,'&lt;') + '</div>' : '') +
+          '<pre class="sample-file-pre">' + text.replace(/</g,'&lt;') + '</pre>' +
+          sampleDownloadRowHtml(sample.path, sample.name);
+        return;
+      }
+      if (sample.mime === 'las'){
+        var summary = await summarizeLasSample(sample.path);
+        body.innerHTML =
+          (sample.desc ? '<div class="field-label" style="margin-top:0;">' + sample.desc.replace(/</g,'&lt;') + '</div>' : '') +
+          '<pre class="sample-file-pre">' + summary + '</pre>' +
+          sampleDownloadRowHtml(sample.path, sample.name);
+        return;
+      }
+      // zip vb. diğer ikili formatlar — önizleme yerine kısa açıklama + indir
+      body.innerHTML =
+        (sample.desc ? '<div class="field-label" style="margin-top:0;">' + sample.desc.replace(/</g,'&lt;') + '</div>' : '') +
+        '<div class="hint" style="border-top:none;">İkili bir dosya olduğundan burada önizlenemiyor — indirip açabilirsiniz.</div>' +
+        sampleDownloadRowHtml(sample.path, sample.name);
+    }catch(err){
+      body.innerHTML = '<div class="hint" style="border-top:none;padding-top:0;color:var(--danger);">Örnek dosya yüklenemedi: ' + (err && err.message ? err.message : 'bilinmeyen hata') + '</div>';
+    }
+  }
+  document.getElementById('btnSampleFileClose').addEventListener('click', function(){
+    document.getElementById('sampleFileModal').classList.remove('show');
+  });
+  document.getElementById('sampleFileModal').addEventListener('click', function(e){
+    if (e.target === this) this.classList.remove('show');
+  });
 
   // ---------------------------------------------------------------------
   // "CBS Haritası" yanındaki split buton: varsayılan tıklama "Kaydet",

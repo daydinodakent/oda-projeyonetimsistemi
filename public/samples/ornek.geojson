@@ -1,0 +1,38 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "ad": "Örnek Bina"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              32.854,
+              39.92
+            ],
+            [
+              32.8552,
+              39.92
+            ],
+            [
+              32.8552,
+              39.921
+            ],
+            [
+              32.854,
+              39.921
+            ],
+            [
+              32.854,
+              39.92
+            ]
+          ]
+        ]
+      }
+    }
+  ]
+}
