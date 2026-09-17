@@ -43,18 +43,47 @@
      split-1 (varsayılan): tek sütun/satır — #map tam ekranı kaplar (ESKİ
      davranışla BİREBİR AYNI, diğer bölmeler display:none kalır). */
   #mapGridWrapper{
-    position:absolute;inset:0;display:grid;gap:2px;background:#050d14;
+    position:absolute;inset:0;display:grid;gap:0;background:#050d14;
     grid-template-columns:1fr;grid-template-rows:1fr;
+    --split-col:1fr;--split-col2:1fr;--split-row:1fr;--split-row2:1fr;
   }
-  #mapGridWrapper.split-2{ grid-template-columns:1fr 1fr; grid-template-rows:1fr; }
+  #mapGridWrapper.split-2{
+    grid-template-columns:var(--split-col) 3px var(--split-col2);
+    grid-template-rows:1fr;
+  }
+  #mapGridWrapper.split-2 #map{ grid-column:1; grid-row:1; }
+  #mapGridWrapper.split-2 #mapPane2{ grid-column:3; grid-row:1; }
+  #mapGridWrapper.split-2 #splitDividerV{ grid-column:2; grid-row:1; display:block; }
   #mapGridWrapper.split-3{
-    grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr;
-    grid-template-areas:"p1 p2" "p3 p3";
+    grid-template-columns:var(--split-col) 3px var(--split-col2);
+    grid-template-rows:var(--split-row) 3px var(--split-row2);
   }
-  #mapGridWrapper.split-3 #map{ grid-area:p1; }
-  #mapGridWrapper.split-3 #mapPane2{ grid-area:p2; }
-  #mapGridWrapper.split-3 #mapPane3{ grid-area:p3; }
-  #mapGridWrapper.split-4{ grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; }
+  #mapGridWrapper.split-3 #map{ grid-column:1; grid-row:1; }
+  #mapGridWrapper.split-3 #mapPane2{ grid-column:3; grid-row:1; }
+  #mapGridWrapper.split-3 #mapPane3{ grid-column:1 / 4; grid-row:3; }
+  #mapGridWrapper.split-3 #splitDividerV{ grid-column:2; grid-row:1; display:block; }
+  #mapGridWrapper.split-3 #splitDividerH{ grid-column:1 / 4; grid-row:2; display:block; }
+  #mapGridWrapper.split-4{
+    grid-template-columns:var(--split-col) 3px var(--split-col2);
+    grid-template-rows:var(--split-row) 3px var(--split-row2);
+  }
+  #mapGridWrapper.split-4 #map{ grid-column:1; grid-row:1; }
+  #mapGridWrapper.split-4 #mapPane2{ grid-column:3; grid-row:1; }
+  #mapGridWrapper.split-4 #mapPane3{ grid-column:1; grid-row:3; }
+  #mapGridWrapper.split-4 #mapPane4{ grid-column:3; grid-row:3; }
+  #mapGridWrapper.split-4 #splitDividerV{ grid-column:2; grid-row:1 / 4; display:block; }
+  #mapGridWrapper.split-4 #splitDividerH{ grid-column:1 / 4; grid-row:2; display:block; }
+  .split-divider{
+    display:none;position:relative;z-index:7;background:var(--line);
+    transition:background .12s ease;
+  }
+  .split-divider:hover, .split-divider.dragging{ background:var(--amber); }
+  .split-divider-v{ cursor:col-resize; }
+  /* Çizgi 3px'e incelse de sürüklenebilir alan (::before) aynı geniş kalır —
+     kullanıcı isteğiyle sadece GÖRSEL çizgi inceltildi, tıklama hedefi DEĞİL. */
+  .split-divider-v::before{ content:'';position:absolute;top:0;bottom:0;left:-5.5px;right:-5.5px; }
+  .split-divider-h{ cursor:row-resize; }
+  .split-divider-h::before{ content:'';position:absolute;left:0;right:0;top:-5.5px;bottom:-5.5px; }
   #map{position:relative;width:100%;height:100%;min-width:0;min-height:0;}
   .extra-map-pane{position:relative;width:100%;height:100%;min-width:0;min-height:0;background:#0a1620;overflow:hidden;}
   .extra-map-pane .pane-body{position:absolute;inset:0;}
@@ -649,6 +678,78 @@
   #mapLegend .legend-gradient{height:9px;border-radius:2px;margin-bottom:3px;}
   #mapLegend .legend-gradient-labels{display:flex;justify-content:space-between;font-size:9px;}
 
+  /* =========================================================================
+     3B Model Yerleştirme HUD ("Model Üzerinde Halka" — panelsiz) — bkz.
+     showBimHud/hideBimHud/updateBimHudPosition, aşağıda "BIM Yerleştirme
+     HUD'u" bölümünde. #map'in DOĞRUDAN çocuğu olarak JS ile eklenir (bkz.
+     ensureBimHudDom) — map.project()'in piksel çıktısı #map'e göre olduğu
+     için ek bir ofset hesabı gerekmiyor. Yalnızca aktif katman IFC/GLTF/GLB
+     ve konumu varsa (bkz. updateBimTransformHud, updateLayerTransformToolbar
+     ile AYNI çağrı noktalarından tetiklenir) görünür.
+     ========================================================================= */
+  #bimHud{ position:absolute; left:0; top:0; z-index:6; pointer-events:none; }
+  #bimHud.hidden{ display:none; }
+  #bimHud .bim-hud-ring{
+    position:absolute; width:212px; height:212px; left:-106px; top:-106px;
+    border:1px solid rgba(127,215,255,.35); border-radius:50%;
+    background:radial-gradient(circle, transparent 58%, rgba(31,159,224,.09) 100%);
+    pointer-events:auto; cursor:grab; touch-action:none;
+  }
+  #bimHud .bim-hud-ring.dragging{ cursor:grabbing; }
+  #bimHud .bim-hud-ring-inner{
+    position:absolute; left:16px; top:16px; right:16px; bottom:16px;
+    border:1px dashed rgba(127,215,255,.20); border-radius:50%; pointer-events:none;
+  }
+  #bimHud .bim-hud-arm{
+    position:absolute; left:50%; top:50%; width:106px; height:2px;
+    background:linear-gradient(90deg, rgba(31,159,224,.15), #1f9fe0);
+    transform-origin:0 50%; pointer-events:none;
+  }
+  #bimHud .bim-hud-handle{
+    position:absolute; right:-9px; top:-9px; width:18px; height:18px; border-radius:50%;
+    background:#04121c; border:2px solid #1f9fe0; pointer-events:none;
+  }
+  #bimHud .bim-hud-sidebar{
+    position:absolute; left:130px; top:-130px; display:flex; flex-direction:column; gap:4px;
+    pointer-events:auto;
+  }
+  #bimHud .bim-hud-btn{
+    width:34px; height:34px; border-radius:9px; background:rgba(13,21,32,.92);
+    border:1px solid rgba(127,215,255,.3); color:#cfe0f0; font-size:15px;
+    display:flex; align-items:center; justify-content:center; cursor:pointer;
+    backdrop-filter:blur(14px); touch-action:none; user-select:none;
+  }
+  #bimHud .bim-hud-btn:hover{ border-color:#1f9fe0; color:#1f9fe0; }
+  #bimHud .bim-hud-btn.bim-hud-scale{ cursor:ew-resize; }
+  #bimHud .bim-hud-btn.bim-hud-move{ cursor:move; }
+  #bimHud .bim-hud-btn.bim-hud-height{ cursor:ns-resize; }
+  #bimHud .bim-hud-btn.bim-hud-reset{ color:#7d90a6; cursor:pointer; }
+  #bimHud .bim-hud-btn.bim-hud-reset:hover{ color:#e0685a; border-color:#e0685a; }
+  /* #bimHud'un İÇİNDE DEĞİL — #map'e kardeş (bkz. ensureBimHudDom): #bimHud'a
+     ring'i konumlamak için uygulanan transform, İÇİNDEKİ position:fixed
+     öğeler için viewport yerine kendisini containing block yapardı; chip bu
+     yüzden #map'e kardeş olarak eklenir ve position:fixed GERÇEKTEN
+     viewport'a göre (ekranın altına sabit) çalışır. */
+  .bim-hud-chip{
+    position:fixed; left:50%; bottom:22px; transform:translateX(-50%);
+    height:40px; display:flex; align-items:center; gap:7px;
+    background:rgba(13,21,32,.92); border:1px solid rgba(120,160,200,.18); border-radius:9px;
+    padding:5px 9px; font-family:var(--font-mono); font-size:10px; color:#cfe0f0;
+    font-variant-numeric:tabular-nums; backdrop-filter:blur(14px); white-space:nowrap;
+    pointer-events:auto; z-index:6;
+  }
+  .bim-hud-chip.hidden{ display:none; }
+  .bim-hud-chip .sep{ color:#3d4f63; }
+  .bim-hud-chip .lbl{ color:#6f8399; }
+  #bimHud .bim-hud-pitchroll{
+    position:absolute; left:-90px; top:120px; width:180px; display:flex; flex-direction:column; gap:6px;
+    background:rgba(13,21,32,.92); border:1px solid rgba(127,215,255,.3); border-radius:9px;
+    padding:8px 10px; pointer-events:auto; backdrop-filter:blur(14px);
+  }
+  #bimHud .bim-hud-pitchroll.hidden{ display:none; }
+  #bimHud .bim-hud-pitchroll label{ font-size:9px; color:#6f8399; display:flex; justify-content:space-between; }
+  #bimHud .bim-hud-pitchroll input[type=range]{ width:100%; accent-color:#1f9fe0; }
+
   .fmt-grid{display:flex;flex-wrap:wrap;gap:5px;align-items:center;}
   .fmt-cat{width:100%;font-size:10px;letter-spacing:.4px;color:var(--text-dim);margin-top:6px;}
   .fmt-cat:first-child{margin-top:0;}
@@ -745,9 +846,12 @@
   #statusSplitViewBtn.active{ color:var(--teal); }
   #statusSplitViewCount{
     display:none;position:absolute;top:-3px;right:-4px;
-    color:#0a1620;background:var(--teal);border-radius:3px;
+    background:#33383d;border-radius:3px;
     padding:0 3px;font-size:8.5px;line-height:1.4;font-weight:700;
   }
+  /* İki ID seçici — #statusbar b{color:var(--text)} genel kuralını (daha
+     yüksek özgüllük: 1 ID + 1 element) ezmek için KASITLI. */
+  #statusbar #statusSplitViewCount{ color:#fff; }
   #statusbar.split-active #statusSplitViewCount{ display:inline; }
   #statusbar .div{width:1px;height:12px;background:var(--line);}
   #statusbar span{display:inline-flex;align-items:center;gap:5px;}
@@ -1271,6 +1375,8 @@
     <div class="pane-header"></div>
     <div class="pane-body"></div>
   </div>
+  <div id="splitDividerV" class="split-divider split-divider-v" title="Sürükleyerek bölme genişliğini ayarla"></div>
+  <div id="splitDividerH" class="split-divider split-divider-h" title="Sürükleyerek bölme yüksekliğini ayarla"></div>
 </div>
 
 <!-- Saha filmstrip'inden bir fotoğraf seçilince, o fotoğrafın haritadaki
@@ -1394,8 +1500,10 @@
                kategorili listeden (bkz. showAddContentPopover) tetiklenir; bu
                yüzden Katmanlar başlığında kendine ait bir simge düğmesi YOK.
                .bin dosyası ayrıysa (harici buffer) modelle BİRLİKTE seçilmelidir
-               (multiple) — bkz. importGLTF/gltfLoadBuffers. -->
-          <input type="file" id="gltfImportInput" multiple accept=".gltf,.glb,.bin" hidden>
+               (multiple) — bkz. importGLTF/gltfLoadBuffers. Tek bir .zip de
+               seçilebilir (model + .bin + dokular birlikte sıkıştırılmışsa) —
+               bkz. filesFromZip. -->
+          <input type="file" id="gltfImportInput" multiple accept=".gltf,.glb,.bin,.jpg,.jpeg,.png,.zip" hidden>
         </div>
         <!-- GDAL/OGR (gdal3.js, tarayıcıda WASM) ile genel format içe aktarma —
              mevcut el yazması DXF/SHP/KML/GML parser'larına HİÇ dokunmaz, ayrı
@@ -8561,6 +8669,7 @@
     if (typeof updateLayerTransformToolbar === 'function') updateLayerTransformToolbar();
     if (typeof syncIfcMeshLayer === 'function') syncIfcMeshLayer();
     if (typeof syncFeatureBimMeshes === 'function') syncFeatureBimMeshes();
+    if (typeof updateBimHud === 'function') updateBimHud();
   }
 
   function refreshMapSelect(){
@@ -9994,6 +10103,25 @@
     }
     return records;
   }
+  // Bir .zip içindeki TÜM dosyaları (klasör yapısı düzleştirilerek, sadece
+  // dosya adına göre) File nesneleri olarak çıkarır — 3B model (GLTF + .bin +
+  // doku/texture dosyaları) tek bir .zip'e sıkıştırılıp öyle seçilebilsin
+  // diye (bkz. gltfImportInput/importInput handler'ları). Düzleştirme,
+  // gltfLoadBuffers/bimGltfLoadingManagerFor'un zaten URI'nin SADECE dosya
+  // adına göre eşleştirmesiyle (klasör yolunu YOK sayarak) tutarlıdır.
+  async function filesFromZip(zipFile){
+    if (typeof JSZip === 'undefined') throw new Error('JSZip yüklenemedi, internet bağlantınızı kontrol edin.');
+    var zip = await JSZip.loadAsync(await zipFile.arrayBuffer());
+    var entries = [];
+    zip.forEach(function(path, entry){ if (!entry.dir) entries.push(entry); });
+    var out = [];
+    for (var i=0;i<entries.length;i++){
+      var entry = entries[i];
+      var blob = await entry.async('blob');
+      out.push(new File([blob], entry.name.split('/').pop()));
+    }
+    return out;
+  }
   async function parseShapefileZip(buffer){
     var zip = await JSZip.loadAsync(buffer);
     var shpEntry = null, dbfEntry = null;
@@ -10659,12 +10787,18 @@
       req.onerror = function(){ reject(req.error); };
     });
   }
-  async function saveBimFile(layerId, fileOrBlob, sourceFormat){
+  // siblingFiles — GLTF (JSON) formatında olan modellerin ayrı .bin ve
+  // doku/texture (jpg/png) dosyaları; GLB'de her şey tek dosyada gömülü
+  // olduğundan gerek yoktur. Bunlar da saklanmazsa, sayfa yeniden açıldığında
+  // ya da BIM Görüntüleyici'de tekrar açıldığında modelin yüzey giydirmeleri
+  // (dokular) kaybolur — bkz. extractGltfMeshesFromBlob/loadGltfIntoViewer.
+  async function saveBimFile(layerId, fileOrBlob, sourceFormat, siblingFiles){
     try{
       var db = await openBimFileDb();
+      var extraFiles = (siblingFiles || []).filter(function(f){ return f !== fileOrBlob; });
       await new Promise(function(resolve, reject){
         var tx = db.transaction(BIM_DB_STORE, 'readwrite');
-        tx.objectStore(BIM_DB_STORE).put({ blob: fileOrBlob, name: fileOrBlob.name || '', format: sourceFormat, savedAt: Date.now() }, layerId);
+        tx.objectStore(BIM_DB_STORE).put({ blob: fileOrBlob, name: fileOrBlob.name || '', format: sourceFormat, extraFiles: extraFiles.length ? extraFiles : null, savedAt: Date.now() }, layerId);
         tx.oncomplete = resolve; tx.onerror = function(){ reject(tx.error); };
       });
     }catch(err){ console.error('BIM dosyası IndexedDB\'ye kaydedilemedi:', err); }
@@ -10712,7 +10846,7 @@
   // için gerekli olan "dosya → katman" eşlemesi kurulamazdı. Diğer tüm import
   // yollarıyla (addImportedFeatures) TUTARLI, dosya adını taşıyan kendi
   // katmanını oluşturan bu ortak yardımcı, o eksikliği de gideriyor.
-  function createBimLayerForImport(file, sourceFormat, placementScale){
+  function createBimLayerForImport(file, sourceFormat, placementScale, siblingFiles){
     var newLayerId = 'layer-' + uid();
     var center = map.getCenter();
     layers.push({
@@ -10725,7 +10859,7 @@
       // bu satırdan hemen önce) kullandığı için ikisi birbirine denk düşer.
       bimAnchor: { lng: center.lng, lat: center.lat, scale: placementScale || 1 }
     });
-    saveBimFile(newLayerId, file, sourceFormat);
+    saveBimFile(newLayerId, file, sourceFormat, siblingFiles);
     return newLayerId;
   }
 
@@ -10734,7 +10868,7 @@
     var result = await parseGLTFOrGLB(file, siblingFiles);
     var ring = placeLocalRingOnMap(result.footprint, scale);
     ring.push(ring[0]);
-    var newLayerId = createBimLayerForImport(file, /\.glb$/i.test(file.name) ? 'glb' : 'gltf', scale);
+    var newLayerId = createBimLayerForImport(file, /\.glb$/i.test(file.name) ? 'glb' : 'gltf', scale, siblingFiles);
     var f = makeFeature('Polygon', [ring]);
     f.properties.layerId = newLayerId;
     f.properties.extrude = true;
@@ -11084,10 +11218,18 @@
 
   // "3B Model (GLTF/GLB)" — "Import" menüsündeki kategorili listeden gelir
   // (bkz. showAddContentPopover). Aynı importGLTF() fonksiyonunu kullanır;
-  // ayrı bir .bin dosyası seçildiyse (multiple) modelle birlikte bulunur.
-  document.getElementById('gltfImportInput').addEventListener('change', function(e){
+  // ayrı bir .bin/doku dosyası seçildiyse (multiple) modelle birlikte
+  // bulunur — ya da hepsi TEK bir .zip içinde seçilmişse önce çıkarılır
+  // (bkz. filesFromZip).
+  document.getElementById('gltfImportInput').addEventListener('change', async function(e){
     var files = Array.prototype.slice.call(e.target.files || []);
     e.target.value = '';
+    if (files.length === 1 && /\.zip$/i.test(files[0].name)){
+      showLoading('ZIP açılıyor…');
+      try{ files = await filesFromZip(files[0]); }
+      catch(err){ hideLoading(); showToast('ZIP açılamadı: ' + err.message); return; }
+      finally{ hideLoading(); }
+    }
     var gltfFile = files.find(function(f){ return /\.(gltf|glb)$/i.test(f.name); });
     if (!gltfFile){ showToast('Seçilen dosyalar arasında .gltf/.glb bulunamadı.'); return; }
     showLoading('3B model içe aktarılıyor…');
@@ -11101,10 +11243,21 @@
     document.getElementById('importInput').click();
   });
 
-  document.getElementById('importInput').addEventListener('change', function(e){
+  document.getElementById('importInput').addEventListener('change', async function(e){
     var files = Array.prototype.slice.call(e.target.files || []);
     e.target.value = '';
     if (!files.length) return;
+
+    // Tek bir .zip seçilip içinde .gltf/.glb varsa (model + .bin + dokular
+    // birlikte sıkıştırılmış), bunu bir 3B model içe aktarımı olarak ele al;
+    // yoksa (ör. shapefile .zip) aşağıdaki mevcut .zip dalına (parseShapefileZip)
+    // DOKUNULMADAN düşer — dosya listesi bu durumda DEĞİŞTİRİLMEZ.
+    if (files.length === 1 && /\.zip$/i.test(files[0].name)){
+      try{
+        var unzipped = await filesFromZip(files[0]);
+        if (unzipped.some(function(f){ return /\.(gltf|glb)$/i.test(f.name); })) files = unzipped;
+      }catch(err){ console.error('ZIP açılamadı:', err); }
+    }
 
     var imageFile = files.find(function(f){ return /\.(jpe?g|png)$/i.test(f.name); });
     var worldFile = files.find(function(f){ return /\.(jgw|pgw|jpw|wld)$/i.test(f.name); });
@@ -12275,7 +12428,7 @@
         await loadIfcIntoViewer(rec.blob);
       }else{
         bimViewerShowLoading('3B model yükleniyor…');
-        await loadGltfIntoViewer(rec.blob);
+        await loadGltfIntoViewer(rec.blob, rec.extraFiles);
       }
       bimFitToScene();
       bimViewerHideLoading();
@@ -12587,11 +12740,41 @@
     return extracted.meshes;
   }
 
-  async function extractGltfMeshesFromBlob(blob, THREE){
+  // GLB kendi içinde gömülü olduğundan (path='') sorunsuz açılır; ama JSON
+  // .gltf çoğunlukla .bin ve doku (jpg/png) dosyalarına GÖRECELİ URI ile
+  // atıfta bulunur (ör. "textures/duvar.jpg") — loader.parse'a boş path
+  // verildiğinde bunlar sayfanın kendi adresine göre çözülmeye çalışılır ve
+  // 404 ile sessizce başarısız olur (model dokusuz/beyaz kalır ya da .bin
+  // eksikse hiç yüklenmez). extraFiles (saveBimFile ile saklanan yan
+  // dosyalar) varsa, GLTFLoader'ın her istediği URL'yi DOSYA ADINA göre
+  // (yola bakılmaksızın) ilgili blob: URL'sine yönlendiren bir
+  // LoadingManager.setURLModifier kullanılır — gltfLoadBuffers'daki AYNI
+  // basename eşleştirme mantığıyla tutarlı.
+  function bimGltfLoadingManagerFor(THREE, extraFiles){
+    if (!extraFiles || !extraFiles.length) return { manager:null, revoke:function(){} };
+    var manager = new THREE.LoadingManager();
+    var urlByName = {}, blobUrls = [];
+    extraFiles.forEach(function(f){
+      var u = URL.createObjectURL(f);
+      blobUrls.push(u);
+      urlByName[f.name] = u;
+    });
+    manager.setURLModifier(function(url){
+      var fname = decodeURIComponent(url.split('/').pop().split('?')[0]);
+      return urlByName[fname] || url;
+    });
+    return { manager: manager, revoke: function(){
+      setTimeout(function(){ blobUrls.forEach(function(u){ try{ URL.revokeObjectURL(u); }catch(err){ /* yoksay */ } }); }, 10000);
+    } };
+  }
+
+  async function extractGltfMeshesFromBlob(blob, THREE, extraFiles){
     var GLTFLoader = (await import('three/addons/loaders/GLTFLoader.js')).GLTFLoader;
     var buf = await blob.arrayBuffer();
-    var loader = new GLTFLoader();
+    var lm = bimGltfLoadingManagerFor(THREE, extraFiles);
+    var loader = new GLTFLoader(lm.manager || undefined);
     var gltf = await new Promise(function(resolve, reject){ loader.parse(buf, '', resolve, reject); });
+    lm.revoke();
     var root = gltf.scene || gltf.scenes[0];
     root.updateMatrixWorld(true);
     var meshes = [];
@@ -12643,7 +12826,7 @@
     var meshes = (rec.format === 'ifc')
       ? await extractIfcMeshesFromBlob(rec.blob, THREE)
       : (rec.format === 'gltf' || rec.format === 'glb')
-        ? await extractGltfMeshesFromBlob(rec.blob, THREE)
+        ? await extractGltfMeshesFromBlob(rec.blob, THREE, rec.extraFiles)
         : null;
     if (!meshes) return null;
     return centerMeshesIntoGroup(meshes, THREE);
@@ -12699,6 +12882,11 @@
           return l.id === id && (l.sourceFormat === 'ifc' || l.sourceFormat === 'gltf' || l.sourceFormat === 'glb') && l.mapId === activeMapId && l.visible !== false;
         });
         if (!centeredGroup || !stillWanted){ delete ifcMeshCache[id]; return; }
+        // İlk yükleme: model sahnedeki yakın binaların ortalama kat
+        // yüksekliğine göre otomatik ölçeklenir (bkz. autoFitBimScale) —
+        // positionGroupAtAnchor'DAN ÖNCE, lyr.bimAnchor.scale bu çağrıyı
+        // etkileyecek şekilde güncellenmiş olmalı.
+        autoFitBimScale(lyr, centeredGroup, THREE);
         // TEK seviyeli hiyerarşi: centeredGroup'un kendisine (ekstra bir
         // sarmalayıcı grup OLMADAN) doğrudan coğrafi konum/ölçek uygulanır —
         // bkz. loadIfcMeshGroupForMap'teki hassasiyet notu.
@@ -12706,12 +12894,395 @@
         ifcMeshCache[id] = centeredGroup;
         scene.add(centeredGroup);
         map.triggerRepaint();
+        if (typeof updateBimHud === 'function') updateBimHud();
       }).catch(function(err){
         console.error('Harita IFC mesh\'i yüklenemedi (' + lyr.name + '):', err);
         delete ifcMeshCache[id];
       });
     });
     if (changed) map.triggerRepaint();
+  }
+
+  // =========================================================================
+  // "Model Üzerinde Halka" HUD — panelsiz 3B model yerleştirme kontrolü.
+  // Haritaya eklenen bir IFC/GLTF/GLB katmanı Katmanlar ağacında seçiliyken
+  // (activeLayerId, bkz. renderLayerTree sonundaki updateBimHud() çağrısı —
+  // updateLayerTransformToolbar ile AYNI hook deseni) modelin ekran
+  // izdüşümü merkezine sabitlenmiş bu HUD görünür: döndürme halkası + yan
+  // tutamaç şeridi (ölçek/taşı/yükselt/sıfırla) + alt değer çipi. Tüm
+  // değişiklikler lyr.bimAnchor'a (positionGroupAtAnchor'ın { lng, lat,
+  // alt, heading, pitch, roll, scale } sözleşmesi) doğrudan yazılır ve
+  // syncIfcMeshLayer() ile ANINDA (ön izlemesiz) uygulanır.
+  // =========================================================================
+  var bimHudState = null;       // { layerId } | null — görünürken dolu
+  var bimHudPitchRollOpen = false;
+  var bimHudUndoStack = [];     // [{ layerId, anchor }] — global undoStack SADECE
+                                 // features'ı kapsadığından (bkz. pushHistory), HUD
+                                 // sürükleme jestleri için kendi hafif geri-alma yığını.
+  var bimHudEl = null, bimHudRingEl = null, bimHudArmEl = null, bimHudChipEl = null, bimHudPitchRollEl = null;
+
+  function bimHudSnapshotUndo(lyr){
+    bimHudUndoStack.push({ layerId: lyr.id, anchor: JSON.parse(JSON.stringify(lyr.bimAnchor)) });
+    if (bimHudUndoStack.length > 30) bimHudUndoStack.shift();
+  }
+  function bimHudUndo(){
+    var entry = bimHudUndoStack.pop();
+    if (!entry) return;
+    var lyr = getLayer(entry.layerId);
+    if (!lyr) return;
+    lyr.bimAnchor = entry.anchor;
+    applyBimHudTransform(lyr, false);
+  }
+
+  function ensureBimHudDom(){
+    if (bimHudEl) return;
+    var mapEl = document.getElementById('map');
+    bimHudEl = document.createElement('div');
+    bimHudEl.id = 'bimHud';
+    bimHudEl.className = 'hidden';
+    bimHudEl.innerHTML =
+      '<div class="bim-hud-ring" title="Sürükleyerek döndür (Shift: 15° kademe)">' +
+        '<div class="bim-hud-ring-inner"></div>' +
+        '<div class="bim-hud-arm"><div class="bim-hud-handle"></div></div>' +
+      '</div>' +
+      '<div class="bim-hud-sidebar">' +
+        '<button type="button" class="bim-hud-btn bim-hud-scale" title="Sürükleyerek ölçekle (çift tık: 1.00)">⤢</button>' +
+        '<button type="button" class="bim-hud-btn bim-hud-move" title="Sürükleyerek taşı">✥</button>' +
+        '<button type="button" class="bim-hud-btn bim-hud-height" title="Sürükleyerek yükselt (çift tık: zemine otur)">⇅</button>' +
+        '<button type="button" class="bim-hud-btn bim-hud-reset" title="Sıfırla (uzun bas: eğim/yatış)">⟲</button>' +
+      '</div>' +
+      '<div class="bim-hud-pitchroll hidden">' +
+        '<label>Pitch <span class="pr-val" data-k="pitch">0°</span></label>' +
+        '<input type="range" class="pr-slider" data-k="pitch" min="-45" max="45" step="1" value="0">' +
+        '<label>Roll <span class="pr-val" data-k="roll">0°</span></label>' +
+        '<input type="range" class="pr-slider" data-k="roll" min="-45" max="45" step="1" value="0">' +
+      '</div>';
+    mapEl.appendChild(bimHudEl);
+    // Value chip #bimHud'un İÇİNE DEĞİL, #map'e KARDEŞ olarak eklenir:
+    // #bimHud'a ring'i konumlamak için verilen transform:translate(px,py)
+    // (bkz. positionBimHud), CSS'e göre transformlu bir atanın İÇİNDEKİ
+    // position:fixed öğeleri için o atayı containing block yapar — yani
+    // chip'in "bottom:22px;left:50%" kuralı viewport yerine #bimHud'un
+    // KENDİ konumuna göre hesaplanır ve chip ring'in yanına yapışık kalırdı
+    // (kullanıcı ekran görüntüsüyle bildirdi). Kardeş yapılınca #bimHud'un
+    // transformundan ETKİLENMEZ, gerçekten ekranın altında sabit kalır.
+    bimHudChipEl = document.createElement('div');
+    bimHudChipEl.className = 'bim-hud-chip hidden';
+    bimHudChipEl.id = 'bimHudChip';
+    mapEl.appendChild(bimHudChipEl);
+    bimHudRingEl = bimHudEl.querySelector('.bim-hud-ring');
+    bimHudArmEl = bimHudEl.querySelector('.bim-hud-arm');
+    bimHudPitchRollEl = bimHudEl.querySelector('.bim-hud-pitchroll');
+    wireBimHudInteractions();
+  }
+
+  // Aktif katman değiştiğinde/harita hareket ettiğinde/model senkronize
+  // olduğunda çağrılır (bkz. renderLayerTree sonu, map 'move'/'zoom',
+  // syncIfcMeshLayer sonrası) — HUD'u gösterir/gizler ve konumunu günceller.
+  function updateBimHud(){
+    ensureBimHudDom();
+    var lyr = getLayer(activeLayerId);
+    var show = lyr && lyr.mapId === activeMapId && lyr.bimAnchor &&
+      (lyr.sourceFormat === 'ifc' || lyr.sourceFormat === 'gltf' || lyr.sourceFormat === 'glb');
+    if (!show){
+      if (bimHudState) hideBimHud();
+      return;
+    }
+    if (!bimHudState || bimHudState.layerId !== lyr.id){
+      bimHudState = { layerId: lyr.id };
+      bimHudPitchRollOpen = false;
+      bimHudPitchRollEl.classList.add('hidden');
+    }
+    // ⟲ Sıfırla'nın "konum ilk eklenme noktası"na dönebilmesi için, bu
+    // katman için HUD'un GÖRDÜĞÜ İLK konumu (import anındaki harita
+    // merkezi) bir kere saklar — sonraki taşımalar bunu DEĞİŞTİRMEZ.
+    if (lyr.bimAnchor._initialLng === undefined){
+      lyr.bimAnchor._initialLng = lyr.bimAnchor.lng;
+      lyr.bimAnchor._initialLat = lyr.bimAnchor.lat;
+    }
+    bimHudEl.classList.remove('hidden');
+    if (bimHudChipEl) bimHudChipEl.classList.remove('hidden');
+    positionBimHud();
+    refreshBimHudChip();
+  }
+  function hideBimHud(){
+    bimHudState = null;
+    if (bimHudEl) bimHudEl.classList.add('hidden');
+    if (bimHudChipEl) bimHudChipEl.classList.add('hidden');
+  }
+  function positionBimHud(){
+    if (!bimHudState || !bimHudEl) return;
+    var lyr = getLayer(bimHudState.layerId);
+    if (!lyr || !lyr.bimAnchor) return;
+    var px = map.project([lyr.bimAnchor.lng, lyr.bimAnchor.lat]);
+    bimHudEl.style.transform = 'translate(' + px.x + 'px,' + px.y + 'px)';
+    var headingDeg = (lyr.bimAnchor.heading || 0) * 180 / Math.PI;
+    bimHudArmEl.style.transform = 'rotate(' + (headingDeg - 90) + 'deg)';
+  }
+  function refreshBimHudChip(){
+    if (!bimHudState || !bimHudChipEl) return;
+    var lyr = getLayer(bimHudState.layerId);
+    if (!lyr || !lyr.bimAnchor) return;
+    var a = lyr.bimAnchor;
+    var headingDeg = Math.round((a.heading || 0) * 180 / Math.PI);
+    bimHudChipEl.innerHTML =
+      '<span>H ' + headingDeg + '°</span><span class="sep">|</span>' +
+      '<span>S ' + (a.scale || 1).toFixed(2) + '</span><span class="sep">|</span>' +
+      '<span>Z ' + (a.alt || 0).toFixed(2) + 'm</span><span class="sep">|</span>' +
+      '<span>' + a.lat.toFixed(6) + ', ' + a.lng.toFixed(6) + '</span>';
+  }
+  // bimAnchor değiştikten sonra ortak uygulama noktası: gerçek mesh'i
+  // yeniden konumlandırır (syncIfcMeshLayer, senkron — mesh zaten
+  // yüklüyse yalnızca positionGroupAtAnchor tekrar çağrılır, yeniden
+  // parse GEREKMEZ), HUD'u ve değer çipini günceller, tek bir
+  // onTransformChange olayı yayınlar (bkz. window.onBimTransformChange).
+  function applyBimHudTransform(lyr, snapshotForUndo){
+    if (snapshotForUndo) bimHudSnapshotUndo(lyr);
+    syncIfcMeshLayer();
+    positionBimHud();
+    refreshBimHudChip();
+    map.triggerRepaint();
+    if (typeof window.onBimTransformChange === 'function'){
+      var a = lyr.bimAnchor;
+      window.onBimTransformChange({
+        layerId: lyr.id, lon: a.lng, lat: a.lat, alt: a.alt || 0,
+        heading: a.heading || 0, pitch: a.pitch || 0, roll: a.roll || 0, scale: a.scale || 1
+      });
+    }
+  }
+
+  function clamp(v, lo, hi){ return Math.min(hi, Math.max(lo, v)); }
+
+  function wireBimHudInteractions(){
+    // ---- Döndürme halkası ----
+    var headingDragBase = null;
+    bimHudRingEl.addEventListener('pointerdown', function(e){
+      if (e.button !== 0) return;
+      var lyr = getLayer(bimHudState && bimHudState.layerId);
+      if (!lyr) return;
+      e.preventDefault();
+      bimHudRingEl.classList.add('dragging');
+      map.dragPan.disable(); map.dragRotate.disable();
+      bimHudSnapshotUndo(lyr);
+      function onMove(ev){
+        var rect = bimHudRingEl.getBoundingClientRect();
+        var cx = rect.left + rect.width/2, cy = rect.top + rect.height/2;
+        var ang = Math.atan2(ev.clientY - cy, ev.clientX - cx) + Math.PI/2;
+        ang = Math.atan2(Math.sin(ang), Math.cos(ang));
+        if (ev.shiftKey){
+          var step = Math.PI/12;
+          ang = Math.round(ang/step)*step;
+        }
+        lyr.bimAnchor.heading = ang;
+        applyBimHudTransform(lyr, false);
+      }
+      function onUp(){
+        bimHudRingEl.classList.remove('dragging');
+        map.dragPan.enable(); map.dragRotate.enable();
+        window.removeEventListener('pointermove', onMove);
+        window.removeEventListener('pointerup', onUp);
+      }
+      window.addEventListener('pointermove', onMove);
+      window.addEventListener('pointerup', onUp);
+    });
+    bimHudRingEl.addEventListener('contextmenu', function(e){
+      e.preventDefault();
+      toggleBimHudPitchRoll();
+    });
+
+    // ---- Ölçek tutamacı: yatay sürükleme, 1px = 0.01 ----
+    var scaleBtn = bimHudEl.querySelector('.bim-hud-scale');
+    scaleBtn.addEventListener('pointerdown', function(e){
+      if (e.button !== 0) return;
+      var lyr = getLayer(bimHudState && bimHudState.layerId);
+      if (!lyr) return;
+      e.preventDefault(); e.stopPropagation();
+      bimHudSnapshotUndo(lyr);
+      var startX = e.clientX, startScale = lyr.bimAnchor.scale || 1;
+      function onMove(ev){
+        lyr.bimAnchor.scale = clamp(startScale + (ev.clientX - startX) * 0.01, 0.10, 4.00);
+        applyBimHudTransform(lyr, false);
+      }
+      function onUp(){
+        window.removeEventListener('pointermove', onMove);
+        window.removeEventListener('pointerup', onUp);
+      }
+      window.addEventListener('pointermove', onMove);
+      window.addEventListener('pointerup', onUp);
+    });
+    scaleBtn.addEventListener('dblclick', function(e){
+      e.stopPropagation();
+      var lyr = getLayer(bimHudState && bimHudState.layerId);
+      if (!lyr) return;
+      bimHudSnapshotUndo(lyr);
+      lyr.bimAnchor.scale = 1;
+      applyBimHudTransform(lyr, false);
+    });
+
+    // ---- Taşı tutamacı: serbest sürükleme, ekran deltası harita düzlemine izdüşürülür ----
+    var moveBtn = bimHudEl.querySelector('.bim-hud-move');
+    moveBtn.addEventListener('pointerdown', function(e){
+      if (e.button !== 0) return;
+      var lyr = getLayer(bimHudState && bimHudState.layerId);
+      if (!lyr) return;
+      e.preventDefault(); e.stopPropagation();
+      bimHudSnapshotUndo(lyr);
+      var startPx = map.project([lyr.bimAnchor.lng, lyr.bimAnchor.lat]);
+      var startClientX = e.clientX, startClientY = e.clientY;
+      function onMove(ev){
+        var targetPx = { x: startPx.x + (ev.clientX - startClientX), y: startPx.y + (ev.clientY - startClientY) };
+        var ll = map.unproject(targetPx);
+        lyr.bimAnchor.lng = ll.lng; lyr.bimAnchor.lat = ll.lat;
+        applyBimHudTransform(lyr, false);
+      }
+      function onUp(){
+        window.removeEventListener('pointermove', onMove);
+        window.removeEventListener('pointerup', onUp);
+      }
+      window.addEventListener('pointermove', onMove);
+      window.addEventListener('pointerup', onUp);
+    });
+
+    // ---- Yükseklik tutamacı: dikey sürükleme, yukarı = artış, 1px ≈ 0.08m ----
+    var heightBtn = bimHudEl.querySelector('.bim-hud-height');
+    heightBtn.addEventListener('pointerdown', function(e){
+      if (e.button !== 0) return;
+      var lyr = getLayer(bimHudState && bimHudState.layerId);
+      if (!lyr) return;
+      e.preventDefault(); e.stopPropagation();
+      bimHudSnapshotUndo(lyr);
+      var startY = e.clientY, startAlt = lyr.bimAnchor.alt || 0;
+      function onMove(ev){
+        lyr.bimAnchor.alt = clamp(startAlt - (ev.clientY - startY) * 0.08, -20, 80);
+        applyBimHudTransform(lyr, false);
+      }
+      function onUp(){
+        window.removeEventListener('pointermove', onMove);
+        window.removeEventListener('pointerup', onUp);
+      }
+      window.addEventListener('pointermove', onMove);
+      window.addEventListener('pointerup', onUp);
+    });
+    heightBtn.addEventListener('dblclick', function(e){
+      e.stopPropagation();
+      var lyr = getLayer(bimHudState && bimHudState.layerId);
+      if (!lyr) return;
+      bimHudSnapshotUndo(lyr);
+      lyr.bimAnchor.alt = 0;
+      applyBimHudTransform(lyr, false);
+    });
+
+    // ---- Sıfırla: tek tık = tüm dönüşümü sıfırla · uzun bas = eğim/yatış paneli ----
+    var resetBtn = bimHudEl.querySelector('.bim-hud-reset');
+    var resetPressTimer = null, resetLongPressed = false;
+    resetBtn.addEventListener('pointerdown', function(e){
+      if (e.button !== 0) return;
+      e.stopPropagation();
+      resetLongPressed = false;
+      resetPressTimer = setTimeout(function(){
+        resetLongPressed = true;
+        toggleBimHudPitchRoll();
+      }, 550);
+    });
+    resetBtn.addEventListener('pointerup', function(e){
+      e.stopPropagation();
+      clearTimeout(resetPressTimer);
+      if (resetLongPressed) return;
+      var lyr = getLayer(bimHudState && bimHudState.layerId);
+      if (!lyr) return;
+      bimHudSnapshotUndo(lyr);
+      lyr.bimAnchor.heading = 0; lyr.bimAnchor.pitch = 0; lyr.bimAnchor.roll = 0;
+      lyr.bimAnchor.scale = 1; lyr.bimAnchor.alt = 0;
+      if (lyr.bimAnchor._initialLng !== undefined){
+        lyr.bimAnchor.lng = lyr.bimAnchor._initialLng;
+        lyr.bimAnchor.lat = lyr.bimAnchor._initialLat;
+      }
+      applyBimHudTransform(lyr, false);
+      updatePitchRollSliders(lyr);
+    });
+    resetBtn.addEventListener('pointerleave', function(){ clearTimeout(resetPressTimer); });
+
+    // ---- Pitch/Roll mini kaydırıcılar ----
+    bimHudPitchRollEl.querySelectorAll('.pr-slider').forEach(function(slider){
+      slider.addEventListener('pointerdown', function(e){ e.stopPropagation(); });
+      slider.addEventListener('input', function(){
+        var lyr = getLayer(bimHudState && bimHudState.layerId);
+        if (!lyr) return;
+        var k = slider.getAttribute('data-k');
+        var deg = parseFloat(slider.value) || 0;
+        lyr.bimAnchor[k] = deg * Math.PI / 180;
+        bimHudPitchRollEl.querySelector('.pr-val[data-k="' + k + '"]').textContent = Math.round(deg) + '°';
+        applyBimHudTransform(lyr, false);
+      });
+    });
+
+    // ---- Model doğrudan sürüklenirse de Taşı ile AYNI davranış ----
+    bimHudRingEl.addEventListener('dblclick', function(e){ e.stopPropagation(); });
+
+    // ---- Esc = HUD'u kapat · Enter = uygula (canlı zaten uygulanıyor,
+    // sadece kapatır) · Ctrl+Z = HUD'a özel geri alma ----
+    window.addEventListener('keydown', function(e){
+      if (!bimHudState) return;
+      if (e.key === 'Escape'){ hideBimHud(); }
+      else if (e.key === 'Enter'){ hideBimHud(); }
+      else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z'){
+        e.preventDefault();
+        bimHudUndo();
+      }
+    });
+
+    map.on('move', positionBimHud);
+    map.on('zoom', positionBimHud);
+    map.on('pitch', positionBimHud);
+    map.on('rotate', positionBimHud);
+  }
+  function toggleBimHudPitchRoll(){
+    if (!bimHudState) return;
+    bimHudPitchRollOpen = !bimHudPitchRollOpen;
+    bimHudPitchRollEl.classList.toggle('hidden', !bimHudPitchRollOpen);
+    var lyr = getLayer(bimHudState.layerId);
+    if (lyr) updatePitchRollSliders(lyr);
+  }
+  function updatePitchRollSliders(lyr){
+    if (!lyr || !lyr.bimAnchor) return;
+    ['pitch','roll'].forEach(function(k){
+      var deg = Math.round((lyr.bimAnchor[k] || 0) * 180 / Math.PI);
+      var slider = bimHudPitchRollEl.querySelector('.pr-slider[data-k="' + k + '"]');
+      var val = bimHudPitchRollEl.querySelector('.pr-val[data-k="' + k + '"]');
+      if (slider) slider.value = deg;
+      if (val) val.textContent = deg + '°';
+    });
+  }
+
+  // İlk eklemede: model, sahnedeki mevcut 3B binaların ortalama kat
+  // yüksekliğine göre otomatik ölçeklenir (auto-fit) — syncIfcMeshLayer'ın
+  // mesh'i İLK KEZ yüklediği anda (bkz. çağrı noktası, loadIfcMeshGroupForMap
+  // .then içinde) bir kerelik çalışır; kullanıcı daha sonra HUD'daki ⤢ ile
+  // bu değeri elle düzeltebilir.
+  function averageNearbyFloorHeight(lng, lat){
+    var near = features.filter(function(f){
+      if (!f.properties || !f.properties.extrude) return false;
+      try{
+        var c = turf.centroid(f).geometry.coordinates;
+        return Math.hypot(c[0]-lng, c[1]-lat) < 0.01; // ~1km
+      }catch(e){ return false; }
+    });
+    if (!near.length) return 3;
+    var sum = 0;
+    near.forEach(function(f){
+      var floors = f.properties.floors || 1;
+      sum += f.properties.floorHeight || ((f.properties.height || 30) / floors);
+    });
+    return sum / near.length;
+  }
+  function autoFitBimScale(lyr, centeredGroup, THREE){
+    if (!lyr.bimAnchor || lyr.bimAnchor._autoFitDone) return;
+    lyr.bimAnchor._autoFitDone = true;
+    var box = new THREE.Box3().setFromObject(centeredGroup);
+    var rawHeight = box.max.y - box.min.y; // BIM biriminde (scale=1 varsayımıyla), bkz. centerMeshesIntoGroup (Y tabanlı)
+    if (!(rawHeight > 0)) return;
+    var avgFloorH = averageNearbyFloorHeight(lyr.bimAnchor.lng, lyr.bimAnchor.lat);
+    lyr.bimAnchor.scale = clamp(avgFloorH / rawHeight, 0.10, 4.00);
   }
 
   // =========================================================================
@@ -13246,7 +13817,14 @@
 
   function setSplitCount(n){
     currentSplitCount = n;
-    document.getElementById('mapGridWrapper').className = 'split-' + n;
+    var gridWrapper = document.getElementById('mapGridWrapper');
+    gridWrapper.className = 'split-' + n;
+    // Bölme sayısı her değiştiğinde oranlar 1:1'e (eşit) sıfırlanır — kullanıcı
+    // isterse dividers'ı sürükleyerek yeniden ayarlar (bkz. wireSplitDividers).
+    gridWrapper.style.setProperty('--split-col', '1fr');
+    gridWrapper.style.setProperty('--split-col2', '1fr');
+    gridWrapper.style.setProperty('--split-row', '1fr');
+    gridWrapper.style.setProperty('--split-row2', '1fr');
     [2,3,4].forEach(function(paneNum){
       var el = document.getElementById('mapPane' + paneNum);
       var shouldShow = paneNum <= n;
@@ -13267,6 +13845,53 @@
     document.getElementById('statusSplitViewBtn').classList.toggle('active', n > 1);
     document.getElementById('statusSplitViewCount').textContent = n > 1 ? String(n) : '';
   }
+
+  // Bölünmüş Görünüm ayırıcıları (splitDividerV/H) — sürükleyerek bölme
+  // oranlarını değiştirir. Oranlar --split-col/--split-col2 (fr çarpanı,
+  // calc(var(--split-col) * 1fr) ile grid-template-columns/rows'a bağlı,
+  // bkz. #mapGridWrapper CSS) üzerinden CSS'e yazılır; MapLibre kendi
+  // ResizeObserver'ıyla konteyner boyutu değiştikçe TÜM haritaları (ana +
+  // bölme haritaları) otomatik yeniden çizer, ekstra .resize() çağrısı
+  // gerekmez (sürükleme bitince ana harita için yine de garanti amaçlı
+  // çağrılıyor).
+  function wireSplitDividers(){
+    var gridWrapper = document.getElementById('mapGridWrapper');
+    function wireDivider(el, axis, prop, prop2){
+      var dragging = false;
+      el.addEventListener('pointerdown', function(e){
+        if (e.button !== undefined && e.button !== 0) return;
+        dragging = true;
+        el.classList.add('dragging');
+        document.body.style.userSelect = 'none';
+        e.preventDefault();
+      });
+      window.addEventListener('pointermove', function(e){
+        if (!dragging) return;
+        var rect = gridWrapper.getBoundingClientRect();
+        var frac = axis === 'v'
+          ? (e.clientX - rect.left) / rect.width
+          : (e.clientY - rect.top) / rect.height;
+        frac = clamp(frac, 0.12, 0.88);
+        gridWrapper.style.setProperty(prop, (frac * 100).toFixed(2) + 'fr');
+        gridWrapper.style.setProperty(prop2, ((1 - frac) * 100).toFixed(2) + 'fr');
+      });
+      window.addEventListener('pointerup', function(){
+        if (!dragging) return;
+        dragging = false;
+        el.classList.remove('dragging');
+        document.body.style.userSelect = '';
+        setTimeout(function(){ map.resize(); }, 30);
+      });
+      el.addEventListener('dblclick', function(){
+        gridWrapper.style.setProperty(prop, '1fr');
+        gridWrapper.style.setProperty(prop2, '1fr');
+        setTimeout(function(){ map.resize(); }, 30);
+      });
+    }
+    wireDivider(document.getElementById('splitDividerV'), 'v', '--split-col', '--split-col2');
+    wireDivider(document.getElementById('splitDividerH'), 'h', '--split-row', '--split-row2');
+  }
+  wireSplitDividers();
 
   document.getElementById('statusSplitViewBtn').addEventListener('click', function(e){
     e.stopPropagation();
@@ -13406,13 +14031,15 @@
   }
 
   // ---- GLTF/GLB (three.js GLTFLoader) -------------------------------------
-  async function loadGltfIntoViewer(blob){
+  async function loadGltfIntoViewer(blob, extraFiles){
     var THREE = bimViewer.THREE;
     var GLTFLoader = (await import('three/addons/loaders/GLTFLoader.js')).GLTFLoader;
     bimViewer.format = 'gltf';
     var buf = await blob.arrayBuffer();
-    var loader = new GLTFLoader();
+    var lm = bimGltfLoadingManagerFor(THREE, extraFiles);
+    var loader = new GLTFLoader(lm.manager || undefined);
     var gltf = await new Promise(function(resolve, reject){ loader.parse(buf, '', resolve, reject); });
+    lm.revoke();
     var root = gltf.scene || gltf.scenes[0];
     var idCounter = 0;
     root.traverse(function(obj){
