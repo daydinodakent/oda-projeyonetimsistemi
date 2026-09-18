@@ -573,12 +573,20 @@
   .saha-filmstrip-item.active .saha-filmstrip-thumb-wrap{border-color:var(--amber)!important;box-shadow:0 0 0 1px var(--amber);}
   .saha-filmstrip-thumb-wrap img{width:100%;height:100%;object-fit:cover;display:block;}
   .saha-filmstrip-name{font-size:9.5px;color:var(--text-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:64px;}
+  /* Kullanıcı isteğiyle akışın (flex) bir parçası olmaktan çıkarılıp
+     kartın sağ üst köşesine, dışarı taşan bir rozet gibi sabitlendi
+     (position:absolute — #sahaFilmstrip zaten position:absolute olduğundan
+     ek bir containing-block ayarına gerek yok). Negatif top/right ile
+     kartın üst kenarının DIŞINA taşırılır — ‹/› okları kartın içinde,
+     ortada kaldığından çakışma olmaz. */
   .saha-filmstrip-close{
-    flex:0 0 auto;width:22px;height:22px;background:transparent;border:none;color:var(--text-dim);
-    cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:2px;
+    position:absolute;top:-9px;right:-9px;width:20px;height:20px;
+    background:var(--bg-panel-raise);border:1px solid var(--line);color:var(--text-dim);
+    cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:50%;
+    box-shadow:0 2px 6px rgba(0,0,0,.4);z-index:1;
   }
-  .saha-filmstrip-close svg{width:14px;height:14px;}
-  .saha-filmstrip-close:hover{color:var(--text);background:var(--bg-panel-raise);}
+  .saha-filmstrip-close svg{width:12px;height:12px;}
+  .saha-filmstrip-close:hover{color:var(--text);border-color:var(--teal);}
 
   /* ---------- Saha fotoğrafı tam ekran görüntüleyici ---------- */
   #sahaLightbox{
@@ -7635,6 +7643,7 @@
   var FOLDER_ICON_OPEN = '<svg viewBox="0 0 24 24"><path fill="#e8a300" stroke="#c98a00" stroke-width="1" d="M3 7.5A1.5 1.5 0 0 1 4.5 6h5.17a1.5 1.5 0 0 1 1.06.44L12.06 7.7A1.5 1.5 0 0 0 13.12 8H19.5A1.5 1.5 0 0 1 21 9.5v.5H6.2a1.5 1.5 0 0 0-1.44 1.09l-1.9 6.7A1.5 1.5 0 0 1 1 17.4V7.5z"/><path fill="#ffc72c" stroke="#c98a00" stroke-width="1" stroke-linejoin="round" d="M6.2 11.5h16.1a1 1 0 0 1 .96 1.28l-1.72 6A1.5 1.5 0 0 1 20.11 20H4.5a1.5 1.5 0 0 1-1.44-1.91l1.72-6a1.5 1.5 0 0 1 1.44-1.09z"/></svg>';
   function folderIconFor(folder){ return (folder.expanded !== false) ? FOLDER_ICON_OPEN : FOLDER_ICON_CLOSED; }
   var RASTER_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="1"/><circle cx="9" cy="10" r="1.4"/><path d="M21 16l-5-5-4 4-3-3-6 5"/></svg>';
+  var ADD_CONTENT_TILES3D_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2 3 7l9 5 9-5-9-5z"/><path d="M3 12l9 5 9-5"/><path d="M3 17l9 5 9-5"/></svg>';
 
   function collectDescendantLayerIds(folderId){
     var ids = layers.filter(function(l){ return l.mapId === activeMapId && (l.folderId || null) === folderId; }).map(function(l){ return l.id; });
@@ -8686,10 +8695,46 @@
     return row;
   }
 
+  // 3D Tiles (bkz. load3dTiles) — kullanıcı isteğiyle artık Katmanlar
+  // ağacında da görünüyor (öncesinde active3dTilesLayer'ın tek karşılığı
+  // durum çubuğundaki toggle butonuydu, ağaçta HİÇ yer almıyordu).
+  // buildRasterRow ile AYNI desen: görünürlük checkbox'ı render() içindeki
+  // guard'la eşleşir (bkz. render fonksiyonu — custom WebGL katmanların
+  // standart 'visibility' layout property'si YOK, bu yüzden elle kontrol
+  // edilir), sağ tık ile yeniden adlandır/sil.
+  function buildTiles3dRow(t, depth){
+    var row = document.createElement('div');
+    row.className = 'layer-row';
+    row.style.marginLeft = (depth * 14) + 'px';
+    row.innerHTML =
+      '<span class="tree-toggle-spacer"></span>' +
+      '<input type="checkbox" class="tiles3d-check" ' + (t.visible !== false ? 'checked' : '') + '>' +
+      '<span class="layer-geom-icon">' + ADD_CONTENT_TILES3D_ICON + '</span>' +
+      '<span class="layer-name">' + (t.name || '3D Tiles').replace(/</g,'&lt;') + '</span>';
+    row.querySelector('.tiles3d-check').addEventListener('change', function(e){
+      t.visible = e.target.checked;
+      map.triggerRepaint();
+    });
+    row.addEventListener('contextmenu', function(e){
+      e.preventDefault(); e.stopPropagation();
+      showTreeContextMenu(e.clientX, e.clientY, [
+        { label:'Yeniden Adlandır', action:async function(){ var n = await customPrompt('Ad:', t.name || '3D Tiles'); if (n && n.trim()){ t.name = n.trim(); renderLayerTree(); } } },
+        { label:'Sil', danger:true, action:async function(){
+          if (!(await customConfirm('3D Tiles katmanı silinsin mi?', { title:'3D Tiles Sil', okLabel:'Sil', danger:true }))) return;
+          remove3dTilesLayer();
+          renderLayerTree();
+        } }
+      ]);
+    });
+    return row;
+  }
+
   function renderTreeLevel(container, parentFolderId, depth){
     var subFolders = folders.filter(function(f){ return f.mapId === activeMapId && (f.parentFolderId || null) === (parentFolderId || null); });
     var subLayers = layers.filter(function(l){ return l.mapId === activeMapId && (l.folderId || null) === (parentFolderId || null); });
     var subRasters = rasterOverlays.filter(function(r){ return (r.mapId || activeMapId) === activeMapId && (r.folderId || null) === (parentFolderId || null); });
+    var subTiles3d = (active3dTilesLayer && (active3dTilesLayer.mapId || activeMapId) === activeMapId && (active3dTilesLayer.folderId || null) === (parentFolderId || null))
+      ? [active3dTilesLayer] : [];
 
     subFolders.forEach(function(folder){
       container.appendChild(buildFolderRow(folder, depth));
@@ -8697,6 +8742,7 @@
     });
     subLayers.forEach(function(lyr){ container.appendChild(buildLayerRow(lyr, depth)); });
     subRasters.forEach(function(r){ container.appendChild(buildRasterRow(r, depth)); });
+    subTiles3d.forEach(function(t){ container.appendChild(buildTiles3dRow(t, depth)); });
   }
 
   function renderLayerTree(){
@@ -8817,7 +8863,7 @@
       { label:'XYZ Tile Katmanı Ekle', hint:"{z}/{x}/{y} desenli bir tile sunucusu URL'si ile yeni bir altlık", icon:'globe', triggerId:'btnAddXyzLayer',
         sample:{ kind:'url', example:'https://tile.openstreetmap.org/{z}/{x}/{y}.png', desc:'OpenStreetMap açık raster tile sunucusu — deneme amaçlı kullanılabilir.' } },
       { label:'3D Tiles', hint:"Cesium tileset.json URL'si ile akışlı/LOD'lu karo seti ekle", icon:'tiles3d', triggerId:'btn3dTilesImport',
-        sample:{ kind:'url', example:'https://raw.githubusercontent.com/CesiumGS/3d-tiles-samples/main/tilesets/TilesetWithDiscreteLOD/tileset.json', desc:'CesiumGS açık kaynak 3d-tiles-samples deposundan genel bir örnek tileset.' } }
+        sample:{ kind:'url', example:'https://raw.githubusercontent.com/CesiumGS/3d-tiles-samples/main/1.0/TilesetWithDiscreteLOD/tileset.json', desc:'CesiumGS açık kaynak 3d-tiles-samples deposundan coğrafi konumlu (ejder modeli), LOD kademeli bir örnek tileset.' } }
     ]}
   ];
   // anchorEl — popover'ı hangi butonun yanında/altında/üstünde açacağını
@@ -13660,23 +13706,26 @@
         syncIfcMeshLayer();
       },
       // MapLibre GL JS 5.x'te CustomLayerInterface.render()'ın ikinci parametresi
-      // ARTIK düz bir 16 sayılık matris DİZİSİ değil (eski Mapbox/MapLibre 3B
-      // model örneklerinde ve <4.x sürümlerde geçerliydi) — çoklu projeksiyon
-      // (globe vb.) desteği için args.modelViewProjectionMatrix/.projectionMatrix/
-      // .defaultProjectionData alanları içeren bir NESNE. Canlı testte
-      // doğrulandı: args.modelViewProjectionMatrix, ham [0,1] Mercator birimi
-      // DEĞİL, "Mercator × worldSize" (worldSize = 512 * 2^zoom, MapLibre'nin
-      // dahili piksel-eşdeğeri uzayı) birimini bekliyor — bu ölçek her zoom'da
-      // değiştiği için HER render() çağrısında yeniden hesaplanır. Bu olmadan
-      // (veya matris değişikliği hiç yapılmadan önce) harita hiçbir hata
-      // vermeden sessizce hiçbir şey çizmiyordu.
+      // ARTIK düz bir 16 sayılık matris DİZİSİ değil — args.modelViewProjectionMatrix/
+      // .projectionMatrix/.defaultProjectionData alanları içeren bir NESNE.
+      // ÖNCEDEN args.modelViewProjectionMatrix, elle hesaplanan bir
+      // worldSize=512*2^zoom ÖLÇEK MATRİSİYLE çarpılıyordu ("Mercator × worldSize"
+      // birimine çevirmek için) — bu yaklaşım DÜŞÜK zoom'larda çalışıyor
+      // GÖRÜNSE de, worldSize zoom arttıkça katlanarak büyüdüğünden (zoom
+      // 20'de ~5.4e8) projeksiyon matrisinin Float32Array'e (three.js TÜM
+      // matrisleri float32 tutar) sıkıştırılmasında ciddi hassasiyet kaybına
+      // yol açıyordu — sonuç: model zoom ~20'den itibaren düz siyah/bozuk
+      // görünüyordu (kullanıcı tarafından bildirildi). args.defaultProjectionData.mainMatrix
+      // — aynı dosyadaki 3D Tiles katmanının (bkz. load3dTiles render()) ZATEN
+      // kullandığı ve HER zoom'da doğru çalışan alan — ham Mercator [0,1]
+      // birimini DOĞRUDAN clip-space'e çevirir, worldSize hack'ine gerek
+      // YOKTUR; outerGroup zaten raw Mercator birimlerinde konumlanıyor
+      // (bkz. positionGroupAtAnchor). Canlı testte doğrulandı: zoom 20+'ta
+      // artık düzgün (bozulmadan) render ediliyor.
       render: function(gl, args){
         if (!ifcMeshLayerCtx) return;
         try{
-          var THREE = ifcMeshLayerCtx.THREE;
-          var worldSize = Math.pow(2, map.getZoom()) * 512;
-          var scaleM = new THREE.Matrix4().makeScale(worldSize, worldSize, worldSize);
-          ifcMeshLayerCtx.camera.projectionMatrix = new THREE.Matrix4().fromArray(args.modelViewProjectionMatrix).multiply(scaleM);
+          ifcMeshLayerCtx.camera.projectionMatrix.fromArray(args.defaultProjectionData.mainMatrix);
           ifcMeshLayerCtx.renderer.resetState();
           ifcMeshLayerCtx.renderer.render(ifcMeshLayerCtx.scene, ifcMeshLayerCtx.camera);
           ifcMeshLayerCtx.renderer.resetState();
@@ -13696,8 +13745,11 @@
   // bu özelliği hiç kullanmazsa hiçbir ek kütüphane indirilmez.
   // Tek seferde en fazla BİR tileset (#btn3dTilesImport toggle: yüklüyken
   // tekrar tıklamak kaldırır/yeni bir URL sorar) — bkz. active3dTilesLayer.
+  // Katmanlar ağacında da görünür (bkz. buildTiles3dRow/renderTreeLevel) —
+  // bu yüzden name/mapId/folderId/visible de taşıyor (rasterOverlays
+  // öğeleriyle AYNI alanlar).
   // =========================================================================
-  var active3dTilesLayer = null; // { id, tiles } | null
+  var active3dTilesLayer = null; // { id, tiles, name, mapId, folderId, visible } | null
 
   // ECEF (Earth-Centered, Earth-Fixed) kartezyen koordinatı WGS84 lng/lat/alt'a
   // çevirir — 3D Tiles tileset'leri (IFC/GLTF'nin aksine) coğrafi olarak
@@ -13724,9 +13776,10 @@
     try{ if (active3dTilesLayer.tiles) active3dTilesLayer.tiles.dispose(); }
     catch(err){ /* yoksay */ }
     active3dTilesLayer = null;
+    if (typeof renderLayerTree === 'function') renderLayerTree();
   }
 
-  async function load3dTiles(url){
+  async function load3dTiles(url, name){
     remove3dTilesLayer();
 
     var THREE = await import('three');
@@ -13827,6 +13880,11 @@
       // kararları için (bkz. tiles.update()) — asıl çizim `camera` ile olur.
       render: function(gl, args){
         if (!camera || !renderer || !scene || !localTransform || !tilesCamera) return;
+        // Katmanlar ağacındaki görünürlük checkbox'ı (bkz. buildTiles3dRow) ve
+        // aktif harita (mapId) — custom WebGL katmanların standart
+        // 'visibility' layout property'si OLMADIĞINDAN elle kontrol edilir.
+        if (!active3dTilesLayer || active3dTilesLayer.visible === false) return;
+        if ((active3dTilesLayer.mapId || activeMapId) !== activeMapId) return;
         try{
           camera.projectionMatrix.fromArray(args.defaultProjectionData.mainMatrix);
           camera.projectionMatrix.multiply(localTransform);
@@ -13851,7 +13909,11 @@
     };
 
     map.addLayer(customLayer);
-    active3dTilesLayer = { id: layerId, tiles: tiles };
+    active3dTilesLayer = {
+      id: layerId, tiles: tiles, name: name || '3D Tiles',
+      mapId: activeMapId, folderId: getDefaultFolderId(activeMapId), visible: true
+    };
+    renderLayerTree();
   }
 
   document.getElementById('btn3dTilesImport').addEventListener('click', async function(){
@@ -13862,8 +13924,10 @@
     }
     var url = await customPrompt('3D Tiles tileset.json URL\'si:', '');
     if (!url || !url.trim()) return;
+    var defaultName = '3D Tiles';
+    try{ defaultName = new URL(url.trim()).hostname || defaultName; }catch(err){ /* yoksay */ }
     try{
-      await load3dTiles(url.trim());
+      await load3dTiles(url.trim(), defaultName);
     }catch(err){
       console.error('3D Tiles yüklenemedi:', err);
       showToast('3D Tiles yüklenemedi: ' + (err && err.message ? err.message : 'bilinmeyen hata'));
