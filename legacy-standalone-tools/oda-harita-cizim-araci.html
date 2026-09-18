@@ -13005,7 +13005,34 @@
   //    yerel Y (dikey) etrafında, yani dikey düzeltmeden sonra dünya Z
   //    (GERÇEK dikey) etrafında dönüş anlamına gelir (bkz. HUD'daki
   //    döndürme halkası). Varsayılan 0.
+  // ÖNCEDEN bu fonksiyon anchor'ı doğrudan outerGroup.position/scale/
+  // quaternion'a yazıyordu. three.js'in Object3D.matrixWorld'ü HER ZAMAN
+  // float32'dir (Matrix4.elements bir Float32Array) — ham Mercator [0,1]
+  // birimindeki (ör. 0.532401921...) MUTLAK konum bu matrise
+  // PAKETLENDİĞİNDE birkaç metrelik bir konum hatasına (jitter) yol
+  // açıyordu. Obje küçüldükçe/zoom arttıkça (özellikle ~zoom 20+) bu sabit
+  // hata göreceli olarak devasalaşıp modeli düz siyah/ezilmiş gösteriyordu
+  // (kullanıcı tarafından bildirildi). Resmi MapLibre "Add a 3D model using
+  // three.js" örneğiyle CANLI KARŞILAŞTIRILARAK doğrulandı: o örnek AYNI
+  // anchor'ı OBJE matrisine DEĞİL, KAMERANIN projeksiyon matrisine
+  // (args.defaultProjectionData.mainMatrix × yerel dönüşüm) ÇARPARAK
+  // uyguluyor ve zoom'dan bağımsız KUSURSUZ render ediyor (test: model
+  // içine girecek kadar yakınlaştırıldı, hiç bozulma yok). Sebep: bu şekilde
+  // GPU'daki shader tek bir (önceden JS double hassasiyetiyle birleştirilmiş)
+  // matrisle TEK bir çarpım yapıyor; obje matrisi kimlik (identity) kalınca
+  // "modelView × projection" olarak İKİ AYRI float32 shader çarpımı
+  // (ikisi de bağımsız yuvarlama hatası biriktiren) devreye hiç girmiyor.
+  // Bu yüzden outerGroup'un KENDİSİ artık taşınmıyor/ölçeklenmiyor/
+  // döndürülmüyor (kimlik kalır) — anchor sadece userData'da saklanır,
+  // asıl dönüşüm HER KAREDE render() içinde (bkz. createIfcMeshMapLayer /
+  // buildBimLocalMatrix) kameranın projeksiyon matrisine çarpılarak uygulanır.
   function positionGroupAtAnchor(outerGroup, anchor, THREE){
+    outerGroup.userData.bimAnchor = anchor;
+  }
+  // positionGroupAtAnchor'ın ESKİDEN outerGroup'a yazdığı hesaplamanın AYNISI
+  // — sadece artık bir Object3D'ye değil, kameranın projeksiyon matrisine
+  // çarpılacak bağımsız bir THREE.Matrix4 döndürüyor (bkz. render()).
+  function buildBimLocalMatrix(anchor, THREE){
     var elevation = 0;
     if (terrainActive){
       var e = map.queryTerrainElevation([anchor.lng, anchor.lat]);
@@ -13013,12 +13040,12 @@
     }
     elevation += (anchor.alt || 0);
     var mercAnchor = maplibregl.MercatorCoordinate.fromLngLat([anchor.lng, anchor.lat], elevation);
-    var metersPerMercatorUnit = mercAnchor.meterInMercatorCoordinateUnits();
-    var s = metersPerMercatorUnit * (anchor.scale || 1);
-    outerGroup.position.set(mercAnchor.x, mercAnchor.y, mercAnchor.z);
-    outerGroup.scale.set(s, -s, s);
+    var s = mercAnchor.meterInMercatorCoordinateUnits() * (anchor.scale || 1);
     var qUser = new THREE.Quaternion().setFromEuler(new THREE.Euler(anchor.pitch || 0, anchor.heading || 0, anchor.roll || 0, 'YXZ'));
-    outerGroup.quaternion.copy(getUpFixQuaternion(THREE)).multiply(qUser);
+    var q = getUpFixQuaternion(THREE).clone().multiply(qUser);
+    var m = new THREE.Matrix4();
+    m.compose(new THREE.Vector3(mercAnchor.x, mercAnchor.y, mercAnchor.z), q, new THREE.Vector3(s, -s, s));
+    return m;
   }
 
   // Bir IFC katmanının orijinal dosyasını (IndexedDB, bkz. getBimFile) okuyup
@@ -13705,30 +13732,41 @@
         ifcMeshLayerCtx = { THREE:THREE, scene:scene, camera:camera, renderer:renderer };
         syncIfcMeshLayer();
       },
-      // MapLibre GL JS 5.x'te CustomLayerInterface.render()'ın ikinci parametresi
-      // ARTIK düz bir 16 sayılık matris DİZİSİ değil — args.modelViewProjectionMatrix/
-      // .projectionMatrix/.defaultProjectionData alanları içeren bir NESNE.
-      // ÖNCEDEN args.modelViewProjectionMatrix, elle hesaplanan bir
-      // worldSize=512*2^zoom ÖLÇEK MATRİSİYLE çarpılıyordu ("Mercator × worldSize"
-      // birimine çevirmek için) — bu yaklaşım DÜŞÜK zoom'larda çalışıyor
-      // GÖRÜNSE de, worldSize zoom arttıkça katlanarak büyüdüğünden (zoom
-      // 20'de ~5.4e8) projeksiyon matrisinin Float32Array'e (three.js TÜM
-      // matrisleri float32 tutar) sıkıştırılmasında ciddi hassasiyet kaybına
-      // yol açıyordu — sonuç: model zoom ~20'den itibaren düz siyah/bozuk
-      // görünüyordu (kullanıcı tarafından bildirildi). args.defaultProjectionData.mainMatrix
-      // — aynı dosyadaki 3D Tiles katmanının (bkz. load3dTiles render()) ZATEN
-      // kullandığı ve HER zoom'da doğru çalışan alan — ham Mercator [0,1]
-      // birimini DOĞRUDAN clip-space'e çevirir, worldSize hack'ine gerek
-      // YOKTUR; outerGroup zaten raw Mercator birimlerinde konumlanıyor
-      // (bkz. positionGroupAtAnchor). Canlı testte doğrulandı: zoom 20+'ta
-      // artık düzgün (bozulmadan) render ediliyor.
+      // Her BIM grubu (userData.bimAnchor taşıyan) KENDİ turuyla çizilir:
+      // kameranın projeksiyon matrisi o grubun anchor'ına göre kurulur
+      // (mainMatrix × buildBimLocalMatrix — resmi MapLibre "Add a 3D model
+      // using three.js" örneğiyle BİREBİR AYNI teknik, bkz.
+      // positionGroupAtAnchor'daki uzun not), sahnedeki DİĞER gruplar o tur
+      // için gizlenir (ışıklar hariç — onlar userData.bimAnchor taşımadığından
+      // her turda görünür kalır), renderer.autoClear=false olduğundan turlar
+      // aynı framebuffer'da BİRİKİR (birbirini silmez). Birden fazla BIM
+      // nesnesi olsa bile (tipik durumda 1-2 tane), ek render() çağrısının
+      // maliyeti ihmal edilebilir.
       render: function(gl, args){
         if (!ifcMeshLayerCtx) return;
         try{
-          ifcMeshLayerCtx.camera.projectionMatrix.fromArray(args.defaultProjectionData.mainMatrix);
-          ifcMeshLayerCtx.renderer.resetState();
-          ifcMeshLayerCtx.renderer.render(ifcMeshLayerCtx.scene, ifcMeshLayerCtx.camera);
-          ifcMeshLayerCtx.renderer.resetState();
+          var THREE = ifcMeshLayerCtx.THREE;
+          var scene = ifcMeshLayerCtx.scene;
+          var camera = ifcMeshLayerCtx.camera;
+          var renderer = ifcMeshLayerCtx.renderer;
+          var baseArr = args.defaultProjectionData.mainMatrix;
+          var groups = scene.children.filter(function(o){ return o.userData && o.userData.bimAnchor; });
+          renderer.resetState();
+          if (!groups.length){
+            camera.projectionMatrix.fromArray(baseArr);
+            renderer.render(scene, camera);
+          } else {
+            groups.forEach(function(g){ g.visible = false; });
+            groups.forEach(function(g){
+              var localM = buildBimLocalMatrix(g.userData.bimAnchor, THREE);
+              camera.projectionMatrix.fromArray(baseArr).multiply(localM);
+              g.visible = true;
+              renderer.render(scene, camera);
+              g.visible = false;
+            });
+            groups.forEach(function(g){ g.visible = true; });
+          }
+          renderer.resetState();
         }catch(err){
           console.error('ifc-mesh-layer render hatası:', err);
         }
