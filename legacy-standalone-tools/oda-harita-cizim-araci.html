@@ -13377,6 +13377,24 @@
   function clamp(v, lo, hi){ return Math.min(hi, Math.max(lo, v)); }
 
   function wireBimHudInteractions(){
+    // ---- Fare tekerleği: HUD'un (halka/kenar çubuğu/eğim paneli)
+    // pointer-events:auto olan üst katmanı, altındaki haritanın kendi
+    // wheel dinleyicisine ulaşan scroll-zoom'u ENGELLİYORDU — kullanıcı
+    // model/halka üzerindeyken hiç yakınlaşamıyordu. HUD, sürükleme
+    // (pointerdown/move) olaylarını kasıtlı olarak yakalamaya devam eder
+    // (döndürme/ölçekleme/taşıma için gerekli) — yalnızca 'wheel' burada
+    // haritaya elle iletilir (imlecin altındaki nokta etrafında yakınlaşıp
+    // uzaklaşacak şekilde), böylece normal scroll-zoom HUD'un üstündeyken
+    // de çalışır.
+    bimHudEl.addEventListener('wheel', function(e){
+      e.preventDefault();
+      var mapEl = document.getElementById('map');
+      var rect = mapEl.getBoundingClientRect();
+      var around = map.unproject([e.clientX - rect.left, e.clientY - rect.top]);
+      var zoomDelta = clamp(-e.deltaY / 100, -1, 1);
+      map.zoomTo(map.getZoom() + zoomDelta, { around: around, duration: 0 });
+    }, { passive:false });
+
     // ---- Döndürme halkası ----
     var headingDragBase = null;
     bimHudRingEl.addEventListener('pointerdown', function(e){
