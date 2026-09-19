@@ -11,6 +11,7 @@ import {
   WbsGorevRecord, DokumanRecord, VarlikRecord, BakimKaydiRecord, BildirimRecord
 } from '../types/index';
 import * as api from '../services/api';
+import { Badge } from '../design-system';
 
 interface AdminPanelProps {
   theme: 'dark' | 'light';
@@ -1134,9 +1135,9 @@ export default function AdminPanel({ theme, onClose }: AdminPanelProps) {
                                 </td>
                                 <td className="p-3 font-mono text-sky-400 font-bold">{col.data_type}</td>
                                 <td className="p-3">
-                                  <span className={`text-[10px] px-2 py-0.5 rounded font-black ${col.is_nullable ? 'bg-slate-500/10 text-slate-400' : 'bg-red-500/10 text-red-400'}`}>
+                                  <Badge tone={col.is_nullable ? 'neutral' : 'danger'} size="sm">
                                     {col.is_nullable ? 'EVET' : 'HAYIR (NOT NULL)'}
-                                  </span>
+                                  </Badge>
                                 </td>
                                 <td className="p-3 font-mono text-[11px] text-[var(--text-secondary)]">{col.column_default || '-'}</td>
                                 <td className="p-3 text-[var(--text-secondary)]">{col.description || '-'}</td>

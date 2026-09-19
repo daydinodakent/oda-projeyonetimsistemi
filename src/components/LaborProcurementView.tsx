@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Project } from '../types';
+import { Badge } from '../design-system';
 import { 
   Users, HardHat, ShieldCheck, Hammer, Truck, Plus, 
   Trash, Edit2, CheckCircle2, UserPlus, FileCheck, 
@@ -283,9 +284,7 @@ export default function LaborProcurementView({ project, theme, onClose }: LaborP
                   <div className="flex items-center gap-3">
                     <div className="text-right">
                       <span className="text-[10px] text-slate-500 block">{s.phone}</span>
-                      <span className={`text-[10px] font-black px-1.5 py-0.5 rounded ${
-                        s.status === 'Aktif' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'
-                      }`}>{s.status}</span>
+                      <Badge tone={s.status === 'Aktif' ? 'success' : 'warning'} size="sm">{s.status}</Badge>
                     </div>
 
                     <button 
@@ -395,13 +394,13 @@ export default function LaborProcurementView({ project, theme, onClose }: LaborP
                     <span className="text-[10px] text-[var(--text-secondary)] block mb-0.5 flex items-center gap-1 justify-end">
                       <Clock className="w-3 h-3 text-[var(--text-secondary)]" /> <span className="font-mono">{m.deliveryDate}</span>
                     </span>
-                    <span className={`text-[10px] font-black px-1.5 py-0.5 rounded uppercase ${
-                      m.status === 'Teslim Edildi' 
-                        ? 'bg-emerald-500/10 text-emerald-400' 
-                        : m.status === 'Yolda' 
-                          ? 'bg-blue-500/10 text-blue-400 animate-pulse' 
-                          : 'bg-amber-500/10 text-amber-400'
-                    }`}>{m.status}</span>
+                    <Badge
+                      tone={m.status === 'Teslim Edildi' ? 'success' : m.status === 'Yolda' ? 'info' : 'warning'}
+                      size="sm"
+                      className={`uppercase ${m.status === 'Yolda' ? 'animate-pulse' : ''}`}
+                    >
+                      {m.status}
+                    </Badge>
                   </div>
                 </div>
               ))}

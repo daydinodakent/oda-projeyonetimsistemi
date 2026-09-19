@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Project, Notification } from '../types';
+import { Badge } from '../design-system';
 import { 
   DollarSign, TrendingUp, AlertTriangle, ShieldAlert, CheckCircle, 
   Layers, MapPin, Briefcase, ChevronRight, BarChart3, LineChart, 
@@ -248,11 +249,9 @@ export default function ExecutiveDashboardView({ projects, notifications, theme,
                     </div>
                     <div className="text-right">
                       <span className="text-[11px] font-extrabold text-blue-400 block">%{p.overallProgress}</span>
-                      <span className={`text-[10px] font-black px-1.5 py-0.5 rounded ${
-                        isUnder ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'
-                      }`}>
+                      <Badge tone={isUnder ? 'success' : 'danger'} size="sm">
                         {isUnder ? 'GÜVENLİ' : 'BÜTÇE AŞIMI'}
-                      </span>
+                      </Badge>
                     </div>
                   </div>
                 );

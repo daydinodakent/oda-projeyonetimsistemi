@@ -168,11 +168,11 @@ export default function IsletmeLeftPanel({ project, assets, selectedAssetId, onS
                     }`}
                   >
                     <span className="flex items-center gap-1.5 truncate">
-                      <Box className={`w-3 h-3 ${isFaulty ? 'text-red-500 animate-pulse' : 'text-blue-500'}`} />
+                      <Box className={`w-3 h-3 ${isFaulty ? 'text-danger animate-pulse' : 'text-blue-500'}`} />
                       <span className="truncate">{asset.name}</span>
                     </span>
                     <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                      isFaulty ? 'bg-red-500' : asset.status === 'Bakım Bekliyor' ? 'bg-amber-500' : 'bg-emerald-500'
+                      isFaulty ? 'bg-danger' : asset.status === 'Bakım Bekliyor' ? 'bg-warning' : 'bg-success'
                     }`} />
                   </button>
                 );

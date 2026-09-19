@@ -1,6 +1,19 @@
 import React, { useState } from 'react';
 import { Calendar, CheckCircle2, PlayCircle, Clock, Pencil, X } from 'lucide-react';
 import { Project } from '../types';
+import { Badge } from '../design-system';
+import type { Tone } from '../design-system';
+
+// bg-{tone} classes for the phase progress bar fill — written out per-tone
+// (not built from a template string) so Tailwind's scanner generates them.
+const phaseBarToneClasses: Record<Tone, string> = {
+  success: 'bg-success',
+  warning: 'bg-warning',
+  danger: 'bg-danger',
+  info: 'bg-info',
+  neutral: 'bg-neutral',
+  accent: 'bg-[var(--accent)]',
+};
 
 interface InsaatLeftPanelProps {
   project: Project;
@@ -96,6 +109,8 @@ export default function InsaatLeftPanel({ project, timelineDate }: InsaatLeftPan
             const pct = calculateProgress(phase.start, phase.end, phase.progressOverride);
             const isCompleted = pct === 100;
             const isActive = pct > 0 && pct < 100;
+            const phaseTone: Tone = isCompleted ? 'success' : isActive ? 'warning' : 'neutral';
+            const phaseLabel = isCompleted ? 'Tamamlandı' : isActive ? 'Devam Ediyor' : 'Planlandı';
 
             return (
               <div key={phase.id} className="space-y-1.5 text-xs">
@@ -104,24 +119,14 @@ export default function InsaatLeftPanel({ project, timelineDate }: InsaatLeftPan
                     <h4 className="font-extrabold text-[var(--text-primary)] text-xs leading-tight">{phase.name}</h4>
                     <span className="text-[10px] text-[var(--text-secondary)]">Taşeron: {phase.responsible}</span>
                   </div>
-                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                    isCompleted 
-                      ? 'bg-emerald-500/10 text-emerald-500' 
-                      : isActive 
-                        ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' 
-                        : 'bg-slate-500/10 text-slate-400'
-                  }`}>
-                    {isCompleted ? 'Tamamlandı' : isActive ? 'Devam Ediyor' : 'Planlandı'}
-                  </span>
+                  <Badge tone={phaseTone} size="sm">{phaseLabel}</Badge>
                 </div>
 
                 {/* Progress bar container */}
                 <div className="space-y-1">
                   <div className="w-full bg-[var(--bg-primary)] h-2 rounded-full overflow-hidden flex">
-                    <div 
-                      className={`h-full rounded-full transition-all duration-300 ${
-                        isCompleted ? 'bg-emerald-500' : isActive ? 'bg-amber-500' : 'bg-slate-600'
-                      }`} 
+                    <div
+                      className={`h-full rounded-full transition-all duration-300 ${phaseBarToneClasses[phaseTone]}`}
                       style={{ width: `${pct}%` }}
                     ></div>
                   </div>

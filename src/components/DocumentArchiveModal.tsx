@@ -5,6 +5,14 @@ import {
   Layers, Grid, Map, Play, Pause, RotateCw, Volume2, ZoomIn, ZoomOut, Settings, Sliders, Sun, Bookmark, CheckCircle2,
   Shield, History, Lock, User
 } from 'lucide-react';
+import { Badge } from '../design-system';
+import type { Tone } from '../design-system';
+
+const approvalStatusTones: Record<string, Tone> = {
+  APPROVED: 'success',
+  REJECTED: 'danger',
+  PENDING: 'warning',
+};
 
 interface Document {
   id: string;
@@ -1157,25 +1165,11 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                             <td className="py-2.5 px-2">
                               {(() => {
                                 const status = doc.approvalStatus || 'PENDING';
-                                if (status === 'APPROVED') {
-                                  return (
-                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 text-[10px] font-black uppercase border border-emerald-500/25">
-                                      <Shield className="w-2.5 h-2.5" />
-                                      ONAYLANDI
-                                    </span>
-                                  );
-                                }
-                                if (status === 'REJECTED') {
-                                  return (
-                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-400 text-[10px] font-black uppercase border border-rose-500/25">
-                                      ✕ REDDEDİLDİ
-                                    </span>
-                                  );
-                                }
                                 return (
-                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 text-[10px] font-black uppercase border border-amber-500/25">
-                                    ● BEKLİYOR
-                                  </span>
+                                  <Badge tone={approvalStatusTones[status]} size="sm" className="uppercase">
+                                    {status === 'APPROVED' && <Shield className="w-2.5 h-2.5" />}
+                                    {status === 'APPROVED' ? 'ONAYLANDI' : status === 'REJECTED' ? '✕ REDDEDİLDİ' : '● BEKLİYOR'}
+                                  </Badge>
                                 );
                               })()}
                             </td>
@@ -1218,15 +1212,9 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                   CDE TEKNİK PANEL
                 </span>
                 {selectedDoc && (
-                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-black ${
-                    selectedDoc.approvalStatus === 'APPROVED'
-                      ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                      : selectedDoc.approvalStatus === 'REJECTED'
-                        ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-                        : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                  }`}>
+                  <Badge tone={approvalStatusTones[selectedDoc.approvalStatus || 'PENDING']} size="sm">
                     {selectedDoc.approvalStatus === 'APPROVED' ? 'MÜHÜRLÜ' : selectedDoc.approvalStatus === 'REJECTED' ? 'RED' : 'BEKLİYOR'}
-                  </span>
+                  </Badge>
                 )}
               </div>
 

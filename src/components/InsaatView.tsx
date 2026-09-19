@@ -2,6 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, AreaChart, Area } from 'recharts';
 import { Shield, Bell, FileText, AlertOctagon, Layers, Calendar, CheckSquare, Plus, Info, RefreshCw, Compass, CheckCircle, TrendingUp, Pencil, X, Save, Camera, Image, Search, Video, Play, Pause, Cpu, Clock, Award, RotateCcw, Eye, Sliders } from 'lucide-react';
 import { Project, Permit, Block, WBSTask } from '../types';
+import { Badge } from '../design-system';
+import type { Tone } from '../design-system';
+
+// Mirrors permitStatusTones in PlanRightPanel.tsx (same Permit['status'] enum).
+const permitStatusTones: Record<string, Tone> = {
+  'Alındı': 'success',
+  'Bekliyor': 'warning',
+  'Süresi Doluyor': 'warning',
+  'Süresi Doldu': 'danger',
+};
 
 interface InsaatViewProps {
   project: Project;
@@ -687,17 +697,7 @@ export default function InsaatView({
                             <Pencil className="w-3 h-3" />
                           </button>
                         </h4>
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                          isExpired 
-                            ? 'bg-red-600 text-white' 
-                            : isExpiringSoon 
-                              ? 'bg-amber-500 text-slate-900' 
-                              : p.status === 'Alındı' 
-                                ? 'bg-emerald-500/15 text-emerald-500' 
-                                : 'bg-slate-500/20 text-slate-400'
-                        }`}>
-                          {p.status}
-                        </span>
+                        <Badge tone={permitStatusTones[p.status]}>{p.status}</Badge>
                       </div>
 
                       <div className="space-y-1.5 text-[10px] text-[var(--text-secondary)] mt-2">
@@ -800,11 +800,9 @@ export default function InsaatView({
                           <Pencil className="w-3 h-3" />
                         </button>
                       </span>
-                      <span className={`text-[10px] px-2 py-0.5 rounded font-extrabold ${
-                        isDelayed ? 'bg-red-500/10 text-red-500' : 'bg-emerald-500/10 text-emerald-500'
-                      }`}>
+                      <Badge tone={isDelayed ? 'danger' : 'success'} size="sm">
                         {isDelayed ? 'Kritik Gecikme' : 'Zamanında'}
-                      </span>
+                      </Badge>
                     </div>
 
                     <div className="space-y-1.5">
@@ -1132,15 +1130,15 @@ export default function InsaatView({
               
               {/* Count badges */}
               <div className="flex items-center gap-2 text-[10px] font-bold">
-                <span className="bg-red-500/10 border border-red-500/20 text-red-400 px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-sm">
-                  <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
+                <span className="bg-danger/10 border border-danger/20 text-danger px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-sm">
+                  <span className="w-2 h-2 rounded-full bg-danger animate-ping" />
                   <span>{isgAlerts.filter(a => a.level === 'high' && a.status === 'Açık').length} KRİTİK</span>
                 </span>
-                <span className="bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-sm">
-                  <span className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />
+                <span className="bg-warning/10 border border-warning/20 text-warning px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-sm">
+                  <span className="w-2 h-2 rounded-full bg-warning animate-pulse" />
                   <span>{isgAlerts.filter(a => a.level === 'medium' && a.status === 'Açık').length} UYARI</span>
                 </span>
-                <span className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-sm">
+                <span className="bg-success/10 border border-success/20 text-success px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-sm">
                   <span>{isgAlerts.filter(a => a.status === 'Giderildi').length} ÇÖZÜLDÜ</span>
                 </span>
               </div>
@@ -1172,15 +1170,9 @@ export default function InsaatView({
                     <div>
                       {/* Level indicators */}
                       <div className="flex justify-between items-center mb-1">
-                        <span className={`text-[10px] font-black px-1.5 py-0.5 rounded border uppercase tracking-wider ${
-                          isGiderildi
-                            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                            : isHigh
-                              ? 'bg-red-500/10 border-red-500/20 text-red-400'
-                              : 'bg-yellow-500/10 border-yellow-500/20 text-yellow-400'
-                        }`}>
+                        <Badge tone={isGiderildi ? 'success' : isHigh ? 'danger' : 'warning'} size="sm" className="uppercase tracking-wider">
                           {isGiderildi ? 'ÇÖZÜLDÜ' : isHigh ? '🔴 YÜKSEK' : '🟡 ORTA'}
-                        </span>
+                        </Badge>
                         <span className="text-[10px] text-slate-500 font-mono font-bold">{alert.time}</span>
                       </div>
                       
@@ -1200,7 +1192,7 @@ export default function InsaatView({
                     {/* Accent Color Side Strip */}
                     {!isGiderildi && (
                       <div className={`absolute top-0 bottom-0 left-0 w-1 ${
-                        isHigh ? 'bg-red-500' : 'bg-yellow-500'
+                        isHigh ? 'bg-danger' : 'bg-warning'
                       }`} />
                     )}
                   </div>
@@ -1570,15 +1562,9 @@ export default function InsaatView({
                   }`}>
                     <div className="flex items-center justify-between border-b border-[var(--border)] pb-2 mb-2">
                       <div className="flex items-center gap-2">
-                        <span className={`text-[10px] font-black px-2 py-0.5 rounded border uppercase ${
-                          isGiderildi
-                            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                            : isHigh
-                              ? 'bg-red-500/10 border-red-500/20 text-red-400'
-                              : 'bg-yellow-500/10 border-yellow-500/20 text-yellow-400'
-                        }`}>
+                        <Badge tone={isGiderildi ? 'success' : isHigh ? 'danger' : 'warning'} size="sm" className="uppercase">
                           {isGiderildi ? 'ÇÖZÜLDÜ' : isHigh ? 'KRİTİK ALARM' : 'ORTA RİSK UYARI'}
-                        </span>
+                        </Badge>
                         <h5 className="font-extrabold text-[var(--text-primary)] text-xs uppercase">{activeAlert.title}</h5>
                       </div>
                       <span className="text-slate-500 font-mono text-[10px] font-bold">Zaman: {activeAlert.time} | Bölge: {activeAlert.zone}</span>
@@ -1667,10 +1653,10 @@ export default function InsaatView({
                         <div className="flex items-center gap-1.5 truncate">
                           <span className={`w-2 h-2 rounded-full shrink-0 ${
                             isGiderildi
-                              ? 'bg-emerald-500'
+                              ? 'bg-success'
                               : isHigh
-                                ? 'bg-red-500 animate-pulse'
-                                : 'bg-yellow-500 animate-pulse'
+                                ? 'bg-danger animate-pulse'
+                                : 'bg-warning animate-pulse'
                           }`} />
                           <span className="font-extrabold text-[var(--text-primary)] uppercase truncate tracking-wide text-[11px]">
                             {alert.title}
@@ -1692,21 +1678,15 @@ export default function InsaatView({
                           📍 {alert.zone}
                         </span>
                         
-                        <span className={`font-black uppercase text-[10px] px-1.5 py-0.5 rounded border ${
-                          isGiderildi
-                            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                            : isHigh
-                              ? 'bg-red-500/10 border-red-500/20 text-red-400'
-                              : 'bg-yellow-500/10 border-yellow-500/20 text-yellow-400'
-                        }`}>
+                        <Badge tone={isGiderildi ? 'success' : isHigh ? 'danger' : 'warning'} size="sm" className="uppercase">
                           {alert.status}
-                        </span>
+                        </Badge>
                       </div>
                       
                       {/* Accent border bar highlighting the card */}
                       {!isGiderildi && (
                         <div className={`absolute top-0 left-0 bottom-0 w-1 ${
-                          isHigh ? 'bg-red-500' : 'bg-yellow-500'
+                          isHigh ? 'bg-danger' : 'bg-warning'
                         }`} />
                       )}
                     </div>

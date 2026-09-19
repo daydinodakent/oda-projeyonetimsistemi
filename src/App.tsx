@@ -2418,11 +2418,11 @@ export default function App() {
                           <div 
                             key={notif.id} 
                             className={`p-2 rounded-md border text-[10px] flex gap-2 ${
-                              notif.type === 'danger' 
-                                ? 'bg-red-500/10 border-red-500/20 text-red-400' 
-                                : notif.type === 'warning' 
-                                  ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' 
-                                  : 'bg-blue-500/10 border-blue-500/20 text-blue-400'
+                              notif.type === 'danger'
+                                ? 'bg-danger/10 border-danger/20 text-danger'
+                                : notif.type === 'warning'
+                                  ? 'bg-warning/10 border-warning/20 text-warning'
+                                  : 'bg-info/10 border-info/20 text-info'
                             }`}
                           >
                             <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
@@ -2457,7 +2457,7 @@ export default function App() {
                                 {doc.approvalWorkflow.map((wf, idx) => (
                                   <div key={idx} className="flex justify-between text-[10px]">
                                     <span className="text-slate-400">{wf.step}:</span>
-                                    <span className={wf.status === 'Approved' ? 'text-emerald-500 font-bold' : 'text-amber-500 font-bold'}>
+                                    <span className={wf.status === 'Approved' ? 'text-success font-bold' : 'text-warning font-bold'}>
                                       {wf.status === 'Approved' ? 'Onaylı' : 'Bekliyor'}
                                     </span>
                                   </div>

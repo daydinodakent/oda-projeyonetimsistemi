@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import { ShieldCheck, CalendarRange, Thermometer, Zap, AlertTriangle, Cpu, Pencil, X } from 'lucide-react';
 import { Project, Asset } from '../types';
+import { Badge } from '../design-system';
+import type { Tone } from '../design-system';
 
 interface IsletmeRightPanelProps {
   project: Project;
@@ -89,6 +91,7 @@ export default function IsletmeRightPanel({ project, assets, selectedAssetId }: 
   }
 
   const isFaulty = asset.status === 'Arızalı';
+  const assetTone: Tone = isFaulty ? 'danger' : asset.status === 'Bakım Bekliyor' ? 'warning' : 'success';
 
   return (
     <div className="space-y-2.5">
@@ -112,15 +115,9 @@ export default function IsletmeRightPanel({ project, assets, selectedAssetId }: 
           {asset.name}
         </h4>
         <div className="text-left">
-          <span className={`px-2 py-0.5 rounded-none text-[10px] font-black inline-block mb-2 ${
-            isFaulty 
-              ? 'bg-red-500/10 text-red-500 border border-red-500/20 animate-pulse' 
-              : asset.status === 'Bakım Bekliyor' 
-                ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' 
-                : 'bg-emerald-500/15 text-emerald-500'
-          }`}>
+          <Badge tone={assetTone} className={`mb-2 ${isFaulty ? 'animate-pulse' : ''}`}>
             {asset.status}
-          </span>
+          </Badge>
         </div>
 
         <div className="space-y-1.5 text-xs pt-1.5 border-t border-[var(--border)]">

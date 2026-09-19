@@ -24,6 +24,21 @@
   --card-gradient-3: linear-gradient(135deg, #10b981, #06b6d4);
   --card-gradient-4: linear-gradient(135deg, #8b5cf6, #ec4899);
 
+  /* Semantic status colors (formalizes the emerald/amber/red/blue/slate
+     convention already used ad hoc across status badges) */
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --info: #3b82f6;
+  --neutral: #64748b;
+
+  /* Motion */
+  --ease-premium: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-fast: 150ms;
+  --duration-base: 200ms;
+  --duration-slow: 300ms;
+  --duration-slower: 500ms;
+
   /* Modern Light Theme Shadows and Border Glows */
   --shadow-card: 0 1px 2px 0 rgba(15, 23, 42, 0.03), 
                  0 4px 12px -2px rgba(15, 23, 42, 0.05), 
@@ -58,6 +73,13 @@
   --card-gradient-3: linear-gradient(135deg, rgba(15, 23, 42, 0.6), rgba(16, 185, 129, 0.15));
   --card-gradient-4: linear-gradient(135deg, rgba(15, 23, 42, 0.6), rgba(168, 85, 247, 0.15));
 
+  /* Semantic status colors — brighter tints for legibility on dark surfaces */
+  --success: #34d399;
+  --warning: #fbbf24;
+  --danger: #f87171;
+  --info: #60a5fa;
+  --neutral: #94a3b8;
+
   /* Deep Glassmorphic Shadows with Micro Border Glow Highlights for Premium Frosted Glass Depth */
   --shadow-card: 0 8px 32px 0 rgba(0, 0, 0, 0.4),
                  0 0 0 1px rgba(255, 255, 255, 0.06) inset;
@@ -75,6 +97,15 @@
   --color-content-main: var(--text-main);
   --color-content-muted: var(--text-muted);
   --radius-xl: var(--radius-xl);
+
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-info: var(--info);
+  --color-neutral: var(--neutral);
+  --color-accent: var(--accent);
+
+  --ease-premium: var(--ease-premium);
 
   --font-sans: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --font-mono: "Geist Mono", monospace, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas;

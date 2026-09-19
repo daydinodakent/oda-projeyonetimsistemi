@@ -254,7 +254,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
           subtitle: `${pm.authority} • Kapsam: ${pm.geographicScope} • Geçerlilik: ${pm.expiryDate}`,
           category: 'document',
           badge: pm.status,
-          badgeColor: pm.status === 'Alındı' ? 'bg-emerald-600/20 text-emerald-400' : 'bg-amber-600/20 text-amber-400',
+          badgeColor: pm.status === 'Alındı' ? 'bg-success/20 text-success' : 'bg-warning/20 text-warning',
           metadata: {
             projectId: p.id,
             status: pm.status,
@@ -326,7 +326,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
         subtitle: `Tür: ${a.type} • Üretici: ${a.manufacturer} • Proje: ${proj?.name || a.associatedProjectId}`,
         category: 'asset',
         badge: a.status,
-        badgeColor: a.status === 'Sorunsuz' ? 'bg-emerald-600/20 text-emerald-400' : 'bg-rose-600/20 text-rose-400',
+        badgeColor: a.status === 'Sorunsuz' ? 'bg-success/20 text-success' : 'bg-danger/20 text-danger',
         metadata: {
           projectId: a.associatedProjectId,
           cost: `₺${a.maintenanceCost}M Bakım`,

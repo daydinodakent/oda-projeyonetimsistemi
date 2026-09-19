@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, BarChart, Bar } from 'recharts';
 import { Box, Wrench, AlertTriangle, TrendingUp, Plus, FileText, CheckCircle, Info, Play, Pencil, X, Save } from 'lucide-react';
 import { Project, Asset, MaintenanceLog } from '../types';
+import { Badge } from '../design-system';
+import type { Tone } from '../design-system';
 
 interface IsletmeViewProps {
   project: Project;
@@ -393,6 +395,7 @@ export default function IsletmeView({
               .map((asset) => {
                 const isFaulty = asset.status === 'Arızalı';
                 const isMaintPending = asset.status === 'Bakım Bekliyor';
+                const assetTone: Tone = isFaulty ? 'danger' : isMaintPending ? 'warning' : 'success';
 
                 return (
                   <div key={asset.id} className="bg-[var(--bg-secondary)] border border-[var(--border)] p-4 rounded-xl flex gap-3 hover:shadow-sm group relative">
@@ -408,15 +411,7 @@ export default function IsletmeView({
                             <Pencil className="w-3 h-3" />
                           </button>
                         </h4>
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                          isFaulty 
-                            ? 'bg-red-500 text-white' 
-                            : isMaintPending 
-                              ? 'bg-amber-500 text-slate-900' 
-                              : 'bg-emerald-500/15 text-emerald-500'
-                        }`}>
-                          {asset.status}
-                        </span>
+                        <Badge tone={assetTone}>{asset.status}</Badge>
                       </div>
 
                       <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[10px] text-[var(--text-secondary)] border-t border-[var(--border)] pt-2 mt-2">
@@ -512,7 +507,7 @@ export default function IsletmeView({
                         <div className="mt-3 p-3 rounded-xl bg-[var(--bg-primary)]/80 border border-[var(--border)] w-full text-left transition-all duration-300 group-hover/node:border-indigo-500/50 group-hover/node:shadow-lg group-hover/node:shadow-indigo-500/5">
                           <div className="text-[10px] font-black uppercase text-indigo-400 tracking-wider flex justify-between items-center">
                             <span>{log.type.split(' ')[0]}</span>
-                            <span className={`w-1.5 h-1.5 rounded-full ${log.status === 'Açık' ? 'bg-red-500 animate-pulse' : 'bg-emerald-500'}`} />
+                            <span className={`w-1.5 h-1.5 rounded-full ${log.status === 'Açık' ? 'bg-danger animate-pulse' : 'bg-success'}`} />
                           </div>
                           <h4 className="text-[11px] font-extrabold text-[var(--text-primary)] mt-1 truncate" title={asset?.name}>
                             {asset?.name || 'Bilinmeyen Varlık'}
@@ -579,11 +574,9 @@ export default function IsletmeView({
                     </div>
 
                     <div className="flex flex-col justify-between items-end h-full pl-2 border-l border-[var(--border)] shrink-0 self-stretch min-h-[70px]">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                        isOpen ? 'bg-red-500/10 text-red-500 border border-red-500/20' : 'bg-emerald-500/10 text-emerald-500'
-                      }`}>
+                      <Badge tone={isOpen ? 'danger' : 'success'}>
                         {isOpen ? 'Müdahale Bekliyor' : 'Tamamlandı'}
-                      </span>
+                      </Badge>
                       
                       <div className="flex gap-2 mt-4">
                         <button 

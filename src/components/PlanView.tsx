@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, BarChart, Bar, AreaChart, Area } from 'recharts';
 import { Users, FileText, AlertTriangle, ChevronRight, Upload, Clock, Plus, Pencil, Save, X, Trash2, Edit2, Check, CheckCircle, TrendingUp } from 'lucide-react';
 import { Project, WBSTask, ProjectDocument, EmployeeAllocation } from '../types';
+import { Badge } from '../design-system';
 
 interface PlanViewProps {
   project: Project;
@@ -1030,22 +1031,21 @@ export default function PlanView({
                     <div className="mt-3 flex items-center gap-2 flex-wrap">
                       <span className="text-[10px] font-bold text-slate-400">Onay Akışı:</span>
                       {doc.approvalWorkflow.map((step, idx) => (
-                        <span 
-                          key={idx} 
-                          onClick={() => {
-                            const newStatus = step.status === 'Approved' ? 'Pending' : 'Approved';
-                            const updatedWorkflow = doc.approvalWorkflow.map((s, i) => i === idx ? { ...s, status: newStatus as any } : s);
-                            const updatedDoc = { ...doc, approvalWorkflow: updatedWorkflow };
-                            setLocalDocs(prev => prev.map(d => d.id === doc.id ? updatedDoc : d));
-                          }}
-                          className={`text-[10px] px-2 py-0.5 rounded-full font-bold border cursor-pointer ${
-                            step.status === 'Approved' 
-                              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
-                              : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-                          }`}
-                          title="Onay durumunu değiştirmek için tıklayın"
-                        >
-                          {step.step}: {step.status === 'Approved' ? 'Onaylandı ✓' : 'Bekliyor ⧗'} ({step.approver})
+                        // key goes on a native `contents` wrapper, not Badge itself — this repo has no
+                        // @types/react, so JSX doesn't know to strip `key` before checking custom component props
+                        <span key={idx} className="contents">
+                          <Badge
+                            tone={step.status === 'Approved' ? 'success' : 'warning'}
+                            onClick={() => {
+                              const newStatus = step.status === 'Approved' ? 'Pending' : 'Approved';
+                              const updatedWorkflow = doc.approvalWorkflow.map((s, i) => i === idx ? { ...s, status: newStatus as any } : s);
+                              const updatedDoc = { ...doc, approvalWorkflow: updatedWorkflow };
+                              setLocalDocs(prev => prev.map(d => d.id === doc.id ? updatedDoc : d));
+                            }}
+                            title="Onay durumunu değiştirmek için tıklayın"
+                          >
+                            {step.step}: {step.status === 'Approved' ? 'Onaylandı ✓' : 'Bekliyor ⧗'} ({step.approver})
+                          </Badge>
                         </span>
                       ))}
                     </div>

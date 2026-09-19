@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { DollarSign, FileCheck, CheckCircle2, AlertTriangle, Clock, Percent, Activity, Box, Ruler, Pencil, X } from 'lucide-react';
 import { Project } from '../types';
+import { Badge } from '../design-system';
+import type { Tone } from '../design-system';
 
 // Custom lightweight shoelace calculation to find polygon area in square meters without Turf
 const calculatePolygonArea = (coords: [number, number][]) => {
@@ -78,12 +80,13 @@ export default function PlanRightPanel({ project }: PlanRightPanelProps) {
     };
   }, []);
 
-  // Map out permits for display with clean styling
-  const permitStatusColors = {
-    'Alındı': 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
-    'Bekliyor': 'bg-amber-500/10 text-amber-500 border-amber-500/20',
-    'Süresi Doluyor': 'bg-blue-500/10 text-blue-500 border-blue-500/20',
-    'Süresi Doldu': 'bg-red-500/10 text-red-500 border-red-500/20',
+  // Map out permits for display with clean styling. Mirrored in
+  // InsaatView.tsx (same Permit['status'] enum) — keep both in sync.
+  const permitStatusTones: Record<string, Tone> = {
+    'Alındı': 'success',
+    'Bekliyor': 'warning',
+    'Süresi Doluyor': 'warning',
+    'Süresi Doldu': 'danger',
   };
 
   // Local EVM map layer toggle state
@@ -151,15 +154,13 @@ export default function PlanRightPanel({ project }: PlanRightPanelProps) {
           </div>
           <div className="flex justify-between items-center text-[11px]">
             <span className="text-[var(--text-secondary)] font-bold">Risk Profil Derecesi:</span>
-            <span className={`px-1.5 py-0.5 rounded-none text-[10px] font-extrabold ${
-              project.riskLevel === 'Düşük' 
-               ? 'bg-emerald-500/15 text-emerald-500' 
-                : project.riskLevel === 'Orta' 
-                  ? 'bg-amber-500/15 text-amber-500' 
-                  : 'bg-red-500/15 text-red-500 animate-pulse'
-            }`}>
+            <Badge
+              tone={project.riskLevel === 'Düşük' ? 'success' : project.riskLevel === 'Orta' ? 'warning' : 'danger'}
+              size="sm"
+              className={project.riskLevel !== 'Düşük' && project.riskLevel !== 'Orta' ? 'animate-pulse' : ''}
+            >
               {project.riskLevel} RİSK
-            </span>
+            </Badge>
           </div>
         </div>
       </div>
@@ -256,9 +257,9 @@ export default function PlanRightPanel({ project }: PlanRightPanelProps) {
                 <span className="font-bold text-[var(--text-primary)] leading-normal truncate block w-[120px]" title={permit.name}>
                   {permit.name}
                 </span>
-                <span className={`px-1.5 py-0.5 rounded-none border text-[10px] font-extrabold ${permitStatusColors[permit.status]}`}>
+                <Badge tone={permitStatusTones[permit.status]} size="sm">
                   {permit.status}
-                </span>
+                </Badge>
               </div>
               <div className="flex justify-between text-[10px] text-[var(--text-secondary)] pt-0.5">
                 <span>Kurum: <strong>{permit.authority}</strong></span>
