@@ -796,7 +796,18 @@
     padding:3px calc(5px + 2ch) 3px 5px; font:11px/1.2 var(--font-mono, monospace); text-align:right;
   }
   #bimHud .bim-hud-inputs input:focus{ outline:none; border-color:#1f9fe0; }
-  #bimHud .bim-hud-inputs input[type=checkbox]{ width:15px; height:15px; padding:0; margin:0 2px 0 0; accent-color:#1f9fe0; cursor:pointer; }
+  /* Senkron kutusu: tarayıcıdan bağımsız, işaretli/işaretsiz durumu net görünen özel onay kutusu. */
+  #bimHud .bim-hud-inputs input[type=checkbox]{
+    -webkit-appearance:none; appearance:none; position:relative; flex:0 0 auto;
+    width:16px; height:16px; padding:0; margin:0 2px 0 0; cursor:pointer;
+    background:#0a121c; border:1px solid rgba(127,215,255,.55); border-radius:4px;
+  }
+  #bimHud .bim-hud-inputs input[type=checkbox]:checked{ background:#1f9fe0; border-color:#7fd7ff; }
+  #bimHud .bim-hud-inputs input[type=checkbox]:checked::after{
+    content:''; position:absolute; left:4.5px; top:1px; width:4px; height:8px;
+    border:solid #fff; border-width:0 2px 2px 0; transform:rotate(45deg);
+  }
+  #bimHud .bim-hud-inputs input[type=checkbox]:focus-visible{ outline:2px solid #7fd7ff; outline-offset:1px; }
   #bimHud .bim-hud-inputs .bim-hud-link-row{ cursor:pointer; }
   /* Değer kutusu etiketleri iki satıra kırılmasın: panel biraz genişledi. */
   #bimHud .bim-hud-inputs{ width:188px; }
