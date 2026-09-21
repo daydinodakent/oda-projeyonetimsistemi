@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, AreaChart, Area } from 'recharts';
 import { Shield, Bell, FileText, AlertOctagon, Layers, Calendar, CheckSquare, Plus, Info, RefreshCw, Compass, CheckCircle, TrendingUp, Pencil, X, Save, Camera, Image, Search, Video, Play, Pause, Cpu, Clock, Award, RotateCcw, Eye, Sliders } from 'lucide-react';
 import { Project, Permit, Block, WBSTask } from '../types';
+import FilterSelect from './ui/FilterSelect';
+import SearchInput from './ui/SearchInput';
 import Box from '@mui/material/Box';
 import MenuItem from '@mui/material/MenuItem';
 import Typography from '@mui/material/Typography';
@@ -747,18 +749,7 @@ export default function InsaatView({
                 2D CAD çizimlerini (DWG) ve 3D BIM modellerini (IFC) doğrudan şantiye parsel koordinatlarına bindirip, harita üstünde katman katman açabilirsiniz.
               </p>
 
-              <div>
-                <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">Yüklü Model Dosyası</label>
-                <select 
-                  value={selectedCADFile}
-                  onChange={(e) => setSelectedCADFile(e.target.value)}
-                  className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none font-bold"
-                >
-                  <option value="atasehir_BIM_structure.ifc">atasehir_BIM_structure.ifc (BIM Model)</option>
-                  <option value="atakoy_metro_yol_altapi.dwg">atakoy_metro_yol_altapi.dwg (CAD 2D)</option>
-                  <option value="cankaya_kamu_parsel.shp">cankaya_kamu_parsel.shp (GIS Shapefile)</option>
-                </select>
-              </div>
+              <FilterSelect fullWidth label="Yüklü Model Dosyası" value={selectedCADFile} onChange={setSelectedCADFile} options={[{ value: "atasehir_BIM_structure.ifc", label: "atasehir_BIM_structure.ifc (BIM Model)" }, { value: "atakoy_metro_yol_altapi.dwg", label: "atakoy_metro_yol_altapi.dwg (CAD 2D)" }, { value: "cankaya_kamu_parsel.shp", label: "cankaya_kamu_parsel.shp (GIS Shapefile)" }]} />
 
               <div className="p-3 bg-blue-600/10 border border-blue-500/20 rounded-xl text-[10px] text-[var(--text-secondary)]">
                 <strong>Projeksiyon:</strong> EPSG:3857 (WGS 84 / Pseudo-Mercator) ile şantiye koordinat merkezine %100 as-built uyumluluk.
@@ -1077,25 +1068,8 @@ export default function InsaatView({
           <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl p-4 shadow-sm flex flex-col xl:flex-row justify-between items-stretch xl:items-center gap-4">
             
             {/* Search Input */}
-            <div className="relative flex-1 max-w-sm">
-              <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                <Search className="w-4 h-4" />
-              </span>
-              <input
-                type="text"
-                placeholder="Fotoğraf, detay veya etiketlerde ara..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-xl pl-9 pr-4 py-2 text-xs text-[var(--text-primary)] focus:outline-none focus:border-emerald-500/50 font-bold"
-              />
-              {searchQuery && (
-                <button 
-                  onClick={() => setSearchQuery('')}
-                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-red-500 text-xs"
-                >
-                  Temizle
-                </button>
-              )}
+            <div className="flex-1 max-w-sm">
+              <SearchInput clearable placeholder="Fotoğraf, detay veya etiketlerde ara..." value={searchQuery} onChange={setSearchQuery} />
             </div>
 
             {/* Quick Metadata Selectors */}
@@ -1103,50 +1077,19 @@ export default function InsaatView({
               {/* Weather Filter */}
               <div className="flex items-center gap-2">
                 <span className="text-[10px] text-[var(--text-secondary)] font-extrabold uppercase tracking-wider">☁️ HAVA:</span>
-                <select
-                  value={selectedWeather}
-                  onChange={(e) => setSelectedWeather(e.target.value)}
-                  className="bg-[var(--bg-primary)] border border-[var(--border)] rounded-xl px-2.5 py-1.5 text-xs text-[var(--text-primary)] font-bold focus:outline-none focus:border-emerald-500/50"
-                >
-                  <option value="Tümü">Tümü</option>
-                  <option value="Güneşli">Güneşli</option>
-                  <option value="Bulutlu">Bulutlu</option>
-                  <option value="Parçalı Bulutlu">Parçalı Bulutlu</option>
-                  <option value="Rüzgarlı">Rüzgarlı</option>
-                  <option value="Yağmurlu">Yağmurlu</option>
-                  <option value="Açık / Sıcak">Açık / Sıcak</option>
-                </select>
+                <FilterSelect value={selectedWeather} onChange={setSelectedWeather} options={[{ value: "Tümü", label: "Tümü" }, { value: "Güneşli", label: "Güneşli" }, { value: "Bulutlu", label: "Bulutlu" }, { value: "Parçalı Bulutlu", label: "Parçalı Bulutlu" }, { value: "Rüzgarlı", label: "Rüzgarlı" }, { value: "Yağmurlu", label: "Yağmurlu" }, { value: "Açık / Sıcak", label: "Açık / Sıcak" }]} />
               </div>
 
               {/* Working Group Filter */}
               <div className="flex items-center gap-2">
                 <span className="text-[10px] text-[var(--text-secondary)] font-extrabold uppercase tracking-wider">👷 GRUP:</span>
-                <select
-                  value={selectedWorkingGroup}
-                  onChange={(e) => setSelectedWorkingGroup(e.target.value)}
-                  className="bg-[var(--bg-primary)] border border-[var(--border)] rounded-xl px-2.5 py-1.5 text-xs text-[var(--text-primary)] font-bold focus:outline-none focus:border-emerald-500/50"
-                >
-                  <option value="Tümü">Tümü</option>
-                  <option value="İnşaat">İnşaat</option>
-                  <option value="Elektrik">Elektrik</option>
-                  <option value="Tesisat">Tesisat</option>
-                </select>
+                <FilterSelect value={selectedWorkingGroup} onChange={setSelectedWorkingGroup} options={[{ value: "Tümü", label: "Tümü" }, { value: "İnşaat", label: "İnşaat" }, { value: "Elektrik", label: "Elektrik" }, { value: "Tesisat", label: "Tesisat" }]} />
               </div>
 
               {/* AI Object Filter */}
               <div className="flex items-center gap-2">
                 <span className="text-[10px] text-[var(--text-secondary)] font-extrabold uppercase tracking-wider">🤖 AI NESNE:</span>
-                <select
-                  value={selectedAIObjectFilter}
-                  onChange={(e) => setSelectedAIObjectFilter(e.target.value)}
-                  className="bg-[var(--bg-primary)] border border-[var(--border)] rounded-xl px-2.5 py-1.5 text-xs text-[var(--text-primary)] font-bold focus:outline-none focus:border-blue-500/50"
-                >
-                  <option value="Tümü">Tümü</option>
-                  <option value="Ekskavatör">Ekskavatör</option>
-                  <option value="Kule Vinç">Kule Vinç</option>
-                  <option value="Baret">Baret</option>
-                  <option value="İskele">İskele</option>
-                </select>
+                <FilterSelect value={selectedAIObjectFilter} onChange={setSelectedAIObjectFilter} options={[{ value: "Tümü", label: "Tümü" }, { value: "Ekskavatör", label: "Ekskavatör" }, { value: "Kule Vinç", label: "Kule Vinç" }, { value: "Baret", label: "Baret" }, { value: "İskele", label: "İskele" }]} />
               </div>
             </div>
 

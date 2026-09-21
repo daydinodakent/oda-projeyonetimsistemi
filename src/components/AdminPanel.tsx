@@ -20,6 +20,7 @@ import Typography from '@mui/material/Typography';
 import { alpha } from '@mui/material/styles';
 import FormDialog, { FormField, FieldRow } from './chrome/FormDialog';
 import ConfirmDialog from './chrome/ConfirmDialog';
+import SearchInput from './ui/SearchInput';
 
 interface AdminPanelProps {
   theme: 'dark' | 'light';
@@ -964,16 +965,7 @@ export default function AdminPanel({ theme, onClose }: AdminPanelProps) {
 
                   <div className="flex items-center gap-2.5">
                     {/* Search input */}
-                    <div className="relative">
-                      <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" />
-                      <input 
-                        type="text"
-                        placeholder="Seçili tabloda ara..."
-                        value={dataSearchQuery}
-                        onChange={(e) => setDataSearchQuery(e.target.value)}
-                        className="pl-8 pr-3 py-1.5 bg-[var(--bg-primary)] border border-[var(--border)] rounded-xl text-xs text-[var(--text-primary)] placeholder-[var(--text-secondary)] focus:outline-none focus:border-amber-500 w-52"
-                      />
-                    </div>
+                    <SearchInput width={208} placeholder="Seçili tabloda ara..." value={dataSearchQuery} onChange={setDataSearchQuery} />
 
                     <button 
                       onClick={() => loadActiveTableData(selectedTableKey)}
@@ -1447,62 +1439,32 @@ CREATE TABLE ${selectedTableKey} (
                                   
                                   {/* Read Toggle */}
                                   <td className="p-3 text-center">
-                                    <input 
-                                      type="checkbox"
-                                      checked={canRead}
-                                      onChange={() => handlePermissionToggle(selectedPersonel.id, tbl.key, 'can_read')}
-                                      className="w-4 h-4 rounded text-sky-600 focus:ring-sky-500 cursor-pointer"
-                                    />
+                                    <Checkbox size="small" color="info" checked={canRead} onChange={() => handlePermissionToggle(selectedPersonel.id, tbl.key, 'can_read')} />
                                   </td>
 
                                   {/* Write Toggle */}
                                   <td className="p-3 text-center">
-                                    <input 
-                                      type="checkbox"
-                                      checked={canWrite}
-                                      onChange={() => handlePermissionToggle(selectedPersonel.id, tbl.key, 'can_write')}
-                                      className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer"
-                                    />
+                                    <Checkbox size="small" color="success" checked={canWrite} onChange={() => handlePermissionToggle(selectedPersonel.id, tbl.key, 'can_write')} />
                                   </td>
 
                                   {/* Delete Toggle */}
                                   <td className="p-3 text-center">
-                                    <input 
-                                      type="checkbox"
-                                      checked={canDelete}
-                                      onChange={() => handlePermissionToggle(selectedPersonel.id, tbl.key, 'can_delete')}
-                                      className="w-4 h-4 rounded text-red-600 focus:ring-red-500 cursor-pointer"
-                                    />
+                                    <Checkbox size="small" color="error" checked={canDelete} onChange={() => handlePermissionToggle(selectedPersonel.id, tbl.key, 'can_delete')} />
                                   </td>
 
                                   {/* Admin Toggle */}
                                   <td className="p-3 text-center">
-                                    <input
-                                      type="checkbox"
-                                      checked={canAdmin}
-                                      onChange={() => handlePermissionToggle(selectedPersonel.id, tbl.key, 'can_admin')}
-                                      className="w-4 h-4 rounded text-amber-600 focus:ring-amber-500 cursor-pointer"
-                                    />
+                                    <Checkbox size="small" color="warning" checked={canAdmin} onChange={() => handlePermissionToggle(selectedPersonel.id, tbl.key, 'can_admin')} />
                                   </td>
 
                                   {/* Doküman Ekle Toggle */}
                                   <td className="p-3 text-center">
-                                    <input
-                                      type="checkbox"
-                                      checked={canDocAdd}
-                                      onChange={() => handlePermissionToggle(selectedPersonel.id, tbl.key, 'can_doc_add')}
-                                      className="w-4 h-4 rounded text-teal-600 focus:ring-teal-500 cursor-pointer"
-                                    />
+                                    <Checkbox size="small" color="success" checked={canDocAdd} onChange={() => handlePermissionToggle(selectedPersonel.id, tbl.key, 'can_doc_add')} />
                                   </td>
 
                                   {/* Doküman Sil/Düzenle Toggle */}
                                   <td className="p-3 text-center">
-                                    <input
-                                      type="checkbox"
-                                      checked={canDocManage}
-                                      onChange={() => handlePermissionToggle(selectedPersonel.id, tbl.key, 'can_doc_manage')}
-                                      className="w-4 h-4 rounded text-fuchsia-600 focus:ring-fuchsia-500 cursor-pointer"
-                                    />
+                                    <Checkbox size="small" color="secondary" checked={canDocManage} onChange={() => handlePermissionToggle(selectedPersonel.id, tbl.key, 'can_doc_manage')} />
                                   </td>
                                 </tr>
                               );

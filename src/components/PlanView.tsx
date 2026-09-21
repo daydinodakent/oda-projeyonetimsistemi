@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, BarChart, Bar, AreaChart, Area } from 'recharts';
 import { Users, FileText, AlertTriangle, ChevronRight, Upload, Clock, Plus, Pencil, Save, X, Trash2, Edit2, Check, CheckCircle, TrendingUp } from 'lucide-react';
 import { Project, WBSTask, ProjectDocument, EmployeeAllocation } from '../types';
+import FilterSelect from './ui/FilterSelect';
 import Box from '@mui/material/Box';
 import MenuItem from '@mui/material/MenuItem';
 import Typography from '@mui/material/Typography';
@@ -833,18 +834,7 @@ export default function PlanView({
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2">
               <span className="text-xs text-[var(--text-secondary)]">WBS Durum Filtresi:</span>
-              <select 
-                value={wbsFilterStatus}
-                onChange={(e) => setWbsFilterStatus(e.target.value)}
-                className="bg-[var(--bg-secondary)] border border-[var(--border)] text-xs font-bold rounded-lg px-2.5 py-1.5 focus:outline-none text-[var(--text-primary)]"
-              >
-                <option value="all">Tüm Süreçler</option>
-                <option value="Talep">Talep Aşaması</option>
-                <option value="Onay">Onay Aşaması</option>
-                <option value="Devam">Devam Edenler</option>
-                <option value="Kontrol">Kontrol Aşaması</option>
-                <option value="Kapanış">Kapananlar</option>
-              </select>
+              <FilterSelect value={wbsFilterStatus} onChange={setWbsFilterStatus} options={[{ value: "all", label: "Tüm Süreçler" }, { value: "Talep", label: "Talep Aşaması" }, { value: "Onay", label: "Onay Aşaması" }, { value: "Devam", label: "Devam Edenler" }, { value: "Kontrol", label: "Kontrol Aşaması" }, { value: "Kapanış", label: "Kapananlar" }]} />
             </div>
             
             <button 

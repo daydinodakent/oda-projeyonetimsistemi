@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, BarChart, Bar } from 'recharts';
 import { Box, Wrench, AlertTriangle, TrendingUp, Plus, FileText, CheckCircle, Info, Play, Pencil, X, Save } from 'lucide-react';
 import { Project, Asset, MaintenanceLog } from '../types';
+import FilterSelect from './ui/FilterSelect';
 import MuiBox from '@mui/material/Box';
 import MenuItem from '@mui/material/MenuItem';
 import Typography from '@mui/material/Typography';
@@ -366,16 +367,7 @@ export default function IsletmeView({
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2">
               <span className="text-xs text-[var(--text-secondary)]">Varlık Türü Sınıflandırma:</span>
-              <select 
-                value={assetTypeFilter}
-                onChange={(e) => setAssetTypeFilter(e.target.value)}
-                className="bg-[var(--bg-secondary)] border border-[var(--border)] text-xs font-bold rounded-lg px-2.5 py-1.5 focus:outline-none text-[var(--text-primary)] cursor-pointer"
-              >
-                <option value="all">Tüm Sınıflar (Bina / Altyapı / Cihaz)</option>
-                <option value="Bina">Sadece Yapı / Bloklar</option>
-                <option value="Ekipman">Saha Ekipmanları</option>
-                <option value="Altyapı">Mekanik/Elektrik Altyapısı</option>
-              </select>
+              <FilterSelect value={assetTypeFilter} onChange={setAssetTypeFilter} options={[{ value: "all", label: "Tüm Sınıflar (Bina / Altyapı / Cihaz)" }, { value: "Bina", label: "Sadece Yapı / Bloklar" }, { value: "Ekipman", label: "Saha Ekipmanları" }, { value: "Altyapı", label: "Mekanik/Elektrik Altyapısı" }]} />
             </div>
 
             <button 
