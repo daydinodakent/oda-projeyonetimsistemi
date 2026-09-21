@@ -1223,6 +1223,24 @@
     color:#101c26;background:var(--teal);border-radius:2px;padding:1px 4px;
   }
   .info-doc-row .doc-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  /* Objeye eklenmiş 3B model: küp ikonlu, altın vurgulu özel satır. */
+  .info-doc-row-model{border-color:rgba(245,185,66,.45);}
+  .info-doc-row-model.active{border-color:var(--gold);}
+  .info-doc-row .doc-model-icon{flex:0 0 auto;width:16px;height:16px;color:var(--gold);display:flex;}
+  .info-doc-row .doc-model-icon svg{width:16px;height:16px;}
+  .info-doc-row .doc-model-badge{background:var(--gold);}
+  .info-model-card{
+    width:100%;display:flex;flex-direction:column;align-items:center;gap:5px;padding:14px 6px;
+    background:var(--bg-panel-raise);border:1px dashed rgba(245,185,66,.45);border-radius:2px;
+  }
+  .info-model-card-icon{width:34px;height:34px;color:var(--gold);display:flex;}
+  .info-model-card-icon svg{width:34px;height:34px;}
+  .info-model-btn{
+    width:100%;padding:5px 0;background:transparent;border:1px solid var(--line);border-radius:2px;
+    color:var(--text);font-size:11px;cursor:pointer;
+  }
+  .info-model-btn:hover{border-color:var(--gold);color:var(--gold);}
+  .info-model-btn.danger:hover{border-color:#e0685a;color:#e0685a;}
   #infoDocsPreview{
     border-top:1px dashed var(--line);padding-top:8px;font-size:11px;
     display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;
@@ -4553,7 +4571,7 @@
       body = schemaRows || '<div style="margin-top:4px;">Bu objede öznitelik bilgisi girilmemiş.</div>';
     } else {
       var rows = Object.keys(f.properties || {}).filter(function(k){
-        return k.indexOf('__') !== 0 && k !== 'layerId' && k !== 'tablo';
+        return k.indexOf('__') !== 0 && k !== 'layerId' && k !== 'tablo' && k !== 'bimModel';
       });
       body = rows.length
         ? rows.map(function(k){
@@ -4946,13 +4964,49 @@
     var m = /\.(ifc|gltf|glb)$/i.exec(name || '');
     return m ? m[1].toLowerCase() : null;
   }
+  // Objeye "Objeye 3D Model olarak ekle" ile eklenmiş 3B model (feature.properties.bimModel).
+  var INFO_MODEL_ICON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+    '<path d="M12 2.5 3.5 7v10L12 21.5 20.5 17V7L12 2.5z"/><path d="M3.5 7 12 11.5 20.5 7M12 11.5v10"/></svg>';
+  function featureBimModelOf(featureId){
+    var f = featureId ? features.find(function(x){ return x.id === featureId; }) : null;
+    var m = f && f.properties && f.properties.bimModel;
+    return (m && m.key) ? m : null;
+  }
+  function removeBimModelFromFeature(featureId){
+    var f = features.find(function(x){ return x.id === featureId; });
+    if (!f || !f.properties || !f.properties.bimModel) return;
+    pushHistory();
+    delete f.properties.bimModel;
+    delete bimViewFeatures[featureId];
+    syncFeatureBimMeshes();
+    renderFeatures();
+    saveSessionToLocalStorage();
+    if (activeInfoFeatureId === featureId) renderInfoDocsPanel(featureId);
+    showToast('3B model objeden kaldırıldı.');
+  }
+  function renderInfoModelPreview(bm, featureId){
+    var previewEl = document.getElementById('infoDocsPreview');
+    previewEl.innerHTML = '<div class="info-model-card">' +
+        '<span class="info-model-card-icon">' + INFO_MODEL_ICON_SVG + '</span>' +
+        '<span style="color:var(--text);word-break:break-all;">' + escapeAttrHtml(bm.name || '3B Model') + '</span>' +
+        '<span style="color:var(--text-dim);">3B Model · ' + escapeAttrHtml((bm.format || '').toUpperCase()) + '</span>' +
+      '</div>' +
+      '<button type="button" class="info-model-btn" data-act="show">Kanvasta göster</button>' +
+      '<button type="button" class="info-model-btn danger" data-act="remove">Objeden kaldır</button>';
+    previewEl.querySelector('[data-act="show"]').addEventListener('click', function(){
+      if (!bimViewGlobalOn) document.getElementById('statusBimViewToggleBtn').click();
+      else showToast('BIM Görünümü zaten açık — model canvasta gösteriliyor.');
+    });
+    previewEl.querySelector('[data-act="remove"]').addEventListener('click', function(){ removeBimModelFromFeature(featureId); });
+  }
   function renderInfoDocsPanel(featureId){
     activeInfoFeatureId = featureId;
     var panel = document.getElementById('infoDocsPanel');
     var listEl = document.getElementById('infoDocsList');
     var previewEl = document.getElementById('infoDocsPreview');
     var docs = featureId ? (featureDocumentsCache[featureId] || []) : [];
-    if (!docs.length){
+    var bimModel = featureBimModelOf(featureId);
+    if (!docs.length && !bimModel){
       panel.classList.remove('show');
       listEl.innerHTML = '';
       previewEl.innerHTML = '';
@@ -4960,9 +5014,30 @@
     }
     panel.classList.add('show');
     listEl.innerHTML = '';
+    // Eklenmiş 3B model: listenin en üstünde, özel (küp) ikonlu satır.
+    if (bimModel){
+      var mrow = document.createElement('div');
+      mrow.className = 'info-doc-row info-doc-row-model active';
+      mrow.title = 'Objeye eklenmiş 3B model (sağ tık: kaldır)';
+      mrow.innerHTML = '<span class="doc-model-icon">' + INFO_MODEL_ICON_SVG + '</span>' +
+        '<span class="doc-name">' + escapeAttrHtml(bimModel.name || '3B Model') + '</span>' +
+        '<span class="doc-type-badge doc-model-badge">3B</span>';
+      mrow.addEventListener('click', function(){
+        listEl.querySelectorAll('.info-doc-row').forEach(function(r){ r.classList.remove('active'); });
+        mrow.classList.add('active');
+        renderInfoModelPreview(bimModel, featureId);
+      });
+      mrow.addEventListener('contextmenu', function(e){
+        e.preventDefault(); e.stopPropagation();
+        showTreeContextMenu(e.clientX, e.clientY, [
+          { label:'3B Modeli Objeden Kaldır', action:function(){ removeBimModelFromFeature(featureId); }, danger:true }
+        ]);
+      });
+      listEl.appendChild(mrow);
+    }
     docs.forEach(function(d, idx){
       var row = document.createElement('div');
-      row.className = 'info-doc-row' + (idx === 0 ? ' active' : '');
+      row.className = 'info-doc-row' + (idx === 0 && !bimModel ? ' active' : '');
       row.innerHTML = '<span class="doc-type-badge" style="background:' + (DOC_TYPE_ICON_COLOR[d.doc_type] || '#8a94a6') + '">' +
         (DOC_TYPE_LABELS[d.doc_type] || 'Dosya') + '</span><span class="doc-name">' + escapeAttrHtml(d.name) + '</span>';
       row.addEventListener('click', function(){
@@ -4982,7 +5057,8 @@
       }
       listEl.appendChild(row);
     });
-    renderInfoDocPreview(docs[0], docs);
+    if (bimModel) renderInfoModelPreview(bimModel, featureId);
+    else renderInfoDocPreview(docs[0], docs);
   }
   // Bilgi balonundaki doküman önizlemesi — türe göre gerçek bir viewer gösterir:
   // resim <img>, video <video controls>, PDF tarayıcının yerleşik görüntüleyicisiyle
@@ -13942,6 +14018,7 @@
     syncFeatureBimMeshes();
     renderFeatures();
     saveSessionToLocalStorage();
+    if (activeInfoFeatureId === f.id) renderInfoDocsPanel(f.id); // Bilgi formu açıksa 3B model satırı hemen görünsün
     showToast('"' + name + '" objeye 3D model olarak eklendi — durum çubuğundaki "BIM Görünümü" düğmesiyle canvasta görebilirsiniz.');
   }
 
