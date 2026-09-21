@@ -11,7 +11,7 @@ import Typography from '@mui/material/Typography';
 import { alpha, useTheme } from '@mui/material/styles';
 import CloseIcon from '@mui/icons-material/Close';
 
-export type DialogTone = 'success' | 'warning' | 'secondary';
+export type DialogTone = 'primary' | 'success' | 'warning' | 'secondary';
 
 interface AppDialogProps {
   open: boolean;

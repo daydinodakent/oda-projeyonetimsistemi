@@ -1,7 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
-import { ShieldCheck, CalendarRange, Thermometer, Zap, AlertTriangle, Cpu, Pencil, X } from 'lucide-react';
+import Box from '@mui/material/Box';
+import IconButton from '@mui/material/IconButton';
+import Stack from '@mui/material/Stack';
+import TextField from '@mui/material/TextField';
+import Typography from '@mui/material/Typography';
+import { alpha, useTheme } from '@mui/material/styles';
+import { ShieldCheck, CalendarRange, Thermometer, Zap, AlertTriangle, Cpu, Pencil } from 'lucide-react';
 import { Project, Asset } from '../types';
+import AppDialog from './chrome/AppDialog';
+import Tag from './ui/Tag';
+import FeedbackToast from './ui/FeedbackToast';
+import type { Tone } from './ui/tone';
 
 interface IsletmeRightPanelProps {
   project: Project;
@@ -14,7 +24,37 @@ interface LiveDataPoint {
   energy: number;
 }
 
-export default function IsletmeRightPanel({ project, assets, selectedAssetId }: IsletmeRightPanelProps) {
+const dialogFieldSx = { '& .MuiInputBase-input': { fontSize: 12 } };
+
+/** Bölüm başlığı: ikon + eyebrow, sağda isteğe bağlı eylem. */
+function SectionHeader({ icon, title, right }: { icon: ReactNode; title: string; right?: ReactNode }) {
+  return (
+    <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', pb: 2, borderBottom: 1, borderColor: 'divider' }}>
+      <Typography component="span" sx={{ display: 'flex', alignItems: 'center', gap: 1.5, fontSize: 10, fontWeight: 900, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'text.secondary' }}>
+        {icon}
+        {title}
+      </Typography>
+      {right}
+    </Stack>
+  );
+}
+
+/** Canlı ölçüm kutusu (ikon + etiket + değer). */
+function Readout({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
+  return (
+    <Stack direction="row" spacing={1.5} sx={{ p: 2, alignItems: 'center', bgcolor: 'background.default', border: 1, borderColor: 'divider' }}>
+      {icon}
+      <Box>
+        <Typography component="span" sx={{ display: 'block', fontSize: 10, textTransform: 'uppercase', color: 'text.secondary' }}>{label}</Typography>
+        <Typography component="strong" sx={{ fontSize: 12, fontWeight: 700 }}>{value}</Typography>
+      </Box>
+    </Stack>
+  );
+}
+
+export default function IsletmeRightPanel({ assets, selectedAssetId }: IsletmeRightPanelProps) {
+  const theme = useTheme();
+
   // Find current selected asset
   const asset = assets.find(a => a.id === selectedAssetId) || assets[0];
 
@@ -23,13 +63,6 @@ export default function IsletmeRightPanel({ project, assets, selectedAssetId }: 
   const [assetLastMaintenance, setAssetLastMaintenance] = useState('');
   const [isEditingAsset, setIsEditingAsset] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-
-  const showFeedbackToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => {
-      setToastMessage(null);
-    }, 4000);
-  };
 
   useEffect(() => {
     if (asset) {
@@ -66,14 +99,13 @@ export default function IsletmeRightPanel({ project, assets, selectedAssetId }: 
       setLiveData(prev => {
         const now = new Date();
         const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
-        
+
         // Base energy consumption depending on asset state
         const baseEnergy = asset?.status === 'Arızalı' ? 10 : asset?.status === 'Bakım Bekliyor' ? 65 : 45;
         const noise = (Math.random() - 0.5) * 12;
         const newVal = Math.round(Math.max(5, baseEnergy + noise));
 
-        const nextData = [...prev.slice(1), { time: timeStr, energy: newVal }];
-        return nextData;
+        return [...prev.slice(1), { time: timeStr, energy: newVal }];
       });
     }, 2500);
 
@@ -82,210 +114,136 @@ export default function IsletmeRightPanel({ project, assets, selectedAssetId }: 
 
   if (!asset) {
     return (
-      <div className="bg-[var(--bg-secondary)] border border-[var(--border)] p-5 rounded-none text-center text-xs text-slate-500 italic">
+      <Box sx={{ p: 5, textAlign: 'center', fontSize: 12, fontStyle: 'italic', color: 'text.disabled', bgcolor: 'background.paper', border: 1, borderColor: 'divider' }}>
         Bilgi kartını görmek için soldan bir varlık seçin.
-      </div>
+      </Box>
     );
   }
 
   const isFaulty = asset.status === 'Arızalı';
+  const statusTone: Tone = isFaulty ? 'error' : asset.status === 'Bakım Bekliyor' ? 'warning' : 'success';
+  const chartColor = theme.palette.warning.main;
 
   return (
-    <div className="space-y-2.5">
+    <Stack spacing={2.5}>
       {/* 1. SEÇİLİ VARLIK BİLGİ KARTI */}
-      <div className="card p-0 pt-1.5 rounded-none bg-transparent border-0 shadow-none px-0">
-        <div className="flex justify-between items-center mb-2 border-b border-[var(--border)] pb-2 -mt-2.5">
-          <span className="section-eyebrow flex items-center gap-1">
-            <Cpu className="w-3.5 h-3.5 text-blue-500" />
-            Varlık Kimlik Kartı
-          </span>
-          <button
-            onClick={() => setIsEditingAsset(true)}
-            className="p-1 hover:bg-slate-800 rounded transition cursor-pointer text-slate-400 hover:text-white flex items-center justify-center shrink-0"
-            title="Varlık Bilgilerini Düzenle (SpU)"
-          >
-            <Pencil className="w-3.5 h-3.5" />
-          </button>
-        </div>
+      <Box>
+        <SectionHeader
+          icon={<Box component="span" sx={{ display: 'flex', color: 'info.main' }}><Cpu className="w-3.5 h-3.5" /></Box>}
+          title="Varlık Kimlik Kartı"
+          right={
+            <IconButton size="small" title="Varlık Bilgilerini Düzenle (SpU)" onClick={() => setIsEditingAsset(true)} sx={{ p: 1, color: 'text.secondary', '&:hover': { color: 'text.primary' } }}>
+              <Pencil className="w-3.5 h-3.5" />
+            </IconButton>
+          }
+        />
 
-        <h4 className="text-xs font-black text-[var(--text-primary)] mb-1 leading-normal pt-1.5 text-left">
+        <Typography component="h4" sx={{ pt: 2, mb: 1, fontSize: 12, fontWeight: 900, lineHeight: 1.5, textAlign: 'left' }}>
           {asset.name}
-        </h4>
-        <div className="text-left">
-          <span className={`px-2 py-0.5 rounded-none text-[10px] font-black inline-block mb-2 ${
-            isFaulty 
-              ? 'bg-red-500/10 text-red-500 border border-red-500/20 animate-pulse' 
-              : asset.status === 'Bakım Bekliyor' 
-                ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' 
-                : 'bg-emerald-500/15 text-emerald-500'
-          }`}>
-            {asset.status}
-          </span>
-        </div>
+        </Typography>
+        <Box sx={{ textAlign: 'left', mb: 2 }}>
+          <Tag tone={statusTone}>{asset.status}</Tag>
+        </Box>
 
-        <div className="space-y-1.5 text-xs pt-1.5 border-t border-[var(--border)]">
-          <div className="flex justify-between items-center pb-0.5">
-            <span className="text-[var(--text-secondary)] flex items-center gap-1">
-              <ShieldCheck className="w-3.5 h-3.5 text-blue-500" />
+        <Stack spacing={1.5} sx={{ pt: 1.5, borderTop: 1, borderColor: 'divider', fontSize: 12 }}>
+          <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', pb: 0.5 }}>
+            <Typography component="span" sx={{ display: 'flex', alignItems: 'center', gap: 1, fontSize: 12, color: 'text.secondary' }}>
+              <Box component="span" sx={{ display: 'flex', color: 'info.main' }}><ShieldCheck className="w-3.5 h-3.5" /></Box>
               Garanti Durumu:
-            </span>
-            <strong className="text-blue-500 text-[11px]">{assetWarranty}</strong>
-          </div>
+            </Typography>
+            <Typography component="strong" sx={{ fontSize: 11, fontWeight: 700, color: 'info.main' }}>{assetWarranty}</Typography>
+          </Stack>
 
-          <div className="flex justify-between items-center pb-0.5">
-            <span className="text-[var(--text-secondary)] flex items-center gap-1">
-              <CalendarRange className="w-3.5 h-3.5 text-amber-500" />
+          <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', pb: 0.5 }}>
+            <Typography component="span" sx={{ display: 'flex', alignItems: 'center', gap: 1, fontSize: 12, color: 'text.secondary' }}>
+              <Box component="span" sx={{ display: 'flex', color: 'warning.main' }}><CalendarRange className="w-3.5 h-3.5" /></Box>
               Son Bakım Tarihi:
-            </span>
-            <strong className="text-[var(--text-primary)] font-mono">{assetLastMaintenance}</strong>
-          </div>
+            </Typography>
+            <Typography component="strong" sx={{ fontSize: 12, fontWeight: 700, fontFamily: 'monospace' }}>{assetLastMaintenance}</Typography>
+          </Stack>
 
-          <div className="flex justify-between items-center">
-            <span className="text-[var(--text-secondary)]">Kümülatif Bakım:</span>
-            <strong className="text-amber-500 font-mono">₺{asset.maintenanceCost}M</strong>
-          </div>
-        </div>
-      </div>
+          <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
+            <Typography component="span" sx={{ fontSize: 12, color: 'text.secondary' }}>Kümülatif Bakım:</Typography>
+            <Typography component="strong" sx={{ fontSize: 12, fontWeight: 700, fontFamily: 'monospace', color: 'warning.main' }}>₺{asset.maintenanceCost}M</Typography>
+          </Stack>
+        </Stack>
+      </Box>
 
       {/* 2. CANLI SCADA / SENSÖR TELEMETRİ ALANI */}
-      <div className="card p-0 rounded-none bg-transparent border-0 shadow-none px-0 space-y-2 border-t border-[var(--border)] pt-2.5">
-        <div className="flex justify-between items-center border-b border-[var(--border)] pb-2">
-          <span className="section-eyebrow flex items-center gap-1.5">
-            <Zap className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
-            IoT Canlı SCADA Telemetrisi
-          </span>
-          <span className="px-1.5 py-0.5 bg-red-600/15 text-red-500 text-[10px] font-extrabold rounded animate-pulse">
-            LIVE
-          </span>
-        </div>
+      <Stack spacing={2} sx={{ pt: 2.5, borderTop: 1, borderColor: 'divider' }}>
+        <SectionHeader
+          icon={<Box component="span" sx={{ display: 'flex', color: 'warning.main' }}><Zap className="w-3.5 h-3.5" /></Box>}
+          title="IoT Canlı SCADA Telemetrisi"
+          right={<Tag tone="error" variant="plain">LIVE</Tag>}
+        />
 
         {/* Readout stats */}
-        <div className="grid grid-cols-2 gap-2">
-          <div className="p-2 bg-[var(--bg-primary)] border border-[var(--border)] rounded-none flex items-center gap-1.5">
-            <Thermometer className="w-4 h-4 text-red-500 shrink-0" />
-            <div>
-              <span className="text-[10px] text-[var(--text-secondary)] block uppercase">Sıcaklık</span>
-              <strong className="text-xs text-[var(--text-primary)] transition-all duration-300">{liveTemp}°C</strong>
-            </div>
-          </div>
-          <div className="p-2 bg-[var(--bg-primary)] border border-[var(--border)] rounded-none flex items-center gap-1.5">
-            <Zap className="w-4 h-4 text-amber-500 shrink-0" />
-            <div>
-              <span className="text-[10px] text-[var(--text-secondary)] block uppercase">Anlık Güç</span>
-              <strong className="text-xs text-[var(--text-primary)]">
-                {liveData[liveData.length - 1]?.energy || 45} kW
-              </strong>
-            </div>
-          </div>
-        </div>
+        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+          <Readout icon={<Box component="span" sx={{ display: 'flex', color: 'error.main', flexShrink: 0 }}><Thermometer className="w-4 h-4" /></Box>} label="Sıcaklık" value={`${liveTemp}°C`} />
+          <Readout icon={<Box component="span" sx={{ display: 'flex', color: 'warning.main', flexShrink: 0 }}><Zap className="w-4 h-4" /></Box>} label="Anlık Güç" value={`${liveData[liveData.length - 1]?.energy || 45} kW`} />
+        </Box>
 
         {/* Rolling Live Chart */}
-        <div className="space-y-1">
-          <span className="text-[10px] text-[var(--text-secondary)] font-bold block">
+        <Box>
+          <Typography component="span" sx={{ display: 'block', mb: 1, fontSize: 10, fontWeight: 700, color: 'text.secondary' }}>
             Reel-Time Enerji Akış Hızı (kW)
-          </span>
-          <div className="h-[120px] w-full">
+          </Typography>
+          <Box sx={{ height: 120, width: '100%' }}>
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={liveData} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorEnergyLive" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.4}/>
-                    <stop offset="95%" stopColor="#f59e0b" stopOpacity={0}/>
+                    <stop offset="5%" stopColor={chartColor} stopOpacity={0.4} />
+                    <stop offset="95%" stopColor={chartColor} stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="2 2" stroke="#334155" opacity={0.3} />
-                <XAxis dataKey="time" stroke="#64748b" fontSize={7} tickLine={false} />
-                <YAxis stroke="#64748b" fontSize={7} tickLine={false} />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#0f172a', 
-                    borderColor: '#334155',
+                <CartesianGrid strokeDasharray="2 2" stroke={theme.palette.divider} opacity={0.6} />
+                <XAxis dataKey="time" stroke={theme.palette.text.disabled} fontSize={7} tickLine={false} />
+                <YAxis stroke={theme.palette.text.disabled} fontSize={7} tickLine={false} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: theme.palette.background.paper,
+                    borderColor: theme.palette.divider,
                     fontSize: '8px',
-                    color: '#f8fafc'
-                  }} 
+                    color: theme.palette.text.primary,
+                  }}
                 />
-                <Area type="monotone" dataKey="energy" stroke="#f59e0b" fillOpacity={1} fill="url(#colorEnergyLive)" strokeWidth={1.5} />
+                <Area type="monotone" dataKey="energy" stroke={chartColor} fillOpacity={1} fill="url(#colorEnergyLive)" strokeWidth={1.5} />
               </AreaChart>
             </ResponsiveContainer>
-          </div>
-        </div>
+          </Box>
+        </Box>
 
         {isFaulty && (
-          <div className="p-2.5 bg-red-500/10 border border-red-500/20 rounded-none text-[10px] text-red-400 flex gap-1.5 leading-normal">
-            <AlertTriangle className="w-4 h-4 text-red-500 shrink-0" />
+          <Stack direction="row" spacing={1.5} sx={{ p: 2.5, fontSize: 10, lineHeight: 1.5, color: 'error.light', bgcolor: alpha(theme.palette.error.main, 0.1), border: 1, borderColor: alpha(theme.palette.error.main, 0.2) }}>
+            <Box component="span" sx={{ display: 'flex', flexShrink: 0, color: 'error.main' }}><AlertTriangle className="w-4 h-4" /></Box>
             <span>Varlık kritik arıza modunda! Enerji tüketiminin düşmesi kompresör durmasına işaret ediyor. Acil müdahale ekibi yönlendirildi.</span>
-          </div>
+          </Stack>
         )}
+      </Stack>
 
-        {/* Local FeedBack Toast Banner */}
-        {toastMessage && (
-          <div className="p-1.5 bg-slate-950 text-white text-[10px] rounded border border-slate-800 animate-fade-in flex justify-between items-center z-[99] mt-2">
-            <span>{toastMessage}</span>
-            <button onClick={() => setToastMessage(null)} className="text-slate-500 hover:text-white font-bold ml-1">✕</button>
-          </div>
-        )}
-      </div>
+      <FeedbackToast message={toastMessage} onClose={() => setToastMessage(null)} />
 
       {/* Asset Edit Modal (Süper Kullanıcı) */}
-      {isEditingAsset && (
-        <div className="fixed inset-0 z-[999] bg-black/75 flex items-center justify-center p-4 animate-fade-in backdrop-blur-sm text-left">
-          <div className="bg-[#141416] border border-[#2c2c2e] p-5 rounded-2xl shadow-2xl w-full max-w-sm max-h-[85vh] overflow-y-auto space-y-4">
-            <div className="flex justify-between items-center border-b border-[#2c2c2e] pb-2 text-white">
-              <div className="flex items-center gap-2">
-                <Pencil className="w-4 h-4 text-blue-400 animate-pulse" />
-                <h3 className="text-xs font-black uppercase tracking-wider">Varlık Düzenleme (SpU)</h3>
-              </div>
-              <button onClick={() => setIsEditingAsset(false)} className="text-slate-400 hover:text-white cursor-pointer">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <p className="text-[10px] text-slate-400">
-              Süper kullanıcı yetkisiyle seçili işletme varlığının garanti süresini ve son bakım tarihini güncelleyebilirsiniz.
-            </p>
-
-            <div className="space-y-3 pt-1 text-left">
-              <div className="space-y-1">
-                <label className="block text-[10px] text-slate-400 font-bold uppercase">VARLIK ADI</label>
-                <div className="text-xs text-white font-bold bg-[#1c1c1e] p-2 rounded-lg border border-[#2c2c2e]">
-                  {asset.name}
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <label className="block text-[10px] text-slate-400 font-bold uppercase">GARANTİ DURUMU</label>
-                <input
-                  type="text"
-                  value={assetWarranty}
-                  onChange={(e) => setAssetWarranty(e.target.value)}
-                  className="w-full bg-[#1c1c1e] border border-[#2c2c2e] rounded-lg px-2.5 py-1 text-xs text-white focus:outline-none focus:border-blue-500"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="block text-[10px] text-slate-400 font-bold uppercase">SON BAKIM TARİHİ</label>
-                <input
-                  type="text"
-                  value={assetLastMaintenance}
-                  onChange={(e) => setAssetLastMaintenance(e.target.value)}
-                  className="w-full bg-[#1c1c1e] border border-[#2c2c2e] rounded-lg px-2.5 py-1 text-xs text-white focus:outline-none focus:border-blue-500"
-                />
-              </div>
-            </div>
-
-            <button
-              onClick={() => {
-                setIsEditingAsset(false);
-                showFeedbackToast('💾 İşletme varlığı garanti ve bakım detayları güncellendi.');
-              }}
-              className="w-full py-2 bg-blue-600 hover:bg-blue-500 text-xs font-black text-white rounded-xl transition cursor-pointer"
-            >
-              KAYDET VE KAPAT
-            </button>
-          </div>
-        </div>
-      )}
-
-    </div>
+      <AppDialog
+        open={isEditingAsset}
+        onClose={() => setIsEditingAsset(false)}
+        badge="Süper Yetkili"
+        title="Varlık Düzenleme"
+        tone="primary"
+        submitLabel="Kaydet ve Kapat"
+        onSubmit={() => {
+          setIsEditingAsset(false);
+          setToastMessage('💾 İşletme varlığı garanti ve bakım detayları güncellendi.');
+        }}
+      >
+        <Typography sx={{ fontSize: 10, color: 'text.secondary' }}>
+          Süper kullanıcı yetkisiyle seçili işletme varlığının garanti süresini ve son bakım tarihini güncelleyebilirsiniz.
+        </Typography>
+        <TextField label="Varlık Adı" value={asset.name} slotProps={{ input: { readOnly: true } }} sx={dialogFieldSx} />
+        <TextField label="Garanti Durumu" value={assetWarranty} onChange={(e) => setAssetWarranty(e.target.value)} sx={dialogFieldSx} />
+        <TextField label="Son Bakım Tarihi" value={assetLastMaintenance} onChange={(e) => setAssetLastMaintenance(e.target.value)} sx={dialogFieldSx} />
+      </AppDialog>
+    </Stack>
   );
 }
