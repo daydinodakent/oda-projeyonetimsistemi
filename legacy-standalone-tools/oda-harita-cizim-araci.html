@@ -758,6 +758,23 @@
   #bimHud .bim-hud-btn.bim-hud-height{ cursor:ns-resize; }
   #bimHud .bim-hud-btn.bim-hud-reset{ color:#7d90a6; cursor:pointer; }
   #bimHud .bim-hud-btn.bim-hud-reset:hover{ color:#e0685a; border-color:#e0685a; }
+  #bimHud .bim-hud-btn.bim-hud-save{ color:#5ed39a; border-color:rgba(94,211,154,.45); }
+  #bimHud .bim-hud-btn.bim-hud-save:hover{ color:#fff; background:#1f9a63; border-color:#5ed39a; }
+  #bimHud .bim-hud-btn.bim-hud-save.saved{ color:#5ed39a; }
+  #bimHud .bim-hud-btn.bim-hud-save svg{ width:16px; height:16px; pointer-events:none; }
+  #bimHud .bim-hud-inputs{
+    position:absolute; left:130px; top:66px; width:158px; display:flex; flex-direction:column; gap:5px;
+    background:rgba(13,21,32,.94); border:1px solid rgba(127,215,255,.3); border-radius:9px;
+    padding:8px 10px; pointer-events:auto; backdrop-filter:blur(14px);
+  }
+  #bimHud .bim-hud-inputs.hidden{ display:none; }
+  #bimHud .bim-hud-inputs label{ display:flex; align-items:center; justify-content:space-between; gap:6px; font-size:10px; color:#9db2c8; }
+  #bimHud .bim-hud-inputs input{
+    width:88px; background:#0a121c; color:#e6f1fb; border:1px solid rgba(127,215,255,.25); border-radius:5px;
+    padding:3px 5px; font:11px/1.2 var(--font-mono, monospace); text-align:right;
+  }
+  #bimHud .bim-hud-inputs input:focus{ outline:none; border-color:#1f9fe0; }
+  #bimHud .bim-hud-inputs .bim-hud-inputs-row.hidden{ display:none; }
   #bimHud .bim-hud-pitchroll{
     position:absolute; left:-90px; top:120px; width:180px; display:flex; flex-direction:column; gap:6px;
     background:rgba(13,21,32,.92); border:1px solid rgba(127,215,255,.3); border-radius:9px;
@@ -5018,7 +5035,7 @@
   // bilmediğinden üzerine yazıp imleci sessizce eski haline döndürüyordu.
   function updateCanvasCursor(){
     map.getCanvas().style.cursor = (infoMode || attributeEditMode) ? 'help'
-      : docAttachMode ? 'copy'
+      : (docAttachMode || bimAttachSourceLayerId) ? 'copy'
       : mode === 'pan' ? 'grab'
       : mode === 'select' ? 'default'
       : 'crosshair';
@@ -6281,6 +6298,7 @@
   map.on('click', function(e){
     if (sahaPinPlacementMode){ handleSahaPinPlacementClick(e); return; }
     if (attributeEditMode){ handleAttributeEditClick(e); return; }
+    if (bimAttachSourceLayerId){ handleBimAttachClick(e); return; }
     if (docAttachMode){ handleDocAttachClick(e); return; }
     if (infoMode){ handleInfoClick(e); return; }
     var fromPt = (isVertexDrawMode(mode) && draftCoords && draftCoords.length) ? draftCoords[draftCoords.length - 1] : null;
@@ -6768,7 +6786,10 @@
     var tag = document.activeElement ? document.activeElement.tagName : '';
     if (tag === 'TEXTAREA' || tag === 'INPUT') return;
     if (e.key === 'Escape'){
-      if (attributeEditMode){
+      if (bimAttachSourceLayerId){
+        cancelBimAttachMode();
+        showToast('3D model ekleme iptal edildi.');
+      } else if (attributeEditMode){
         attributeEditMode = false;
         document.getElementById('btnAttrEdit').classList.remove('active');
         updateCanvasCursor();
@@ -7816,6 +7837,7 @@
         renderFeatures(); renderLayerTree(); refreshActiveLayerSelect();
       }
       if (addedFeatureCount) showLoadedCountStatus(addedFeatureCount);
+      if (typeof rehydrateFeatureBimModels === 'function' && bimViewFeatures) rehydrateFeatureBimModels();
     }catch(err){
       console.error('Kaydedilmiş oturum geri yüklenemedi:', err);
     }
@@ -8595,6 +8617,7 @@
       // createBimLayerForImport / addImportedFeatures) katmanlarda görünür.
       if (['ifc','gltf','glb'].indexOf(lyr.sourceFormat) >= 0){
         items.push({ label:'BIM Görüntüleyicide Aç', action:function(){ openBimViewer(lyr.id); } });
+        items.push({ label:'Objeye 3D Model olarak ekle', action:function(){ startBimAttachMode(lyr.id); } });
         items.push({ sep:true });
       }
       items.push(
@@ -11157,7 +11180,10 @@
       // çıpa: import anındaki harita merkezi + kullanıcının seçtiği birim
       // ölçeği. placeLocalRingOnMap() de AYNI harita merkezini (senkron olarak,
       // bu satırdan hemen önce) kullandığı için ikisi birbirine denk düşer.
-      bimAnchor: { lng: center.lng, lat: center.lat, scale: placementScale || 1 }
+      bimAnchor: { lng: center.lng, lat: center.lat, scale: placementScale || 1 },
+      // Kaydet'te taban poligonunu yeniden hesaplamak için: poligonun şu an
+      // hangi konum/ölçek/yönle eşleştiği (bkz. saveBimHudTransform).
+      bimSavedAnchor: { lng: center.lng, lat: center.lat, scale: placementScale || 1, heading: 0, alt: 0 }
     });
     saveBimFile(newLayerId, file, sourceFormat, siblingFiles);
     return newLayerId;
@@ -13249,7 +13275,8 @@
   var bimHudUndoStack = [];     // [{ layerId, anchor }] — global undoStack SADECE
                                  // features'ı kapsadığından (bkz. pushHistory), HUD
                                  // sürükleme jestleri için kendi hafif geri-alma yığını.
-  var bimHudEl = null, bimHudRingEl = null, bimHudArmEl = null, bimHudPitchRollEl = null;
+  var bimHudEl = null, bimHudRingEl = null, bimHudArmEl = null, bimHudPitchRollEl = null, bimHudInputsEl = null;
+  var bimHudToolMode = null;    // 'rotate' | 'scale' | 'move' | 'height' — son kullanılan tutamaç (değer kutusu ona göre)
 
   function bimHudSnapshotUndo(lyr){
     bimHudUndoStack.push({ layerId: lyr.id, anchor: JSON.parse(JSON.stringify(lyr.bimAnchor)) });
@@ -13280,6 +13307,16 @@
         '<button type="button" class="bim-hud-btn bim-hud-move" title="Sürükleyerek taşı">✥</button>' +
         '<button type="button" class="bim-hud-btn bim-hud-height" title="Sürükleyerek yükselt (çift tık: zemine otur)">⇅</button>' +
         '<button type="button" class="bim-hud-btn bim-hud-reset" title="Sıfırla (uzun bas: eğim/yatış)">⟲</button>' +
+        '<button type="button" class="bim-hud-btn bim-hud-save" title="Kaydet — model son konum/ölçü/yükseklik ile koordinatlı olarak projeye kaydedilir (Ctrl+S)">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>' +
+        '</button>' +
+      '</div>' +
+      '<div class="bim-hud-inputs hidden">' +
+        '<label class="bim-hud-inputs-row" data-mode="rotate">Yön (°)<input type="number" step="1" data-k="heading"></label>' +
+        '<label class="bim-hud-inputs-row" data-mode="scale">Ölçek<input type="number" step="0.01" min="0.001" max="4" data-k="scale"></label>' +
+        '<label class="bim-hud-inputs-row" data-mode="move">Boylam<input type="number" step="0.000001" data-k="lng"></label>' +
+        '<label class="bim-hud-inputs-row" data-mode="move">Enlem<input type="number" step="0.000001" data-k="lat"></label>' +
+        '<label class="bim-hud-inputs-row" data-mode="height">Yükseklik (m)<input type="number" step="0.1" min="-20" max="80" data-k="alt"></label>' +
       '</div>' +
       '<div class="bim-hud-pitchroll hidden">' +
         '<label>Pitch <span class="pr-val" data-k="pitch">0°</span></label>' +
@@ -13291,6 +13328,7 @@
     bimHudRingEl = bimHudEl.querySelector('.bim-hud-ring');
     bimHudArmEl = bimHudEl.querySelector('.bim-hud-arm');
     bimHudPitchRollEl = bimHudEl.querySelector('.bim-hud-pitchroll');
+    bimHudInputsEl = bimHudEl.querySelector('.bim-hud-inputs');
     wireBimHudInteractions();
   }
 
@@ -13310,6 +13348,7 @@
       bimHudState = { layerId: lyr.id };
       bimHudPitchRollOpen = false;
       bimHudPitchRollEl.classList.add('hidden');
+      setBimHudToolMode(null);
     }
     // ⟲ Sıfırla'nın "konum ilk eklenme noktası"na dönebilmesi için, bu
     // katman için HUD'un GÖRDÜĞÜ İLK konumu (import anındaki harita
@@ -13356,6 +13395,77 @@
     var headingDeg = Math.round((a.heading || 0) * 180 / Math.PI);
     el.textContent = 'H ' + headingDeg + '°  S ' + (a.scale || 1).toFixed((a.scale || 1) < 0.1 ? 3 : 2) +
       '  Z ' + (a.alt || 0).toFixed(2) + 'm  ' + a.lat.toFixed(6) + ', ' + a.lng.toFixed(6);
+    refreshBimHudInputs(a);
+  }
+  // Değer kutusu: aktif tutamaca (döndür/ölçekle/taşı/yükselt) ait alanları
+  // gösterir, sürükleme sırasında canlı günceller (odaktaki kutuya yazmaz —
+  // kullanıcı yazarken değer ezilmesin).
+  function setBimHudToolMode(mode){
+    bimHudToolMode = mode;
+    if (!bimHudInputsEl) return;
+    bimHudInputsEl.classList.toggle('hidden', !mode);
+    bimHudInputsEl.title = 'Değeri yazıp Enter\'a basarak da değiştirebilirsiniz';
+    bimHudInputsEl.querySelectorAll('.bim-hud-inputs-row').forEach(function(row){
+      row.classList.toggle('hidden', row.getAttribute('data-mode') !== mode);
+    });
+    if (mode && bimHudState){
+      var lyr = getLayer(bimHudState.layerId);
+      if (lyr && lyr.bimAnchor) refreshBimHudInputs(lyr.bimAnchor);
+    }
+  }
+  function refreshBimHudInputs(a){
+    if (!bimHudInputsEl || !bimHudToolMode) return;
+    var vals = {
+      heading: Math.round(((a.heading || 0) * 180 / Math.PI) * 10) / 10,
+      scale: +(a.scale || 1).toFixed(3),
+      lng: +a.lng.toFixed(7), lat: +a.lat.toFixed(7),
+      alt: +(a.alt || 0).toFixed(2)
+    };
+    bimHudInputsEl.querySelectorAll('input').forEach(function(inp){
+      if (document.activeElement === inp) return;
+      inp.value = vals[inp.getAttribute('data-k')];
+    });
+  }
+  // Model son konum/ölçü/yükseklik/yön ile kaydedilir: (1) taban izdüşümü
+  // (poligon) yeni konuma/ölçeğe/yöne göre yeniden hesaplanır ve yükseklik/
+  // taban değeri güncellenir, (2) oturum (katmanlar + şekiller, bimAnchor
+  // dahil) tarayıcıya kaydedilir — sayfa yenilendiğinde model bu koordinat ve
+  // ölçüyle geri gelir.
+  function saveBimHudTransform(){
+    if (!bimHudState) return;
+    var lyr = getLayer(bimHudState.layerId);
+    if (!lyr || !lyr.bimAnchor) return;
+    var a = lyr.bimAnchor;
+    var base = lyr.bimSavedAnchor;
+    var feats = features.filter(function(f){
+      return f.properties && f.properties.layerId === lyr.id && f.geometry && f.geometry.type === 'Polygon';
+    });
+    if (base && feats.length){
+      pushHistory();
+      var s0 = base.scale || 1, s1 = a.scale || 1, k = s1 / s0;
+      var d = (a.heading || 0) - (base.heading || 0);
+      var cosD = Math.cos(d), sinD = Math.sin(d);
+      var mLng = 111320 * Math.cos(base.lat * Math.PI / 180);
+      var mLat = 111320;
+      var nLng = 111320 * Math.cos(a.lat * Math.PI / 180);
+      feats.forEach(function(f){
+        f.geometry.coordinates = f.geometry.coordinates.map(function(ring){
+          return ring.map(function(c){
+            var e = (c[0] - base.lng) * mLng, n = (c[1] - base.lat) * mLat;
+            // heading saat yönünde artar (bkz. positionBimHud: rotate(deg-90)) — saat yönü döndürme
+            var e2 = (e * cosD + n * sinD) * k, n2 = (-e * sinD + n * cosD) * k;
+            return [a.lng + e2 / nLng, a.lat + n2 / mLat];
+          });
+        });
+        if (f.properties.height !== undefined) f.properties.height = f.properties.height * k;
+        if (f.properties.floorHeight !== undefined) f.properties.floorHeight = f.properties.floorHeight * k;
+        f.properties.base = a.alt || 0;
+      });
+      renderFeatures();
+    }
+    lyr.bimSavedAnchor = { lng: a.lng, lat: a.lat, scale: a.scale || 1, heading: a.heading || 0, alt: a.alt || 0 };
+    saveSessionToLocalStorage();
+    showToast('Model kaydedildi — ' + a.lat.toFixed(6) + ', ' + a.lng.toFixed(6) + ' · Z ' + (a.alt || 0).toFixed(2) + ' m · Ölçek ' + (a.scale || 1).toFixed(3) + ' · Yön ' + Math.round((a.heading || 0) * 180 / Math.PI) + '°');
   }
   // bimAnchor değiştikten sonra ortak uygulama noktası: gerçek mesh'i
   // yeniden konumlandırır (syncIfcMeshLayer, senkron — mesh zaten
@@ -13397,6 +13507,35 @@
       var zoomDelta = clamp(-e.deltaY / 100, -1, 1);
       map.zoomTo(map.getZoom() + zoomDelta, { around: around, duration: 0 });
     }, { passive:false });
+
+    // ---- Değer kutusu: hangi tutamaç kullanıldıysa onun alanları görünür ----
+    [[bimHudRingEl, 'rotate'], [bimHudEl.querySelector('.bim-hud-scale'), 'scale'],
+     [bimHudEl.querySelector('.bim-hud-move'), 'move'], [bimHudEl.querySelector('.bim-hud-height'), 'height']
+    ].forEach(function(pair){
+      pair[0].addEventListener('pointerdown', function(e){ if (e.button === 0) setBimHudToolMode(pair[1]); });
+    });
+    bimHudInputsEl.addEventListener('pointerdown', function(e){ e.stopPropagation(); });
+    bimHudInputsEl.querySelectorAll('input').forEach(function(inp){
+      inp.addEventListener('change', function(){
+        var lyr = getLayer(bimHudState && bimHudState.layerId);
+        if (!lyr) return;
+        var k = inp.getAttribute('data-k');
+        var v = parseFloat(inp.value);
+        if (isNaN(v)){ refreshBimHudInputs(lyr.bimAnchor); return; }
+        bimHudSnapshotUndo(lyr);
+        if (k === 'heading') lyr.bimAnchor.heading = ((v % 360) * Math.PI / 180);
+        else if (k === 'scale') lyr.bimAnchor.scale = clamp(v, 0.001, 4);
+        else if (k === 'alt') lyr.bimAnchor.alt = clamp(v, -20, 80);
+        else if (k === 'lat') lyr.bimAnchor.lat = clamp(v, -85, 85);
+        else if (k === 'lng') lyr.bimAnchor.lng = clamp(v, -180, 180);
+        applyBimHudTransform(lyr, false);
+        refreshBimHudInputs(lyr.bimAnchor);
+      });
+    });
+    // ---- Kaydet ----
+    var saveBtn = bimHudEl.querySelector('.bim-hud-save');
+    saveBtn.addEventListener('pointerdown', function(e){ e.stopPropagation(); });
+    saveBtn.addEventListener('click', function(e){ e.stopPropagation(); saveBimHudTransform(); });
 
     // ---- Döndürme halkası ----
     var headingDragBase = null;
@@ -13568,6 +13707,16 @@
     // sadece kapatır) · Ctrl+Z = HUD'a özel geri alma ----
     window.addEventListener('keydown', function(e){
       if (!bimHudState) return;
+      // Değer kutularına yazarken Enter/Esc HUD'u kapatmasın: Enter değeri uygular.
+      if (e.target && e.target.tagName === 'INPUT' && bimHudEl.contains(e.target)){
+        if (e.key === 'Enter' || e.key === 'Escape') e.target.blur();
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's'){
+        e.preventDefault();
+        saveBimHudTransform();
+        return;
+      }
       if (e.key === 'Escape'){ hideBimHud(); }
       else if (e.key === 'Enter'){ hideBimHud(); }
       else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z'){
@@ -13648,9 +13797,106 @@
   var bimViewGlobalOn = false;   // durum çubuğu butonunun aç/kapat durumu
   var featureBimMeshCache = {};  // featureId -> 'loading' | THREE.Group
 
-  function featureBimAnchor(f){
+  // Oturumdan dönen feature'larda "3D model olarak eklenmiş" olanlar (bkz.
+  // attachModelToFeature) yeniden işaretlenir — model, BIM Görünümü düğmesi
+  // açılınca yüklenir.
+  function rehydrateFeatureBimModels(){
+    features.forEach(function(f){
+      var m = f.properties && f.properties.bimModel;
+      if (m && m.key && !bimViewFeatures[f.id]) bimViewFeatures[f.id] = { name: m.name, storeKey: m.key, transform: m.transform || {} };
+    });
+  }
+  rehydrateFeatureBimModels();
+
+  // ---- Katman ağacı sağ tık > "Objeye 3D Model olarak ekle" ----
+  // Modu başlatır; sonraki harita tıklaması hedef objeyi seçer. Modelin dosyası
+  // (.bin/dokular dahil) objeye özel bir anahtarla IndexedDB'ye KOPYALANIR —
+  // kaynak katman silinse de obje modeli tutar. Ölçek/yön/yükseklik, katmanın
+  // HUD'da son ayarlanan (Kaydet ile saklanan) değerleridir; konum objenin
+  // merkezidir. Gösterim: durum çubuğundaki "BIM Görünümü" düğmesi.
+  var bimAttachSourceLayerId = null;
+  function startBimAttachMode(layerId){
+    var lyr = getLayer(layerId);
+    if (!lyr || !lyr.bimAnchor) return;
+    infoMode = false; document.getElementById('btnInfo').classList.remove('active');
+    document.getElementById('infoPopover').classList.remove('show');
+    docAttachMode = false; document.getElementById('btnAddDocument').classList.remove('active');
+    attributeEditMode = false; document.getElementById('btnAttrEdit').classList.remove('active');
+    bimAttachSourceLayerId = layerId;
+    updateCanvasCursor();
+    showToast('"' + layerDisplayName(lyr) + '" modelini eklemek istediğiniz objeye haritada tıklayın (Esc: iptal).');
+  }
+  function cancelBimAttachMode(){
+    bimAttachSourceLayerId = null;
+    updateCanvasCursor();
+  }
+  function handleBimAttachClick(e){
+    var srcId = bimAttachSourceLayerId;
+    var hit = map.queryRenderedFeatures(e.point, { layers: selectableLayers() });
+    var f = null;
+    if (hit.length){
+      var hp = hit[0].properties || {};
+      var candidateId = String(hp.parentId || hp.featureId || hit[0].id);
+      f = features.find(function(x){ return x.id === candidateId; });
+    }
+    if (!f) f = geometricHitTest(e.point, e.lngLat);
+    if (!f){ showToast('Bu noktada bir obje bulunamadı — haritada çizilmiş bir şekle tıklayın.'); return; }
+    if (f.properties && f.properties.layerId === srcId){
+      showToast('Model kendi katmanındaki objeye eklenemez — başka bir objeye tıklayın.');
+      return;
+    }
+    cancelBimAttachMode();
+    attachModelToFeature(f, getLayer(srcId)).catch(function(err){
+      console.error('3D model objeye eklenemedi:', err);
+      showToast('3D model objeye eklenemedi: ' + err.message);
+    });
+  }
+  async function attachModelToFeature(f, lyr){
+    if (!lyr) throw new Error('kaynak katman bulunamadı');
+    var rec = await getBimFile(lyr.id);
+    if (!rec || !rec.blob) throw new Error('model dosyası bulunamadı');
+    var key = 'featmodel-' + f.id;
+    await saveBimFile(key, rec.blob, rec.format, rec.extraFiles);
+    var a = lyr.bimAnchor || {};
+    var transform = { scale: a.scale || 1, heading: a.heading || 0, pitch: a.pitch || 0, roll: a.roll || 0, alt: a.alt || 0 };
+    var name = (rec.blob && rec.blob.name) || layerDisplayName(lyr);
+    pushHistory();
+    f.properties.bimModel = { key: key, name: name, format: rec.format, transform: transform };
+    bimViewFeatures[f.id] = { name: name, storeKey: key, transform: transform };
+    var stale = featureBimMeshCache[f.id];
+    if (stale && stale !== 'loading'){
+      if (stale.parent) stale.parent.remove(stale);
+    }
+    delete featureBimMeshCache[f.id];
+    syncFeatureBimMeshes();
+    renderFeatures();
+    saveSessionToLocalStorage();
+    showToast('"' + name + '" objeye 3D model olarak eklendi — durum çubuğundaki "BIM Görünümü" düğmesiyle canvasta görebilirsiniz.');
+  }
+
+  // doc.transform (bkz. attachModelToFeature): modelin katmandaki son ölçek/
+  // yön/eğim/yükseklik değerleri; yoksa (eski "Kanvasta 3B Bina Yerine Göster"
+  // dokümanları) ölçek 1, yön 0.
+  function featureBimAnchor(f, doc){
     var c = turf.centroid(f);
-    return { lng: c.geometry.coordinates[0], lat: c.geometry.coordinates[1], scale: 1 };
+    var t = (doc && doc.transform) || {};
+    return { lng: c.geometry.coordinates[0], lat: c.geometry.coordinates[1],
+      scale: t.scale || 1, heading: t.heading || 0, pitch: t.pitch || 0, roll: t.roll || 0, alt: t.alt || 0 };
+  }
+
+  // Feature'a "3D model olarak eklenen" dosya IndexedDB'de kendi anahtarıyla
+  // (bkz. attachModelToFeature) saklanır; doküman tabanlı olanlar ise base64
+  // data URL'den yüklenir.
+  async function loadFeatureBimGroup(doc, THREE){
+    if (doc.storeKey){
+      var rec = await getBimFile(doc.storeKey);
+      if (!rec || !rec.blob) return null;
+      var meshes = (rec.format === 'ifc')
+        ? await extractIfcMeshesFromBlob(rec.blob, THREE)
+        : await extractGltfMeshesFromBlob(rec.blob, THREE, rec.extraFiles);
+      return centerMeshesIntoGroup(meshes, THREE);
+    }
+    return loadBimMeshGroupFromDataUrl(doc.file_data_url, bimDocFormat(doc.name), THREE);
   }
 
   function enableBimViewForFeature(featureId, docRecord){
@@ -13696,18 +13942,17 @@
       var f = features.find(function(x){ return x.id === fid; });
       if (!f){ delete bimViewFeatures[fid]; delete featureBimMeshCache[fid]; return; }
       if (entry){
-        positionGroupAtAnchor(entry, featureBimAnchor(f), THREE);
+        positionGroupAtAnchor(entry, featureBimAnchor(f, bimViewFeatures[fid]), THREE);
         if (!entry.parent){ scene.add(entry); changed = true; }
         return;
       }
       var doc = bimViewFeatures[fid];
-      var format = bimDocFormat(doc.name);
       featureBimMeshCache[fid] = 'loading';
-      loadBimMeshGroupFromDataUrl(doc.file_data_url, format, THREE).then(function(group){
+      loadFeatureBimGroup(doc, THREE).then(function(group){
         var stillWanted = bimViewGlobalOn && bimViewFeatures[fid];
         var f2 = features.find(function(x){ return x.id === fid; });
         if (!group || !stillWanted || !f2){ delete featureBimMeshCache[fid]; return; }
-        positionGroupAtAnchor(group, featureBimAnchor(f2), THREE);
+        positionGroupAtAnchor(group, featureBimAnchor(f2, doc), THREE);
         featureBimMeshCache[fid] = group;
         scene.add(group);
         map.triggerRepaint();
