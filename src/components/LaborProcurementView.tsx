@@ -1,10 +1,37 @@
 import React, { useState } from 'react';
 import { Project } from '../types';
+import type { FormEvent, ReactNode } from 'react';
+import MuiBox from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import MenuItem from '@mui/material/MenuItem';
+import Stack from '@mui/material/Stack';
+import { alpha, useTheme } from '@mui/material/styles';
+import { FormField, FieldRow } from './chrome/FormDialog';
+import { toneColors, type Tone } from './ui/tone';
 import { 
   Users, HardHat, ShieldCheck, Hammer, Truck, Plus, 
   Trash, Edit2, CheckCircle2, UserPlus, FileCheck, 
   Search, Sliders, ShoppingBag, Box, Clock, TrendingUp
 } from 'lucide-react';
+
+/** Satır içi (sayfa içinde açılan) ekleme formu: tonlu kenarlık, alanlar ve İptal/Kaydet eylemleri. */
+function InlineForm({ tone, onSubmit, onCancel, children }: { tone: Tone; onSubmit: (e: FormEvent<HTMLFormElement>) => void; onCancel: () => void; children: ReactNode }) {
+  const theme = useTheme();
+  const c = toneColors(theme, tone);
+  return (
+    <MuiBox
+      component="form"
+      onSubmit={onSubmit}
+      sx={{ p: 4, mb: 4, bgcolor: 'background.paper', border: 1, borderColor: alpha(c.main, 0.25), borderRadius: 2, display: 'flex', flexDirection: 'column', gap: 3 }}
+    >
+      {children}
+      <Stack direction="row" spacing={2} sx={{ justifyContent: 'flex-end', pt: 1 }}>
+        <Button type="button" size="small" variant="outlined" color="inherit" onClick={onCancel} sx={{ borderColor: 'divider', color: 'text.secondary', fontSize: 10, fontWeight: 700 }}>İptal</Button>
+        <Button type="submit" size="small" variant="contained" color={tone === 'purple' ? 'secondary' : tone} sx={{ fontSize: 10, fontWeight: 700 }}>Kaydet</Button>
+      </Stack>
+    </MuiBox>
+  );
+}
 
 interface LaborProcurementViewProps {
   project: Project;
@@ -205,63 +232,20 @@ export default function LaborProcurementView({ project, theme, onClose }: LaborP
             </div>
 
             {showStaffForm && (
-              <form onSubmit={handleAddStaff} className="p-4 bg-[var(--bg-secondary)] border border-blue-500/20 rounded-lg mb-4 space-y-3 animate-slide-up">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-[10px] font-bold text-[var(--text-secondary)] block mb-1">Ad Soyad</label>
-                    <input 
-                      type="text" 
-                      required 
-                      value={newStaff.name} 
-                      onChange={e => setNewStaff({...newStaff, name: e.target.value})}
-                      placeholder="Örn: Mehmet Ak" 
-                      className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded px-2.5 py-1.5 text-[11px] text-[var(--text-primary)] focus:outline-none focus:border-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-bold text-[var(--text-secondary)] block mb-1">Rol / Görev</label>
-                    <input 
-                      type="text" 
-                      required 
-                      value={newStaff.role} 
-                      onChange={e => setNewStaff({...newStaff, role: e.target.value})}
-                      placeholder="Örn: Elektrik Formeni" 
-                      className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded px-2.5 py-1.5 text-[11px] text-[var(--text-primary)] focus:outline-none focus:border-blue-500"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-[10px] font-bold text-[var(--text-secondary)] block mb-1">Görev Yeri (Blok)</label>
-                    <select
-                      value={newStaff.blockName}
-                      onChange={e => setNewStaff({...newStaff, blockName: e.target.value})}
-                      className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded px-2.5 py-1.5 text-[11px] text-[var(--text-primary)] focus:outline-none focus:border-blue-500"
-                    >
-                      <option value="Terminal Kompleksi">Terminal Kompleksi</option>
-                      <option value="Hangar Alanı">Hangar Alanı</option>
-                      <option value="Alt Geçit Tüneli">Alt Geçit Tüneli</option>
-                      <option value="Enerji Merkezi">Enerji Merkezi</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-bold text-[var(--text-secondary)] block mb-1">Telefon No</label>
-                    <input 
-                      type="text" 
-                      value={newStaff.phone} 
-                      onChange={e => setNewStaff({...newStaff, phone: e.target.value})}
-                      placeholder="Örn: +90 532 000 00 00" 
-                      className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded px-2.5 py-1.5 text-[11px] text-[var(--text-primary)] focus:outline-none focus:border-blue-500"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex justify-end gap-2 pt-2">
-                  <button type="button" onClick={() => setShowStaffForm(false)} className="px-3 py-1 bg-[var(--bg-primary)] hover:bg-[var(--bg-secondary)] border border-[var(--border)] text-[10px] font-bold uppercase rounded-md text-[var(--text-secondary)]">İptal</button>
-                  <button type="submit" className="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-[10px] font-bold uppercase rounded-md text-white">Kaydet</button>
-                </div>
-              </form>
+              <InlineForm tone="info" onSubmit={handleAddStaff} onCancel={() => setShowStaffForm(false)}>
+                <FieldRow>
+                  <FormField size="small" label="Ad Soyad" required value={newStaff.name} onChange={e => setNewStaff({ ...newStaff, name: e.target.value })} placeholder="Örn: Mehmet Ak" slotProps={{ inputLabel: { shrink: true } }} />
+                  <FormField size="small" label="Rol / Görev" required value={newStaff.role} onChange={e => setNewStaff({ ...newStaff, role: e.target.value })} placeholder="Örn: Elektrik Formeni" slotProps={{ inputLabel: { shrink: true } }} />
+                </FieldRow>
+                <FieldRow>
+                  <FormField size="small" select label="Görev Yeri (Blok)" value={newStaff.blockName} onChange={e => setNewStaff({ ...newStaff, blockName: e.target.value })}>
+                    {['Terminal Kompleksi', 'Hangar Alanı', 'Alt Geçit Tüneli', 'Enerji Merkezi'].map((b) => (
+                      <MenuItem key={b} value={b}>{b}</MenuItem>
+                    ))}
+                  </FormField>
+                  <FormField size="small" label="Telefon No" value={newStaff.phone} onChange={e => setNewStaff({ ...newStaff, phone: e.target.value })} placeholder="Örn: +90 532 000 00 00" slotProps={{ inputLabel: { shrink: true } }} />
+                </FieldRow>
+              </InlineForm>
             )}
 
             <div className="space-y-2.5">
@@ -318,61 +302,16 @@ export default function LaborProcurementView({ project, theme, onClose }: LaborP
             </div>
 
             {showMaterialForm && (
-              <form onSubmit={handleAddMaterial} className="p-4 bg-[var(--bg-secondary)] border border-indigo-500/20 rounded-lg mb-4 space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-[10px] font-bold text-[var(--text-secondary)] block mb-1">Malzeme Cinsi</label>
-                    <input 
-                      type="text" 
-                      required 
-                      value={newMaterial.materialName} 
-                      onChange={e => setNewMaterial({...newMaterial, materialName: e.target.value})}
-                      placeholder="Örn: C40 Hazır Beton" 
-                      className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded px-2.5 py-1.5 text-[11px] text-[var(--text-primary)] focus:outline-none focus:border-indigo-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-bold text-[var(--text-secondary)] block mb-1">Miktar / Birim</label>
-                    <input 
-                      type="text" 
-                      required 
-                      value={newMaterial.quantity} 
-                      onChange={e => setNewMaterial({...newMaterial, quantity: e.target.value})}
-                      placeholder="Örn: 250 m³" 
-                      className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded px-2.5 py-1.5 text-[11px] text-[var(--text-primary)] focus:outline-none focus:border-indigo-500"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-[10px] font-bold text-[var(--text-secondary)] block mb-1">Tedarikçi Firma</label>
-                    <input 
-                      type="text" 
-                      required 
-                      value={newMaterial.supplierName} 
-                      onChange={e => setNewMaterial({...newMaterial, supplierName: e.target.value})}
-                      placeholder="Örn: Çimentaş A.Ş." 
-                      className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded px-2.5 py-1.5 text-[11px] text-[var(--text-primary)] focus:outline-none focus:border-indigo-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-bold text-[var(--text-secondary)] block mb-1">Öngörülen Sevk Tarihi</label>
-                    <input 
-                      type="date" 
-                      required 
-                      value={newMaterial.deliveryDate} 
-                      onChange={e => setNewMaterial({...newMaterial, deliveryDate: e.target.value})}
-                      className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded px-2.5 py-1.5 text-[11px] text-[var(--text-primary)] focus:outline-none focus:border-indigo-500"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex justify-end gap-2 pt-2">
-                  <button type="button" onClick={() => setShowMaterialForm(false)} className="px-3 py-1 bg-[var(--bg-primary)] hover:bg-[var(--bg-secondary)] border border-[var(--border)] text-[10px] font-bold uppercase rounded-md text-[var(--text-secondary)]">İptal</button>
-                  <button type="submit" className="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-[10px] font-bold uppercase rounded-md text-white">Kaydet</button>
-                </div>
-              </form>
+              <InlineForm tone="secondary" onSubmit={handleAddMaterial} onCancel={() => setShowMaterialForm(false)}>
+                <FieldRow>
+                  <FormField size="small" label="Malzeme Cinsi" required value={newMaterial.materialName} onChange={e => setNewMaterial({ ...newMaterial, materialName: e.target.value })} placeholder="Örn: C40 Hazır Beton" slotProps={{ inputLabel: { shrink: true } }} />
+                  <FormField size="small" label="Miktar / Birim" required value={newMaterial.quantity} onChange={e => setNewMaterial({ ...newMaterial, quantity: e.target.value })} placeholder="Örn: 250 m³" slotProps={{ inputLabel: { shrink: true } }} />
+                </FieldRow>
+                <FieldRow>
+                  <FormField size="small" label="Tedarikçi Firma" required value={newMaterial.supplierName} onChange={e => setNewMaterial({ ...newMaterial, supplierName: e.target.value })} placeholder="Örn: Çimentaş A.Ş." slotProps={{ inputLabel: { shrink: true } }} />
+                  <FormField size="small" type="date" label="Öngörülen Sevk Tarihi" required value={newMaterial.deliveryDate} onChange={e => setNewMaterial({ ...newMaterial, deliveryDate: e.target.value })} slotProps={{ inputLabel: { shrink: true } }} />
+                </FieldRow>
+              </InlineForm>
             )}
 
             <div className="space-y-2.5">
@@ -429,73 +368,21 @@ export default function LaborProcurementView({ project, theme, onClose }: LaborP
               </div>
 
               {showSubForm && (
-                <form onSubmit={handleAddSub} className="p-4 bg-[var(--bg-secondary)] border border-emerald-500/20 rounded-lg mb-4 space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-[10px] font-bold text-[var(--text-secondary)] block mb-1">Taşeron Şirket Ünvanı</label>
-                      <input 
-                        type="text" 
-                        required 
-                        value={newSub.companyName} 
-                        onChange={e => setNewSub({...newSub, companyName: e.target.value})}
-                        placeholder="Örn: Aras Elektromekanik" 
-                        className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded px-2.5 py-1.5 text-[11px] text-[var(--text-primary)] focus:outline-none focus:border-emerald-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-bold text-[var(--text-secondary)] block mb-1">Uzmanlık Alanı</label>
-                      <input 
-                        type="text" 
-                        required 
-                        value={newSub.specialty} 
-                        onChange={e => setNewSub({...newSub, specialty: e.target.value})}
-                        placeholder="Örn: Zayıf Akım Sistemleri" 
-                        className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded px-2.5 py-1.5 text-[11px] text-[var(--text-primary)] focus:outline-none focus:border-emerald-500"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-3">
-                    <div>
-                      <label className="text-[10px] font-bold text-[var(--text-secondary)] block mb-1">Saha Mevcudu</label>
-                      <input 
-                        type="number" 
-                        required 
-                        value={newSub.activeHeadcount} 
-                        onChange={e => setNewSub({...newSub, activeHeadcount: parseInt(e.target.value) || 0})}
-                        className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded px-2.5 py-1.5 text-[11px] text-[var(--text-primary)] focus:outline-none focus:border-emerald-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-bold text-[var(--text-secondary)] block mb-1">İrtibat Kişisi</label>
-                      <input 
-                        type="text" 
-                        required 
-                        value={newSub.contactPerson} 
-                        onChange={e => setNewSub({...newSub, contactPerson: e.target.value})}
-                        placeholder="Örn: Ahmet Bey" 
-                        className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded px-2.5 py-1.5 text-[11px] text-[var(--text-primary)] focus:outline-none focus:border-emerald-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-bold text-[var(--text-secondary)] block mb-1">İSG Derecesi</label>
-                      <select
-                        value={newSub.safetyRating}
-                        onChange={e => setNewSub({...newSub, safetyRating: e.target.value as any})}
-                        className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded px-2.5 py-1.5 text-[11px] text-[var(--text-primary)] focus:outline-none focus:border-emerald-500"
-                      >
-                        <option value="A+">A+</option>
-                        <option value="A">A</option>
-                        <option value="B+">B+</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="flex justify-end gap-2 pt-2">
-                    <button type="button" onClick={() => setShowSubForm(false)} className="px-3 py-1 bg-[var(--bg-primary)] hover:bg-[var(--bg-secondary)] border border-[var(--border)] text-[10px] font-bold uppercase rounded-md text-[var(--text-secondary)]">İptal</button>
-                    <button type="submit" className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-[10px] font-bold uppercase rounded-md text-white">Kaydet</button>
-                  </div>
-                </form>
+                <InlineForm tone="success" onSubmit={handleAddSub} onCancel={() => setShowSubForm(false)}>
+                  <FieldRow>
+                    <FormField size="small" label="Taşeron Şirket Ünvanı" required value={newSub.companyName} onChange={e => setNewSub({ ...newSub, companyName: e.target.value })} placeholder="Örn: Aras Elektromekanik" slotProps={{ inputLabel: { shrink: true } }} />
+                    <FormField size="small" label="Uzmanlık Alanı" required value={newSub.specialty} onChange={e => setNewSub({ ...newSub, specialty: e.target.value })} placeholder="Örn: Zayıf Akım Sistemleri" slotProps={{ inputLabel: { shrink: true } }} />
+                  </FieldRow>
+                  <FieldRow cols={3}>
+                    <FormField size="small" type="number" label="Saha Mevcudu" required value={newSub.activeHeadcount} onChange={e => setNewSub({ ...newSub, activeHeadcount: parseInt(e.target.value) || 0 })} />
+                    <FormField size="small" label="İrtibat Kişisi" required value={newSub.contactPerson} onChange={e => setNewSub({ ...newSub, contactPerson: e.target.value })} placeholder="Örn: Ahmet Bey" slotProps={{ inputLabel: { shrink: true } }} />
+                    <FormField size="small" select label="İSG Derecesi" value={newSub.safetyRating} onChange={e => setNewSub({ ...newSub, safetyRating: e.target.value as any })}>
+                      {['A+', 'A', 'B+'].map((r) => (
+                        <MenuItem key={r} value={r}>{r}</MenuItem>
+                      ))}
+                    </FormField>
+                  </FieldRow>
+                </InlineForm>
               )}
 
               <div className="space-y-3">

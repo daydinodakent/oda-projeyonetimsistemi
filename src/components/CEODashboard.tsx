@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Shield, Bell, MessageSquare, Wifi, WifiOff, Smartphone, Send, Play, AlertTriangle, ArrowRight, DollarSign, Calendar, Sliders } from 'lucide-react';
 import { Project, Notification } from '../types';
+import InputBase from '@mui/material/InputBase';
+import Slider from '@mui/material/Slider';
 
 interface CEODashboardProps {
   projects: Project[];
@@ -231,14 +233,7 @@ export default function CEODashboard({ projects, notifications, onSelectProject,
           {/* Threshold alert slider */}
           <div className="flex items-center gap-2">
             <span className="text-[10px] text-slate-500 font-bold">MIN (%5)</span>
-            <input 
-              type="range" 
-              min="5" 
-              max="30" 
-              value={alertThreshold} 
-              onChange={(e) => setAlertThreshold(Number(e.target.value))}
-              className="flex-1 h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500 focus:outline-none"
-            />
+            <Slider size="small" min={5} max={30} value={alertThreshold} onChange={(_, v) => setAlertThreshold(v as number)} aria-label="Sapma alarm limiti" sx={{ flex: 1 }} />
             <span className="text-[10px] text-slate-500 font-bold">MAX (%30)</span>
           </div>
 
@@ -270,12 +265,12 @@ export default function CEODashboard({ projects, notifications, onSelectProject,
           </div>
 
           <form onSubmit={handleVoiceQuerySubmit} className="flex gap-1.5">
-            <input 
-              type="text" 
-              placeholder="'Ankara'daki proje ne durumda?'" 
+            <InputBase
+              placeholder="'Ankara'daki proje ne durumda?'"
               value={voiceQuery}
               onChange={(e) => setVoiceQuery(e.target.value)}
-              className="flex-1 bg-[#090d16] border border-slate-800 rounded-lg p-2 text-[10px] focus:outline-none text-white placeholder-slate-500"
+              inputProps={{ 'aria-label': 'CEO sorgusu' }}
+              sx={{ flex: 1, px: 2, fontSize: 10, bgcolor: 'background.default', border: 1, borderColor: 'divider', borderRadius: 2, '& input': { py: 1.5 } }}
             />
             <button 
               type="submit" 
