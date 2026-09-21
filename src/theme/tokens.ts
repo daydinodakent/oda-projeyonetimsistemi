@@ -89,6 +89,34 @@ export const brand = {
   badgeGradient: 'linear-gradient(135deg, #06b6d4, #3b82f6, #6366f1)',
 } as const;
 
+/** Header modül sekmeleri (Plan / İnşaat / İşletme): gradyan uçları, aktif halka rengi. */
+export const moduleTones = {
+  plan: { from: '#2563eb', to: '#4f46e5', ring: '#fbbf24', text: '#bfdbfe' },
+  insaat: { from: '#d97706', to: '#ea580c', ring: '#fb923c', text: '#fed7aa' },
+  isletme: { from: '#059669', to: '#16a34a', ring: '#4ade80', text: '#bbf7d0' },
+} as const;
+export type ModuleTone = keyof typeof moduleTones;
+
+/** Header araç çubuğu ikon düğmeleri (Dashboard / Timeline / İş Gücü / Doküman). */
+export const toolbarTones = {
+  indigo: { fg: '#818cf8', fgHover: '#a5b4fc', bg: '#151926', from: '#4f46e5', to: '#2563eb', accent: '#6366f1' },
+  emerald: { fg: '#34d399', fgHover: '#6ee7b7', bg: '#0f2118', from: '#059669', to: '#0d9488', accent: '#10b981' },
+  purple: { fg: '#c084fc', fgHover: '#d8b4fe', bg: '#1b1526', from: '#9333ea', to: '#c026d3', accent: '#a855f7' },
+} as const;
+export type ToolbarTone = keyof typeof toolbarTones;
+
+/** Header yüzeyleri (koyu bar, alt satır, gruplar) ve altın/kahve vurgu düğmeleri. */
+export const headerSurface = {
+  bar: '#222224',
+  border: '#313135',
+  sub: '#1c1c1e',
+  group: '#141416',
+  groupBorder: '#2c2c2e',
+  pill: '#161820',
+  gold: { bg: '#332c1e', bgHover: '#3d3422', fg: '#f1c40f' },
+  orange: { bg: '#383321', bgHover: '#433b25', fg: '#f39c12' },
+} as const;
+
 export const fontSans =
   '"Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
 export const fontMono = '"Geist Mono", monospace, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas';
