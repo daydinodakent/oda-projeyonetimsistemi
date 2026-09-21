@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useColorScheme } from '@mui/material/styles';
 import { 
   Compass, LayoutGrid, Database, Smartphone, Sun, Moon, Bell, ChevronDown, CheckCircle, 
   AlertTriangle, DollarSign, Layers, Plus, FileText, Settings, UserCheck, HelpCircle, 
@@ -88,6 +89,7 @@ const AnimatedNumber: React.FC<AnimatedNumberProps> = ({ value, prefix = "", suf
 export default function App() {
   // Theme state
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const { setMode: setMuiMode } = useColorScheme();
 
   // Core database states (The single truth backbone)
   const [projects, setProjects] = useState<Project[]>(initialProjects);
@@ -280,10 +282,11 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Sync state with DOM attribute
+  // Sync state with DOM attribute + MUI color scheme
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
-  }, [theme]);
+    setMuiMode(theme);
+  }, [theme, setMuiMode]);
 
   // Set default selected asset when project changes
   useEffect(() => {

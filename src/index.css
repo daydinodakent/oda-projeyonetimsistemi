@@ -1,70 +1,18 @@
 @import "tailwindcss";
 
+/*
+ * Renk/gölge/gradyan token DEĞERLERİ artık src/theme/tokens.ts içinde (tek kaynak);
+ * AppThemeProvider bunları :root ve [data-theme="dark"] altına CSS değişkeni olarak
+ * (--bg-app, --text-main, --shadow-card ...) yazar. Burada yalnızca bu değişkenlere
+ * bağlanan takma adlar (alias) kalır.
+ */
 :root {
   --radius-xl: 0.25rem;
-  --bg-app: #F8FAFC;
-  --bg-surface: #FFFFFF;
-  --bg-surface-subtle: #F1F5F9;
-  --border-ui: #E2E8F0;
-  --text-main: #0F172A;
-  --text-muted: #64748B;
-
   --bg-primary: var(--bg-app);
   --bg-secondary: var(--bg-surface);
   --text-primary: var(--text-main);
   --text-secondary: var(--text-muted);
   --border: var(--border-ui);
-  --accent: #ff4757;
-  --accent-hover: #ff6b81;
-  --panel-left: #3742fa;
-  --panel-right: #2ed573;
-  --panel-top: #ffa502;
-  --card-gradient-1: linear-gradient(135deg, #3742fa, #2ed573);
-  --card-gradient-2: linear-gradient(135deg, #ff4757, #ffa502);
-  --card-gradient-3: linear-gradient(135deg, #10b981, #06b6d4);
-  --card-gradient-4: linear-gradient(135deg, #8b5cf6, #ec4899);
-
-  /* Modern Light Theme Shadows and Border Glows */
-  --shadow-card: 0 1px 2px 0 rgba(15, 23, 42, 0.03), 
-                 0 4px 12px -2px rgba(15, 23, 42, 0.05), 
-                 0 2px 6px -1px rgba(15, 23, 42, 0.03);
-  --shadow-panel: 0 1px 3px 0 rgba(15, 23, 42, 0.04), 
-                  0 12px 24px -4px rgba(15, 23, 42, 0.06), 
-                  0 4px 12px -2px rgba(15, 23, 42, 0.04);
-  --border-glow: 0 0 0 1px rgba(59, 130, 246, 0.15), 
-                 0 0 8px 0 rgba(59, 130, 246, 0.08);
-}
-
-[data-theme="dark"] {
-  --bg-app: #0B0F19; /* Obsidian Slate - Deep high-end dark studio palette */
-  --bg-surface: #1B2436; /* 2 tones lighter elevated container base for rich spatial depth */
-  --bg-surface-subtle: #25314B; /* Highly visible card details & secondary elevations */
-  --border-ui: rgba(255, 255, 255, 0.08); /* Sophisticated micro-border for high fidelity */
-  --text-main: #f8fafc; /* Ultra-crisp pure off-white for superb readability */
-  --text-muted: #94a3b8; /* Refined Slate secondary text */
-
-  --bg-primary: var(--bg-app);
-  --bg-secondary: var(--bg-surface);
-  --text-primary: var(--text-main);
-  --text-secondary: var(--text-muted);
-  --border: var(--border-ui);
-  --accent: #6366f1;
-  --accent-hover: #818cf8;
-  --panel-left: #4f46e5;
-  --panel-right: #10b981;
-  --panel-top: #f59e0b;
-  --card-gradient-1: linear-gradient(135deg, rgba(15, 23, 42, 0.6), rgba(79, 70, 229, 0.15));
-  --card-gradient-2: linear-gradient(135deg, rgba(15, 23, 42, 0.6), rgba(239, 68, 68, 0.15));
-  --card-gradient-3: linear-gradient(135deg, rgba(15, 23, 42, 0.6), rgba(16, 185, 129, 0.15));
-  --card-gradient-4: linear-gradient(135deg, rgba(15, 23, 42, 0.6), rgba(168, 85, 247, 0.15));
-
-  /* Deep Glassmorphic Shadows with Micro Border Glow Highlights for Premium Frosted Glass Depth */
-  --shadow-card: 0 8px 32px 0 rgba(0, 0, 0, 0.4),
-                 0 0 0 1px rgba(255, 255, 255, 0.06) inset;
-  --shadow-panel: 0 12px 40px 0 rgba(0, 0, 0, 0.6),
-                  0 0 0 1px rgba(255, 255, 255, 0.08) inset;
-  --border-glow: 0 0 20px 2px rgba(99, 102, 241, 0.15), 
-                 0 0 0 1px rgba(99, 102, 241, 0.45) inset;
 }
 
 @theme {
