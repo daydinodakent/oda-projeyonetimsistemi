@@ -11,7 +11,7 @@ import Typography from '@mui/material/Typography';
 import { alpha, useTheme } from '@mui/material/styles';
 import CloseIcon from '@mui/icons-material/Close';
 
-export type DialogTone = 'success' | 'warning';
+export type DialogTone = 'success' | 'warning' | 'secondary';
 
 interface AppDialogProps {
   open: boolean;
@@ -21,7 +21,8 @@ interface AppDialogProps {
   title?: string;
   tone: DialogTone;
   children: ReactNode;
-  cancelLabel: string;
+  /** Verilmezse "İptal" düğmesi gösterilmez (yalnızca kapat/kaydet). */
+  cancelLabel?: string;
   submitLabel: string;
   onSubmit: () => void;
   submitDisabled?: boolean;
@@ -112,9 +113,11 @@ export default function AppDialog({
       </DialogContent>
 
       <DialogActions sx={{ px: 6, py: 4, gap: 3, borderTop: 1, borderColor: 'divider', bgcolor: alpha(theme.palette.common.black, 0.2) }}>
-        <Button onClick={onClose} variant="outlined" color="inherit" sx={{ borderColor: 'divider', color: 'text.secondary' }}>
-          {cancelLabel}
-        </Button>
+        {cancelLabel && (
+          <Button onClick={onClose} variant="outlined" color="inherit" sx={{ borderColor: 'divider', color: 'text.secondary' }}>
+            {cancelLabel}
+          </Button>
+        )}
         <Button onClick={onSubmit} disabled={submitDisabled} variant="contained" color={tone}>
           {submitLabel}
         </Button>
