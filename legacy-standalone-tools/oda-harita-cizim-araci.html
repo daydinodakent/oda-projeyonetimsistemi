@@ -742,12 +742,40 @@
     position:absolute; left:18px; top:18px; right:18px; bottom:18px;
     border:1px dashed rgba(127,215,255,.38); border-radius:50%; pointer-events:none;
   }
+  /* Daire MERKEZİ: buradan tutup sürükleyince model taşınır (Taşı butonuyla aynı). */
+  #bimHud .bim-hud-center{
+    position:absolute; left:50%; top:50%; width:44px; height:44px; margin:-22px 0 0 -22px; border-radius:50%;
+    border:1px dashed rgba(127,215,255,.5); background:rgba(31,159,224,.10);
+    display:flex; align-items:center; justify-content:center; color:rgba(190,232,255,.85);
+    cursor:move; transition:background .12s, border-color .12s, color .12s;
+  }
+  #bimHud .bim-hud-center svg{ width:18px; height:18px; pointer-events:none; }
+  #bimHud .bim-hud-center:hover{ background:rgba(245,185,66,.22); border-color:#f5b942; color:#f5b942; }
+  #bimHud .bim-hud-ring.tool-move .bim-hud-center{ background:rgba(245,185,66,.3); border-color:#f5b942; color:#f5b942; }
+  /* Döndürme çizgisi: yatay sürükleme = döndür, dikey sürükleme = ölçekle (yukarı büyür). */
   #bimHud .bim-hud-arm{
     position:absolute; left:50%; top:50%; width:106px; height:3px; margin-top:-1px;
     background:linear-gradient(90deg, rgba(31,159,224,.2), #37b5f5);
     box-shadow:0 0 8px rgba(31,159,224,.7);
-    transform-origin:0 50%; pointer-events:none;
+    transform-origin:0 50%; pointer-events:auto; cursor:grab;
+    transition:background .12s, box-shadow .12s;
   }
+  /* Çizgiyi tutmayı kolaylaştıran görünmez, geniş tutma alanı. */
+  #bimHud .bim-hud-arm::before{ content:''; position:absolute; left:26px; right:0; top:-9px; bottom:-9px; }
+  #bimHud .bim-hud-arm:hover,
+  #bimHud .bim-hud-ring.dragging .bim-hud-arm{
+    background:linear-gradient(90deg, rgba(245,185,66,.25), #f5b942); box-shadow:0 0 10px rgba(245,185,66,.8);
+  }
+  #bimHud .bim-hud-arm:hover .bim-hud-handle{
+    background:#f5b942; border-color:#fff;
+    box-shadow:0 0 0 3px rgba(245,185,66,.35), 0 0 14px rgba(245,185,66,.85); transform:scale(1.2);
+  }
+  /* Kullanılan araç belli olsun: ilgili buton amber olur. */
+  #bimHud .bim-hud-btn.tool-active{
+    background:#f5b942; color:#0d1520; border-color:#fff;
+    box-shadow:0 0 0 3px rgba(245,185,66,.3), 0 0 14px rgba(245,185,66,.7);
+  }
+  #bimHud .bim-hud-ring.tool-rotate{ border-color:#f5b942; box-shadow:0 0 0 1px rgba(4,18,28,.55), 0 0 18px rgba(245,185,66,.55), inset 0 0 24px rgba(245,185,66,.22); }
   /* Tutamaç (siyah yuvarlak): üzerine gelince ya da sürüklenirken renk değiştirir —
      çizginin "yakalandığı" belli olur. pointerdown halka dinleyicisine kabarır. */
   #bimHud .bim-hud-handle{
@@ -13448,7 +13476,10 @@
     bimHudEl.innerHTML =
       '<div class="bim-hud-ring" title="Sürükleyerek döndür (Shift: 15° kademe)">' +
         '<div class="bim-hud-ring-inner"></div>' +
-        '<div class="bim-hud-arm"><div class="bim-hud-handle"></div></div>' +
+        '<div class="bim-hud-center" title="Merkezden tutup sürükleyin: taşı">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M3 12h18M12 3l-3 3M12 3l3 3M12 21l-3-3M12 21l3-3M3 12l3-3M3 12l3 3M21 12l-3-3M21 12l-3 3"/></svg>' +
+        '</div>' +
+        '<div class="bim-hud-arm" title="Çizgiyi tutup sürükleyin: sağa/sola = döndür · yukarı/aşağı = büyüt/küçült (Shift: 15° kademe)"><div class="bim-hud-handle"></div></div>' +
       '</div>' +
       '<div class="bim-hud-sidebar">' +
         '<button type="button" class="bim-hud-btn bim-hud-scale" title="Sürükleyerek ölçekle — yatay + dikey birlikte (Senkron kapalıysa: yatay sürükle = yatay, dikey sürükle = dikey). Çift tık: %100">⤢</button>' +
@@ -13741,12 +13772,92 @@
     saveBtn.addEventListener('click', function(e){ e.stopPropagation(); saveBimHudTransform(); });
 
     // ---- Döndürme halkası ----
+    // Kullanılan aracın butonunu (ya da döndürmede halkayı) amber ile vurgular.
+    function setBimHudActiveTool(name){
+      ['scale','move','height','pitch','roll'].forEach(function(n){
+        var b = bimHudEl.querySelector('.bim-hud-' + n);
+        if (b) b.classList.toggle('tool-active', n === name);
+      });
+      bimHudRingEl.classList.toggle('tool-rotate', name === 'rotate');
+      bimHudRingEl.classList.toggle('tool-move', name === 'move');
+    }
+    // Serbest taşıma: ekran deltası harita düzlemine izdüşürülür (Taşı butonu ve daire merkezi ortak).
+    function runMoveDrag(lyr, e){
+      bimHudSnapshotUndo(lyr);
+      setBimHudToolMode('move'); setBimHudActiveTool('move');
+      map.dragPan.disable(); map.dragRotate.disable();
+      var startPx = map.project([lyr.bimAnchor.lng, lyr.bimAnchor.lat]);
+      var startClientX = e.clientX, startClientY = e.clientY;
+      function onMove(ev){
+        var ll = map.unproject({ x: startPx.x + (ev.clientX - startClientX), y: startPx.y + (ev.clientY - startClientY) });
+        lyr.bimAnchor.lng = ll.lng; lyr.bimAnchor.lat = ll.lat;
+        applyBimHudTransform(lyr, false);
+      }
+      function onUp(){
+        map.dragPan.enable(); map.dragRotate.enable();
+        setBimHudActiveTool(null);
+        window.removeEventListener('pointermove', onMove);
+        window.removeEventListener('pointerup', onUp);
+      }
+      window.addEventListener('pointermove', onMove);
+      window.addEventListener('pointerup', onUp);
+    }
+    // Döndürme çizgisi (kol + tutamaç): sağa/sola = döndür, yukarı/aşağı = ölçekle (yukarı büyütür).
+    // Sürükleme başlarken baskın eksen seçilir ve jest boyunca sabit kalır.
+    function runArmGesture(lyr, e){
+      bimHudSnapshotUndo(lyr);
+      bimHudRingEl.classList.add('dragging');
+      map.dragPan.disable(); map.dragRotate.disable();
+      var sx = e.clientX, sy = e.clientY, axis = null;
+      var startHeading = lyr.bimAnchor.heading || 0;
+      var startH = lyr.bimAnchor.scale || 1, startV = bimVScale(lyr.bimAnchor);
+      function onMove(ev){
+        var dx = ev.clientX - sx, dy = ev.clientY - sy;
+        if (!axis){
+          if (Math.hypot(dx, dy) < 4) return;
+          axis = Math.abs(dx) >= Math.abs(dy) ? 'x' : 'y';
+          setBimHudToolMode(axis === 'x' ? 'rotate' : 'scale');
+          setBimHudActiveTool(axis === 'x' ? 'rotate' : 'scale');
+        }
+        var a = lyr.bimAnchor;
+        if (axis === 'x'){
+          var ang = startHeading + dx * 0.5 * Math.PI / 180; // 1 px = 0.5°
+          ang = Math.atan2(Math.sin(ang), Math.cos(ang));
+          if (ev.shiftKey){ var step = Math.PI / 12; ang = Math.round(ang / step) * step; }
+          a.heading = ang;
+        } else {
+          var f = Math.exp(-dy * 0.01); // yukarı (dy<0) büyütür
+          if (bimScaleLinked(a)){
+            a.scale = clamp(startH * f, 0.001, 4.00);
+            a.scaleV = clamp(startV * f, 0.001, 4.00);
+          } else {
+            a.scaleV = clamp(startV * f, 0.001, 4.00); // senkron kapalıyken dikey sürükleme = dikey ölçek
+          }
+        }
+        applyBimHudTransform(lyr, false);
+      }
+      function onUp(){
+        bimHudRingEl.classList.remove('dragging');
+        map.dragPan.enable(); map.dragRotate.enable();
+        setBimHudActiveTool(null);
+        window.removeEventListener('pointermove', onMove);
+        window.removeEventListener('pointerup', onUp);
+      }
+      window.addEventListener('pointermove', onMove);
+      window.addEventListener('pointerup', onUp);
+    }
     var headingDragBase = null;
     bimHudRingEl.addEventListener('pointerdown', function(e){
       if (e.button !== 0) return;
       var lyr = getLayer(bimHudState && bimHudState.layerId);
       if (!lyr) return;
       e.preventDefault();
+      // Tutulan yere göre jest: merkez = taşı · çizgi/tutamaç = döndür + ölçekle · halkanın kalanı = açıya döndür.
+      var rc = bimHudRingEl.getBoundingClientRect();
+      var distCenter = Math.hypot(e.clientX - (rc.left + rc.width / 2), e.clientY - (rc.top + rc.height / 2));
+      if (distCenter <= 24){ runMoveDrag(lyr, e); return; }
+      if (e.target.closest && e.target.closest('.bim-hud-arm, .bim-hud-handle')){ runArmGesture(lyr, e); return; }
+      setBimHudToolMode('rotate'); setBimHudActiveTool('rotate');
       bimHudRingEl.classList.add('dragging');
       map.dragPan.disable(); map.dragRotate.disable();
       bimHudSnapshotUndo(lyr);
@@ -13764,6 +13875,7 @@
       }
       function onUp(){
         bimHudRingEl.classList.remove('dragging');
+        setBimHudActiveTool(null);
         map.dragPan.enable(); map.dragRotate.enable();
         window.removeEventListener('pointermove', onMove);
         window.removeEventListener('pointerup', onUp);
@@ -13807,6 +13919,7 @@
       bimHudSnapshotUndo(lyr);
       var startX = e.clientX, startY = e.clientY;
       var startScale = lyr.bimAnchor.scale || 1, startScaleV = bimVScale(lyr.bimAnchor);
+      setBimHudActiveTool('scale');
       function onMove(ev){
         // Çarpımsal (üstel) sürükleme: 0.001–4 aralığında her ölçekte aynı hassasiyet.
         // Senkron açıkken yatay + dikey birlikte (yatay sürükleme); kapalıyken
@@ -13820,6 +13933,7 @@
         applyBimHudTransform(lyr, false);
       }
       function onUp(){
+        setBimHudActiveTool(null);
         window.removeEventListener('pointermove', onMove);
         window.removeEventListener('pointerup', onUp);
       }
@@ -13843,21 +13957,7 @@
       var lyr = getLayer(bimHudState && bimHudState.layerId);
       if (!lyr) return;
       e.preventDefault(); e.stopPropagation();
-      bimHudSnapshotUndo(lyr);
-      var startPx = map.project([lyr.bimAnchor.lng, lyr.bimAnchor.lat]);
-      var startClientX = e.clientX, startClientY = e.clientY;
-      function onMove(ev){
-        var targetPx = { x: startPx.x + (ev.clientX - startClientX), y: startPx.y + (ev.clientY - startClientY) };
-        var ll = map.unproject(targetPx);
-        lyr.bimAnchor.lng = ll.lng; lyr.bimAnchor.lat = ll.lat;
-        applyBimHudTransform(lyr, false);
-      }
-      function onUp(){
-        window.removeEventListener('pointermove', onMove);
-        window.removeEventListener('pointerup', onUp);
-      }
-      window.addEventListener('pointermove', onMove);
-      window.addEventListener('pointerup', onUp);
+      runMoveDrag(lyr, e); // Taşı butonu ile daire merkezi aynı jesti kullanır; kullanım sırasında buton amber olur
     });
 
     // ---- Yükseklik tutamacı: dikey sürükleme, yukarı = artış, 1px ≈ 0.08m ----
@@ -13869,11 +13969,13 @@
       e.preventDefault(); e.stopPropagation();
       bimHudSnapshotUndo(lyr);
       var startY = e.clientY, startAlt = lyr.bimAnchor.alt || 0;
+      setBimHudActiveTool('height');
       function onMove(ev){
         lyr.bimAnchor.alt = clamp(startAlt - (ev.clientY - startY) * 0.08, -20, 80);
         applyBimHudTransform(lyr, false);
       }
       function onUp(){
+        setBimHudActiveTool(null);
         window.removeEventListener('pointermove', onMove);
         window.removeEventListener('pointerup', onUp);
       }
@@ -13900,12 +14002,14 @@
         bimHudSnapshotUndo(lyr);
         var start = axis === 'y' ? e.clientY : e.clientX;
         var startDeg = (lyr.bimAnchor[key] || 0) * 180 / Math.PI;
+        setBimHudActiveTool(key);
         function onMove(ev){
           var d = axis === 'y' ? (start - ev.clientY) : (ev.clientX - start);
           lyr.bimAnchor[key] = clamp(startDeg + d * 0.5, -45, 45) * Math.PI / 180;
           applyBimHudTransform(lyr, false);
         }
         function onUp(){
+          setBimHudActiveTool(null);
           window.removeEventListener('pointermove', onMove);
           window.removeEventListener('pointerup', onUp);
         }
