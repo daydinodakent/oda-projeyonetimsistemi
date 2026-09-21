@@ -2,6 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, BarChart, Bar, AreaChart, Area } from 'recharts';
 import { Users, FileText, AlertTriangle, ChevronRight, Upload, Clock, Plus, Pencil, Save, X, Trash2, Edit2, Check, CheckCircle, TrendingUp } from 'lucide-react';
 import { Project, WBSTask, ProjectDocument, EmployeeAllocation } from '../types';
+import Box from '@mui/material/Box';
+import MenuItem from '@mui/material/MenuItem';
+import Typography from '@mui/material/Typography';
+import FormDialog, { FormField, FieldRow } from './chrome/FormDialog';
 
 interface PlanViewProps {
   project: Project;
@@ -1077,583 +1081,186 @@ export default function PlanView({
       )}
 
       {/* EVM & Metrics Edit Modal */}
-      {showEvmModal && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl w-full max-w-md p-6 shadow-2xl">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-bold text-[var(--text-primary)] flex items-center gap-2">
-                <Pencil className="w-4 h-4 text-blue-500" />
-                EVM & Bütçe Verilerini Düzenle
-              </h3>
-              <button onClick={() => setShowEvmModal(false)} className="text-slate-400 hover:text-[var(--text-primary)]">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveEvm} className="space-y-3 text-xs">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">Planned Value (PV) [M₺]</label>
-                  <input 
-                    type="number" 
-                    value={evmForm.plannedSpent} 
-                    onChange={(e) => setEvmForm(p => ({ ...p, plannedSpent: Number(e.target.value) }))}
-                    required
-                    step="0.1"
-                    className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">Earned Value (EV) [M₺]</label>
-                  <input 
-                    type="number" 
-                    value={evmForm.earnedValue} 
-                    onChange={(e) => setEvmForm(p => ({ ...p, earnedValue: Number(e.target.value) }))}
-                    required
-                    step="0.1"
-                    className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">Actual Cost (AC) [M₺]</label>
-                  <input 
-                    type="number" 
-                    value={evmForm.spent} 
-                    onChange={(e) => setEvmForm(p => ({ ...p, spent: Number(e.target.value) }))}
-                    required
-                    step="0.1"
-                    className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">Toplam Bütçe (BAC) [M₺]</label>
-                  <input 
-                    type="number" 
-                    value={evmForm.budget} 
-                    onChange={(e) => setEvmForm(p => ({ ...p, budget: Number(e.target.value) }))}
-                    required
-                    step="0.1"
-                    className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">Genel Tamamlanma Oranı (%)</label>
-                <input 
-                  type="number" 
-                  value={evmForm.overallProgress} 
-                  onChange={(e) => setEvmForm(p => ({ ...p, overallProgress: Number(e.target.value) }))}
-                  required
-                  min="0"
-                  max="100"
-                  className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-4">
-                <button 
-                  type="button" 
-                  onClick={() => setShowEvmModal(false)}
-                  className="px-3.5 py-1.5 rounded-lg border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-                >
-                  İptal
-                </button>
-                <button 
-                  type="submit" 
-                  className="px-3.5 py-1.5 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 transition flex items-center gap-1"
-                >
-                  <Save className="w-3.5 h-3.5" /> Kaydet
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <FormDialog
+        open={showEvmModal}
+        onClose={() => setShowEvmModal(false)}
+        title="EVM & Bütçe Verilerini Düzenle"
+        icon={<Pencil className="w-4 h-4" />}
+        onSubmit={handleSaveEvm}
+        submitLabel="Kaydet"
+        submitIcon={<Save className="w-3.5 h-3.5" />}
+      >
+        <FieldRow>
+          <FormField type="number" label="Planned Value (PV) [M₺]" value={evmForm.plannedSpent} onChange={(e) => setEvmForm(p => ({ ...p, plannedSpent: Number(e.target.value) }))} required slotProps={{ htmlInput: { step: 0.1 } }} />
+          <FormField type="number" label="Earned Value (EV) [M₺]" value={evmForm.earnedValue} onChange={(e) => setEvmForm(p => ({ ...p, earnedValue: Number(e.target.value) }))} required slotProps={{ htmlInput: { step: 0.1 } }} />
+          <FormField type="number" label="Actual Cost (AC) [M₺]" value={evmForm.spent} onChange={(e) => setEvmForm(p => ({ ...p, spent: Number(e.target.value) }))} required slotProps={{ htmlInput: { step: 0.1 } }} />
+          <FormField type="number" label="Toplam Bütçe (BAC) [M₺]" value={evmForm.budget} onChange={(e) => setEvmForm(p => ({ ...p, budget: Number(e.target.value) }))} required slotProps={{ htmlInput: { step: 0.1 } }} />
+        </FieldRow>
+        <FormField type="number" label="Genel Tamamlanma Oranı (%)" value={evmForm.overallProgress} onChange={(e) => setEvmForm(p => ({ ...p, overallProgress: Number(e.target.value) }))} required slotProps={{ htmlInput: { min: 0, max: 100 } }} />
+      </FormDialog>
 
       {/* S-Curve Chart Data Modal */}
-      {showSCurveModal && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl w-full max-w-lg p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-bold text-[var(--text-primary)] flex items-center gap-2">
-                <Pencil className="w-4 h-4 text-blue-500" />
-                S-Curve Çeyreklik Veri Noktalarını Düzenle
-              </h3>
-              <button onClick={() => setShowSCurveModal(false)} className="text-slate-400 hover:text-[var(--text-primary)]">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveSCurve} className="space-y-3 text-xs">
-              <div className="space-y-3">
-                {sCurveData.map((pt, idx) => (
-                  <div key={idx} className="p-3 bg-[var(--bg-primary)] border border-[var(--border)] rounded-xl">
-                    <span className="font-bold text-[var(--text-primary)] text-xs block mb-2">{pt.name}</span>
-                    <div className="grid grid-cols-3 gap-2">
-                      <div>
-                        <label className="text-[10px] text-[var(--text-secondary)] block">Plan (%)</label>
-                        <input 
-                          type="number"
-                          value={pt.plan}
-                          onChange={(e) => {
-                            const val = Number(e.target.value);
-                            setSCurveData(prev => prev.map((item, i) => i === idx ? { ...item, plan: val } : item));
-                          }}
-                          className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded p-1.5 text-xs text-[var(--text-primary)]"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[10px] text-[var(--text-secondary)] block">Gerçekleşen Hakediş (%)</label>
-                        <input 
-                          type="number"
-                          value={pt.hakedis !== null ? pt.hakedis : ''}
-                          placeholder="Hedef/Boş"
-                          onChange={(e) => {
-                            const val = e.target.value === '' ? null : Number(e.target.value);
-                            setSCurveData(prev => prev.map((item, i) => i === idx ? { ...item, hakedis: val } : item));
-                          }}
-                          className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded p-1.5 text-xs text-[var(--text-primary)]"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[10px] text-[var(--text-secondary)] block">Maliyet (%)</label>
-                        <input 
-                          type="number"
-                          value={pt.maliyet !== null ? pt.maliyet : ''}
-                          placeholder="Hedef/Boş"
-                          onChange={(e) => {
-                            const val = e.target.value === '' ? null : Number(e.target.value);
-                            setSCurveData(prev => prev.map((item, i) => i === idx ? { ...item, maliyet: val } : item));
-                          }}
-                          className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded p-1.5 text-xs text-[var(--text-primary)]"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex justify-end gap-2 pt-4">
-                <button 
-                  type="button" 
-                  onClick={() => setShowSCurveModal(false)}
-                  className="px-3.5 py-1.5 rounded-lg border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-                >
-                  Kapat
-                </button>
-                <button 
-                  type="submit" 
-                  className="px-3.5 py-1.5 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 transition flex items-center gap-1"
-                >
-                  <Save className="w-3.5 h-3.5" /> Grafiğe Uygula
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <FormDialog
+        open={showSCurveModal}
+        onClose={() => setShowSCurveModal(false)}
+        title="S-Curve Çeyreklik Veri Noktalarını Düzenle"
+        icon={<Pencil className="w-4 h-4" />}
+        maxWidth="sm"
+        onSubmit={handleSaveSCurve}
+        cancelLabel="Kapat"
+        submitLabel="Grafiğe Uygula"
+        submitIcon={<Save className="w-3.5 h-3.5" />}
+      >
+        {sCurveData.map((pt, idx) => (
+          <Box key={idx} sx={{ p: 3, bgcolor: 'background.default', border: 1, borderColor: 'divider', borderRadius: 3 }}>
+            <Typography sx={{ mb: 2, fontSize: 12, fontWeight: 700 }}>{pt.name}</Typography>
+            <FieldRow cols={3}>
+              <FormField
+                type="number"
+                label="Plan (%)"
+                value={pt.plan}
+                onChange={(e) => {
+                  const val = Number(e.target.value);
+                  setSCurveData(prev => prev.map((item, i) => i === idx ? { ...item, plan: val } : item));
+                }}
+              />
+              <FormField
+                type="number"
+                label="Gerçekleşen Hakediş (%)"
+                placeholder="Hedef/Boş"
+                value={pt.hakedis !== null ? pt.hakedis : ''}
+                onChange={(e) => {
+                  const val = e.target.value === '' ? null : Number(e.target.value);
+                  setSCurveData(prev => prev.map((item, i) => i === idx ? { ...item, hakedis: val } : item));
+                }}
+                slotProps={{ inputLabel: { shrink: true } }}
+              />
+              <FormField
+                type="number"
+                label="Maliyet (%)"
+                placeholder="Hedef/Boş"
+                value={pt.maliyet !== null ? pt.maliyet : ''}
+                onChange={(e) => {
+                  const val = e.target.value === '' ? null : Number(e.target.value);
+                  setSCurveData(prev => prev.map((item, i) => i === idx ? { ...item, maliyet: val } : item));
+                }}
+                slotProps={{ inputLabel: { shrink: true } }}
+              />
+            </FieldRow>
+          </Box>
+        ))}
+      </FormDialog>
 
       {/* Employee Edit Modal */}
-      {editingEmployee && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl w-full max-w-md p-6 shadow-2xl">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-bold text-[var(--text-primary)] flex items-center gap-2">
-                <Pencil className="w-4 h-4 text-blue-500" />
-                Personel / Kaynak Bilgisini Düzenle
-              </h3>
-              <button onClick={() => setEditingEmployee(null)} className="text-slate-400 hover:text-[var(--text-primary)]">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveEmployee} className="space-y-3 text-xs">
-              <div>
-                <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">Personel Ad Soyad</label>
-                <input 
-                  type="text" 
-                  value={editingEmployee.name} 
-                  onChange={(e) => setEditingEmployee({ ...editingEmployee, name: e.target.value })}
-                  required
-                  className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">Görevi / Pozisyonu</label>
-                <input 
-                  type="text" 
-                  value={editingEmployee.role} 
-                  onChange={(e) => setEditingEmployee({ ...editingEmployee, role: e.target.value })}
-                  required
-                  className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">Bu Projedeki Çalışma Payı (%)</label>
-                <input 
-                  type="number" 
-                  value={editingEmployee.allocationPercentage} 
-                  onChange={(e) => setEditingEmployee({ ...editingEmployee, allocationPercentage: Number(e.target.value) })}
-                  required
-                  min="0"
-                  max="150"
-                  className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-4">
-                <button 
-                  type="button" 
-                  onClick={() => setEditingEmployee(null)}
-                  className="px-3.5 py-1.5 rounded-lg border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-                >
-                  İptal
-                </button>
-                <button 
-                  type="submit" 
-                  className="px-3.5 py-1.5 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 transition flex items-center gap-1"
-                >
-                  <Save className="w-3.5 h-3.5" /> Kaydet
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <FormDialog
+        open={!!editingEmployee}
+        onClose={() => setEditingEmployee(null)}
+        title="Personel / Kaynak Bilgisini Düzenle"
+        icon={<Pencil className="w-4 h-4" />}
+        onSubmit={handleSaveEmployee}
+        submitLabel="Kaydet"
+        submitIcon={<Save className="w-3.5 h-3.5" />}
+      >
+        {editingEmployee && (
+          <>
+            <FormField label="Personel Ad Soyad" value={editingEmployee.name} onChange={(e) => setEditingEmployee({ ...editingEmployee, name: e.target.value })} required />
+            <FormField label="Görevi / Pozisyonu" value={editingEmployee.role} onChange={(e) => setEditingEmployee({ ...editingEmployee, role: e.target.value })} required />
+            <FormField type="number" label="Bu Projedeki Çalışma Payı (%)" value={editingEmployee.allocationPercentage} onChange={(e) => setEditingEmployee({ ...editingEmployee, allocationPercentage: Number(e.target.value) })} required slotProps={{ htmlInput: { min: 0, max: 150 } }} />
+          </>
+        )}
+      </FormDialog>
 
       {/* Task Creation Modal */}
-      {showTaskModal && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl w-full max-w-md p-6 shadow-2xl">
-            <h3 className="text-sm font-bold text-[var(--text-primary)] mb-4">Yeni WBS İş Kalemi Oluştur</h3>
-            <form onSubmit={handleTaskSubmit} className="space-y-3 text-xs">
-              <div>
-                <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">WBS Kodu (Örn: 21)</label>
-                <input 
-                  type="text" 
-                  value={newTask.wbsCode} 
-                  onChange={(e) => setNewTask(p => ({ ...p, wbsCode: e.target.value }))}
-                  required
-                  className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">İş Kalemi Başlığı</label>
-                <input 
-                  type="text" 
-                  value={newTask.name} 
-                  onChange={(e) => setNewTask(p => ({ ...p, name: e.target.value }))}
-                  required
-                  className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">Taşeron Firma</label>
-                  <input 
-                    type="text" 
-                    value={newTask.contractor} 
-                    onChange={(e) => setNewTask(p => ({ ...p, contractor: e.target.value }))}
-                    className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">Birim Maliyet (Milyon ₺)</label>
-                  <input 
-                    type="number" 
-                    value={newTask.cost} 
-                    onChange={(e) => setNewTask(p => ({ ...p, cost: Number(e.target.value) }))}
-                    className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-4">
-                <button 
-                  type="button" 
-                  onClick={() => setShowTaskModal(false)}
-                  className="px-3.5 py-1.5 rounded-lg border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-                >
-                  Vazgeç
-                </button>
-                <button 
-                  type="submit" 
-                  className="px-3.5 py-1.5 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 transition"
-                >
-                  WBS'e Kaydet
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <FormDialog
+        open={showTaskModal}
+        onClose={() => setShowTaskModal(false)}
+        title="Yeni WBS İş Kalemi Oluştur"
+        onSubmit={handleTaskSubmit}
+        cancelLabel="Vazgeç"
+        submitLabel="WBS'e Kaydet"
+      >
+        <FormField label="WBS Kodu (Örn: 21)" value={newTask.wbsCode} onChange={(e) => setNewTask(p => ({ ...p, wbsCode: e.target.value }))} required />
+        <FormField label="İş Kalemi Başlığı" value={newTask.name} onChange={(e) => setNewTask(p => ({ ...p, name: e.target.value }))} required />
+        <FieldRow>
+          <FormField label="Taşeron Firma" value={newTask.contractor} onChange={(e) => setNewTask(p => ({ ...p, contractor: e.target.value }))} />
+          <FormField type="number" label="Birim Maliyet (Milyon ₺)" value={newTask.cost} onChange={(e) => setNewTask(p => ({ ...p, cost: Number(e.target.value) }))} />
+        </FieldRow>
+      </FormDialog>
 
       {/* Task Edit Modal */}
-      {editingTask && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl w-full max-w-md p-6 shadow-2xl">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-bold text-[var(--text-primary)] flex items-center gap-2">
-                <Pencil className="w-4 h-4 text-blue-500" />
-                İş Kalemini Düzenle (WBS {editingTask.wbsCode})
-              </h3>
-              <button onClick={() => setEditingTask(null)} className="text-slate-400 hover:text-[var(--text-primary)]">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveEditedTask} className="space-y-3 text-xs">
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">WBS Kodu</label>
-                  <input 
-                    type="text" 
-                    value={editingTask.wbsCode} 
-                    onChange={(e) => setEditingTask({ ...editingTask, wbsCode: e.target.value })}
-                    required
-                    className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">Aşama / Durum</label>
-                  <select 
-                    value={editingTask.status} 
-                    onChange={(e) => setEditingTask({ ...editingTask, status: e.target.value as any })}
-                    className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none"
-                  >
-                    <option value="Talep">Talep</option>
-                    <option value="Onay">Onay</option>
-                    <option value="Devam">Devam</option>
-                    <option value="Kontrol">Kontrol</option>
-                    <option value="Kapanış">Kapanış</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">İş Kalemi Adı</label>
-                <input 
-                  type="text" 
-                  value={editingTask.name} 
-                  onChange={(e) => setEditingTask({ ...editingTask, name: e.target.value })}
-                  required
-                  className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">Yüklenici / Taşeron</label>
-                  <input 
-                    type="text" 
-                    value={editingTask.contractor} 
-                    onChange={(e) => setEditingTask({ ...editingTask, contractor: e.target.value })}
-                    className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">Sorumlu</label>
-                  <input 
-                    type="text" 
-                    value={editingTask.responsible} 
-                    onChange={(e) => setEditingTask({ ...editingTask, responsible: e.target.value })}
-                    className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-2">
-                <div>
-                  <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">Harcama (M₺)</label>
-                  <input 
-                    type="number" 
-                    value={editingTask.cost} 
-                    onChange={(e) => setEditingTask({ ...editingTask, cost: Number(e.target.value) })}
-                    className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">Miktar ({editingTask.unit})</label>
-                  <input 
-                    type="number" 
-                    value={editingTask.plannedQuantity} 
-                    onChange={(e) => setEditingTask({ ...editingTask, plannedQuantity: Number(e.target.value) })}
-                    className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">İlerleme (%)</label>
-                  <input 
-                    type="number" 
-                    value={editingTask.progress} 
-                    min="0"
-                    max="100"
-                    onChange={(e) => setEditingTask({ ...editingTask, progress: Number(e.target.value) })}
-                    className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-4">
-                <button 
-                  type="button" 
-                  onClick={() => setEditingTask(null)}
-                  className="px-3.5 py-1.5 rounded-lg border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-                >
-                  İptal
-                </button>
-                <button 
-                  type="submit" 
-                  className="px-3.5 py-1.5 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 transition flex items-center gap-1"
-                >
-                  <Save className="w-3.5 h-3.5" /> Değişiklikleri Kaydet
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <FormDialog
+        open={!!editingTask}
+        onClose={() => setEditingTask(null)}
+        title={`İş Kalemini Düzenle (WBS ${editingTask?.wbsCode ?? ''})`}
+        icon={<Pencil className="w-4 h-4" />}
+        onSubmit={handleSaveEditedTask}
+        submitLabel="Değişiklikleri Kaydet"
+        submitIcon={<Save className="w-3.5 h-3.5" />}
+      >
+        {editingTask && (
+          <>
+            <FieldRow>
+              <FormField label="WBS Kodu" value={editingTask.wbsCode} onChange={(e) => setEditingTask({ ...editingTask, wbsCode: e.target.value })} required />
+              <FormField select label="Aşama / Durum" value={editingTask.status} onChange={(e) => setEditingTask({ ...editingTask, status: e.target.value as any })}>
+                {['Talep', 'Onay', 'Devam', 'Kontrol', 'Kapanış'].map((s) => (
+                  <MenuItem key={s} value={s}>{s}</MenuItem>
+                ))}
+              </FormField>
+            </FieldRow>
+            <FormField label="İş Kalemi Adı" value={editingTask.name} onChange={(e) => setEditingTask({ ...editingTask, name: e.target.value })} required />
+            <FieldRow>
+              <FormField label="Yüklenici / Taşeron" value={editingTask.contractor} onChange={(e) => setEditingTask({ ...editingTask, contractor: e.target.value })} />
+              <FormField label="Sorumlu" value={editingTask.responsible} onChange={(e) => setEditingTask({ ...editingTask, responsible: e.target.value })} />
+            </FieldRow>
+            <FieldRow cols={3}>
+              <FormField type="number" label="Harcama (M₺)" value={editingTask.cost} onChange={(e) => setEditingTask({ ...editingTask, cost: Number(e.target.value) })} />
+              <FormField type="number" label={`Miktar (${editingTask.unit})`} value={editingTask.plannedQuantity} onChange={(e) => setEditingTask({ ...editingTask, plannedQuantity: Number(e.target.value) })} />
+              <FormField type="number" label="İlerleme (%)" value={editingTask.progress} onChange={(e) => setEditingTask({ ...editingTask, progress: Number(e.target.value) })} slotProps={{ htmlInput: { min: 0, max: 100 } }} />
+            </FieldRow>
+          </>
+        )}
+      </FormDialog>
 
       {/* Doc Creation Modal */}
-      {showDocModal && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl w-full max-w-md p-6 shadow-2xl">
-            <h3 className="text-sm font-bold text-[var(--text-primary)] mb-4">Ortak Veri Ortamına (CDE) Dosya Yükle</h3>
-            <form onSubmit={handleDocSubmit} className="space-y-3 text-xs">
-              <div>
-                <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">Belge / Dosya Adı</label>
-                <input 
-                  type="text" 
-                  value={newDoc.name} 
-                  onChange={(e) => setNewDoc(p => ({ ...p, name: e.target.value }))}
-                  required
-                  placeholder="Mimari_Plan_AsBuilt_signed.pdf"
-                  className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">Referans Yapı / Blok</label>
-                  <select 
-                    value={newDoc.associatedBlockId} 
-                    onChange={(e) => setNewDoc(p => ({ ...p, associatedBlockId: e.target.value }))}
-                    className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none"
-                  >
-                    {(localProject.blocks || []).map(b => (
-                      <option key={b.id} value={b.id}>{b.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">Sürüm No</label>
-                  <input 
-                    type="text" 
-                    value={newDoc.version} 
-                    onChange={(e) => setNewDoc(p => ({ ...p, version: e.target.value }))}
-                    className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-4">
-                <button 
-                  type="button" 
-                  onClick={() => setShowDocModal(false)}
-                  className="px-3.5 py-1.5 rounded-lg border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-                >
-                  İptal
-                </button>
-                <button 
-                  type="submit" 
-                  className="px-3.5 py-1.5 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 transition"
-                >
-                  Arşive Ekle
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <FormDialog
+        open={showDocModal}
+        onClose={() => setShowDocModal(false)}
+        title="Ortak Veri Ortamına (CDE) Dosya Yükle"
+        onSubmit={handleDocSubmit}
+        submitLabel="Arşive Ekle"
+      >
+        <FormField label="Belge / Dosya Adı" value={newDoc.name} onChange={(e) => setNewDoc(p => ({ ...p, name: e.target.value }))} required placeholder="Mimari_Plan_AsBuilt_signed.pdf" slotProps={{ inputLabel: { shrink: true } }} />
+        <FieldRow>
+          <FormField select label="Referans Yapı / Blok" value={newDoc.associatedBlockId} onChange={(e) => setNewDoc(p => ({ ...p, associatedBlockId: e.target.value }))}>
+            {(localProject.blocks || []).map(b => (
+              <MenuItem key={b.id} value={b.id}>{b.name}</MenuItem>
+            ))}
+          </FormField>
+          <FormField label="Sürüm No" value={newDoc.version} onChange={(e) => setNewDoc(p => ({ ...p, version: e.target.value }))} />
+        </FieldRow>
+      </FormDialog>
 
       {/* Doc Edit Modal */}
-      {editingDoc && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl w-full max-w-md p-6 shadow-2xl">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-bold text-[var(--text-primary)] flex items-center gap-2">
-                <Pencil className="w-4 h-4 text-blue-500" />
-                CDE Dokümanını Düzenle
-              </h3>
-              <button onClick={() => setEditingDoc(null)} className="text-slate-400 hover:text-[var(--text-primary)]">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveEditedDoc} className="space-y-3 text-xs">
-              <div>
-                <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">Belge / Dosya Adı</label>
-                <input 
-                  type="text" 
-                  value={editingDoc.name} 
-                  onChange={(e) => setEditingDoc({ ...editingDoc, name: e.target.value })}
-                  required
-                  className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">Sürüm (Versiyon)</label>
-                  <input 
-                    type="text" 
-                    value={editingDoc.version} 
-                    onChange={(e) => setEditingDoc({ ...editingDoc, version: e.target.value })}
-                    className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">Dosya Boyutu</label>
-                  <input 
-                    type="text" 
-                    value={editingDoc.fileSize} 
-                    onChange={(e) => setEditingDoc({ ...editingDoc, fileSize: e.target.value })}
-                    className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">Referans Blok ID</label>
-                <input 
-                  type="text" 
-                  value={editingDoc.associatedBlockId} 
-                  onChange={(e) => setEditingDoc({ ...editingDoc, associatedBlockId: e.target.value })}
-                  className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-4">
-                <button 
-                  type="button" 
-                  onClick={() => setEditingDoc(null)}
-                  className="px-3.5 py-1.5 rounded-lg border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-                >
-                  İptal
-                </button>
-                <button 
-                  type="submit" 
-                  className="px-3.5 py-1.5 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 transition flex items-center gap-1"
-                >
-                  <Save className="w-3.5 h-3.5" /> Kaydet
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <FormDialog
+        open={!!editingDoc}
+        onClose={() => setEditingDoc(null)}
+        title="CDE Dokümanını Düzenle"
+        icon={<Pencil className="w-4 h-4" />}
+        onSubmit={handleSaveEditedDoc}
+        submitLabel="Kaydet"
+        submitIcon={<Save className="w-3.5 h-3.5" />}
+      >
+        {editingDoc && (
+          <>
+            <FormField label="Belge / Dosya Adı" value={editingDoc.name} onChange={(e) => setEditingDoc({ ...editingDoc, name: e.target.value })} required />
+            <FieldRow>
+              <FormField label="Sürüm (Versiyon)" value={editingDoc.version} onChange={(e) => setEditingDoc({ ...editingDoc, version: e.target.value })} />
+              <FormField label="Dosya Boyutu" value={editingDoc.fileSize} onChange={(e) => setEditingDoc({ ...editingDoc, fileSize: e.target.value })} />
+            </FieldRow>
+            <FormField label="Referans Blok ID" value={editingDoc.associatedBlockId} onChange={(e) => setEditingDoc({ ...editingDoc, associatedBlockId: e.target.value })} />
+          </>
+        )}
+      </FormDialog>
     </div>
   );
 }
