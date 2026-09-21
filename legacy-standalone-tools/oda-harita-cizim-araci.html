@@ -13619,6 +13619,10 @@
   function autoFitBimScale(lyr, centeredGroup, THREE){
     if (!lyr.bimAnchor || lyr.bimAnchor._autoFitDone) return;
     lyr.bimAnchor._autoFitDone = true;
+    // glTF/GLB birimi spesifikasyon gereği METREdir — gerçek boyutta kalır;
+    // yakındaki binaların kat yüksekliğine göre yeniden ölçeklemek (ör. 40 m'lik
+    // bir modeli 3 m'ye küçültmek) modeli bozardı. Elle ayar: HUD'daki ⤢.
+    if (lyr.sourceFormat === 'gltf' || lyr.sourceFormat === 'glb') return;
     var box = new THREE.Box3().setFromObject(centeredGroup);
     var rawHeight = box.max.y - box.min.y; // BIM biriminde (scale=1 varsayımıyla), bkz. centerMeshesIntoGroup (Y tabanlı)
     if (!(rawHeight > 0)) return;
@@ -13730,7 +13734,8 @@
         var THREE = await import('three');
         var camera = new THREE.Camera();
         var scene = new THREE.Scene();
-        scene.add(new THREE.HemisphereLight(0xffffff, 0x404040, 1.2));
+        var hemi = new THREE.HemisphereLight(0xffffff, 0x404040, 1.2);
+        scene.add(hemi);
         var dir = new THREE.DirectionalLight(0xffffff, 0.7);
         dir.position.set(0, -70, 100).normalize();
         scene.add(dir);
@@ -13747,6 +13752,22 @@
         mapRef.on('resize', function(){
           renderer.setSize(mapRef.getCanvas().clientWidth, mapRef.getCanvas().clientHeight, false);
         });
+        // PBR (metallic-roughness) malzemeler — ör. DamagedHelmet/FlightHelmet
+        // gibi glTF modelleri — ortam haritası (IBL) OLMADAN sadece doğrudan
+        // ışıkla aydınlatılınca metalik yüzeyleri SİYAH kalır (yansıtacak bir
+        // şey yok). Küçük bir stüdyo ortamı (RoomEnvironment → PMREM) eklenir;
+        // başarısız olursa (ör. CDN erişilemiyor) sessizce yalnızca ışıklarla
+        // devam edilir.
+        try{
+          var RoomEnvironment = (await import('three/addons/environments/RoomEnvironment.js')).RoomEnvironment;
+          var pmrem = new THREE.PMREMGenerator(renderer);
+          scene.environment = pmrem.fromScene(new RoomEnvironment(renderer), 0.04).texture;
+          pmrem.dispose();
+          renderer.resetState();
+          // Ortam ışığı artık dolaylı aydınlatmayı sağladığı için gökyüzü/zemin
+          // ışığı kısılır (aksi halde modeller aşırı parlar).
+          hemi.intensity = 0.5;
+        }catch(envErr){ console.warn('Ortam haritası (IBL) oluşturulamadı:', envErr); }
         ifcMeshLayerCtx = { THREE:THREE, scene:scene, camera:camera, renderer:renderer };
         syncIfcMeshLayer();
       },
