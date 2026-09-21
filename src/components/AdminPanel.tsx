@@ -11,6 +11,15 @@ import {
   WbsGorevRecord, DokumanRecord, VarlikRecord, BakimKaydiRecord, BildirimRecord
 } from '../types/index';
 import * as api from '../services/api';
+import MuiBox from '@mui/material/Box';
+import Checkbox from '@mui/material/Checkbox';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import MenuItem from '@mui/material/MenuItem';
+import Stack from '@mui/material/Stack';
+import Typography from '@mui/material/Typography';
+import { alpha } from '@mui/material/styles';
+import FormDialog, { FormField, FieldRow } from './chrome/FormDialog';
+import ConfirmDialog from './chrome/ConfirmDialog';
 
 interface AdminPanelProps {
   theme: 'dark' | 'light';
@@ -1524,609 +1533,275 @@ CREATE TABLE ${selectedTableKey} (
       {/* ========================================================
           MODAL: YENİ KULLANICI EKLE
          ======================================================== */}
-      {showAddUserModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl shadow-2xl overflow-hidden animate-fade-in">
-            <div className="p-4 border-b border-[var(--border)] flex items-center justify-between">
-              <h3 className="text-sm font-extrabold text-[var(--text-primary)] flex items-center gap-2">
-                <Users className="w-4 h-4 text-amber-500" />
-                Yeni Personel / Kullanıcı Ekle
-              </h3>
-              <button onClick={() => setShowAddUserModal(false)} className="text-[var(--text-secondary)] hover:text-white cursor-pointer">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleAddUserSubmit} className="p-5 space-y-4 text-xs font-bold">
-              <div>
-                <label className="block text-[var(--text-secondary)] mb-1">Ad Soyad:</label>
-                <input 
-                  type="text"
-                  required
-                  value={newUserForm.full_name}
-                  onChange={(e) => setNewUserForm({ ...newUserForm, full_name: e.target.value })}
-                  placeholder="Örn: Canan Demir"
-                  className="w-full p-2.5 rounded-lg bg-[var(--bg-primary)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:border-amber-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[var(--text-secondary)] mb-1">Kurumsal E-Posta:</label>
-                <input 
-                  type="email"
-                  required
-                  value={newUserForm.email}
-                  onChange={(e) => setNewUserForm({ ...newUserForm, email: e.target.value })}
-                  placeholder="canan.demir@iga.aero"
-                  className="w-full p-2.5 rounded-lg bg-[var(--bg-primary)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:border-amber-500"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[var(--text-secondary)] mb-1">Ünvan:</label>
-                  <input 
-                    type="text"
-                    required
-                    value={newUserForm.role}
-                    onChange={(e) => setNewUserForm({ ...newUserForm, role: e.target.value })}
-                    placeholder="CBS Uzmanı"
-                    className="w-full p-2.5 rounded-lg bg-[var(--bg-primary)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:border-amber-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[var(--text-secondary)] mb-1">Departman:</label>
-                  <input 
-                    type="text"
-                    required
-                    value={newUserForm.department}
-                    onChange={(e) => setNewUserForm({ ...newUserForm, department: e.target.value })}
-                    placeholder="Teknik Ofis & CBS"
-                    className="w-full p-2.5 rounded-lg bg-[var(--bg-primary)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:border-amber-500"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[var(--text-secondary)] mb-1">Kullanıcı Rolü:</label>
-                <select
-                  value={newUserForm.user_role}
-                  onChange={(e) => setNewUserForm({ ...newUserForm, user_role: e.target.value as UserRole })}
-                  className="w-full p-2.5 rounded-lg bg-[var(--bg-primary)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:border-amber-500 cursor-pointer"
-                >
-                  <option value="standart_user">Standart User (Saha & Okuma)</option>
-                  <option value="power_user">Power User (Gelişmiş Operasyon & EVM)</option>
-                  <option value="super_user">Super User (Tam Yönetici & Şema Sahibi)</option>
-                </select>
-              </div>
-
-              <div className="pt-2 flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowAddUserModal(false)}
-                  className="px-4 py-2 rounded-lg border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg-primary)] cursor-pointer"
-                >
-                  İptal
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition shadow cursor-pointer font-extrabold"
-                >
-                  Kaydet
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <FormDialog
+        open={showAddUserModal}
+        onClose={() => setShowAddUserModal(false)}
+        title="Yeni Personel / Kullanıcı Ekle"
+        icon={<Users className="w-4 h-4" />}
+        onSubmit={handleAddUserSubmit}
+        cancelLabel="İptal"
+        submitLabel="Kaydet"
+      >
+        <FormField label="Ad Soyad" required value={newUserForm.full_name} onChange={(e) => setNewUserForm({ ...newUserForm, full_name: e.target.value })} placeholder="Örn: Canan Demir" slotProps={{ inputLabel: { shrink: true } }} />
+        <FormField type="email" label="Kurumsal E-Posta" required value={newUserForm.email} onChange={(e) => setNewUserForm({ ...newUserForm, email: e.target.value })} placeholder="canan.demir@iga.aero" slotProps={{ inputLabel: { shrink: true } }} />
+        <FieldRow>
+          <FormField label="Ünvan" required value={newUserForm.role} onChange={(e) => setNewUserForm({ ...newUserForm, role: e.target.value })} placeholder="CBS Uzmanı" slotProps={{ inputLabel: { shrink: true } }} />
+          <FormField label="Departman" required value={newUserForm.department} onChange={(e) => setNewUserForm({ ...newUserForm, department: e.target.value })} placeholder="Teknik Ofis & CBS" slotProps={{ inputLabel: { shrink: true } }} />
+        </FieldRow>
+        <FormField select label="Kullanıcı Rolü" value={newUserForm.user_role} onChange={(e) => setNewUserForm({ ...newUserForm, user_role: e.target.value as UserRole })}>
+          <MenuItem value="standart_user">Standart User (Saha & Okuma)</MenuItem>
+          <MenuItem value="power_user">Power User (Gelişmiş Operasyon & EVM)</MenuItem>
+          <MenuItem value="super_user">Super User (Tam Yönetici & Şema Sahibi)</MenuItem>
+        </FormField>
+      </FormDialog>
 
       {/* ========================================================
           MODAL: YENİ SÜTUN EKLE
          ======================================================== */}
-      {showAddColumnModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl shadow-2xl overflow-hidden animate-fade-in">
-            <div className="p-4 border-b border-[var(--border)] flex items-center justify-between">
-              <h3 className="text-sm font-extrabold text-[var(--text-primary)] flex items-center gap-2">
-                <Plus className="w-4 h-4 text-emerald-500" />
-                Tabloya Yeni Sütun Ekle ({selectedTableKey})
-              </h3>
-              <button onClick={() => setShowAddColumnModal(false)} className="text-[var(--text-secondary)] hover:text-white cursor-pointer">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleAddColumnSubmit} className="p-5 space-y-4 text-xs font-bold">
-              <div>
-                <label className="block text-[var(--text-secondary)] mb-1">
-                  Sütun Adı (snake_case, ascii):
-                </label>
-                <input 
-                  type="text"
-                  required
-                  value={newColumnForm.column_name}
-                  onChange={(e) => setNewColumnForm({ ...newColumnForm, column_name: e.target.value })}
-                  placeholder="örn: yuklenici_firma_kodu"
-                  className="w-full p-2.5 rounded-lg bg-[var(--bg-primary)] border border-[var(--border)] text-[var(--text-primary)] font-mono focus:outline-none focus:border-emerald-500"
-                />
-                <span className="text-[10px] text-[var(--text-secondary)] block mt-0.5">
-                  Otomatik olarak küçük harf ve alt çizgiye dönüştürülür.
-                </span>
-              </div>
-
-              <div>
-                <label className="block text-[var(--text-secondary)] mb-1">Veri Tipi:</label>
-                <select
-                  value={newColumnForm.data_type}
-                  onChange={(e) => setNewColumnForm({ ...newColumnForm, data_type: e.target.value })}
-                  className="w-full p-2.5 rounded-lg bg-[var(--bg-primary)] border border-[var(--border)] text-[var(--text-primary)] font-mono focus:outline-none focus:border-emerald-500 cursor-pointer"
-                >
-                  <option value="varchar(255)">varchar(255) - Metin</option>
-                  <option value="varchar(100)">varchar(100) - Kısa Metin</option>
-                  <option value="text">text - Uzun Metin / Not</option>
-                  <option value="integer">integer - Tam Sayı</option>
-                  <option value="numeric(15,2)">numeric(15,2) - Para / Bütçe</option>
-                  <option value="numeric(5,2)">numeric(5,2) - Yüzde (%)</option>
-                  <option value="boolean">boolean - Evet / Hayır</option>
-                  <option value="date">date - Tarih</option>
-                  <option value="timestamp">timestamp - Zaman Damgası</option>
-                  <option value="geometry(Point,5257)">geometry(Point, 5257) - PostGIS Nokta</option>
-                  <option value="geometry(Polygon,5257)">geometry(Polygon, 5257) - PostGIS Çokgen</option>
-                  <option value="geometry(LineString,5257)">geometry(LineString, 5257) - PostGIS Çizgi</option>
-                </select>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <input 
-                  type="checkbox"
-                  id="chk-nullable"
-                  checked={newColumnForm.is_nullable}
-                  onChange={(e) => setNewColumnForm({ ...newColumnForm, is_nullable: e.target.checked })}
-                  className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer"
-                />
-                <label htmlFor="chk-nullable" className="text-[var(--text-primary)] cursor-pointer">
-                  Boş Bırakılabilir (NULL değer alabilir)
-                </label>
-              </div>
-
-              <div>
-                <label className="block text-[var(--text-secondary)] mb-1">Varsayılan Değer (Opsiyonel):</label>
-                <input 
-                  type="text"
-                  value={newColumnForm.column_default}
-                  onChange={(e) => setNewColumnForm({ ...newColumnForm, column_default: e.target.value })}
-                  placeholder="örn: 'Aktif' veya 0"
-                  className="w-full p-2.5 rounded-lg bg-[var(--bg-primary)] border border-[var(--border)] text-[var(--text-primary)] font-mono focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[var(--text-secondary)] mb-1">Açıklama:</label>
-                <input 
-                  type="text"
-                  value={newColumnForm.description}
-                  onChange={(e) => setNewColumnForm({ ...newColumnForm, description: e.target.value })}
-                  placeholder="Kolonun işlevi ve veri içeriği"
-                  className="w-full p-2.5 rounded-lg bg-[var(--bg-primary)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-
-              <div className="pt-2 flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowAddColumnModal(false)}
-                  className="px-4 py-2 rounded-lg border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg-primary)] cursor-pointer"
-                >
-                  İptal
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition shadow cursor-pointer font-extrabold"
-                >
-                  Sütunu Ekle
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <FormDialog
+        open={showAddColumnModal}
+        onClose={() => setShowAddColumnModal(false)}
+        title={`Tabloya Yeni Sütun Ekle (${selectedTableKey})`}
+        icon={<Plus className="w-4 h-4" />}
+        onSubmit={handleAddColumnSubmit}
+        cancelLabel="İptal"
+        submitLabel="Sütunu Ekle"
+      >
+        <FormField
+          label="Sütun Adı (snake_case, ascii)"
+          required
+          value={newColumnForm.column_name}
+          onChange={(e) => setNewColumnForm({ ...newColumnForm, column_name: e.target.value })}
+          placeholder="örn: yuklenici_firma_kodu"
+          helperText="Otomatik olarak küçük harf ve alt çizgiye dönüştürülür."
+          slotProps={{ inputLabel: { shrink: true }, htmlInput: { style: { fontFamily: 'monospace' } } }}
+        />
+        <FormField select label="Veri Tipi" value={newColumnForm.data_type} onChange={(e) => setNewColumnForm({ ...newColumnForm, data_type: e.target.value })}>
+          {[
+            ['varchar(255)', 'varchar(255) - Metin'],
+            ['varchar(100)', 'varchar(100) - Kısa Metin'],
+            ['text', 'text - Uzun Metin / Not'],
+            ['integer', 'integer - Tam Sayı'],
+            ['numeric(15,2)', 'numeric(15,2) - Para / Bütçe'],
+            ['numeric(5,2)', 'numeric(5,2) - Yüzde (%)'],
+            ['boolean', 'boolean - Evet / Hayır'],
+            ['date', 'date - Tarih'],
+            ['timestamp', 'timestamp - Zaman Damgası'],
+            ['geometry(Point,5257)', 'geometry(Point, 5257) - PostGIS Nokta'],
+            ['geometry(Polygon,5257)', 'geometry(Polygon, 5257) - PostGIS Çokgen'],
+            ['geometry(LineString,5257)', 'geometry(LineString, 5257) - PostGIS Çizgi'],
+          ].map(([value, label]) => (
+            <MenuItem key={value} value={value} sx={{ fontFamily: 'monospace' }}>{label}</MenuItem>
+          ))}
+        </FormField>
+        <FormControlLabel
+          control={<Checkbox size="small" color="success" checked={newColumnForm.is_nullable} onChange={(e) => setNewColumnForm({ ...newColumnForm, is_nullable: e.target.checked })} />}
+          label={<Typography sx={{ fontSize: 12 }}>Boş Bırakılabilir (NULL değer alabilir)</Typography>}
+        />
+        <FormField label="Varsayılan Değer (Opsiyonel)" value={newColumnForm.column_default} onChange={(e) => setNewColumnForm({ ...newColumnForm, column_default: e.target.value })} placeholder="örn: 'Aktif' veya 0" slotProps={{ inputLabel: { shrink: true }, htmlInput: { style: { fontFamily: 'monospace' } } }} />
+        <FormField label="Açıklama" value={newColumnForm.description} onChange={(e) => setNewColumnForm({ ...newColumnForm, description: e.target.value })} placeholder="Kolonun işlevi ve veri içeriği" slotProps={{ inputLabel: { shrink: true } }} />
+      </FormDialog>
 
       {/* ========================================================
           MODAL: SÜTUN İLİŞKİLENDİRME (FK) — Sütunlar sekmesi
          ======================================================== */}
-      {showRelationModal && relationEditingColumn && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl shadow-2xl overflow-hidden animate-fade-in">
-            <div className="p-4 border-b border-[var(--border)] flex items-center justify-between">
-              <h3 className="text-sm font-extrabold text-[var(--text-primary)] flex items-center gap-2">
-                <Key className="w-4 h-4 text-violet-400" />
-                Sütunu İlişkilendir ({relationEditingColumn.table_name}.{relationEditingColumn.column_name})
-              </h3>
-              <button onClick={() => setShowRelationModal(false)} className="text-[var(--text-secondary)] hover:text-white cursor-pointer">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveRelation} className="p-5 space-y-4 text-xs font-bold">
-              <div className="p-2.5 rounded-xl bg-violet-500/10 border border-violet-500/20 text-violet-300 text-[11px] font-medium">
-                Bu sütun, seçtiğiniz tablonun anahtar sütununa (genelde "id") bağlanır.
-                Veri giriş formunda bu sütun için, ilişkili tablonun "görünen ad" sütununu
-                (örn. "name") listeleyen bir combobox gösterilir.
-              </div>
-
-              <div>
-                <label className="block text-[var(--text-secondary)] mb-1">İlişkili Tablo:</label>
-                <select
-                  required
-                  value={relationForm.relation_table}
-                  onChange={(e) => setRelationForm({ ...relationForm, relation_table: e.target.value })}
-                  className="w-full p-2.5 rounded-lg bg-[var(--bg-primary)] border border-[var(--border)] text-[var(--text-primary)] font-mono focus:outline-none focus:border-violet-500 cursor-pointer"
-                >
-                  <option value="" disabled>Seçiniz...</option>
-                  {availableTables.filter(t => t.key !== relationEditingColumn.table_name).map(t => (
-                    <option key={t.key} value={t.key}>{t.name} ({t.key})</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-[var(--text-secondary)] mb-1">Anahtar Sütun (genelde id):</label>
-                <input
-                  type="text"
-                  required
-                  value={relationForm.relation_column}
-                  onChange={(e) => setRelationForm({ ...relationForm, relation_column: e.target.value })}
-                  className="w-full p-2.5 rounded-lg bg-[var(--bg-primary)] border border-[var(--border)] text-[var(--text-primary)] font-mono focus:outline-none focus:border-violet-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[var(--text-secondary)] mb-1">Combobox'ta Gösterilecek Sütun:</label>
-                <input
-                  type="text"
-                  required
-                  value={relationForm.relation_display_column}
-                  onChange={(e) => setRelationForm({ ...relationForm, relation_display_column: e.target.value })}
-                  placeholder="örn: name"
-                  className="w-full p-2.5 rounded-lg bg-[var(--bg-primary)] border border-[var(--border)] text-[var(--text-primary)] font-mono focus:outline-none focus:border-violet-500"
-                />
-              </div>
-
-              <div className="pt-2 flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowRelationModal(false)}
-                  className="px-4 py-2 rounded-lg border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg-primary)] cursor-pointer"
-                >
-                  İptal
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition shadow cursor-pointer font-extrabold"
-                >
-                  İlişkiyi Kaydet
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <FormDialog
+        open={showRelationModal && !!relationEditingColumn}
+        onClose={() => setShowRelationModal(false)}
+        title={`Sütunu İlişkilendir (${relationEditingColumn?.table_name}.${relationEditingColumn?.column_name})`}
+        icon={<Key className="w-4 h-4" />}
+        onSubmit={handleSaveRelation}
+        cancelLabel="İptal"
+        submitLabel="İlişkiyi Kaydet"
+      >
+        <MuiBox sx={{ p: 2.5, fontSize: 11, lineHeight: 1.6, color: 'secondary.light', bgcolor: (t) => alpha(t.palette.secondary.main, 0.1), border: 1, borderColor: (t) => alpha(t.palette.secondary.main, 0.25), borderRadius: 2 }}>
+          Bu sütun, seçtiğiniz tablonun anahtar sütununa (genelde "id") bağlanır.
+          Veri giriş formunda bu sütun için, ilişkili tablonun "görünen ad" sütununu
+          (örn. "name") listeleyen bir combobox gösterilir.
+        </MuiBox>
+        <FormField select label="İlişkili Tablo" required value={relationForm.relation_table} onChange={(e) => setRelationForm({ ...relationForm, relation_table: e.target.value })}>
+          <MenuItem value="" disabled>Seçiniz...</MenuItem>
+          {relationEditingColumn && availableTables.filter(t => t.key !== relationEditingColumn.table_name).map(t => (
+            <MenuItem key={t.key} value={t.key} sx={{ fontFamily: 'monospace' }}>{t.name} ({t.key})</MenuItem>
+          ))}
+        </FormField>
+        <FormField label="Anahtar Sütun (genelde id)" required value={relationForm.relation_column} onChange={(e) => setRelationForm({ ...relationForm, relation_column: e.target.value })} slotProps={{ htmlInput: { style: { fontFamily: 'monospace' } } }} />
+        <FormField label="Combobox'ta Gösterilecek Sütun" required value={relationForm.relation_display_column} onChange={(e) => setRelationForm({ ...relationForm, relation_display_column: e.target.value })} placeholder="örn: name" slotProps={{ inputLabel: { shrink: true }, htmlInput: { style: { fontFamily: 'monospace' } } }} />
+      </FormDialog>
 
       {/* ========================================================
           MODAL: YENİ KAYIT EKLE (TAB 1 DİNAMİK)
          ======================================================== */}
-      {showAddRowModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-xl bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl shadow-2xl overflow-hidden animate-fade-in flex flex-col max-h-[85vh]">
-            <div className="p-4 border-b border-[var(--border)] flex items-center justify-between bg-[var(--bg-primary)]">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-orange-500/20 text-orange-400 flex items-center justify-center font-bold">
-                  <Plus className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-extrabold text-[var(--text-primary)]">
-                    Yeni Kayıt Ekle
-                  </h3>
-                  <p className="text-[11px] font-mono text-orange-400">
-                    Tablo: {selectedTableKey}
-                  </p>
-                </div>
-              </div>
-              <button 
-                onClick={() => setShowAddRowModal(false)} 
-                className="p-1.5 rounded-lg text-[var(--text-secondary)] hover:text-white hover:bg-[var(--bg-secondary)] cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+      <FormDialog
+        open={showAddRowModal}
+        onClose={() => setShowAddRowModal(false)}
+        title={`Yeni Kayıt Ekle — Tablo: ${selectedTableKey}`}
+        icon={<Plus className="w-4 h-4" />}
+        maxWidth="sm"
+        onSubmit={handleCreateRowSubmit}
+        cancelLabel="Vazgeç"
+        submitLabel="Kaydet"
+        submitIcon={<Check className="w-4 h-4" />}
+      >
+        <Stack direction="row" spacing={2} sx={{ p: 2.5, alignItems: 'center', fontSize: 11, color: 'info.light', bgcolor: (t) => alpha(t.palette.info.main, 0.1), border: 1, borderColor: (t) => alpha(t.palette.info.main, 0.25), borderRadius: 2 }}>
+          <Database className="w-4 h-4 shrink-0" />
+          <span>Standart sistem kolonları (id, row_status, create/write logları) arka planda otomatik yönetilecektir.</span>
+        </Stack>
 
-            <form onSubmit={handleCreateRowSubmit} className="flex-1 overflow-y-auto p-5 space-y-3.5 text-xs font-bold" style={{ scrollbarWidth: 'thin' }}>
-              <div className="p-2.5 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-400 text-[11px] font-medium flex items-center gap-2">
-                <Database className="w-4 h-4 shrink-0" />
-                <span>Standart sistem kolonları (id, row_status, create/write logları) arka planda otomatik yönetilecektir.</span>
-              </div>
-
-              {Object.keys(newRowData).length === 0 ? (
-                <div>
-                  <label className="block text-[var(--text-secondary)] mb-1">Not / Açıklama:</label>
-                  <input
-                    type="text"
-                    value={newRowData.notes || ''}
-                    onChange={(e) => setNewRowData({ ...newRowData, notes: e.target.value })}
-                    className="w-full p-2.5 rounded-xl bg-[var(--bg-primary)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:border-orange-500"
-                    placeholder="Kayıt açıklaması..."
-                  />
-                </div>
-              ) : (
-                Object.entries(newRowData).map(([fieldKey, fieldVal]) => {
-                  const label = fieldKey.replace(/_/g, ' ').toUpperCase();
-                  const isNumber = typeof fieldVal === 'number';
-                  const relationCol = allColumns.find(c => c.table_name === selectedTableKey && c.column_name === fieldKey && c.relation_table);
-                  const relationOptions = relationCol ? (relationOptionsCache[relationCol.relation_table as string] || []) : [];
-                  return (
-                    <div key={fieldKey}>
-                      <label className="block text-[var(--text-secondary)] mb-1 font-mono text-[11px]">
-                        {label} ({fieldKey}):
-                      </label>
-                      {relationCol ? (
-                        <select
-                          value={fieldVal ?? ''}
-                          onChange={(e) => setNewRowData({ ...newRowData, [fieldKey]: e.target.value })}
-                          className="w-full p-2.5 rounded-xl bg-[var(--bg-primary)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:border-orange-500 cursor-pointer"
-                          title={`İlişkili tablo: ${relationCol.relation_table}`}
-                        >
-                          <option value="" disabled>Seçiniz...</option>
-                          {relationOptions.map(opt => (
-                            <option key={opt.id} value={opt.id}>{opt.label} ({opt.id})</option>
-                          ))}
-                        </select>
-                      ) : fieldKey === 'veri_durumu' ? (
-                        <select
-                          value={fieldVal ?? 'Planlanan'}
-                          onChange={(e) => setNewRowData({ ...newRowData, [fieldKey]: e.target.value })}
-                          className="w-full p-2.5 rounded-xl bg-[var(--bg-primary)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:border-orange-500 cursor-pointer"
-                        >
-                          <option value="Planlanan">Planlanan</option>
-                          <option value="İnşaat">İnşaat</option>
-                          <option value="İşletme">İşletme</option>
-                          <option value="İptal">İptal</option>
-                        </select>
-                      ) : (
-                        <input
-                          type={isNumber ? 'number' : 'text'}
-                          value={fieldVal ?? ''}
-                          onChange={(e) => {
-                            const val = isNumber ? (e.target.value === '' ? 0 : Number(e.target.value)) : e.target.value;
-                            setNewRowData({ ...newRowData, [fieldKey]: val });
-                          }}
-                          className="w-full p-2.5 rounded-xl bg-[var(--bg-primary)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:border-orange-500"
-                          placeholder={`${fieldKey} giriniz...`}
-                        />
-                      )}
-                    </div>
-                  );
-                })
-              )}
-
-              <div className="pt-3 flex justify-end gap-2 border-t border-[var(--border)]">
-                <button
-                  type="button"
-                  onClick={() => setShowAddRowModal(false)}
-                  className="px-4 py-2 rounded-xl border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg-primary)] cursor-pointer"
-                >
-                  Vazgeç
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl hover:from-orange-600 hover:to-amber-600 font-extrabold transition shadow-lg shadow-orange-500/20 cursor-pointer flex items-center gap-1.5"
-                >
-                  <Check className="w-4 h-4" />
-                  Kaydet
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+        {Object.keys(newRowData).length === 0 ? (
+          <FormField label="Not / Açıklama" value={newRowData.notes || ''} onChange={(e) => setNewRowData({ ...newRowData, notes: e.target.value })} placeholder="Kayıt açıklaması..." slotProps={{ inputLabel: { shrink: true } }} />
+        ) : (
+          Object.entries(newRowData).map(([fieldKey, fieldVal]) => {
+            const label = `${fieldKey.replace(/_/g, ' ').toUpperCase()} (${fieldKey})`;
+            const isNumber = typeof fieldVal === 'number';
+            const relationCol = allColumns.find(c => c.table_name === selectedTableKey && c.column_name === fieldKey && c.relation_table);
+            const relationOptions = relationCol ? (relationOptionsCache[relationCol.relation_table as string] || []) : [];
+            if (relationCol) {
+              return (
+                <FormField key={fieldKey} select label={label} value={fieldVal ?? ''} onChange={(e) => setNewRowData({ ...newRowData, [fieldKey]: e.target.value })} title={`İlişkili tablo: ${relationCol.relation_table}`}>
+                  <MenuItem value="" disabled>Seçiniz...</MenuItem>
+                  {relationOptions.map(opt => (
+                    <MenuItem key={opt.id} value={opt.id}>{opt.label} ({opt.id})</MenuItem>
+                  ))}
+                </FormField>
+              );
+            }
+            if (fieldKey === 'veri_durumu') {
+              return (
+                <FormField key={fieldKey} select label={label} value={fieldVal ?? 'Planlanan'} onChange={(e) => setNewRowData({ ...newRowData, [fieldKey]: e.target.value })}>
+                  {['Planlanan', 'İnşaat', 'İşletme', 'İptal'].map((v) => (
+                    <MenuItem key={v} value={v}>{v}</MenuItem>
+                  ))}
+                </FormField>
+              );
+            }
+            return (
+              <FormField
+                key={fieldKey}
+                type={isNumber ? 'number' : 'text'}
+                label={label}
+                value={fieldVal ?? ''}
+                onChange={(e) => {
+                  const val = isNumber ? (e.target.value === '' ? 0 : Number(e.target.value)) : e.target.value;
+                  setNewRowData({ ...newRowData, [fieldKey]: val });
+                }}
+                placeholder={`${fieldKey} giriniz...`}
+                slotProps={{ inputLabel: { shrink: true } }}
+              />
+            );
+          })
+        )}
+      </FormDialog>
 
       {/* ========================================================
           MODAL: KAYIT DÜZENLE (TAB 1)
          ======================================================== */}
-      {showEditRowModal && editingRow && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-xl bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl shadow-2xl overflow-hidden animate-fade-in flex flex-col max-h-[85vh]">
-            <div className="p-4 border-b border-[var(--border)] flex items-center justify-between bg-[var(--bg-primary)]">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-sky-500/20 text-sky-400 flex items-center justify-center font-bold">
-                  <Edit2 className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-extrabold text-[var(--text-primary)]">
-                    Kaydı Düzenle
-                  </h3>
-                  <p className="text-[11px] font-mono text-sky-400">
-                    {selectedTableKey} • ID: {editingRow.id}
-                  </p>
-                </div>
-              </div>
-              <button 
-                onClick={() => setShowEditRowModal(false)} 
-                className="p-1.5 rounded-lg text-[var(--text-secondary)] hover:text-white hover:bg-[var(--bg-secondary)] cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleUpdateRowSubmit} className="flex-1 overflow-y-auto p-5 space-y-3.5 text-xs font-bold" style={{ scrollbarWidth: 'thin' }}>
-              {Object.entries(editingRow)
-                .filter(([k]) => !['id', 'create_uid', 'create_date', 'write_uid', 'write_date'].includes(k))
-                .map(([fieldKey, fieldVal]) => {
-                  const label = fieldKey.replace(/_/g, ' ').toUpperCase();
-                  const isNumber = typeof fieldVal === 'number';
-                  const isObj = typeof fieldVal === 'object' && fieldVal !== null;
-                  const relationCol = allColumns.find(c => c.table_name === selectedTableKey && c.column_name === fieldKey && c.relation_table);
-                  const relationOptions = relationCol ? (relationOptionsCache[relationCol.relation_table as string] || []) : [];
-                  return (
-                    <div key={fieldKey}>
-                      <label className="block text-[var(--text-secondary)] mb-1 font-mono text-[11px]">
-                        {label} ({fieldKey}):
-                      </label>
-                      {relationCol ? (
-                        <select
-                          value={fieldVal ?? ''}
-                          onChange={(e) => setEditingRow({ ...editingRow, [fieldKey]: e.target.value })}
-                          className="w-full p-2.5 rounded-xl bg-[var(--bg-primary)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:border-sky-500 cursor-pointer"
-                          title={`İlişkili tablo: ${relationCol.relation_table}`}
-                        >
-                          <option value="" disabled>Seçiniz...</option>
-                          {relationOptions.map(opt => (
-                            <option key={opt.id} value={opt.id}>{opt.label} ({opt.id})</option>
-                          ))}
-                        </select>
-                      ) : fieldKey === 'veri_durumu' ? (
-                        <select
-                          value={fieldVal ?? 'Planlanan'}
-                          onChange={(e) => setEditingRow({ ...editingRow, [fieldKey]: e.target.value })}
-                          className="w-full p-2.5 rounded-xl bg-[var(--bg-primary)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:border-sky-500 cursor-pointer"
-                        >
-                          <option value="Planlanan">Planlanan</option>
-                          <option value="İnşaat">İnşaat</option>
-                          <option value="İşletme">İşletme</option>
-                          <option value="İptal">İptal</option>
-                        </select>
-                      ) : isObj ? (
-                        <textarea
-                          rows={2}
-                          value={JSON.stringify(fieldVal, null, 2)}
-                          onChange={(e) => {
-                            try {
-                              const parsed = JSON.parse(e.target.value);
-                              setEditingRow({ ...editingRow, [fieldKey]: parsed });
-                            } catch {
-                              // keep string during edit
-                            }
-                          }}
-                          className="w-full p-2.5 rounded-xl bg-[var(--bg-primary)] border border-[var(--border)] text-[var(--text-primary)] font-mono text-[11px] focus:outline-none focus:border-sky-500"
-                        />
-                      ) : (
-                        <input
-                          type={isNumber ? 'number' : 'text'}
-                          value={fieldVal ?? ''}
-                          onChange={(e) => {
-                            const val = isNumber ? (e.target.value === '' ? 0 : Number(e.target.value)) : e.target.value;
-                            setEditingRow({ ...editingRow, [fieldKey]: val });
-                          }}
-                          className="w-full p-2.5 rounded-xl bg-[var(--bg-primary)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:border-sky-500"
-                        />
-                      )}
-                    </div>
-                  );
-                })}
-
-              <div className="pt-3 flex justify-end gap-2 border-t border-[var(--border)]">
-                <button
-                  type="button"
-                  onClick={() => setShowEditRowModal(false)}
-                  className="px-4 py-2 rounded-xl border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg-primary)] cursor-pointer"
-                >
-                  İptal
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl font-extrabold transition shadow cursor-pointer flex items-center gap-1.5"
-                >
-                  <Check className="w-4 h-4" />
-                  Değişiklikleri Kaydet
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <FormDialog
+        open={showEditRowModal && !!editingRow}
+        onClose={() => setShowEditRowModal(false)}
+        title={`Kaydı Düzenle — ${selectedTableKey} • ID: ${editingRow?.id ?? ''}`}
+        icon={<Edit2 className="w-4 h-4" />}
+        maxWidth="sm"
+        onSubmit={handleUpdateRowSubmit}
+        cancelLabel="İptal"
+        submitLabel="Değişiklikleri Kaydet"
+        submitIcon={<Check className="w-4 h-4" />}
+      >
+        {editingRow && Object.entries(editingRow)
+          .filter(([k]) => !['id', 'create_uid', 'create_date', 'write_uid', 'write_date'].includes(k))
+          .map(([fieldKey, fieldVal]) => {
+            const label = `${fieldKey.replace(/_/g, ' ').toUpperCase()} (${fieldKey})`;
+            const isNumber = typeof fieldVal === 'number';
+            const isObj = typeof fieldVal === 'object' && fieldVal !== null;
+            const relationCol = allColumns.find(c => c.table_name === selectedTableKey && c.column_name === fieldKey && c.relation_table);
+            const relationOptions = relationCol ? (relationOptionsCache[relationCol.relation_table as string] || []) : [];
+            if (relationCol) {
+              return (
+                <FormField key={fieldKey} select label={label} value={fieldVal ?? ''} onChange={(e) => setEditingRow({ ...editingRow, [fieldKey]: e.target.value })} title={`İlişkili tablo: ${relationCol.relation_table}`}>
+                  <MenuItem value="" disabled>Seçiniz...</MenuItem>
+                  {relationOptions.map(opt => (
+                    <MenuItem key={opt.id} value={opt.id}>{opt.label} ({opt.id})</MenuItem>
+                  ))}
+                </FormField>
+              );
+            }
+            if (fieldKey === 'veri_durumu') {
+              return (
+                <FormField key={fieldKey} select label={label} value={fieldVal ?? 'Planlanan'} onChange={(e) => setEditingRow({ ...editingRow, [fieldKey]: e.target.value })}>
+                  {['Planlanan', 'İnşaat', 'İşletme', 'İptal'].map((v) => (
+                    <MenuItem key={v} value={v}>{v}</MenuItem>
+                  ))}
+                </FormField>
+              );
+            }
+            if (isObj) {
+              return (
+                <FormField
+                  key={fieldKey}
+                  label={label}
+                  multiline
+                  rows={2}
+                  value={JSON.stringify(fieldVal, null, 2)}
+                  onChange={(e) => {
+                    try {
+                      const parsed = JSON.parse(e.target.value);
+                      setEditingRow({ ...editingRow, [fieldKey]: parsed });
+                    } catch {
+                      // keep string during edit
+                    }
+                  }}
+                  slotProps={{ htmlInput: { style: { fontFamily: 'monospace', fontSize: 11 } } }}
+                />
+              );
+            }
+            return (
+              <FormField
+                key={fieldKey}
+                type={isNumber ? 'number' : 'text'}
+                label={label}
+                value={fieldVal ?? ''}
+                onChange={(e) => {
+                  const val = isNumber ? (e.target.value === '' ? 0 : Number(e.target.value)) : e.target.value;
+                  setEditingRow({ ...editingRow, [fieldKey]: val });
+                }}
+              />
+            );
+          })}
+      </FormDialog>
 
       {/* ========================================================
           MODAL: SİLME ONAYI (TAB 1)
          ======================================================== */}
-      {deleteConfirmRow && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-sm bg-[var(--bg-secondary)] border border-red-500/30 rounded-2xl shadow-2xl overflow-hidden animate-fade-in p-5 text-center space-y-4">
-            <div className="w-12 h-12 rounded-full bg-red-500/15 text-red-500 flex items-center justify-center mx-auto">
-              <Trash2 className="w-6 h-6" />
-            </div>
-            
-            <div>
-              <h3 className="text-sm font-extrabold text-[var(--text-primary)]">
-                Kaydı Silmek İstiyor Musunuz?
-              </h3>
-              <p className="text-xs text-[var(--text-secondary)] mt-1">
-                <span className="font-mono text-amber-400 font-bold">{selectedTableKey}</span> tablosundan{' '}
-                <span className="font-mono text-sky-400 font-bold">ID: {deleteConfirmRow.id}</span> numaralı kayıt silinecektir.
-              </p>
-              <p className="text-[10px] text-slate-400 mt-2 font-mono bg-[var(--bg-primary)] p-2 rounded-lg border border-[var(--border)]">
-                Güvenlik gereği kurumsal sistem standartlarında "row_status = 0" olarak pasife alınır.
-              </p>
-            </div>
-
-            <div className="flex items-center justify-center gap-2 pt-2">
-              <button
-                onClick={() => setDeleteConfirmRow(null)}
-                className="px-4 py-2 rounded-xl border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg-primary)] font-bold text-xs cursor-pointer"
-              >
-                Vazgeç
-              </button>
-              <button
-                onClick={() => handleDeleteRow(deleteConfirmRow)}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl font-extrabold text-xs shadow-lg shadow-red-500/20 cursor-pointer flex items-center gap-1.5"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-                Evet, Sil
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={!!deleteConfirmRow}
+        onClose={() => setDeleteConfirmRow(null)}
+        onConfirm={() => deleteConfirmRow && handleDeleteRow(deleteConfirmRow)}
+        title="Kaydı Silmek İstiyor Musunuz?"
+        icon={<Trash2 className="w-6 h-6" />}
+        note='Güvenlik gereği kurumsal sistem standartlarında "row_status = 0" olarak pasife alınır.'
+        confirmLabel="Evet, Sil"
+        confirmIcon={<Trash2 className="w-3.5 h-3.5" />}
+      >
+        <MuiBox component="span" sx={{ fontFamily: 'monospace', fontWeight: 700, color: 'warning.light' }}>{selectedTableKey}</MuiBox> tablosundan{' '}
+        <MuiBox component="span" sx={{ fontFamily: 'monospace', fontWeight: 700, color: 'info.light' }}>ID: {deleteConfirmRow?.id}</MuiBox> numaralı kayıt silinecektir.
+      </ConfirmDialog>
 
       {/* ========================================================
           MODAL: SÜTUN SİLME ONAYI (Sütunlar alt-sekmesi)
          ======================================================== */}
-      {deleteColumnConfirm && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-sm bg-[var(--bg-secondary)] border border-red-500/30 rounded-2xl shadow-2xl overflow-hidden animate-fade-in p-5 text-center space-y-4">
-            <div className="w-12 h-12 rounded-full bg-red-500/15 text-red-500 flex items-center justify-center mx-auto">
-              <Trash2 className="w-6 h-6" />
-            </div>
-
-            <div>
-              <h3 className="text-sm font-extrabold text-[var(--text-primary)]">
-                Sütunu Silmek İstiyor Musunuz?
-              </h3>
-              <p className="text-xs text-[var(--text-secondary)] mt-1">
-                <span className="font-mono text-amber-400 font-bold">{deleteColumnConfirm.table_name}</span> tablosundan{' '}
-                <span className="font-mono text-sky-400 font-bold">{deleteColumnConfirm.column_name}</span> sütunu kalıcı olarak silinecektir.
-              </p>
-              <p className="text-[10px] text-slate-400 mt-2 font-mono bg-[var(--bg-primary)] p-2 rounded-lg border border-[var(--border)]">
-                Bu işlem geri alınamaz — sütundaki mevcut veriler de birlikte kaybolur. Sistem (STANDART 7) sütunları bu işlemden hariçtir.
-              </p>
-            </div>
-
-            <div className="flex items-center justify-center gap-2 pt-2">
-              <button
-                onClick={() => setDeleteColumnConfirm(null)}
-                className="px-4 py-2 rounded-xl border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg-primary)] font-bold text-xs cursor-pointer"
-              >
-                Vazgeç
-              </button>
-              <button
-                onClick={() => handleDeleteColumn(deleteColumnConfirm)}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl font-extrabold text-xs shadow-lg shadow-red-500/20 cursor-pointer flex items-center gap-1.5"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-                Evet, Sil
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={!!deleteColumnConfirm}
+        onClose={() => setDeleteColumnConfirm(null)}
+        onConfirm={() => deleteColumnConfirm && handleDeleteColumn(deleteColumnConfirm)}
+        title="Sütunu Silmek İstiyor Musunuz?"
+        icon={<Trash2 className="w-6 h-6" />}
+        note="Bu işlem geri alınamaz — sütundaki mevcut veriler de birlikte kaybolur. Sistem (STANDART 7) sütunları bu işlemden hariçtir."
+        confirmLabel="Evet, Sil"
+        confirmIcon={<Trash2 className="w-3.5 h-3.5" />}
+      >
+        <MuiBox component="span" sx={{ fontFamily: 'monospace', fontWeight: 700, color: 'warning.light' }}>{deleteColumnConfirm?.table_name}</MuiBox> tablosundan{' '}
+        <MuiBox component="span" sx={{ fontFamily: 'monospace', fontWeight: 700, color: 'info.light' }}>{deleteColumnConfirm?.column_name}</MuiBox> sütunu kalıcı olarak silinecektir.
+      </ConfirmDialog>
 
     </div>
   );
