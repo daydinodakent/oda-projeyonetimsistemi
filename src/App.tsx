@@ -3,6 +3,9 @@ import { useColorScheme } from '@mui/material/styles';
 import PermissionDialog from './components/chrome/PermissionDialog';
 import AddProjectDialog from './components/chrome/AddProjectDialog';
 import EditProjectStatusDialog from './components/chrome/EditProjectStatusDialog';
+import ProjectPicker from './components/chrome/ProjectPicker';
+import NotificationCenter from './components/chrome/NotificationCenter';
+import ModuleGridDialog from './components/chrome/ModuleGridDialog';
 import { HeaderBar, ModuleTab, SegmentTab, SegmentGroup, ToolbarIconButton, AccentIconButton, SearchIconButton, ProfileMenu, ProfileButton, type ProfileMenuItem } from './components/chrome/HeaderControls';
 import { headerSurface } from './theme/tokens';
 import { 
@@ -609,365 +612,23 @@ export default function App() {
     setShowAddProjectModal(false);
   };
 
-  const renderProjectDropdown = (isCompact: boolean = false) => {
-    const activeProject = projects.find(p => p.id === selectedProjectId);
-    const activeName = activeProject ? activeProject.name.replace(/-/g, ' ').toUpperCase() : 'PROJE SEÇİN';
-
-    return (
-      <div className="relative">
-        {/* Toggle Button */}
-        <button
-          onClick={() => setShowProjectComboDropdown(!showProjectComboDropdown)}
-          className={`flex items-center justify-between gap-2 bg-[#111112] hover:bg-[#202022] border border-[#2d2d30] rounded-xl text-[#dfdfe2] focus:outline-none cursor-pointer transition select-none ${
-            isCompact
-              ? 'pl-7 pr-8 py-1.5 text-[10px] font-extrabold max-w-[286px] rounded-lg'
-              : 'pl-8 pr-10 py-1.5 text-[11px] font-black tracking-wide uppercase min-w-[210px] max-w-[442px]'
-          }`}
-          title="CBS Sahaları ve Projeler"
-        >
-          {/* Globe/Planet Icon on the left */}
-          <div className="absolute inset-y-0 left-2.5 flex items-center pointer-events-none text-sky-400">
-            <Globe className={`${isCompact ? 'w-3 h-3' : 'w-3.5 h-3.5'}`} />
-          </div>
-
-          {/* Project Name (truncated if too long to maintain alignment) */}
-          <span className="truncate pr-1 text-[#f1c40f] font-black">{activeName}</span>
-
-          {/* ChevronDown on the right */}
-          <div className={`absolute inset-y-0 right-2.5 flex items-center pointer-events-none text-slate-500`}>
-            <ChevronDown className={`${isCompact ? 'w-3 h-3' : 'w-3.5 h-3.5'}`} />
-          </div>
-        </button>
-
-        {/* Dropdown Panel */}
-        {showProjectComboDropdown && (
-          <>
-            {/* Transparent click-catcher background to close the dropdown on click outside */}
-            <div 
-              className="fixed inset-0 bg-transparent z-45 cursor-default" 
-              onClick={() => setShowProjectComboDropdown(false)}
-            />
-            <div className={`absolute left-0 mt-2 w-[420px] max-w-[95vw] bg-[#0c101c]/95 border border-[#1e293b] rounded-2xl shadow-2xl p-4.5 space-y-3 z-50 animate-fade-in text-slate-200 backdrop-blur-md`}>
-              
-              {/* Header: Title & "+ Ekle" Action */}
-              <div className="flex justify-between items-center pb-2.5 border-b border-[#1e293b]/70">
-                <span className="text-[10px] tracking-widest text-slate-400 font-extrabold uppercase">
-                  CBS SAHALARI VE PROJELER
-                </span>
-                
-                {/* Superuser "+ Ekle" inside the dropdown */}
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setShowProjectComboDropdown(false);
-                    setNewProjectName('');
-                    setNewProjectCode('');
-                    setShowAddProjectModal(true);
-                  }}
-                  className="px-2.5 py-1 text-[10px] font-black text-amber-400 hover:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-lg transition-all flex items-center gap-1 cursor-pointer"
-                  title="Yeni Proje Ekle (Süper Yetkili)"
-                >
-                  <Plus className="w-3 h-3" />
-                  <span>+ Ekle</span>
-                </button>
-              </div>
-
-              {/* Scrollable list of projects */}
-              <div className="space-y-1.5 max-h-[300px] overflow-y-auto pr-1" style={{ scrollbarWidth: 'none' }}>
-                {projects.map((proj) => {
-                  const isActive = proj.id === selectedProjectId;
-                  return (
-                    <div
-                      key={proj.id}
-                      onClick={() => {
-                        setSelectedProjectId(proj.id);
-                        setSelectedBlockId(null);
-                        setShowProjectComboDropdown(false);
-                      }}
-                      className={`group relative p-2.5 rounded-xl cursor-pointer flex items-center justify-between gap-3 transition-all border ${
-                        isActive
-                          ? 'bg-[#13192a]/95 border-[#3b82f6]/40 shadow-md shadow-blue-500/5'
-                          : 'bg-[#111422]/50 hover:bg-[#181d32]/80 border-transparent'
-                      }`}
-                    >
-                      {/* Left side text and details */}
-                      <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-                        <div className="flex items-center gap-2">
-                          {isActive && (
-                            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0 animate-pulse" />
-                          )}
-                          <span className={`text-[11px] font-bold tracking-wide truncate ${isActive ? 'text-white' : 'text-slate-300 group-hover:text-slate-100'}`}>
-                            {proj.name.replace(/-/g, ' ').toUpperCase()}
-                          </span>
-                        </div>
-                        <span className="text-[10px] text-slate-400 font-bold block leading-none pl-3.5">
-                          {proj.location || 'Genel'} • Tamamlanma: %{proj.overallProgress || 0}
-                        </span>
-                      </div>
-
-                      {/* Right side edit button for each project */}
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setShowProjectComboDropdown(false);
-                          handleOpenEditStatusForProject(proj);
-                        }}
-                        className="p-1.5 hover:bg-slate-800/80 rounded-lg text-slate-400 hover:text-amber-400 border border-slate-800 hover:border-amber-500/30 transition shrink-0 cursor-pointer flex items-center justify-center bg-[#0e121e]/80"
-                        title={`${proj.name} Bilgilerini Düzenle`}
-                      >
-                        <Pencil className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-
-            </div>
-          </>
-        )}
-      </div>
-    );
-  };
-
-  const renderNotificationListDropdown = () => {
-    if (!showNotificationList) return null;
-    return (
-      <>
-        {/* Transparent Click-Catcher backdrop to close on outside click */}
-        <div 
-          className="fixed inset-0 bg-transparent z-45 cursor-default" 
-          onClick={() => setShowNotificationList(false)}
-        />
-        <div className="absolute right-0 top-full mt-2 w-[490px] max-w-[95vw] bg-[#0c101c]/95 border border-[#1e293b] rounded-2xl shadow-2xl z-50 p-4.5 space-y-4 animate-fade-in text-slate-200 backdrop-blur-md">
-          {/* Header: Title & Actions */}
-          <div className="flex justify-between items-center pb-3 border-b border-[#1e293b]/70">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-full bg-[#0091ff]/15 border border-[#0091ff]/20 flex items-center justify-center text-[#0091ff]">
-                <Bell className="w-4.5 h-4.5" />
-              </div>
-              <div className="flex flex-col">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-sm font-black text-white">Bildirim Merkezi</span>
-                  {unreadNotifications.length > 0 && (
-                    <span className="bg-[#7f1d1d]/85 text-[#f87171] text-[10px] px-1.5 py-0.5 rounded-full font-black border border-[#ef4444]/25">
-                      {unreadNotifications.length} Yeni
-                    </span>
-                  )}
-                </div>
-                <span className="text-[10px] text-slate-400 font-bold mt-0.5">
-                  Dosya Yöneticisi & Saha Uygunsuzlukları (NCR)
-                </span>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <button 
-                onClick={markAllNotificationsRead}
-                className="p-1.5 hover:bg-[#1a2333] rounded transition cursor-pointer text-slate-400 hover:text-emerald-400 flex items-center justify-center"
-                title="Hepsini Okundu Yap"
-              >
-                <Check className="w-4 h-4" />
-              </button>
-              <button 
-                onClick={clearAllNotifications}
-                className="p-1.5 hover:bg-[#1a2333] rounded transition cursor-pointer text-slate-400 hover:text-red-400 flex items-center justify-center"
-                title="Tümünü Sil"
-              >
-                <Trash className="w-4 h-4" />
-              </button>
-              <button 
-                onClick={() => setShowNotificationList(false)}
-                className="p-1.5 hover:bg-[#1a2333] rounded transition cursor-pointer text-slate-400 hover:text-white flex items-center justify-center"
-                title="Kapat"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-
-          {/* Filter Tabs */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
-            <button
-              onClick={() => setNotifFilter('all')}
-              className={`text-[10px] font-black px-3.5 py-1.5 rounded-full transition whitespace-nowrap cursor-pointer ${
-                notifFilter === 'all'
-                  ? 'bg-[#0091ff] text-white shadow'
-                  : 'bg-[#131926] hover:bg-[#1c2438] border border-[#20293a] text-slate-300'
-              }`}
-            >
-              Tümü ({notifications.length})
-            </button>
-
-            <button
-              onClick={() => setNotifFilter('unread')}
-              className={`text-[10px] font-black px-3.5 py-1.5 rounded-full transition flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
-                notifFilter === 'unread'
-                  ? 'bg-[#0091ff] text-white shadow'
-                  : 'bg-[#131926] hover:bg-[#1c2438] border border-[#20293a] text-slate-300'
-              }`}
-            >
-              <span>Okunmamış</span>
-              {unreadNotifications.length > 0 && (
-                <span className="bg-red-500 text-white text-[10px] w-4.5 h-4.5 rounded-full flex items-center justify-center font-bold">
-                  {unreadNotifications.length}
-                </span>
-              )}
-            </button>
-
-            <button
-              onClick={() => setNotifFilter('files')}
-              className={`text-[10px] font-black px-3.5 py-1.5 rounded-full transition flex items-center gap-1 whitespace-nowrap cursor-pointer ${
-                notifFilter === 'files'
-                  ? 'bg-[#0091ff] text-white shadow'
-                  : 'bg-[#131926] hover:bg-[#1c2438] border border-[#20293a] text-slate-300'
-              }`}
-            >
-              <FileText className="w-3.5 h-3.5 text-sky-400" />
-              <span>Dosyalar ({notifications.filter(n => n.category === 'Dosyalar').length})</span>
-            </button>
-
-            <button
-              onClick={() => setNotifFilter('ncr')}
-              className={`text-[10px] font-black px-3.5 py-1.5 rounded-full transition flex items-center gap-1 whitespace-nowrap cursor-pointer ${
-                notifFilter === 'ncr'
-                  ? 'bg-[#0091ff] text-white shadow'
-                  : 'bg-[#131926] hover:bg-[#1c2438] border border-[#20293a] text-slate-300'
-              }`}
-            >
-              <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
-              <span>Saha NCR ({notifications.filter(n => n.category === 'Saha NCR').length})</span>
-            </button>
-          </div>
-
-          {/* Scrollable Notification Cards List */}
-          <div className="space-y-3 max-h-[380px] overflow-y-auto pr-1" style={{ scrollbarWidth: 'none' }}>
-            {notifications.filter(n => {
-              if (notifFilter === 'all') return true;
-              if (notifFilter === 'unread') return !n.read;
-              if (notifFilter === 'files') return n.category === 'Dosyalar';
-              if (notifFilter === 'ncr') return n.category === 'Saha NCR';
-              return true;
-            }).length === 0 ? (
-              <div className="text-center py-8 text-slate-500 text-xs font-bold">
-                Filtreye uygun bildirim bulunmamaktadır.
-              </div>
-            ) : (
-              notifications.filter(n => {
-                if (notifFilter === 'all') return true;
-                if (notifFilter === 'unread') return !n.read;
-                if (notifFilter === 'files') return n.category === 'Dosyalar';
-                if (notifFilter === 'ncr') return n.category === 'Saha NCR';
-                return true;
-              }).map((notif) => (
-                <div 
-                  key={notif.id} 
-                  className={`relative bg-[#131722]/90 border border-[#222c3f]/80 p-3.5 rounded-xl flex gap-3 animate-fade-in group hover:border-[#3b82f6]/40 transition text-left ${
-                    !notif.read ? 'ring-1 ring-[#0091ff]/20' : ''
-                  }`}
-                >
-                  {/* Blue Accent left bar */}
-                  <div className="absolute top-4 bottom-4 left-0 w-1 bg-[#3b82f6] rounded-r-full font-sans"></div>
-
-                  {/* Left icon box */}
-                  <div className="shrink-0">
-                    {notif.category === 'Saha NCR' ? (
-                      <div className="w-8.5 h-8.5 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400">
-                        <AlertTriangle className="w-4 h-4" />
-                      </div>
-                    ) : (
-                      <div className="w-8.5 h-8.5 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400">
-                        <Layers className="w-4 h-4" />
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Right text box */}
-                  <div className="flex-1 min-w-0 flex flex-col gap-1">
-                    {/* Breadcrumb Path & Level badge */}
-                    <div className="flex justify-between items-center text-[10px] uppercase font-extrabold tracking-wider">
-                      <span className="text-slate-400">{notif.path || 'SİSTEM / UYARI'}</span>
-                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-black border ${
-                        notif.badgeType === 'danger'
-                          ? 'bg-red-500/15 border-red-500/30 text-red-400'
-                          : notif.badgeType === 'warning'
-                            ? 'bg-amber-500/15 border-amber-500/30 text-amber-400'
-                            : 'bg-blue-500/15 border-blue-500/30 text-blue-400'
-                      }`}>
-                        {notif.badge || 'UYARI'}
-                      </span>
-                    </div>
-
-                    {/* Title */}
-                    <h4 className="text-[11px] font-bold text-white leading-tight">
-                      {notif.title || notif.message}
-                    </h4>
-
-                    {/* Description message */}
-                    <p className="text-[10px] text-slate-300 leading-relaxed font-semibold">
-                      {notif.message}
-                    </p>
-
-                    {/* Tags pills */}
-                    {notif.tags && notif.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 mt-1">
-                        {notif.tags.map((tag, tIdx) => (
-                          <span key={tIdx} className="bg-[#1a2333] border border-[#2b3a54] text-slate-400 text-[10px] px-2 py-0.5 rounded font-black tracking-tight">
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Divider inside card */}
-                    <div className="border-t border-[#222c3f]/40 my-1"></div>
-
-                    {/* Footer: Date and inline actions */}
-                    <div className="flex justify-between items-center mt-0.5">
-                      <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-bold">
-                        <Clock className="w-3.5 h-3.5 text-slate-500" />
-                        <span>{notif.date}</span>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        {notif.actionText && (
-                          <a 
-                            href={notif.actionLink || '#'} 
-                            className="flex items-center gap-1 text-[10px] font-bold text-sky-400 bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/20 px-2 py-0.5 rounded transition cursor-pointer"
-                          >
-                            <span>{notif.actionText}</span>
-                            <ArrowUpRight className="w-3 h-3" />
-                          </a>
-                        )}
-                        
-                        {!notif.read && (
-                          <button 
-                            onClick={() => markSingleAsRead(notif.id)}
-                            className="p-1 hover:bg-[#1c2438] rounded text-slate-400 hover:text-emerald-400 transition cursor-pointer"
-                            title="Okundu İşaretle"
-                          >
-                            <Check className="w-4 h-4" />
-                          </button>
-                        )}
-
-                        <button 
-                          onClick={() => deleteSingleNotification(notif.id)}
-                          className="p-1 hover:bg-[#1c2438] rounded text-slate-400 hover:text-red-400 transition cursor-pointer"
-                          title="Sil"
-                        >
-                          <Trash className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      </>
-    );
-  };
+  const renderProjectDropdown = (isCompact: boolean = false) => (
+    <ProjectPicker
+      compact={isCompact}
+      projects={projects}
+      selectedProjectId={selectedProjectId}
+      onSelect={(id) => {
+        setSelectedProjectId(id);
+        setSelectedBlockId(null);
+      }}
+      onAdd={() => {
+        setNewProjectName('');
+        setNewProjectCode('');
+        setShowAddProjectModal(true);
+      }}
+      onEdit={handleOpenEditStatusForProject}
+    />
+  );
 
   const selectModule = (tab: 'plan' | 'insaat' | 'isletme') => {
     setActiveTab(tab);
@@ -1072,7 +733,6 @@ export default function App() {
                   role="Süper Kullanıcı (Super User)"
                   items={buildProfileItems(() => setShowProfileDropdown(false), false)}
                 />
-                {renderNotificationListDropdown()}
               </div>
 
               <AccentIconButton kind="orange" title="Menüyü Daralt" icon={<ChevronUp className="w-4 h-4" />} onClick={() => setHeaderExpanded(false)} />
@@ -1158,7 +818,6 @@ export default function App() {
                   role="Süper Kullanıcı"
                   items={buildProfileItems(() => setShowCompactProfileDropdown(false), true)}
                 />
-                {renderNotificationListDropdown()}
               </div>
 
               <AccentIconButton compact kind="orange" title="Menüyü Genişlet" icon={<ChevronDown className="w-3.5 h-3.5" />} onClick={() => setHeaderExpanded(true)} />
@@ -2156,165 +1815,18 @@ export default function App() {
         </div>
       )}
       
-      {/* 3. MODÜLLER WORKSPACES OVERLAY GRID (from mockup image 3) */}
-      {showModullerGrid && (
-        <div className="fixed inset-0 bg-black/75 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <div className={`w-full max-w-4xl p-6 shadow-2xl relative animate-fade-in rounded-3xl border transition-colors duration-300 ${
-            theme === 'light' 
-              ? 'bg-white border-slate-200 text-slate-800' 
-              : 'bg-[#111a2e] border-slate-800 text-slate-200'
-          }`}>
-            <button 
-              onClick={() => setShowModullerGrid(false)}
-              className={`absolute top-6 right-6 p-2 rounded-xl transition cursor-pointer z-10 ${
-                theme === 'light'
-                  ? 'hover:bg-slate-100 text-slate-500 hover:text-slate-800'
-                  : 'hover:bg-slate-800 text-slate-400 hover:text-white'
-              }`}
-              id="grid-btn-close"
-              title="Kapat"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            <div className={`mb-6 pb-2 border-b ${theme === 'light' ? 'border-slate-100' : 'border-slate-800'}`}>
-              <span className="px-2 py-0.5 bg-blue-600/20 text-blue-500 font-bold text-[10px] rounded block w-max uppercase tracking-widest mb-1.5">ODA+PYS</span>
-              <h3 className={`text-lg font-black ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>Yönetim Modülleri</h3>
-              <p className={`text-xs ${theme === 'light' ? 'text-slate-500' : 'text-slate-400'}`}>Tek veri omurgasına bağlı alt uygulamalara hızlıca erişin.</p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              
-              {/* Box 1: Yönetici Dashboard */}
-              <div className={`p-4 rounded-2xl flex flex-col justify-between hover:border-blue-500/50 transition border ${
-                theme === 'light'
-                  ? 'bg-slate-50 border-slate-200'
-                  : 'bg-[#090d16] border-slate-800'
-              }`}>
-                <div>
-                  <div className="w-8 h-8 rounded-lg bg-blue-600/10 flex items-center justify-center text-blue-500 mb-2">
-                    <TrendingUp className="w-4 h-4" />
-                  </div>
-                  <h4 className={`text-xs font-black mb-1 ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>Yönetici Analitiği</h4>
-                  <p className={`text-[10px] leading-relaxed ${theme === 'light' ? 'text-slate-600' : 'text-slate-400'}`}>Proje bütçeleri, fiziki imalat ilerlemeleri ve şantiye riskleri özet raporları.</p>
-                </div>
-                <button 
-                  onClick={() => { setCenterTab('dashboard'); setShowModullerGrid(false); }}
-                  className="mt-4 text-[10px] font-black text-blue-500 hover:underline text-left text-xs cursor-pointer"
-                >
-                  Dashboard Panelini Aç →
-                </button>
-              </div>
-
-              {/* Box 2: Rapor Al */}
-              <div className={`p-4 rounded-2xl flex flex-col justify-between hover:border-blue-500/50 transition border ${
-                theme === 'light'
-                  ? 'bg-slate-50 border-slate-200'
-                  : 'bg-[#090d16] border-slate-800'
-              }`}>
-                <div>
-                  <div className="w-8 h-8 rounded-lg bg-emerald-600/10 flex items-center justify-center text-emerald-500 mb-2">
-                    <FileText className="w-4 h-4" />
-                  </div>
-                  <h4 className={`text-xs font-black mb-1 ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>Rapor Al (Dışa Aktar)</h4>
-                  <p className={`text-[10px] leading-relaxed ${theme === 'light' ? 'text-slate-600' : 'text-slate-400'}`}>Tüm proje, yapı ve şantiye imalat verilerini PDF veya Excel formatlarında indirin.</p>
-                </div>
-                <button 
-                  onClick={() => { alert('Analitik rapor PDF/Excel olarak dışa aktarılıyor...'); setShowModullerGrid(false); }}
-                  className="mt-4 text-[10px] font-black text-emerald-500 hover:underline text-left cursor-pointer"
-                >
-                  Rapor Oluşturucuyu Aç →
-                </button>
-              </div>
-
-              {/* Box 3: GIS / BIM / CAD */}
-              <div className={`p-4 rounded-2xl flex flex-col justify-between hover:border-blue-500/50 transition border ${
-                theme === 'light'
-                  ? 'bg-slate-50 border-slate-200'
-                  : 'bg-[#090d16] border-slate-800'
-              }`}>
-                <div>
-                  <div className="w-8 h-8 rounded-lg bg-indigo-600/10 flex items-center justify-center text-indigo-500 mb-2">
-                    <Layers className="w-4 h-4" />
-                  </div>
-                  <h4 className={`text-xs font-black mb-1 ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>GIS / BIM / CAD Ortak Alanı</h4>
-                  <p className={`text-[10px] leading-relaxed ${theme === 'light' ? 'text-slate-600' : 'text-slate-400'}`}>SHP, KML, DWG ve IFC BIM modellerinin koordinat tabanlı entegrasyonu.</p>
-                </div>
-                <button 
-                  onClick={() => { setActiveTab('insaat'); setShowModullerGrid(false); }}
-                  className="mt-4 text-[10px] font-black text-indigo-500 hover:underline text-left cursor-pointer"
-                >
-                  Ortak Çalışma Konsolu Aç →
-                </button>
-              </div>
-
-              {/* Box 4: Otomatik Hakediş Raporu */}
-              <div className={`p-4 rounded-2xl flex flex-col justify-between hover:border-blue-500/50 transition border ${
-                theme === 'light'
-                  ? 'bg-slate-50 border-slate-200'
-                  : 'bg-[#090d16] border-slate-800'
-              }`}>
-                <div>
-                  <div className="w-8 h-8 rounded-lg bg-amber-600/10 flex items-center justify-center text-amber-500 mb-2">
-                    <DollarSign className="w-4 h-4" />
-                  </div>
-                  <h4 className={`text-xs font-black mb-1 ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>Otomatik Hakediş Raporu</h4>
-                  <p className={`text-[10px] leading-relaxed ${theme === 'light' ? 'text-slate-600' : 'text-slate-400'}`}>Sahada tamamlanan imalat metrajlarına göre anlık hakediş hiyerarşisi oluşturun.</p>
-                </div>
-                <button 
-                  onClick={() => { setActiveTab('insaat'); setShowModullerGrid(false); }}
-                  className="mt-4 text-[10px] font-black text-amber-500 hover:underline text-left cursor-pointer"
-                >
-                  Hakediş Oluşturucu Aç →
-                </button>
-              </div>
-
-              {/* Box 5: İK & Tedarik */}
-              <div className={`p-4 rounded-2xl flex flex-col justify-between hover:border-blue-500/50 transition border ${
-                theme === 'light'
-                  ? 'bg-slate-50 border-slate-200'
-                  : 'bg-[#090d16] border-slate-800'
-              }`}>
-                <div>
-                  <div className="w-8 h-8 rounded-lg bg-purple-600/10 flex items-center justify-center text-purple-500 mb-2">
-                    <UserCheck className="w-4 h-4" />
-                  </div>
-                  <h4 className={`text-xs font-black mb-1 ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>İnsan Kaynakları & Tedarik</h4>
-                  <p className={`text-[10px] leading-relaxed ${theme === 'light' ? 'text-slate-600' : 'text-slate-400'}`}>Şantiye mühendis ve taşeron atamaları, kapasite çakışma ve kaynak havuz dengeleme.</p>
-                </div>
-                <button 
-                  onClick={() => { setCenterTab('resources'); setShowModullerGrid(false); }}
-                  className="mt-4 text-[10px] font-black text-purple-500 hover:underline text-left cursor-pointer"
-                >
-                  Kaynak Panelini Aç →
-                </button>
-              </div>
-
-              {/* Box 6: Doküman Yönetimi */}
-              <div className={`p-4 rounded-2xl flex flex-col justify-between hover:border-blue-500/50 transition border ${
-                theme === 'light'
-                  ? 'bg-slate-50 border-slate-200'
-                  : 'bg-[#090d16] border-slate-800'
-              }`}>
-                <div>
-                  <div className="w-8 h-8 rounded-lg bg-indigo-600/10 flex items-center justify-center text-indigo-500 mb-2">
-                    <FileText className="w-4 h-4" />
-                  </div>
-                  <h4 className={`text-xs font-black mb-1 ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>Doküman Yönetimi</h4>
-                  <p className={`text-[10px] leading-relaxed ${theme === 'light' ? 'text-slate-600' : 'text-slate-400'}`}>Şartnameler, sözleşmeler ve as-built teknik çizimlerin versiyonlu onay akışları.</p>
-                </div>
-                <button 
-                  onClick={() => { setCenterTab('documents'); setShowModullerGrid(false); }}
-                  className="mt-4 text-[10px] font-black text-indigo-500 hover:underline text-left cursor-pointer"
-                >
-                  Doküman Panelini Aç →
-                </button>
-              </div>
-
-            </div>
-          </div>
-        </div>
-      )}
+      {/* 3. MODÜLLER WORKSPACES OVERLAY GRID */}
+      <ModuleGridDialog
+        open={showModullerGrid}
+        onClose={() => setShowModullerGrid(false)}
+        onSelect={(id) => {
+          if (id === 'dashboard') setCenterTab('dashboard');
+          else if (id === 'report') alert('Analitik rapor PDF/Excel olarak dışa aktarılıyor...');
+          else if (id === 'gis' || id === 'hakedis') setActiveTab('insaat');
+          else if (id === 'resources') setCenterTab('resources');
+          else if (id === 'documents') setCenterTab('documents');
+        }}
+      />
 
       {/* 4. STATIC FOOTER */}
       <footer className="bg-[var(--bg-secondary)] border-t border-[var(--border)] py-2 px-5 text-center text-[10px] text-[var(--text-secondary)] font-bold transition-colors duration-300">
@@ -2337,6 +1849,19 @@ export default function App() {
         setCenterTab={setCenterTab}
         setCeoPocketMode={setCeoPocketMode}
         setShowModullerGrid={setShowModullerGrid}
+      />
+
+      <NotificationCenter
+        open={showNotificationList}
+        anchorEl={headerExpanded ? profileAnchor : compactProfileAnchor}
+        onClose={() => setShowNotificationList(false)}
+        notifications={notifications}
+        filter={notifFilter}
+        setFilter={setNotifFilter}
+        onMarkAllRead={markAllNotificationsRead}
+        onClearAll={clearAllNotifications}
+        onMarkRead={markSingleAsRead}
+        onDelete={deleteSingleNotification}
       />
 
       <PermissionDialog

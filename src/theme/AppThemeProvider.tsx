@@ -39,7 +39,9 @@ const globalStyles = {
 export default function AppThemeProvider({ children }: { children: ReactNode }) {
   return (
     <StyledEngineProvider injectFirst>
-      <ThemeProvider theme={theme} defaultMode="dark" disableTransitionOnChange>
+      {/* Tema durumunun sahibi App.tsx (useState) — MUI kendi modunu localStorage'a yazıp
+          bir sonraki açılışta App ile çelişmesin diye storageManager kapalı. */}
+      <ThemeProvider theme={theme} defaultMode="dark" disableTransitionOnChange storageManager={null}>
         <CssBaseline enableColorScheme />
         <GlobalStyles styles={globalStyles} />
         {children}
