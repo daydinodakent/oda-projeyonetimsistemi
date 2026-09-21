@@ -2,6 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, AreaChart, Area } from 'recharts';
 import { Shield, Bell, FileText, AlertOctagon, Layers, Calendar, CheckSquare, Plus, Info, RefreshCw, Compass, CheckCircle, TrendingUp, Pencil, X, Save, Camera, Image, Search, Video, Play, Pause, Cpu, Clock, Award, RotateCcw, Eye, Sliders } from 'lucide-react';
 import { Project, Permit, Block, WBSTask } from '../types';
+import Box from '@mui/material/Box';
+import MenuItem from '@mui/material/MenuItem';
+import Typography from '@mui/material/Typography';
+import FormDialog, { FormField, FieldRow } from './chrome/FormDialog';
 
 interface InsaatViewProps {
   project: Project;
@@ -918,198 +922,58 @@ export default function InsaatView({
       )}
 
       {/* EVM Editor Modal */}
-      {showEvmModal && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl w-full max-w-md p-6 shadow-2xl">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-wider flex items-center gap-1.5">
-                <Pencil className="w-4 h-4 text-blue-500" />
-                EVM & BÜTÇE EDİTÖRÜ (SpU)
-              </h3>
-              <button onClick={() => setShowEvmModal(false)} className="p-1 hover:bg-[var(--bg-primary)] rounded-md transition text-slate-400 hover:text-red-500">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <form onSubmit={handleEvmSubmit} className="space-y-4 text-xs">
-              <div>
-                <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">Kümülatif Atanan Bütçe (Milyon ₺)</label>
-                <input 
-                  type="number" 
-                  value={evmForm.budget} 
-                  onChange={(e) => setEvmForm(p => ({ ...p, budget: Number(e.target.value) }))}
-                  required
-                  className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none font-bold"
-                />
-              </div>
-              <div>
-                <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">Planlanan Harcama (PV) (Milyon ₺)</label>
-                <input 
-                  type="number" 
-                  value={evmForm.plannedSpent} 
-                  onChange={(e) => setEvmForm(p => ({ ...p, plannedSpent: Number(e.target.value) }))}
-                  required
-                  className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none font-bold"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">Gerçekleşen Değer (EV) (Milyon ₺)</label>
-                  <input 
-                    type="number" 
-                    value={evmForm.earnedValue} 
-                    onChange={(e) => setEvmForm(p => ({ ...p, earnedValue: Number(e.target.value) }))}
-                    required
-                    className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none font-bold"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold font-bold">Gerçekleşen Harcama (AC) (Milyon ₺)</label>
-                  <input 
-                    type="number" 
-                    value={evmForm.spent} 
-                    onChange={(e) => setEvmForm(p => ({ ...p, spent: Number(e.target.value) }))}
-                    required
-                    className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none font-bold"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold font-bold font-bold font-bold">İlerleme Oranı (%)</label>
-                  <input 
-                    type="number" 
-                    min="0"
-                    max="100"
-                    value={evmForm.overallProgress} 
-                    onChange={(e) => setEvmForm(p => ({ ...p, overallProgress: Number(e.target.value) }))}
-                    required
-                    className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none font-bold"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">Proje Durumu</label>
-                  <select 
-                    value={evmForm.status} 
-                    onChange={(e) => setEvmForm(p => ({ ...p, status: e.target.value }))}
-                    className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none font-bold"
-                  >
-                    <option value="Planlama">Planlama</option>
-                    <option value="İnşaat">İnşaat</option>
-                    <option value="İşletme">İşletme</option>
-                    <option value="Askıda">Askıda</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-4 border-t border-[var(--border)]">
-                <button 
-                  type="button" 
-                  onClick={() => setShowEvmModal(false)}
-                  className="px-4 py-2 rounded-lg border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-primary)] transition"
-                >
-                  Vazgeç
-                </button>
-                <button 
-                  type="submit" 
-                  className="px-4 py-2 rounded-lg bg-emerald-600 text-white font-bold hover:bg-emerald-700 transition flex items-center gap-1.5"
-                >
-                  <Save className="w-4 h-4" />
-                  Güncelle
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <FormDialog
+        open={showEvmModal}
+        onClose={() => setShowEvmModal(false)}
+        title="EVM & BÜTÇE EDİTÖRÜ (SpU)"
+        icon={<Pencil className="w-4 h-4" />}
+        onSubmit={handleEvmSubmit}
+        cancelLabel="Vazgeç"
+        submitLabel="Güncelle"
+        submitIcon={<Save className="w-4 h-4" />}
+      >
+        <FormField type="number" label="Kümülatif Atanan Bütçe (Milyon ₺)" value={evmForm.budget} onChange={(e) => setEvmForm(p => ({ ...p, budget: Number(e.target.value) }))} required />
+        <FormField type="number" label="Planlanan Harcama (PV) (Milyon ₺)" value={evmForm.plannedSpent} onChange={(e) => setEvmForm(p => ({ ...p, plannedSpent: Number(e.target.value) }))} required />
+        <FieldRow>
+          <FormField type="number" label="Gerçekleşen Değer (EV) (Milyon ₺)" value={evmForm.earnedValue} onChange={(e) => setEvmForm(p => ({ ...p, earnedValue: Number(e.target.value) }))} required />
+          <FormField type="number" label="Gerçekleşen Harcama (AC) (Milyon ₺)" value={evmForm.spent} onChange={(e) => setEvmForm(p => ({ ...p, spent: Number(e.target.value) }))} required />
+        </FieldRow>
+        <FieldRow>
+          <FormField type="number" label="İlerleme Oranı (%)" value={evmForm.overallProgress} onChange={(e) => setEvmForm(p => ({ ...p, overallProgress: Number(e.target.value) }))} required slotProps={{ htmlInput: { min: 0, max: 100 } }} />
+          <FormField select label="Proje Durumu" value={evmForm.status} onChange={(e) => setEvmForm(p => ({ ...p, status: e.target.value }))}>
+            {['Planlama', 'İnşaat', 'İşletme', 'Askıda'].map((s) => (
+              <MenuItem key={s} value={s}>{s}</MenuItem>
+            ))}
+          </FormField>
+        </FieldRow>
+      </FormDialog>
 
       {/* Permit Editing Modal */}
-      {editingPermit && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl w-full max-w-md p-6 shadow-2xl">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-wider flex items-center gap-1.5">
-                <Pencil className="w-4 h-4 text-blue-500" />
-                Ruhsat & İzin Düzenleme (SpU)
-              </h3>
-              <button onClick={() => setEditingPermit(null)} className="p-1 hover:bg-[var(--bg-primary)] rounded-md transition text-slate-400 hover:text-red-500">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <form onSubmit={handleEditPermitSubmit} className="space-y-3 text-xs">
-              <div>
-                <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">Ruhsat / İzin Başlığı</label>
-                <input 
-                  type="text" 
-                  value={editingPermit.name} 
-                  onChange={(e) => setEditingPermit(p => p ? ({ ...p, name: e.target.value }) : null)}
-                  required
-                  className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">Sorumlu Onay Mercii (Kurum)</label>
-                <input 
-                  type="text" 
-                  value={editingPermit.authority} 
-                  onChange={(e) => setEditingPermit(p => p ? ({ ...p, authority: e.target.value }) : null)}
-                  required
-                  className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold font-bold font-bold">Bitiş Tarihi</label>
-                  <input 
-                    type="date" 
-                    value={editingPermit.expiryDate} 
-                    onChange={(e) => setEditingPermit(p => p ? ({ ...p, expiryDate: e.target.value }) : null)}
-                    required
-                    className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">Ruhsat Durumu</label>
-                  <select 
-                    value={editingPermit.status} 
-                    onChange={(e) => setEditingPermit(p => p ? ({ ...p, status: e.target.value as any }) : null)}
-                    className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none"
-                  >
-                    <option value="Alındı">Alındı</option>
-                    <option value="Bekliyor">Bekliyor</option>
-                    <option value="Süresi Doluyor">Süresi Doluyor</option>
-                    <option value="Süresi Doldu">Süresi Doldu</option>
-                  </select>
-                </div>
-              </div>
-              <div>
-                <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">Coğrafi Kapsam</label>
-                <input 
-                  type="text" 
-                  value={editingPermit.geographicScope} 
-                  onChange={(e) => setEditingPermit(p => p ? ({ ...p, geographicScope: e.target.value }) : null)}
-                  className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-4">
-                <button 
-                  type="button" 
-                  onClick={() => setEditingPermit(null)}
-                  className="px-3.5 py-1.5 rounded-lg border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-                >
-                  Vazgeç
-                </button>
-                <button 
-                  type="submit" 
-                  className="px-3.5 py-1.5 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 transition"
-                >
-                  Değişiklikleri Kaydet
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <FormDialog
+        open={!!editingPermit}
+        onClose={() => setEditingPermit(null)}
+        title="Ruhsat & İzin Düzenleme (SpU)"
+        icon={<Pencil className="w-4 h-4" />}
+        onSubmit={handleEditPermitSubmit}
+        cancelLabel="Vazgeç"
+        submitLabel="Değişiklikleri Kaydet"
+      >
+        {editingPermit && (
+          <>
+            <FormField label="Ruhsat / İzin Başlığı" value={editingPermit.name} onChange={(e) => setEditingPermit(p => p ? ({ ...p, name: e.target.value }) : null)} required />
+            <FormField label="Sorumlu Onay Mercii (Kurum)" value={editingPermit.authority} onChange={(e) => setEditingPermit(p => p ? ({ ...p, authority: e.target.value }) : null)} required />
+            <FieldRow>
+              <FormField type="date" label="Bitiş Tarihi" value={editingPermit.expiryDate} onChange={(e) => setEditingPermit(p => p ? ({ ...p, expiryDate: e.target.value }) : null)} required slotProps={{ inputLabel: { shrink: true } }} />
+              <FormField select label="Ruhsat Durumu" value={editingPermit.status} onChange={(e) => setEditingPermit(p => p ? ({ ...p, status: e.target.value as any }) : null)}>
+                {['Alındı', 'Bekliyor', 'Süresi Doluyor', 'Süresi Doldu'].map((s) => (
+                  <MenuItem key={s} value={s}>{s}</MenuItem>
+                ))}
+              </FormField>
+            </FieldRow>
+            <FormField label="Coğrafi Kapsam" value={editingPermit.geographicScope} onChange={(e) => setEditingPermit(p => p ? ({ ...p, geographicScope: e.target.value }) : null)} />
+          </>
+        )}
+      </FormDialog>
 
       {/* Tab: Şantiye Günlüğü Fotoğraf Galerisi */}
       {activeTab === 'journal' && (
@@ -1898,398 +1762,169 @@ export default function InsaatView({
       )}
 
       {/* Task progress edit modal (4D timeline) */}
-      {editingTask && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl w-full max-w-md p-6 shadow-2xl">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-wider flex items-center gap-1.5">
-                <Pencil className="w-4 h-4 text-blue-500" />
-                İş Kalemi İlerleme Düzenleme
-              </h3>
-              <button onClick={() => setEditingTask(null)} className="p-1 hover:bg-[var(--bg-primary)] rounded-md transition text-slate-400 hover:text-red-500">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <form onSubmit={handleEditTaskSubmit} className="space-y-4 text-xs">
-              <div className="bg-[var(--bg-primary)] border border-[var(--border)] p-3 rounded-lg text-[11px] text-[var(--text-secondary)]">
-                <div>WBS Kodu: <strong className="text-[var(--text-primary)]">{editingTask.wbsCode}</strong></div>
-                <div className="mt-1">İş Kalemi Adı: <strong className="text-[var(--text-primary)]">{editingTask.name}</strong></div>
-              </div>
-
-              <div>
-                <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">Tamamlanma Oranı (%)</label>
-                <input 
-                  type="number" 
-                  min="0"
-                  max="100"
-                  value={editingTask.progress} 
-                  onChange={(e) => setEditingTask(p => p ? ({ ...p, progress: Number(e.target.value) }) : null)}
-                  required
-                  className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none font-bold"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">Sorumlu Müteahhit / Taşeron</label>
-                <input 
-                  type="text" 
-                  value={editingTask.contractor} 
-                  onChange={(e) => setEditingTask(p => p ? ({ ...p, contractor: e.target.value }) : null)}
-                  required
-                  className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none font-bold"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">Kalem Durumu</label>
-                <select 
-                  value={editingTask.status} 
-                  onChange={(e) => setEditingTask(p => p ? ({ ...p, status: e.target.value as any }) : null)}
-                  className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none font-bold"
-                >
-                  <option value="Başlamadı">Başlamadı</option>
-                  <option value="Devam">Devam ediyor</option>
-                  <option value="Tamamlandı">Tamamlandı</option>
-                  <option value="Gecikmeli">Gecikmeli</option>
-                </select>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-4 border-t border-[var(--border)]">
-                <button 
-                  type="button" 
-                  onClick={() => setEditingTask(null)}
-                  className="px-4 py-2 rounded-lg border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-                >
-                  Vazgeç
-                </button>
-                <button 
-                  type="submit" 
-                  className="px-4 py-2 rounded-lg bg-emerald-600 text-white font-bold hover:bg-emerald-700 transition flex items-center gap-1.5"
-                >
-                  <Save className="w-4 h-4" />
-                  Kaydet
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <FormDialog
+        open={!!editingTask}
+        onClose={() => setEditingTask(null)}
+        title="İş Kalemi İlerleme Düzenleme"
+        icon={<Pencil className="w-4 h-4" />}
+        onSubmit={handleEditTaskSubmit}
+        cancelLabel="Vazgeç"
+        submitLabel="Kaydet"
+        submitIcon={<Save className="w-4 h-4" />}
+      >
+        {editingTask && (
+          <>
+            <Box sx={{ p: 3, fontSize: 11, color: 'text.secondary', bgcolor: 'background.default', border: 1, borderColor: 'divider', borderRadius: 2 }}>
+              <div>WBS Kodu: <Box component="strong" sx={{ color: 'text.primary' }}>{editingTask.wbsCode}</Box></div>
+              <Box sx={{ mt: 1 }}>İş Kalemi Adı: <Box component="strong" sx={{ color: 'text.primary' }}>{editingTask.name}</Box></Box>
+            </Box>
+            <FormField type="number" label="Tamamlanma Oranı (%)" value={editingTask.progress} onChange={(e) => setEditingTask(p => p ? ({ ...p, progress: Number(e.target.value) }) : null)} required slotProps={{ htmlInput: { min: 0, max: 100 } }} />
+            <FormField label="Sorumlu Müteahhit / Taşeron" value={editingTask.contractor} onChange={(e) => setEditingTask(p => p ? ({ ...p, contractor: e.target.value }) : null)} required />
+            <FormField select label="Kalem Durumu" value={editingTask.status} onChange={(e) => setEditingTask(p => p ? ({ ...p, status: e.target.value as any }) : null)}>
+              <MenuItem value="Başlamadı">Başlamadı</MenuItem>
+              <MenuItem value="Devam">Devam ediyor</MenuItem>
+              <MenuItem value="Tamamlandı">Tamamlandı</MenuItem>
+              <MenuItem value="Gecikmeli">Gecikmeli</MenuItem>
+            </FormField>
+          </>
+        )}
+      </FormDialog>
 
       {/* Cost Center 5D Editor Modal */}
-      {showCostCenterModal && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl w-full max-w-lg p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-4 pb-2 border-b border-[var(--border)]">
-              <h3 className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-wider flex items-center gap-1.5">
-                <Pencil className="w-4 h-4 text-blue-500" />
-                5D BÜTÇE ve HAKEDİŞ DAĞILIMI DÜZENLEME (SpU)
-              </h3>
-              <button onClick={() => setShowCostCenterModal(false)} className="p-1 hover:bg-[var(--bg-primary)] rounded-md transition text-slate-400 hover:text-red-500">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <form onSubmit={handleCostCenterSubmit} className="space-y-4 text-xs">
-              <div className="space-y-3">
-                {editingCostCenters.map((cc, index) => (
-                  <div key={cc.id} className="p-3 bg-[var(--bg-primary)] border border-[var(--border)] rounded-xl space-y-2">
-                    <span className="font-extrabold text-[var(--text-primary)] block text-[11px]">{cc.name}</span>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-[10px] text-[var(--text-secondary)] mb-0.5">Tahsis Edilen Bütçe (Milyon ₺)</label>
-                        <input 
-                          type="number" 
-                          value={cc.butce} 
-                          onChange={(e) => {
-                            const val = Number(e.target.value);
-                            setEditingCostCenters(prev => prev.map((item, idx) => idx === index ? { ...item, butce: val, limit: val } : item));
-                          }}
-                          required
-                          className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-md p-1.5 text-[var(--text-primary)] focus:outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[10px] text-[var(--text-secondary)] mb-0.5 font-bold font-bold font-bold">Harcanan / Ödenen (Milyon ₺)</label>
-                        <input 
-                          type="number" 
-                          value={cc.harcanan} 
-                          onChange={(e) => {
-                            const val = Number(e.target.value);
-                            setEditingCostCenters(prev => prev.map((item, idx) => idx === index ? { ...item, harcanan: val } : item));
-                          }}
-                          required
-                          className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-md p-1.5 text-[var(--text-primary)] focus:outline-none"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex justify-end gap-2 pt-4 border-t border-[var(--border)]">
-                <button 
-                  type="button" 
-                  onClick={() => setShowCostCenterModal(false)}
-                  className="px-4 py-2 rounded-lg border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-primary)] transition"
-                >
-                  Vazgeç
-                </button>
-                <button 
-                  type="submit" 
-                  className="px-4 py-2 rounded-lg bg-emerald-600 text-white font-bold hover:bg-emerald-700 transition flex items-center gap-1.5"
-                >
-                  <Save className="w-4 h-4" />
-                  Değişiklikleri Kaydet
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <FormDialog
+        open={showCostCenterModal}
+        onClose={() => setShowCostCenterModal(false)}
+        title="5D BÜTÇE ve HAKEDİŞ DAĞILIMI DÜZENLEME (SpU)"
+        icon={<Pencil className="w-4 h-4" />}
+        maxWidth="sm"
+        onSubmit={handleCostCenterSubmit}
+        cancelLabel="Vazgeç"
+        submitLabel="Değişiklikleri Kaydet"
+        submitIcon={<Save className="w-4 h-4" />}
+      >
+        {editingCostCenters.map((cc, index) => (
+          <Box key={cc.id} sx={{ p: 3, bgcolor: 'background.default', border: 1, borderColor: 'divider', borderRadius: 3 }}>
+            <Typography sx={{ mb: 2, fontSize: 11, fontWeight: 800 }}>{cc.name}</Typography>
+            <FieldRow>
+              <FormField
+                type="number"
+                label="Tahsis Edilen Bütçe (Milyon ₺)"
+                value={cc.butce}
+                onChange={(e) => {
+                  const val = Number(e.target.value);
+                  setEditingCostCenters(prev => prev.map((item, idx) => idx === index ? { ...item, butce: val, limit: val } : item));
+                }}
+                required
+              />
+              <FormField
+                type="number"
+                label="Harcanan / Ödenen (Milyon ₺)"
+                value={cc.harcanan}
+                onChange={(e) => {
+                  const val = Number(e.target.value);
+                  setEditingCostCenters(prev => prev.map((item, idx) => idx === index ? { ...item, harcanan: val } : item));
+                }}
+                required
+              />
+            </FieldRow>
+          </Box>
+        ))}
+      </FormDialog>
 
       {/* Permit Creation Modal */}
-      {showPermitModal && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl w-full max-w-md p-6 shadow-2xl">
-            <h3 className="text-sm font-bold text-[var(--text-primary)] mb-4">Yeni Yasal İzin / Ruhsat Kaydı Girişi</h3>
-            <form onSubmit={handlePermitSubmit} className="space-y-3 text-xs">
-              <div>
-                <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">Ruhsat / İzin Başlığı</label>
-                <input 
-                  type="text" 
-                  value={newPermit.name} 
-                  onChange={(e) => setNewPermit(p => ({ ...p, name: e.target.value }))}
-                  required
-                  placeholder="İtfaiye Uygunluk Belgesi"
-                  className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">Sorumlu Onay Mercii (Kurum)</label>
-                <input 
-                  type="text" 
-                  value={newPermit.authority} 
-                  onChange={(e) => setNewPermit(p => ({ ...p, authority: e.target.value }))}
-                  required
-                  placeholder="Büyükşehir Belediyesi İtfaiye Daire Bşk."
-                  className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">Bitiş / Expiry Tarihi</label>
-                  <input 
-                    type="date" 
-                    value={newPermit.expiryDate} 
-                    onChange={(e) => setNewPermit(p => ({ ...p, expiryDate: e.target.value }))}
-                    required
-                    className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">Coğrafi Kapsam</label>
-                  <input 
-                    type="text" 
-                    value={newPermit.geographicScope} 
-                    onChange={(e) => setNewPermit(p => ({ ...p, geographicScope: e.target.value }))}
-                    placeholder="Blok-A ve Blok-B Tesisleri"
-                    className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-4">
-                <button 
-                  type="button" 
-                  onClick={() => setShowPermitModal(false)}
-                  className="px-3.5 py-1.5 rounded-lg border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-                >
-                  Geri Dön
-                </button>
-                <button 
-                  type="submit" 
-                  className="px-3.5 py-1.5 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 transition"
-                >
-                  Sisteme Kaydet
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <FormDialog
+        open={showPermitModal}
+        onClose={() => setShowPermitModal(false)}
+        title="Yeni Yasal İzin / Ruhsat Kaydı Girişi"
+        onSubmit={handlePermitSubmit}
+        cancelLabel="Geri Dön"
+        submitLabel="Sisteme Kaydet"
+      >
+        <FormField label="Ruhsat / İzin Başlığı" value={newPermit.name} onChange={(e) => setNewPermit(p => ({ ...p, name: e.target.value }))} required placeholder="İtfaiye Uygunluk Belgesi" slotProps={{ inputLabel: { shrink: true } }} />
+        <FormField label="Sorumlu Onay Mercii (Kurum)" value={newPermit.authority} onChange={(e) => setNewPermit(p => ({ ...p, authority: e.target.value }))} required placeholder="Büyükşehir Belediyesi İtfaiye Daire Bşk." slotProps={{ inputLabel: { shrink: true } }} />
+        <FieldRow>
+          <FormField type="date" label="Bitiş / Expiry Tarihi" value={newPermit.expiryDate} onChange={(e) => setNewPermit(p => ({ ...p, expiryDate: e.target.value }))} required slotProps={{ inputLabel: { shrink: true } }} />
+          <FormField label="Coğrafi Kapsam" value={newPermit.geographicScope} onChange={(e) => setNewPermit(p => ({ ...p, geographicScope: e.target.value }))} placeholder="Blok-A ve Blok-B Tesisleri" slotProps={{ inputLabel: { shrink: true } }} />
+        </FieldRow>
+      </FormDialog>
 
       {/* Şantiye Günlüğü - Yeni Fotoğraf Ekleme Modalı */}
-      {showAddJournalModal && (
-        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
-          <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl w-full max-w-md p-6 shadow-2xl relative">
-            <button
-              onClick={() => setShowAddJournalModal(false)}
-              className="absolute top-4 right-4 p-1.5 rounded-lg hover:bg-[var(--bg-primary)] transition text-slate-400 hover:text-red-500"
-            >
-              <X className="w-4 h-4" />
-            </button>
-
-            <h3 className="text-sm font-bold text-[var(--text-primary)] mb-4 uppercase tracking-wide flex items-center gap-2">
-              <Camera className="w-4 h-4 text-emerald-500" />
-              Yeni Şantiye Günlük Kaydı
-            </h3>
-
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (!newJournalForm.title || !newJournalForm.imageUrl) {
-                  alert('Lütfen başlık ve geçerli bir fotoğraf URL adresi girin.');
-                  return;
-                }
-                const newRecord = {
-                  id: `jp-${Date.now()}`,
-                  ...newJournalForm
-                };
-                setJournalPhotos(prev => [newRecord, ...prev]);
-                setShowAddJournalModal(false);
-                setNewJournalForm({
-                  title: '',
-                  category: 'Kazı & Temel',
-                  description: '',
-                  date: '2026-08-29',
-                  imageUrl: '',
-                  takenBy: 'Hasan Yılmaz (Saha Mühendisi)',
-                  gpsCoordinates: '41.0084° N, 28.9782° E',
-                  weather: 'Güneşli',
-                  workingGroup: 'İnşaat'
-                });
-              }}
-              className="space-y-3.5 text-xs"
-            >
-              <div>
-                <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">Fotoğraf Başlığı</label>
-                <input
-                  type="text"
-                  required
-                  value={newJournalForm.title}
-                  onChange={(e) => setNewJournalForm(prev => ({ ...prev, title: e.target.value }))}
-                  placeholder="Örn: Blok-A Çatı İzolasyon Çalışmaları"
-                  className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-xl p-2.5 text-[var(--text-primary)] focus:outline-none focus:border-emerald-500/50"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">Kategori / Disiplin</label>
-                  <select
-                    value={newJournalForm.category}
-                    onChange={(e) => setNewJournalForm(prev => ({ ...prev, category: e.target.value }))}
-                    className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-xl p-2.5 text-[var(--text-primary)] focus:outline-none"
-                  >
-                    {['Kazı & Temel', 'Betonarme', 'Mekanik & Elektrik', 'Dış Cephe', 'Çelik Yapı', 'Peyzaj & Çevre'].map(cat => (
-                      <option key={cat} value={cat}>{cat}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">Çekim Tarihi</label>
-                  <input
-                    type="date"
-                    required
-                    value={newJournalForm.date}
-                    onChange={(e) => setNewJournalForm(prev => ({ ...prev, date: e.target.value }))}
-                    className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-xl p-2 text-[var(--text-primary)] focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">Görsel URL Adresi</label>
-                <input
-                  type="text"
-                  required
-                  value={newJournalForm.imageUrl}
-                  onChange={(e) => setNewJournalForm(prev => ({ ...prev, imageUrl: e.target.value }))}
-                  placeholder="https://images.unsplash.com/..."
-                  className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-xl p-2.5 text-[var(--text-primary)] focus:outline-none focus:border-emerald-500/50 font-mono text-[10px]"
-                />
-                <p className="text-[10px] text-slate-500 mt-1">İpucu: Test için Unsplash veya herhangi bir görsel linki kullanabilirsiniz.</p>
-              </div>
-
-              <div>
-                <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">Detaylı Açıklama</label>
-                <textarea
-                  value={newJournalForm.description}
-                  onChange={(e) => setNewJournalForm(prev => ({ ...prev, description: e.target.value }))}
-                  rows={3}
-                  placeholder="Yapılan imalat detaylarını, ilerleme durumunu ve notları yazın..."
-                  className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-xl p-2.5 text-[var(--text-primary)] focus:outline-none focus:border-emerald-500/50 font-bold"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">Hava Durumu</label>
-                  <select
-                    value={newJournalForm.weather}
-                    onChange={(e) => setNewJournalForm(prev => ({ ...prev, weather: e.target.value }))}
-                    className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-xl p-2.5 text-[var(--text-primary)] focus:outline-none font-bold"
-                  >
-                    {['Güneşli', 'Bulutlu', 'Parçalı Bulutlu', 'Rüzgarlı', 'Yağmurlu', 'Açık / Sıcak'].map(w => (
-                      <option key={w} value={w}>{w}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">Çalışma Grubu</label>
-                  <select
-                    value={newJournalForm.workingGroup}
-                    onChange={(e) => setNewJournalForm(prev => ({ ...prev, workingGroup: e.target.value }))}
-                    className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-xl p-2.5 text-[var(--text-primary)] focus:outline-none font-bold"
-                  >
-                    {['İnşaat', 'Elektrik', 'Tesisat'].map(wg => (
-                      <option key={wg} value={wg}>{wg}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">Fotoğrafı Çeken</label>
-                  <input
-                    type="text"
-                    required
-                    value={newJournalForm.takenBy}
-                    onChange={(e) => setNewJournalForm(prev => ({ ...prev, takenBy: e.target.value }))}
-                    className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-xl p-2.5 text-[var(--text-primary)] focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">GPS Koordinatları</label>
-                  <input
-                    type="text"
-                    required
-                    value={newJournalForm.gpsCoordinates}
-                    onChange={(e) => setNewJournalForm(prev => ({ ...prev, gpsCoordinates: e.target.value }))}
-                    className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-xl p-2.5 text-[var(--text-primary)] focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-4 border-t border-[var(--border)]">
-                <button
-                  type="button"
-                  onClick={() => setShowAddJournalModal(false)}
-                  className="px-4 py-2 rounded-xl border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-primary)] transition"
-                >
-                  Vazgeç
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition"
-                >
-                  Kayıt Ekle
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <FormDialog
+        open={showAddJournalModal}
+        onClose={() => setShowAddJournalModal(false)}
+        title="Yeni Şantiye Günlük Kaydı"
+        icon={<Camera className="w-4 h-4" />}
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!newJournalForm.title || !newJournalForm.imageUrl) {
+            alert('Lütfen başlık ve geçerli bir fotoğraf URL adresi girin.');
+            return;
+          }
+          const newRecord = {
+            id: `jp-${Date.now()}`,
+            ...newJournalForm
+          };
+          setJournalPhotos(prev => [newRecord, ...prev]);
+          setShowAddJournalModal(false);
+          setNewJournalForm({
+            title: '',
+            category: 'Kazı & Temel',
+            description: '',
+            date: '2026-08-29',
+            imageUrl: '',
+            takenBy: 'Hasan Yılmaz (Saha Mühendisi)',
+            gpsCoordinates: '41.0084° N, 28.9782° E',
+            weather: 'Güneşli',
+            workingGroup: 'İnşaat'
+          });
+        }}
+        cancelLabel="Vazgeç"
+        submitLabel="Kayıt Ekle"
+      >
+        <FormField label="Fotoğraf Başlığı" value={newJournalForm.title} onChange={(e) => setNewJournalForm(prev => ({ ...prev, title: e.target.value }))} required placeholder="Örn: Blok-A Çatı İzolasyon Çalışmaları" slotProps={{ inputLabel: { shrink: true } }} />
+        <FieldRow>
+          <FormField select label="Kategori / Disiplin" value={newJournalForm.category} onChange={(e) => setNewJournalForm(prev => ({ ...prev, category: e.target.value }))}>
+            {['Kazı & Temel', 'Betonarme', 'Mekanik & Elektrik', 'Dış Cephe', 'Çelik Yapı', 'Peyzaj & Çevre'].map(cat => (
+              <MenuItem key={cat} value={cat}>{cat}</MenuItem>
+            ))}
+          </FormField>
+          <FormField type="date" label="Çekim Tarihi" value={newJournalForm.date} onChange={(e) => setNewJournalForm(prev => ({ ...prev, date: e.target.value }))} required slotProps={{ inputLabel: { shrink: true } }} />
+        </FieldRow>
+        <FormField
+          label="Görsel URL Adresi"
+          value={newJournalForm.imageUrl}
+          onChange={(e) => setNewJournalForm(prev => ({ ...prev, imageUrl: e.target.value }))}
+          required
+          placeholder="https://images.unsplash.com/..."
+          helperText="İpucu: Test için Unsplash veya herhangi bir görsel linki kullanabilirsiniz."
+          slotProps={{ inputLabel: { shrink: true } }}
+        />
+        <FormField
+          label="Detaylı Açıklama"
+          value={newJournalForm.description}
+          onChange={(e) => setNewJournalForm(prev => ({ ...prev, description: e.target.value }))}
+          multiline
+          rows={3}
+          placeholder="Yapılan imalat detaylarını, ilerleme durumunu ve notları yazın..."
+          slotProps={{ inputLabel: { shrink: true } }}
+        />
+        <FieldRow>
+          <FormField select label="Hava Durumu" value={newJournalForm.weather} onChange={(e) => setNewJournalForm(prev => ({ ...prev, weather: e.target.value }))}>
+            {['Güneşli', 'Bulutlu', 'Parçalı Bulutlu', 'Rüzgarlı', 'Yağmurlu', 'Açık / Sıcak'].map(w => (
+              <MenuItem key={w} value={w}>{w}</MenuItem>
+            ))}
+          </FormField>
+          <FormField select label="Çalışma Grubu" value={newJournalForm.workingGroup} onChange={(e) => setNewJournalForm(prev => ({ ...prev, workingGroup: e.target.value }))}>
+            {['İnşaat', 'Elektrik', 'Tesisat'].map(wg => (
+              <MenuItem key={wg} value={wg}>{wg}</MenuItem>
+            ))}
+          </FormField>
+        </FieldRow>
+        <FieldRow>
+          <FormField label="Fotoğrafı Çeken" value={newJournalForm.takenBy} onChange={(e) => setNewJournalForm(prev => ({ ...prev, takenBy: e.target.value }))} required />
+          <FormField label="GPS Koordinatları" value={newJournalForm.gpsCoordinates} onChange={(e) => setNewJournalForm(prev => ({ ...prev, gpsCoordinates: e.target.value }))} required />
+        </FieldRow>
+      </FormDialog>
 
       {/* Şantiye Günlüğü - Tam Ekran Görsel İnceleme & Slideshow Modalı */}
       {fullscreenPhotoIndex !== null && journalPhotos[fullscreenPhotoIndex] && (
