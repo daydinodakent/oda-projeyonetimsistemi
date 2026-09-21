@@ -11181,6 +11181,9 @@
       // ölçeği. placeLocalRingOnMap() de AYNI harita merkezini (senkron olarak,
       // bu satırdan hemen önce) kullandığı için ikisi birbirine denk düşer.
       bimAnchor: { lng: center.lng, lat: center.lat, scale: placementScale || 1 },
+      // HUD'da gösterilen ölçek yüzdesinin (varsayılan 100) referansı: modelin
+      // içe aktarıldığı andaki ham ölçek (bkz. bimBaseScale/bimScalePct).
+      bimBaseScale: placementScale || 1,
       // Kaydet'te taban poligonunu yeniden hesaplamak için: poligonun şu an
       // hangi konum/ölçek/yönle eşleştiği (bkz. saveBimHudTransform).
       bimSavedAnchor: { lng: center.lng, lat: center.lat, scale: placementScale || 1, heading: 0, alt: 0 }
@@ -13303,7 +13306,7 @@
         '<div class="bim-hud-arm"><div class="bim-hud-handle"></div></div>' +
       '</div>' +
       '<div class="bim-hud-sidebar">' +
-        '<button type="button" class="bim-hud-btn bim-hud-scale" title="Sürükleyerek ölçekle (çift tık: 1.00)">⤢</button>' +
+        '<button type="button" class="bim-hud-btn bim-hud-scale" title="Sürükleyerek ölçekle (çift tık: %100)">⤢</button>' +
         '<button type="button" class="bim-hud-btn bim-hud-move" title="Sürükleyerek taşı">✥</button>' +
         '<button type="button" class="bim-hud-btn bim-hud-height" title="Sürükleyerek yükselt (çift tık: zemine otur)">⇅</button>' +
         '<button type="button" class="bim-hud-btn bim-hud-reset" title="Sıfırla (uzun bas: eğim/yatış)">⟲</button>' +
@@ -13313,7 +13316,7 @@
       '</div>' +
       '<div class="bim-hud-inputs hidden">' +
         '<label class="bim-hud-inputs-row" data-mode="rotate">Yön (°)<input type="number" step="1" data-k="heading"></label>' +
-        '<label class="bim-hud-inputs-row" data-mode="scale">Ölçek<input type="number" step="0.01" min="0.001" max="4" data-k="scale"></label>' +
+        '<label class="bim-hud-inputs-row" data-mode="scale">Ölçek (%)<input type="number" step="1" min="0.1" data-k="scale"></label>' +
         '<label class="bim-hud-inputs-row" data-mode="move">Boylam<input type="number" step="0.000001" data-k="lng"></label>' +
         '<label class="bim-hud-inputs-row" data-mode="move">Enlem<input type="number" step="0.000001" data-k="lat"></label>' +
         '<label class="bim-hud-inputs-row" data-mode="height">Yükseklik (m)<input type="number" step="0.1" min="-20" max="80" data-k="alt"></label>' +
@@ -13385,6 +13388,14 @@
   // Eskiden haritanın altında yüzen ayrı bir kutuydu (bim-hud-chip);
   // kullanıcı isteğiyle KALDIRILDI, aynı bilgi artık durum çubuğundaki
   // #stBimInfo'ya yazılıyor (bkz. #stBimInfoWrap).
+  // HUD ölçeği yüzde olarak gösterilir: modelin içe aktarıldığı (ya da otomatik
+  // oturtulduğu) boyut = 100. Ham bimAnchor.scale bundan bağımsız kalır.
+  function bimBaseScale(lyr){
+    if (lyr && lyr.bimBaseScale) return lyr.bimBaseScale;
+    return (lyr && (lyr.sourceFormat === 'gltf' || lyr.sourceFormat === 'glb')) ? GLTF_IMPORT_SCALE : 1;
+  }
+  function bimScalePct(lyr){ return (lyr.bimAnchor.scale || 1) / bimBaseScale(lyr) * 100; }
+  function fmtBimPct(p){ return (Math.round(p * 10) / 10) + '%'; }
   function refreshBimHudChip(){
     if (!bimHudState) return;
     var lyr = getLayer(bimHudState.layerId);
@@ -13393,7 +13404,7 @@
     if (!el) return;
     var a = lyr.bimAnchor;
     var headingDeg = Math.round((a.heading || 0) * 180 / Math.PI);
-    el.textContent = 'H ' + headingDeg + '°  S ' + (a.scale || 1).toFixed((a.scale || 1) < 0.1 ? 3 : 2) +
+    el.textContent = 'H ' + headingDeg + '°  S ' + fmtBimPct(bimScalePct(lyr)) +
       '  Z ' + (a.alt || 0).toFixed(2) + 'm  ' + a.lat.toFixed(6) + ', ' + a.lng.toFixed(6);
     refreshBimHudInputs(a);
   }
@@ -13415,9 +13426,10 @@
   }
   function refreshBimHudInputs(a){
     if (!bimHudInputsEl || !bimHudToolMode) return;
+    var hudLyr = getLayer(bimHudState && bimHudState.layerId);
     var vals = {
       heading: Math.round(((a.heading || 0) * 180 / Math.PI) * 10) / 10,
-      scale: +(a.scale || 1).toFixed(3),
+      scale: hudLyr ? Math.round(bimScalePct(hudLyr) * 10) / 10 : 100,
       lng: +a.lng.toFixed(7), lat: +a.lat.toFixed(7),
       alt: +(a.alt || 0).toFixed(2)
     };
@@ -13465,7 +13477,7 @@
     }
     lyr.bimSavedAnchor = { lng: a.lng, lat: a.lat, scale: a.scale || 1, heading: a.heading || 0, alt: a.alt || 0 };
     saveSessionToLocalStorage();
-    showToast('Model kaydedildi — ' + a.lat.toFixed(6) + ', ' + a.lng.toFixed(6) + ' · Z ' + (a.alt || 0).toFixed(2) + ' m · Ölçek ' + (a.scale || 1).toFixed(3) + ' · Yön ' + Math.round((a.heading || 0) * 180 / Math.PI) + '°');
+    showToast('Model kaydedildi — ' + a.lat.toFixed(6) + ', ' + a.lng.toFixed(6) + ' · Z ' + (a.alt || 0).toFixed(2) + ' m · Ölçek ' + fmtBimPct(bimScalePct(lyr)) + ' · Yön ' + Math.round((a.heading || 0) * 180 / Math.PI) + '°');
   }
   // bimAnchor değiştikten sonra ortak uygulama noktası: gerçek mesh'i
   // yeniden konumlandırır (syncIfcMeshLayer, senkron — mesh zaten
@@ -13524,7 +13536,7 @@
         if (isNaN(v)){ refreshBimHudInputs(lyr.bimAnchor); return; }
         bimHudSnapshotUndo(lyr);
         if (k === 'heading') lyr.bimAnchor.heading = ((v % 360) * Math.PI / 180);
-        else if (k === 'scale') lyr.bimAnchor.scale = clamp(v, 0.001, 4);
+        else if (k === 'scale') lyr.bimAnchor.scale = clamp(v / 100 * bimBaseScale(lyr), 0.001, 4);
         else if (k === 'alt') lyr.bimAnchor.alt = clamp(v, -20, 80);
         else if (k === 'lat') lyr.bimAnchor.lat = clamp(v, -85, 85);
         else if (k === 'lng') lyr.bimAnchor.lng = clamp(v, -180, 180);
@@ -13599,7 +13611,7 @@
       var lyr = getLayer(bimHudState && bimHudState.layerId);
       if (!lyr) return;
       bimHudSnapshotUndo(lyr);
-      lyr.bimAnchor.scale = 1;
+      lyr.bimAnchor.scale = bimBaseScale(lyr); // %100
       applyBimHudTransform(lyr, false);
     });
 
@@ -13676,7 +13688,7 @@
       if (!lyr) return;
       bimHudSnapshotUndo(lyr);
       lyr.bimAnchor.heading = 0; lyr.bimAnchor.pitch = 0; lyr.bimAnchor.roll = 0;
-      lyr.bimAnchor.scale = 1; lyr.bimAnchor.alt = 0;
+      lyr.bimAnchor.scale = bimBaseScale(lyr); lyr.bimAnchor.alt = 0;
       if (lyr.bimAnchor._initialLng !== undefined){
         lyr.bimAnchor.lng = lyr.bimAnchor._initialLng;
         lyr.bimAnchor.lat = lyr.bimAnchor._initialLat;
@@ -13781,6 +13793,7 @@
     if (!(rawHeight > 0)) return;
     var avgFloorH = averageNearbyFloorHeight(lyr.bimAnchor.lng, lyr.bimAnchor.lat);
     lyr.bimAnchor.scale = clamp(avgFloorH / rawHeight, 0.10, 4.00);
+    lyr.bimBaseScale = lyr.bimAnchor.scale; // otomatik oturtulan boyut = %100
   }
 
   // =========================================================================
