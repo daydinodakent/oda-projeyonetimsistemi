@@ -782,6 +782,11 @@
   #bimHud .bim-hud-btn.bim-hud-roll{ top:76px; cursor:ew-resize; }
   #bimHud .bim-hud-btn.bim-hud-pitch svg,
   #bimHud .bim-hud-btn.bim-hud-roll svg{ width:17px; height:17px; pointer-events:none; }
+  /* "Objeye 3D Model olarak ekle": Sıfırla butonunun sağında (4. satır). */
+  #bimHud .bim-hud-btn.bim-hud-attach{ position:absolute; left:38px; top:114px; color:#f5b942; border-color:rgba(245,185,66,.45); }
+  #bimHud .bim-hud-btn.bim-hud-attach:hover,
+  #bimHud .bim-hud-btn.bim-hud-attach.active{ color:#fff; background:#b5791a; border-color:#f5b942; }
+  #bimHud .bim-hud-btn.bim-hud-attach svg{ width:17px; height:17px; pointer-events:none; }
 
   .fmt-grid{display:flex;flex-wrap:wrap;gap:5px;align-items:center;}
   .fmt-cat{width:100%;font-size:10px;letter-spacing:.4px;color:var(--text-dim);margin-top:6px;}
@@ -7291,7 +7296,22 @@
   // setSelection(ids)        → pencere seçimi: seçimin yeni içeriği
   // addToSelection(ids)      → Ctrl+pencere seçimi: mevcut seçime ekler
   // ---------------------------------------------------------------------
+  // Seç aracıyla (ya da başka yolla) tek bir 3B model (IFC/GLTF/GLB) objesi
+  // seçildiğinde o modelin katmanı aktif olur; böylece düzenleme HUD'u
+  // (ölçek/taşı/yükselt/eğim/kaydet/objeye ekle) görünür.
+  function activateBimLayerForSelection(){
+    if (selectedIds.length !== 1) return;
+    var sel = features.find(function(x){ return x.id === selectedIds[0]; });
+    var lid = sel && sel.properties && sel.properties.layerId;
+    var blyr = lid ? getLayer(lid) : null;
+    if (!blyr || !blyr.bimAnchor) return;
+    if (blyr.sourceFormat !== 'ifc' && blyr.sourceFormat !== 'gltf' && blyr.sourceFormat !== 'glb') return;
+    if (activeLayerId === blyr.id){ updateBimHud(); return; } // Esc ile gizlenmişse yeniden göster
+    activeLayerId = blyr.id;
+    renderLayerTree();
+  }
   function refreshSelectionUI(){
+    activateBimLayerForSelection();
     refreshSelectedFilter();
     renderVertices();
     refreshPanel();
@@ -13314,6 +13334,9 @@
           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="8" width="12" height="8" rx="1" transform="rotate(20 12 12)"/><path d="M4 18a9 9 0 0 0 16 0M17.5 19.5 20 18l-.5-3"/></svg>' +
         '</button>' +
         '<button type="button" class="bim-hud-btn bim-hud-reset" title="Sıfırla">⟲</button>' +
+        '<button type="button" class="bim-hud-btn bim-hud-attach" title="Objeye 3D Model olarak ekle — tıklayıp haritada hedef objeyi seçin (Esc: iptal)">' +
+          '<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M4 3l7 17 2.4-7.1L20.5 10.5 4 3z"/></svg>' +
+        '</button>' +
         '<button type="button" class="bim-hud-btn bim-hud-save" title="Kaydet — model son konum/ölçü/yükseklik ile koordinatlı olarak projeye kaydedilir (Ctrl+S)">' +
           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>' +
         '</button>' +
@@ -13725,6 +13748,18 @@
     wireAngleHandle(bimHudEl.querySelector('.bim-hud-pitch'), 'pitch', 'y');
     wireAngleHandle(bimHudEl.querySelector('.bim-hud-roll'), 'roll', 'x');
 
+    // ---- Objeye 3D Model olarak ekle: katman ağacı sağ tık menüsündeki komutla AYNI iş ----
+    // (bkz. startBimAttachMode/handleBimAttachClick). Mod açıkken tekrar tıklamak iptal eder.
+    var attachBtn = bimHudEl.querySelector('.bim-hud-attach');
+    attachBtn.addEventListener('pointerdown', function(e){ e.stopPropagation(); });
+    attachBtn.addEventListener('click', function(e){
+      e.stopPropagation();
+      var lyr = getLayer(bimHudState && bimHudState.layerId);
+      if (!lyr) return;
+      if (bimAttachSourceLayerId){ cancelBimAttachMode(); return; }
+      startBimAttachMode(lyr.id);
+    });
+
     // ---- Sıfırla: tüm dönüşümü (yön, eğim, yatış, ölçek, yükseklik, konum) sıfırlar ----
     var resetBtn = bimHudEl.querySelector('.bim-hud-reset');
     resetBtn.addEventListener('pointerdown', function(e){
@@ -13853,11 +13888,18 @@
     attributeEditMode = false; document.getElementById('btnAttrEdit').classList.remove('active');
     bimAttachSourceLayerId = layerId;
     updateCanvasCursor();
+    syncBimAttachButton();
     showToast('"' + layerDisplayName(lyr) + '" modelini eklemek istediğiniz objeye haritada tıklayın (Esc: iptal).');
   }
   function cancelBimAttachMode(){
     bimAttachSourceLayerId = null;
     updateCanvasCursor();
+    syncBimAttachButton();
+  }
+  // HUD'daki "Objeye ekle" butonu, mod açıkken vurgulu görünür.
+  function syncBimAttachButton(){
+    var btn = bimHudEl && bimHudEl.querySelector('.bim-hud-attach');
+    if (btn) btn.classList.toggle('active', !!bimAttachSourceLayerId);
   }
   function handleBimAttachClick(e){
     var srcId = bimAttachSourceLayerId;
