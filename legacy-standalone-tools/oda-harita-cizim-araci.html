@@ -13582,6 +13582,31 @@
       window.addEventListener('pointerup', onUp);
     });
 
+    // ---- Daire içinde SAĞ tık + sürükleme: ekranı (haritayı) yatırır/döndürür ----
+    // HUD (pointer-events:auto) haritanın kendi sağ-tık sürükleme (dragRotate)
+    // hareketini engellediği için aynı davranış burada elle iletilir: dikey
+    // sürükleme = eğim (pitch), yatay = yön (bearing). Sol tık = modeli döndürme.
+    bimHudRingEl.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+    bimHudRingEl.addEventListener('pointerdown', function(e){
+      if (e.button !== 2) return;
+      e.preventDefault(); e.stopPropagation();
+      var sx = e.clientX, sy = e.clientY, startPitch = map.getPitch(), startBearing = map.getBearing();
+      bimHudRingEl.classList.add('dragging');
+      function onMove(ev){
+        map.jumpTo({
+          pitch: clamp(startPitch - (ev.clientY - sy) * 0.4, 0, map.getMaxPitch()),
+          bearing: startBearing + (ev.clientX - sx) * 0.4
+        });
+      }
+      function onUp(){
+        bimHudRingEl.classList.remove('dragging');
+        window.removeEventListener('pointermove', onMove);
+        window.removeEventListener('pointerup', onUp);
+      }
+      window.addEventListener('pointermove', onMove);
+      window.addEventListener('pointerup', onUp);
+    });
+
     // ---- Ölçek tutamacı: yatay sürükleme, 1px = 0.01 ----
     var scaleBtn = bimHudEl.querySelector('.bim-hud-scale');
     scaleBtn.addEventListener('pointerdown', function(e){
