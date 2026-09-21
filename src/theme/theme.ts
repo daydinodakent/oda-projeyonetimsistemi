@@ -53,4 +53,9 @@ export const theme = createTheme({
     caption: { fontSize: '0.6875rem', lineHeight: 1.4 },
     button: { textTransform: 'none', fontWeight: 600 },
   },
+  components: {
+    MuiButton: { defaultProps: { disableElevation: true }, styleOverrides: { root: { borderRadius: radius * 2 } } },
+    MuiTextField: { defaultProps: { size: 'small', fullWidth: true } },
+    MuiDialog: { styleOverrides: { paper: { backgroundImage: 'none' } } },
+  },
 });

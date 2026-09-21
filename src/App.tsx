@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useColorScheme } from '@mui/material/styles';
+import PermissionDialog from './components/chrome/PermissionDialog';
+import AddProjectDialog from './components/chrome/AddProjectDialog';
+import EditProjectStatusDialog from './components/chrome/EditProjectStatusDialog';
 import { 
   Compass, LayoutGrid, Database, Smartphone, Sun, Moon, Bell, ChevronDown, CheckCircle, 
   AlertTriangle, DollarSign, Layers, Plus, FileText, Settings, UserCheck, HelpCircle, 
@@ -2725,319 +2728,54 @@ export default function App() {
         setShowModullerGrid={setShowModullerGrid}
       />
 
-      {/* ACCESS REQUEST PERMISSION MODAL */}
-      {showPermissionModal && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[10000] flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-[#0b0f19] border border-slate-200 dark:border-slate-800 rounded-xl w-full max-w-[210px] overflow-hidden shadow-2xl animate-fade-in text-slate-600 dark:text-slate-300 p-3 relative">
+      <PermissionDialog
+        open={showPermissionModal}
+        onClose={() => setShowPermissionModal(false)}
+        camera={permCamera}
+        setCamera={setPermCamera}
+        microphone={permMicrophone}
+        setMicrophone={setPermMicrophone}
+        dontAsk={permDontAsk}
+        setDontAsk={setPermDontAsk}
+        onApply={() => {
+          if (permDontAsk) {
+            localStorage.setItem('dont_ask_permissions_choice', 'true');
+          }
+          setShowPermissionModal(false);
+        }}
+      />
 
-            {/* Header */}
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-xs font-normal tracking-tight text-slate-600 dark:text-slate-300">
-                Access request
-              </h3>
-              <button
-                onClick={() => setShowPermissionModal(false)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-white transition p-0.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
-                aria-label="Close"
-              >
-                <X className="w-2.5 h-2.5" />
-              </button>
-            </div>
+      <AddProjectDialog
+        open={showAddProjectModal}
+        onClose={() => setShowAddProjectModal(false)}
+        onSubmit={handleAddNewProjectSubmit}
+        name={newProjectName}
+        setName={setNewProjectName}
+        code={newProjectCode}
+        setCode={setNewProjectCode}
+        location={newProjectLocation}
+        setLocation={setNewProjectLocation}
+        progress={newProjectProgress}
+        setProgress={setNewProjectProgress}
+        budget={newProjectBudget}
+        setBudget={setNewProjectBudget}
+      />
 
-            {/* Description */}
-            <p className="text-[9px] text-slate-600 dark:text-slate-300 leading-relaxed mb-3">
-              The app requests access to the following permissions:
-            </p>
-
-            {/* Permission Toggles */}
-            <div className="space-y-1.5 mb-3">
-              {/* Camera Row */}
-              <div className="flex items-center justify-between p-1.5 bg-slate-50 dark:bg-[#111625] border border-slate-100 dark:border-slate-800/80 rounded-lg transition">
-                <span className="text-[10px] font-normal text-slate-600 dark:text-slate-300">Camera</span>
-                <button
-                  type="button"
-                  onClick={() => setPermCamera(!permCamera)}
-                  className={`relative inline-flex h-3 w-6 shrink-0 cursor-pointer rounded-full border border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                    permCamera ? 'bg-slate-900 dark:bg-white' : 'bg-slate-200 dark:bg-slate-800'
-                  }`}
-                >
-                  <span
-                    className={`pointer-events-none inline-block h-2.5 w-2.5 transform rounded-full shadow-lg ring-0 transition duration-200 ease-in-out ${
-                      permCamera
-                        ? 'translate-x-3 bg-white dark:bg-slate-900'
-                        : 'translate-x-0 bg-white dark:bg-slate-400'
-                    }`}
-                  />
-                </button>
-              </div>
-
-              {/* Microphone Row */}
-              <div className="flex items-center justify-between p-1.5 bg-slate-50 dark:bg-[#111625] border border-slate-100 dark:border-slate-800/80 rounded-lg transition">
-                <span className="text-[10px] font-normal text-slate-600 dark:text-slate-300">Microphone</span>
-                <button
-                  type="button"
-                  onClick={() => setPermMicrophone(!permMicrophone)}
-                  className={`relative inline-flex h-3 w-6 shrink-0 cursor-pointer rounded-full border border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                    permMicrophone ? 'bg-slate-900 dark:bg-white' : 'bg-slate-200 dark:bg-slate-800'
-                  }`}
-                >
-                  <span
-                    className={`pointer-events-none inline-block h-2.5 w-2.5 transform rounded-full shadow-lg ring-0 transition duration-200 ease-in-out ${
-                      permMicrophone
-                        ? 'translate-x-3 bg-white dark:bg-slate-900'
-                        : 'translate-x-0 bg-white dark:bg-slate-400'
-                    }`}
-                  />
-                </button>
-              </div>
-            </div>
-
-            {/* "Daha sorma" & Apply Action Bar */}
-            <div className="flex items-center justify-between pt-1 border-t border-slate-100 dark:border-slate-800/60 mt-2">
-
-              {/* "Daha sorma" Checkbox */}
-              <label className="flex items-center gap-1 cursor-pointer group select-none">
-                <input
-                  type="checkbox"
-                  checked={permDontAsk}
-                  onChange={(e) => setPermDontAsk(e.target.checked)}
-                  className="sr-only"
-                />
-                <div className={`w-2.5 h-2.5 rounded border flex items-center justify-center transition-all ${
-                  permDontAsk
-                    ? 'bg-slate-500 border-slate-500 dark:bg-slate-400 dark:border-slate-400 text-white'
-                    : 'border-slate-400/70 hover:border-slate-500 dark:border-slate-500/80 dark:hover:border-slate-400 bg-slate-50 dark:bg-slate-800/20'
-                }`}
-                title="Daha sorma"
-                >
-                  {permDontAsk && <Check className="w-2 h-2 stroke-[3] text-white" />}
-                </div>
-                <span className="text-[9px] font-normal text-slate-600 dark:text-slate-300 group-hover:underline transition">
-                  Daha sorma
-                </span>
-              </label>
-
-              {/* Apply Button */}
-              <button
-                type="button"
-                onClick={() => {
-                  if (permDontAsk) {
-                    localStorage.setItem('dont_ask_permissions_choice', 'true');
-                  }
-                  setShowPermissionModal(false);
-                }}
-                className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-950 text-[9px] font-normal transition shadow-lg shadow-slate-950/10 dark:shadow-white/5 cursor-pointer"
-              >
-                Apply
-              </button>
-            </div>
-
-          </div>
-        </div>
-      )}
-
-      {/* ADD PROJECT MODAL */}
-      {showAddProjectModal && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
-          <div className="bg-[#0b0f19] border border-slate-800 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-fade-in">
-            <div className="px-6 py-4 bg-gradient-to-r from-emerald-950/40 to-slate-900 border-b border-slate-800 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="px-1.5 py-0.5 bg-emerald-600/20 text-emerald-400 rounded text-[10px] font-black uppercase tracking-wider">Süper Yetkili</span>
-                <h3 className="text-sm font-black text-white uppercase tracking-wider">Yeni Proje Ekle</h3>
-              </div>
-              <button 
-                onClick={() => setShowAddProjectModal(false)}
-                className="text-slate-400 hover:text-white transition text-xs font-bold cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-[10px] uppercase text-slate-400 font-extrabold mb-1">Proje Adı</label>
-                <input 
-                  type="text"
-                  placeholder="örn. IGA CITY 5. Etap - Kargo Terminali"
-                  value={newProjectName}
-                  onChange={(e) => setNewProjectName(e.target.value)}
-                  className="w-full bg-[#111625] border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[10px] uppercase text-slate-400 font-extrabold mb-1">Proje Kodu</label>
-                  <input 
-                    type="text"
-                    placeholder="örn. IGA-ETAP-5"
-                    value={newProjectCode}
-                    onChange={(e) => setNewProjectCode(e.target.value)}
-                    className="w-full bg-[#111625] border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] uppercase text-slate-400 font-extrabold mb-1">Konum</label>
-                  <input 
-                    type="text"
-                    placeholder="örn. Arnavutköy"
-                    value={newProjectLocation}
-                    onChange={(e) => setNewProjectLocation(e.target.value)}
-                    className="w-full bg-[#111625] border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[10px] uppercase text-slate-400 font-extrabold mb-1">Başlangıç İlerlemesi (%)</label>
-                  <input 
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={newProjectProgress}
-                    onChange={(e) => setNewProjectProgress(parseInt(e.target.value) || 0)}
-                    className="w-full bg-[#111625] border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] uppercase text-slate-400 font-extrabold mb-1">Toplam Bütçe (Milyon TL)</label>
-                  <input 
-                    type="number"
-                    min="1"
-                    value={newProjectBudget}
-                    onChange={(e) => setNewProjectBudget(parseInt(e.target.value) || 1000)}
-                    className="w-full bg-[#111625] border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="px-6 py-4 bg-[#090d16] border-t border-slate-800/60 flex items-center justify-end gap-3">
-              <button 
-                onClick={() => setShowAddProjectModal(false)}
-                className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs text-slate-300 font-bold cursor-pointer transition"
-              >
-                İptal
-              </button>
-              <button 
-                onClick={handleAddNewProjectSubmit}
-                disabled={!newProjectName.trim()}
-                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-xs text-white font-black cursor-pointer shadow-lg shadow-emerald-600/20 disabled:opacity-50 disabled:cursor-not-allowed transition"
-              >
-                Proje Yarat
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* EDIT ACTIVE PROJECT STATUS PARAMETERS MODAL */}
-      {showEditProjectStatusModal && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
-          <div className="bg-[#0b0f19] border border-slate-800 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-fade-in">
-            <div className="px-6 py-4 bg-gradient-to-r from-amber-950/40 to-slate-900 border-b border-slate-800 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="px-1.5 py-0.5 bg-amber-600/20 text-amber-400 rounded text-[10px] font-black uppercase tracking-wider">Durum Düzenleme</span>
-              </div>
-              <button 
-                onClick={() => setShowEditProjectStatusModal(false)}
-                className="text-slate-400 hover:text-white transition text-xs font-bold cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-[10px] uppercase text-slate-400 font-extrabold mb-1">Proje Başlığı</label>
-                <input 
-                  type="text"
-                  value={editProjectName}
-                  onChange={(e) => setEditProjectName(e.target.value)}
-                  className="w-full bg-[#111625] border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500 transition font-bold"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[10px] uppercase text-slate-400 font-extrabold mb-1">Genel İlerleme Durumu (%)</label>
-                <div className="flex items-center gap-4">
-                  <input 
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={editProjectProgress}
-                    onChange={(e) => setEditProjectProgress(parseInt(e.target.value) || 0)}
-                    className="flex-1 accent-amber-500 bg-slate-800 rounded-lg appearance-none h-2 cursor-pointer"
-                  />
-                  <span className="text-xs font-black text-amber-400 w-12 text-right">%{editProjectProgress}</span>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[10px] uppercase text-slate-400 font-extrabold mb-1">Ruhsat Durumu</label>
-                  <select 
-                    value={editProjectPermit}
-                    onChange={(e) => setEditProjectPermit(e.target.value)}
-                    className="w-full bg-[#111625] border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500 transition cursor-pointer"
-                  >
-                    <option value="ALINDI">ALINDI</option>
-                    <option value="BEKLİYOR">BEKLİYOR</option>
-                    <option value="REVİZYONDA">REVİZYONDA</option>
-                    <option value="SÜRESİ DOLDU">SÜRESİ DOLDU</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-[10px] uppercase text-slate-400 font-extrabold mb-1">Bütçe Durumu</label>
-                  <select 
-                    value={editProjectBudgetStatus}
-                    onChange={(e) => setEditProjectBudgetStatus(e.target.value)}
-                    className="w-full bg-[#111625] border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500 transition cursor-pointer font-bold text-emerald-400"
-                  >
-                    <option value="TAMAM" className="text-emerald-400">TAMAM</option>
-                    <option value="KRİTİK" className="text-amber-400">KRİTİK</option>
-                    <option value="AŞILDI" className="text-rose-400">AŞILDI</option>
-                    <option value="GÖZDEN GEÇİRİLİYOR" className="text-cyan-400">GÖZDEN GEÇİRİLİYOR</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[10px] uppercase text-slate-400 font-extrabold mb-1">Sistem Durum Fazı</label>
-                <select 
-                  value={editProjectStatus}
-                  onChange={(e) => setEditProjectStatus(e.target.value as any)}
-                  className="w-full bg-[#111625] border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500 transition cursor-pointer"
-                >
-                  <option value="Planlama">Planlama</option>
-                  <option value="Devam Ediyor">Devam Ediyor</option>
-                  <option value="Tamamlandı">Tamamlandı</option>
-                  <option value="Kritik">Kritik</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="px-6 py-4 bg-[#090d16] border-t border-slate-800/60 flex items-center justify-end gap-3">
-              <button 
-                onClick={() => setShowEditProjectStatusModal(false)}
-                className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs text-slate-300 font-bold cursor-pointer transition"
-              >
-                Vazgeç
-              </button>
-              <button 
-                onClick={handleSaveProjectStatus}
-                className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-xs text-white font-black cursor-pointer shadow-lg shadow-amber-600/20 transition"
-              >
-                Kaydet
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-
+      <EditProjectStatusDialog
+        open={showEditProjectStatusModal}
+        onClose={() => setShowEditProjectStatusModal(false)}
+        onSubmit={handleSaveProjectStatus}
+        name={editProjectName}
+        setName={setEditProjectName}
+        progress={editProjectProgress}
+        setProgress={setEditProjectProgress}
+        permit={editProjectPermit}
+        setPermit={setEditProjectPermit}
+        budgetStatus={editProjectBudgetStatus}
+        setBudgetStatus={setEditProjectBudgetStatus}
+        status={editProjectStatus}
+        setStatus={(v) => setEditProjectStatus(v as any)}
+      />
 
     </div>
   );
