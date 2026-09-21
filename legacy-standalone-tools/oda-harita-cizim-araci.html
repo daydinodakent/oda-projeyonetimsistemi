@@ -2913,6 +2913,7 @@
     bearing: initialView.bearing || 0,
     pitch: initialView.pitch || 0,
     maxPitch: 85,
+    maxZoom: 23, // MapLibre varsayılanı 22; 3B modelleri daha yakından incelemek için 23'e kadar
     attributionControl: { compact: false }
   });
   // setSky() stil tamamen yüklenmeden çağrılırsa "Style is not done loading"
@@ -14694,7 +14695,7 @@
     splitViewPanes[paneNum] = pane;
     pane.map = new maplibregl.Map({
       container: bodyEl, style: paneStyleUrl(pane.styleId),
-      center: map.getCenter(), zoom: map.getZoom(), attributionControl:false
+      center: map.getCenter(), zoom: map.getZoom(), maxZoom: 23, attributionControl:false
     });
     pane.map.once('load', function(){ renderPaneData(pane); });
     buildPaneHeader(pane, paneNum, headerEl);
