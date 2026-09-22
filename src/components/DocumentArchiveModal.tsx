@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import MuiBox from '@mui/material/Box';
 import Button from '@mui/material/Button';
+import Checkbox from '@mui/material/Checkbox';
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
@@ -15,6 +16,7 @@ import IconButton from '@mui/material/IconButton';
 import InputBase from '@mui/material/InputBase';
 import ListSubheader from '@mui/material/ListSubheader';
 import MenuItem from '@mui/material/MenuItem';
+import Slider from '@mui/material/Slider';
 import Stack from '@mui/material/Stack';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
@@ -25,6 +27,8 @@ import TableRow from '@mui/material/TableRow';
 import Typography from '@mui/material/Typography';
 import { alpha } from '@mui/material/styles';
 import FormDialog, { FormField, FieldRow } from './chrome/FormDialog';
+import FilterSelect from './ui/FilterSelect';
+import SearchInput from './ui/SearchInput';
 
 // Yeni doküman formundaki dosya formatı listesi (gruplu seçim).
 const EXTENSION_GROUPS: { label: string; items: [string, string][] }[] = [
@@ -879,15 +883,8 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
 
           {/* Search box and View selectors */}
           <div className="flex items-center gap-2 w-full md:w-auto">
-            <div className="relative w-full md:w-64">
-              <Search className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-[var(--text-secondary)]" />
-              <input
-                type="text"
-                placeholder="Arşivde ara (isim, etiket, yazar)..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded px-2.5 pl-8 py-2 text-[10px] text-[var(--text-primary)] focus:outline-none focus:border-indigo-500 font-medium"
-              />
+            <div className="w-full md:w-64">
+              <SearchInput placeholder="Arşivde ara (isim, etiket, yazar)..." value={searchQuery} onChange={setSearchQuery} />
             </div>
           </div>
         </div>
@@ -1458,21 +1455,11 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                           <div className="p-2 bg-[#0d1324] border border-slate-800 rounded-lg space-y-2">
                             <div>
                               <label className="text-[10px] text-slate-500 block uppercase font-mono">İmzalayan Yetkili Ad Soyad</label>
-                              <input 
-                                type="text"
-                                value={signerName}
-                                onChange={e => setSignerName(e.target.value)}
-                                className="w-full bg-slate-900 border border-slate-800 text-[10px] font-bold text-slate-100 rounded px-2 py-1 focus:outline-none focus:border-indigo-500"
-                              />
+                              <FormField size="small" value={signerName} onChange={e => setSignerName(e.target.value)} slotProps={{ htmlInput: { 'aria-label': 'İmzalayan yetkili ad soyad' } }} />
                             </div>
                             <div>
                               <label className="text-[10px] text-slate-500 block uppercase font-mono">Yetki Ünvanı / Rolü</label>
-                              <input 
-                                type="text"
-                                value={signerRole}
-                                onChange={e => setSignerRole(e.target.value)}
-                                className="w-full bg-slate-900 border border-slate-800 text-[10px] font-bold text-slate-100 rounded px-2 py-1 focus:outline-none focus:border-indigo-500"
-                              />
+                              <FormField size="small" value={signerRole} onChange={e => setSignerRole(e.target.value)} slotProps={{ htmlInput: { 'aria-label': 'Yetki ünvanı / rolü' } }} />
                             </div>
                           </div>
 
@@ -1538,24 +1525,19 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                               <label className="text-[10px] text-slate-400 font-black uppercase tracking-wider block">Dijital Güvenlik Kodu</label>
                               <span className="text-[10px] text-slate-600 font-mono">Örnek PIN: 1973</span>
                             </div>
-                            <input
+                            <FormField
+                              size="small"
                               type="password"
                               placeholder="4 Haneli Onay Kodu girin..."
-                              maxLength={6}
                               value={verificationCode}
                               onChange={e => setVerificationCode(e.target.value)}
-                              className="w-full bg-[#121624] border border-slate-800 rounded px-2.5 py-1.5 text-[10px] font-mono focus:outline-none focus:border-indigo-500 text-slate-200 placeholder-slate-600"
+                              slotProps={{ htmlInput: { maxLength: 6, style: { fontFamily: 'monospace' }, 'aria-label': 'Dijital güvenlik kodu' } }}
                             />
                           </div>
 
                           {/* Terms Acceptance */}
                           <label className="flex items-start gap-1.5 p-1 text-[10px] text-slate-500 select-none cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={termsAccepted}
-                              onChange={e => setTermsAccepted(e.target.checked)}
-                              className="mt-0.5 cursor-pointer accent-indigo-600"
-                            />
+                            <Checkbox size="small" color="secondary" checked={termsAccepted} onChange={e => setTermsAccepted(e.target.checked)} sx={{ p: 0, mt: 0.25 }} />
                             <span className="leading-tight">
                               Bu dökümanı onaylayarak dijital imzamın <strong>5070 Sayılı Kanun</strong> kapsamında asıl ıslak imza hükmünde arşivlenmesini kabul ediyorum.
                             </span>
@@ -1820,14 +1802,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                         </div>
 
                         <div className="flex items-center gap-2">
-                          <Search className="w-3.5 h-3.5 text-slate-400" />
-                          <input
-                            type="text"
-                            placeholder="Tabloda ara..."
-                            value={xlsxSearchQuery}
-                            onChange={(e) => setXlsxSearchQuery(e.target.value)}
-                            className="bg-[#080c14] border border-slate-800 rounded px-2.5 py-1 text-[10px] text-white focus:outline-none focus:border-emerald-500 w-44"
-                          />
+                          <SearchInput width={176} placeholder="Tabloda ara..." value={xlsxSearchQuery} onChange={setXlsxSearchQuery} />
                         </div>
                       </div>
 
@@ -2092,15 +2067,8 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                     {/* Left bookmarks panel */}
                     <div className="w-full md:w-56 bg-[#0a0e17] border border-slate-800 p-3 rounded-xl flex flex-col gap-2 shrink-0">
                       <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest block mb-1">PDF İÇİNDEKİLER</span>
-                      <div className="relative mb-2">
-                        <Search className="absolute left-2 top-2.5 w-3 h-3 text-slate-500" />
-                        <input
-                          type="text"
-                          placeholder="Bölümlerde ara..."
-                          value={pdfBookmarkSearch}
-                          onChange={(e) => setPdfBookmarkSearch(e.target.value)}
-                          className="w-full bg-[#101524] border border-slate-800 rounded px-2.5 pl-6 py-1.5 text-[10px] text-white focus:outline-none"
-                        />
+                      <div className="mb-2">
+                        <SearchInput placeholder="Bölümlerde ara..." value={pdfBookmarkSearch} onChange={setPdfBookmarkSearch} />
                       </div>
 
                       <div className="space-y-1 overflow-y-auto max-h-[160px] md:max-h-none flex-1 scrollbar-none">
@@ -2291,15 +2259,16 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                             dimension: 'Ölçülendirme / Tolerans'
                           };
                           return (
-                            <label 
+                            <label
                               key={layerName}
                               className="flex items-center gap-2 p-2 bg-slate-900/30 hover:bg-slate-900/60 border border-slate-800/40 rounded text-[10px] text-slate-300 cursor-pointer"
                             >
-                              <input
-                                type="checkbox"
+                              <Checkbox
+                                size="small"
+                                color="secondary"
                                 checked={cadLayers[layerName]}
                                 onChange={() => setCadLayers(prev => ({ ...prev, [layerName]: !prev[layerName] }))}
-                                className="accent-indigo-500 rounded cursor-pointer"
+                                sx={{ p: 0 }}
                               />
                               <span className="font-medium text-slate-300">{aliases[layerName] || layerName}</span>
                             </label>
@@ -2497,15 +2466,16 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                       {/* Projection Selector */}
                       <div className="space-y-1">
                         <label className="text-[10px] font-black text-slate-500 uppercase">PROJEKSİYON SİSTEMİ:</label>
-                        <select
+                        <FilterSelect
+                          fullWidth
                           value={gisProjection}
-                          onChange={(e) => setGisProjection(e.target.value)}
-                          className="w-full bg-[#111624] border border-slate-800 rounded px-2 py-1 text-[10px] text-slate-200 focus:outline-none"
-                        >
-                          <option value="EPSG:4326 (WGS84)">EPSG:4326 (WGS84 - Coğrafi)</option>
-                          <option value="EPSG:32635 (UTM-35N)">EPSG:32635 (UTM-35N / ED50)</option>
-                          <option value="EPSG:3857 (Web Mercator)">EPSG:3857 (Web Mercator)</option>
-                        </select>
+                          onChange={setGisProjection}
+                          options={[
+                            { value: 'EPSG:4326 (WGS84)', label: 'EPSG:4326 (WGS84 - Coğrafi)' },
+                            { value: 'EPSG:32635 (UTM-35N)', label: 'EPSG:32635 (UTM-35N / ED50)' },
+                            { value: 'EPSG:3857 (Web Mercator)', label: 'EPSG:3857 (Web Mercator)' },
+                          ]}
+                        />
                       </div>
 
                       {/* Map Layers Toggles */}
@@ -2520,11 +2490,12 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                           };
                           return (
                             <label key={layerKey} className="flex items-center gap-2 p-1.5 bg-[#121726]/40 hover:bg-[#121726]/80 border border-slate-800/40 rounded text-[10px] text-slate-300 cursor-pointer">
-                              <input
-                                type="checkbox"
+                              <Checkbox
+                                size="small"
+                                color="secondary"
                                 checked={gisLayers[layerKey]}
                                 onChange={() => setGisLayers(prev => ({ ...prev, [layerKey]: !prev[layerKey] }))}
-                                className="accent-indigo-500 rounded cursor-pointer"
+                                sx={{ p: 0 }}
                               />
                               <span>{aliases[layerKey] || layerKey}</span>
                             </label>
@@ -2664,14 +2635,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                             <span className="text-slate-400">Parlaklık (Brightness)</span>
                             <span className="font-mono text-white font-bold">{imgBrightness}%</span>
                           </div>
-                          <input
-                            type="range"
-                            min="50"
-                            max="180"
-                            value={imgBrightness}
-                            onChange={(e) => setImgBrightness(Number(e.target.value))}
-                            className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
-                          />
+                          <Slider size="small" color="secondary" min={50} max={180} value={imgBrightness} onChange={(_, v) => setImgBrightness(v as number)} aria-label="Parlaklık" />
                         </div>
 
                         <div className="space-y-1">
@@ -2679,14 +2643,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                             <span className="text-slate-400">Kontrast (Contrast)</span>
                             <span className="font-mono text-white font-bold">{imgContrast}%</span>
                           </div>
-                          <input
-                            type="range"
-                            min="50"
-                            max="180"
-                            value={imgContrast}
-                            onChange={(e) => setImgContrast(Number(e.target.value))}
-                            className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
-                          />
+                          <Slider size="small" color="secondary" min={50} max={180} value={imgContrast} onChange={(_, v) => setImgContrast(v as number)} aria-label="Kontrast" />
                         </div>
                       </div>
 
@@ -2696,12 +2653,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                         
                         <label className="flex items-center justify-between p-2 bg-[#121726]/40 hover:bg-[#121726]/80 border border-slate-800/40 rounded text-[10px] text-slate-300 cursor-pointer">
                           <span>Siyah-Beyaz (Grayscale)</span>
-                          <input
-                            type="checkbox"
-                            checked={imgGrayscale}
-                            onChange={() => setImgGrayscale(g => !g)}
-                            className="accent-indigo-500 rounded cursor-pointer"
-                          />
+                          <Checkbox size="small" color="secondary" checked={imgGrayscale} onChange={() => setImgGrayscale(g => !g)} sx={{ p: 0 }} />
                         </label>
 
                         <div className="grid grid-cols-2 gap-1.5 pt-1">
@@ -2944,29 +2896,23 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                                 {/* Volume Slider */}
                                 <div className="flex items-center gap-1">
                                   <Volume2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                                  <input
-                                    type="range"
-                                    min="0"
-                                    max="100"
-                                    value={vidVolume}
-                                    onChange={(e) => setVidVolume(Number(e.target.value))}
-                                    className="w-12 h-1 bg-slate-800 rounded appearance-none cursor-pointer accent-indigo-500"
-                                  />
+                                  <Slider size="small" color="secondary" min={0} max={100} value={vidVolume} onChange={(_, v) => setVidVolume(v as number)} aria-label="Ses düzeyi" sx={{ width: 48 }} />
                                 </div>
 
                                 {/* Speed selector */}
                                 <div className="flex items-center gap-1 font-mono text-[10px]">
                                   <span className="text-slate-500">Hız:</span>
-                                  <select
-                                    value={vidSpeed}
-                                    onChange={(e) => setVidSpeed(Number(e.target.value))}
-                                    className="bg-slate-900 border border-slate-800 rounded px-1 text-[10px] text-white focus:outline-none"
-                                  >
-                                    <option value={0.5}>0.5x</option>
-                                    <option value={1}>1.0x</option>
-                                    <option value={1.5}>1.5x</option>
-                                    <option value={2}>2.0x</option>
-                                  </select>
+                                  <FilterSelect
+                                    minWidth={56}
+                                    value={String(vidSpeed)}
+                                    onChange={(v) => setVidSpeed(Number(v))}
+                                    options={[
+                                      { value: '0.5', label: '0.5x' },
+                                      { value: '1', label: '1.0x' },
+                                      { value: '1.5', label: '1.5x' },
+                                      { value: '2', label: '2.0x' },
+                                    ]}
+                                  />
                                 </div>
                               </div>
                             </div>
