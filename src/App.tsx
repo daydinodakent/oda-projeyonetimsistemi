@@ -8,6 +8,8 @@ import NotificationCenter from './components/chrome/NotificationCenter';
 import ModuleGridDialog from './components/chrome/ModuleGridDialog';
 import { HeaderBar, ModuleTab, SegmentTab, SegmentGroup, ToolbarIconButton, AccentIconButton, SearchIconButton, ProfileMenu, ProfileButton, type ProfileMenuItem } from './components/chrome/HeaderControls';
 import { headerSurface } from './theme/tokens';
+import { FormField } from './components/chrome/FormDialog';
+import FilterSelect from './components/ui/FilterSelect';
 import { 
   Compass, LayoutGrid, Database, Smartphone, Sun, Moon, Bell, ChevronDown, CheckCircle, 
   AlertTriangle, DollarSign, Layers, Plus, FileText, Settings, UserCheck, HelpCircle, 
@@ -1174,42 +1176,41 @@ export default function App() {
                           {/* Department/Project Filter Dropdown */}
                           <div className="flex flex-col gap-1 min-w-[170px] flex-1 sm:flex-initial">
                             <label className="micro-label">ÇALIŞMA GRUBU</label>
-                            <select
+                            <FilterSelect
+                              fullWidth
                               value={kpiDepartment}
-                              onChange={(e) => setKpiDepartment(e.target.value)}
-                              className="bg-[var(--bg-secondary)] border border-[var(--border)] text-[var(--text-primary)] rounded-lg px-2.5 py-1.5 text-xs font-bold outline-none cursor-pointer focus:border-amber-500/50"
-                            >
-                              <option value="all">📁 Tüm Departmanlar (Global)</option>
-                              <option value="insaat">🏗️ İnşaat Mühendisliği</option>
-                              <option value="elektrik">⚡ Elektrik & Altyapı</option>
-                              <option value="tesisat">🔧 Mekanik & Tesisat</option>
-                              <option value="isg">🛡️ İSG, Güvenlik & Çevre</option>
-                            </select>
+                              onChange={setKpiDepartment}
+                              options={[
+                                { value: 'all', label: '📁 Tüm Departmanlar (Global)' },
+                                { value: 'insaat', label: '🏗️ İnşaat Mühendisliği' },
+                                { value: 'elektrik', label: '⚡ Elektrik & Altyapı' },
+                                { value: 'tesisat', label: '🔧 Mekanik & Tesisat' },
+                                { value: 'isg', label: '🛡️ İSG, Güvenlik & Çevre' },
+                              ]}
+                            />
                           </div>
 
                           {/* Date Range Picker: Start Date */}
                           <div className="flex flex-col gap-1 min-w-[125px] flex-1 sm:flex-initial">
                             <label className="micro-label">BAŞLANGIÇ TARİHİ</label>
-                            <input
+                            <FormField
+                              size="small"
                               type="date"
                               value={kpiStartDate}
-                              min="2026-03-01"
-                              max={kpiEndDate}
                               onChange={(e) => setKpiStartDate(e.target.value)}
-                              className="bg-[var(--bg-secondary)] border border-[var(--border)] text-[var(--text-primary)] rounded-lg px-2.5 py-1 text-xs font-mono font-bold outline-none focus:border-amber-500/50 cursor-pointer"
+                              slotProps={{ htmlInput: { min: '2026-03-01', max: kpiEndDate } }}
                             />
                           </div>
 
                           {/* Date Range Picker: End Date */}
                           <div className="flex flex-col gap-1 min-w-[125px] flex-1 sm:flex-initial">
                             <label className="micro-label">BİTİŞ TARİHİ</label>
-                            <input
+                            <FormField
+                              size="small"
                               type="date"
                               value={kpiEndDate}
-                              min={kpiStartDate}
-                              max="2026-08-31"
                               onChange={(e) => setKpiEndDate(e.target.value)}
-                              className="bg-[var(--bg-secondary)] border border-[var(--border)] text-[var(--text-primary)] rounded-lg px-2.5 py-1 text-xs font-mono font-bold outline-none focus:border-amber-500/50 cursor-pointer"
+                              slotProps={{ htmlInput: { min: kpiStartDate, max: '2026-08-31' } }}
                             />
                           </div>
                         </div>
