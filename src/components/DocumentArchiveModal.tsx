@@ -5,6 +5,39 @@ import {
   Layers, Grid, Map, Play, Pause, RotateCw, Volume2, ZoomIn, ZoomOut, Settings, Sliders, Sun, Bookmark, CheckCircle2,
   Shield, History, Lock, User
 } from 'lucide-react';
+import MuiBox from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import Checkbox from '@mui/material/Checkbox';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogTitle from '@mui/material/DialogTitle';
+import IconButton from '@mui/material/IconButton';
+import InputBase from '@mui/material/InputBase';
+import ListSubheader from '@mui/material/ListSubheader';
+import MenuItem from '@mui/material/MenuItem';
+import Slider from '@mui/material/Slider';
+import Stack from '@mui/material/Stack';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
+import Typography from '@mui/material/Typography';
+import { alpha } from '@mui/material/styles';
+import FormDialog, { FormField, FieldRow } from './chrome/FormDialog';
+import FilterSelect from './ui/FilterSelect';
+import SearchInput from './ui/SearchInput';
+
+// Yeni doküman formundaki dosya formatı listesi (gruplu seçim).
+const EXTENSION_GROUPS: { label: string; items: [string, string][] }[] = [
+  { label: 'Ofis Dokümanları', items: [['xlsx', 'Excel (xlsx)'], ['docx', 'Word (docx)'], ['pptx', 'PowerPoint (pptx)']] },
+  { label: 'Yayın ve Şablonlar', items: [['pdf', 'Adobe PDF (pdf)']] },
+  { label: 'CAD Çizimleri', items: [['dwg', 'AutoCAD Drawing (dwg)'], ['dxf', 'Drawing Exchange (dxf)'], ['ncz', 'Netcad Çizim (ncz)']] },
+  { label: 'Coğrafi / GIS Dosyaları', items: [['geojson', 'GeoJSON Verisi (geojson)'], ['kml', 'Keyhole Markup (kml)'], ['kmz', 'Keyhole Zipped (kmz)'], ['shp', 'ESRI Shapefile (shp)']] },
+  { label: 'Görsel & Medya', items: [['png', 'PNG Görüntüsü (png)'], ['jpg', 'JPEG Fotoğraf (jpg)'], ['mp4', 'MP4 Video (mp4)']] },
+];
 
 interface Document {
   id: string;
@@ -850,15 +883,8 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
 
           {/* Search box and View selectors */}
           <div className="flex items-center gap-2 w-full md:w-auto">
-            <div className="relative w-full md:w-64">
-              <Search className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-[var(--text-secondary)]" />
-              <input
-                type="text"
-                placeholder="Arşivde ara (isim, etiket, yazar)..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded px-2.5 pl-8 py-2 text-[10px] text-[var(--text-primary)] focus:outline-none focus:border-indigo-500 font-medium"
-              />
+            <div className="w-full md:w-64">
+              <SearchInput placeholder="Arşivde ara (isim, etiket, yazar)..." value={searchQuery} onChange={setSearchQuery} />
             </div>
           </div>
         </div>
@@ -1429,21 +1455,11 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                           <div className="p-2 bg-[#0d1324] border border-slate-800 rounded-lg space-y-2">
                             <div>
                               <label className="text-[10px] text-slate-500 block uppercase font-mono">İmzalayan Yetkili Ad Soyad</label>
-                              <input 
-                                type="text"
-                                value={signerName}
-                                onChange={e => setSignerName(e.target.value)}
-                                className="w-full bg-slate-900 border border-slate-800 text-[10px] font-bold text-slate-100 rounded px-2 py-1 focus:outline-none focus:border-indigo-500"
-                              />
+                              <FormField size="small" value={signerName} onChange={e => setSignerName(e.target.value)} slotProps={{ htmlInput: { 'aria-label': 'İmzalayan yetkili ad soyad' } }} />
                             </div>
                             <div>
                               <label className="text-[10px] text-slate-500 block uppercase font-mono">Yetki Ünvanı / Rolü</label>
-                              <input 
-                                type="text"
-                                value={signerRole}
-                                onChange={e => setSignerRole(e.target.value)}
-                                className="w-full bg-slate-900 border border-slate-800 text-[10px] font-bold text-slate-100 rounded px-2 py-1 focus:outline-none focus:border-indigo-500"
-                              />
+                              <FormField size="small" value={signerRole} onChange={e => setSignerRole(e.target.value)} slotProps={{ htmlInput: { 'aria-label': 'Yetki ünvanı / rolü' } }} />
                             </div>
                           </div>
 
@@ -1509,24 +1525,19 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                               <label className="text-[10px] text-slate-400 font-black uppercase tracking-wider block">Dijital Güvenlik Kodu</label>
                               <span className="text-[10px] text-slate-600 font-mono">Örnek PIN: 1973</span>
                             </div>
-                            <input
+                            <FormField
+                              size="small"
                               type="password"
                               placeholder="4 Haneli Onay Kodu girin..."
-                              maxLength={6}
                               value={verificationCode}
                               onChange={e => setVerificationCode(e.target.value)}
-                              className="w-full bg-[#121624] border border-slate-800 rounded px-2.5 py-1.5 text-[10px] font-mono focus:outline-none focus:border-indigo-500 text-slate-200 placeholder-slate-600"
+                              slotProps={{ htmlInput: { maxLength: 6, style: { fontFamily: 'monospace' }, 'aria-label': 'Dijital güvenlik kodu' } }}
                             />
                           </div>
 
                           {/* Terms Acceptance */}
                           <label className="flex items-start gap-1.5 p-1 text-[10px] text-slate-500 select-none cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={termsAccepted}
-                              onChange={e => setTermsAccepted(e.target.checked)}
-                              className="mt-0.5 cursor-pointer accent-indigo-600"
-                            />
+                            <Checkbox size="small" color="secondary" checked={termsAccepted} onChange={e => setTermsAccepted(e.target.checked)} sx={{ p: 0, mt: 0.25 }} />
                             <span className="leading-tight">
                               Bu dökümanı onaylayarak dijital imzamın <strong>5070 Sayılı Kanun</strong> kapsamında asıl ıslak imza hükmünde arşivlenmesini kabul ediyorum.
                             </span>
@@ -1594,259 +1605,104 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
       </div>
 
       {/* SUB-MODAL 1: ADD NEW DOCUMENT MODAL FORM */}
-      {showAddDocModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-55 flex items-center justify-center p-4">
-          <div className="bg-[#0e121e] border border-slate-800 p-5 rounded-2xl w-full max-w-md space-y-4 shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
-            <div className="flex justify-between items-center border-b border-slate-800 pb-2">
-              <h3 className="text-xs font-black text-slate-100 flex items-center gap-1.5 uppercase">
-                <Plus className="w-4 h-4 text-indigo-400" />
-                Arşive Yeni Teknik Doküman Ekle
-              </h3>
-              <button 
-                onClick={() => setShowAddDocModal(false)}
-                className="text-slate-400 hover:text-white text-xs font-bold"
-              >
-                ✕
-              </button>
-            </div>
+      <FormDialog
+        open={showAddDocModal}
+        onClose={() => setShowAddDocModal(false)}
+        title="Arşive Yeni Teknik Doküman Ekle"
+        icon={<Plus className="w-4 h-4" />}
+        onSubmit={handleCreateDocument}
+        cancelLabel="Vazgeç"
+        submitLabel="Arşive Kaydet"
+      >
+        <FormField label="Doküman Adı" required placeholder="Örn: Metro_BHM_Zemin_Etut_Raporu" value={newDocName} onChange={(e) => setNewDocName(e.target.value)} slotProps={{ inputLabel: { shrink: true } }} />
 
-            <form onSubmit={handleCreateDocument} className="space-y-3.5 text-[10px]">
-              {/* Doc Name */}
-              <div className="space-y-1">
-                <label className="text-[10px] font-black text-slate-400 uppercase block">Doküman Adı:</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Örn: Metro_BHM_Zemin_Etut_Raporu"
-                  value={newDocName}
-                  onChange={(e) => setNewDocName(e.target.value)}
-                  className="w-full bg-[#161a29] border border-slate-800 rounded px-2.5 py-1.5 text-white focus:outline-none focus:border-indigo-500 font-medium"
-                />
-              </div>
+        <FieldRow>
+          <FormField
+            select
+            label="Süreç Aşaması"
+            value={newDocPhase}
+            onChange={(e) => {
+              const phase = e.target.value as any;
+              setNewDocPhase(phase);
+              // Update appropriate default folder
+              setNewDocFolderId(phase === 'PROJE' ? 'proj-1' : phase === 'İNŞAAT' ? 'ins-2' : 'islet-1');
+            }}
+          >
+            <MenuItem value="PROJE">Plan(Tasarım)</MenuItem>
+            <MenuItem value="İNŞAAT">İnşaat</MenuItem>
+            <MenuItem value="İŞLETME">İşletme</MenuItem>
+          </FormField>
 
-              <div className="grid grid-cols-2 gap-3">
-                {/* Phase Selection */}
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-slate-400 uppercase block">Süreç Aşaması:</label>
-                  <select
-                    value={newDocPhase}
-                    onChange={(e) => {
-                      const phase = e.target.value as any;
-                      setNewDocPhase(phase);
-                      // Update appropriate default folder
-                      setNewDocFolderId(phase === 'PROJE' ? 'proj-1' : phase === 'İNŞAAT' ? 'ins-2' : 'islet-1');
-                    }}
-                    className="w-full bg-[#161a29] border border-slate-800 rounded px-2 py-1.5 text-white focus:outline-none focus:border-indigo-500 font-medium"
-                  >
-                    <option value="PROJE">Plan(Tasarım)</option>
-                    <option value="İNŞAAT">İnşaat</option>
-                    <option value="İŞLETME">İşletme</option>
-                  </select>
-                </div>
+          <FormField
+            select
+            label="Dosya Formatı / Uzantısı"
+            value={newDocExtension}
+            onChange={(e) => {
+              const ext = e.target.value;
+              setNewDocExtension(ext);
+              // Auto categories selection mapper
+              if (ext === 'pdf') setNewDocCategory('Şartname');
+              else if (['dwg', 'dxf', 'dgn', 'ncz'].includes(ext)) setNewDocCategory('Çizim (CAD)');
+              else if (['geojson', 'kml', 'kmz', 'shp', 'gpkg'].includes(ext)) setNewDocCategory('GIS Verisi');
+              else if (['xlsx', 'docx', 'pptx'].includes(ext)) setNewDocCategory('Ofis Belgesi');
+              else if (['png', 'jpg', 'jpeg'].includes(ext)) setNewDocCategory('Medya');
+            }}
+          >
+            {EXTENSION_GROUPS.flatMap((g) => [
+              <ListSubheader key={`h-${g.label}`}>{g.label}</ListSubheader>,
+              ...g.items.map(([value, label]) => <MenuItem key={value} value={value}>{label}</MenuItem>),
+            ])}
+          </FormField>
+        </FieldRow>
 
-                {/* File format extension selection */}
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-slate-400 uppercase block">Dosya Formatı / Uzantısı:</label>
-                  <select
-                    value={newDocExtension}
-                    onChange={(e) => {
-                      const ext = e.target.value;
-                      setNewDocExtension(ext);
-                      // Auto categories selection mapper
-                      if (ext === 'pdf') setNewDocCategory('Şartname');
-                      else if (['dwg', 'dxf', 'dgn', 'ncz'].includes(ext)) setNewDocCategory('Çizim (CAD)');
-                      else if (['geojson', 'kml', 'kmz', 'shp', 'gpkg'].includes(ext)) setNewDocCategory('GIS Verisi');
-                      else if (['xlsx', 'docx', 'pptx'].includes(ext)) setNewDocCategory('Ofis Belgesi');
-                      else if (['png', 'jpg', 'jpeg'].includes(ext)) setNewDocCategory('Medya');
-                    }}
-                    className="w-full bg-[#161a29] border border-slate-800 rounded px-2 py-1.5 text-white focus:outline-none focus:border-indigo-500 font-medium"
-                  >
-                    <optgroup label="Ofis Dokümanları">
-                      <option value="xlsx">Excel (xlsx)</option>
-                      <option value="docx">Word (docx)</option>
-                      <option value="pptx">PowerPoint (pptx)</option>
-                    </optgroup>
-                    <optgroup label="Yayın ve Şablonlar">
-                      <option value="pdf">Adobe PDF (pdf)</option>
-                    </optgroup>
-                    <optgroup label="CAD Çizimleri">
-                      <option value="dwg">AutoCAD Drawing (dwg)</option>
-                      <option value="dxf">Drawing Exchange (dxf)</option>
-                      <option value="ncz">Netcad Çizim (ncz)</option>
-                    </optgroup>
-                    <optgroup label="Coğrafi / GIS Dosyaları">
-                      <option value="geojson">GeoJSON Verisi (geojson)</option>
-                      <option value="kml">Keyhole Markup (kml)</option>
-                      <option value="kmz">Keyhole Zipped (kmz)</option>
-                      <option value="shp">ESRI Shapefile (shp)</option>
-                    </optgroup>
-                    <optgroup label="Görsel & Medya">
-                      <option value="png">PNG Görüntüsü (png)</option>
-                      <option value="jpg">JPEG Fotoğraf (jpg)</option>
-                      <option value="mp4">MP4 Video (mp4)</option>
-                    </optgroup>
-                  </select>
-                </div>
-              </div>
+        <FieldRow>
+          <FormField select label="Kategori Türü" value={newDocCategory} onChange={(e) => setNewDocCategory(e.target.value)}>
+            {['Şartname', 'Çizim (CAD)', 'GIS Verisi', 'Ofis Belgesi', 'Medya'].map((c) => (
+              <MenuItem key={c} value={c}>{c}</MenuItem>
+            ))}
+          </FormField>
 
-              <div className="grid grid-cols-2 gap-3">
-                {/* Category Spec */}
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-slate-400 uppercase block">Kategori Türü:</label>
-                  <select
-                    value={newDocCategory}
-                    onChange={(e) => setNewDocCategory(e.target.value)}
-                    className="w-full bg-[#161a29] border border-slate-800 rounded px-2 py-1.5 text-white focus:outline-none"
-                  >
-                    <option value="Şartname">Şartname</option>
-                    <option value="Çizim (CAD)">Çizim (CAD)</option>
-                    <option value="GIS Verisi">GIS Verisi</option>
-                    <option value="Ofis Belgesi">Ofis Belgesi</option>
-                    <option value="Medya">Medya</option>
-                  </select>
-                </div>
+          <FormField select label="İlişkili Klasör Konumu" value={newDocFolderId} onChange={(e) => setNewDocFolderId(e.target.value)}>
+            {folders.flatMap(phase => [
+              <ListSubheader key={`h-${phase.id}`}>{phase.name}</ListSubheader>,
+              ...phase.subfolders.map(sub => <MenuItem key={sub.id} value={sub.id}>{sub.name}</MenuItem>),
+            ])}
+          </FormField>
+        </FieldRow>
 
-                {/* Subfolder Node placement */}
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-slate-400 uppercase block">İlişkili Klasör Konumu:</label>
-                  <select
-                    value={newDocFolderId}
-                    onChange={(e) => setNewDocFolderId(e.target.value)}
-                    className="w-full bg-[#161a29] border border-slate-800 rounded px-2 py-1.5 text-white focus:outline-none"
-                  >
-                    {folders.map(phase => (
-                      <optgroup key={phase.id} label={phase.name}>
-                        {phase.subfolders.map(sub => (
-                          <option key={sub.id} value={sub.id}>{sub.name}</option>
-                        ))}
-                      </optgroup>
-                    ))}
-                  </select>
-                </div>
-              </div>
+        <FieldRow>
+          <FormField label="Oluşturan / Yazar" required value={newDocAuthor} onChange={(e) => setNewDocAuthor(e.target.value)} />
+          <FormField label="Belge Versiyonu" required value={newDocVersion} onChange={(e) => setNewDocVersion(e.target.value)} slotProps={{ htmlInput: { style: { fontFamily: 'monospace' } } }} />
+        </FieldRow>
 
-              <div className="grid grid-cols-2 gap-3">
-                {/* Author Name */}
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-slate-400 uppercase block">Oluşturan / Yazar:</label>
-                  <input
-                    type="text"
-                    required
-                    value={newDocAuthor}
-                    onChange={(e) => setNewDocAuthor(e.target.value)}
-                    className="w-full bg-[#161a29] border border-slate-800 rounded px-2.5 py-1.5 text-white focus:outline-none"
-                  />
-                </div>
-
-                {/* Version */}
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-slate-400 uppercase block">Belge Versiyonu:</label>
-                  <input
-                    type="text"
-                    required
-                    value={newDocVersion}
-                    onChange={(e) => setNewDocVersion(e.target.value)}
-                    className="w-full bg-[#161a29] border border-slate-800 rounded px-2.5 py-1.5 text-white focus:outline-none font-mono"
-                  />
-                </div>
-              </div>
-
-              {/* Description field */}
-              <div className="space-y-1">
-                <label className="text-[10px] font-black text-slate-400 uppercase block">Belge Açıklaması / Notlar:</label>
-                <textarea
-                  value={newDocDescription}
-                  onChange={(e) => setNewDocDescription(e.target.value)}
-                  placeholder="Dokümanın revizyon içeriği, kullanım amacı ve koordinat şablon bilgileri."
-                  rows={2}
-                  className="w-full bg-[#161a29] border border-slate-800 rounded px-2.5 py-1.5 text-white focus:outline-none text-[10px] font-medium"
-                />
-              </div>
-
-              <div className="flex gap-2 pt-2 border-t border-slate-900">
-                <button
-                  type="button"
-                  onClick={() => setShowAddDocModal(false)}
-                  className="w-1/2 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-slate-300 font-bold uppercase cursor-pointer"
-                >
-                  Vazgeç
-                </button>
-                <button
-                  type="submit"
-                  className="w-1/2 py-1.5 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-white font-black uppercase cursor-pointer"
-                >
-                  Arşive Kaydet
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+        <FormField
+          label="Belge Açıklaması / Notlar"
+          multiline
+          rows={2}
+          placeholder="Dokümanın revizyon içeriği, kullanım amacı ve koordinat şablon bilgileri."
+          value={newDocDescription}
+          onChange={(e) => setNewDocDescription(e.target.value)}
+          slotProps={{ inputLabel: { shrink: true } }}
+        />
+      </FormDialog>
 
       {/* SUB-MODAL 2: ADD NEW FOLDER FORM */}
-      {showAddFolderModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-55 flex items-center justify-center p-4">
-          <div className="bg-[#0e121e] border border-slate-800 p-5 rounded-2xl w-full max-w-sm space-y-4 shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
-            <div className="flex justify-between items-center border-b border-slate-800 pb-2">
-              <h3 className="text-xs font-black text-slate-100 flex items-center gap-1.5 uppercase">
-                <Folder className="w-4 h-4 text-amber-500" />
-                Hiyerarşiye Yeni Klasör Ekle
-              </h3>
-              <button 
-                onClick={() => setShowAddFolderModal(false)}
-                className="text-slate-400 hover:text-white text-xs font-bold"
-              >
-                ✕
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateFolder} className="space-y-4 text-[10px]">
-              {/* Phase classification */}
-              <div className="space-y-1">
-                <label className="text-[10px] font-black text-slate-400 uppercase block">Üst Süreç Grubu:</label>
-                <select
-                  value={newFolderPhase}
-                  onChange={(e) => setNewFolderPhase(e.target.value)}
-                  className="w-full bg-[#161a29] border border-slate-800 rounded px-2 py-1.5 text-white focus:outline-none"
-                >
-                  <option value="phase-1">1. Proje Aşaması (Tasarım)</option>
-                  <option value="phase-2">2. İnşaat Aşaması (Şantiye)</option>
-                  <option value="phase-3">3. İşletme Aşaması (Tesis)</option>
-                </select>
-              </div>
-
-              {/* Folder Name input */}
-              <div className="space-y-1">
-                <label className="text-[10px] font-black text-slate-400 uppercase block">Klasör Adı:</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Örn: Geoteknik ve Sismografi Analizleri"
-                  value={newFolderName}
-                  onChange={(e) => setNewFolderName(e.target.value)}
-                  className="w-full bg-[#161a29] border border-slate-800 rounded px-2.5 py-1.5 text-white focus:outline-none font-medium"
-                />
-              </div>
-
-              <div className="flex gap-2 pt-2 border-t border-slate-900">
-                <button
-                  type="button"
-                  onClick={() => setShowAddFolderModal(false)}
-                  className="w-1/2 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-slate-300 font-bold uppercase cursor-pointer"
-                >
-                  Vazgeç
-                </button>
-                <button
-                  type="submit"
-                  className="w-1/2 py-1.5 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-white font-black uppercase cursor-pointer"
-                >
-                  Klasörü Oluştur
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <FormDialog
+        open={showAddFolderModal}
+        onClose={() => setShowAddFolderModal(false)}
+        title="Hiyerarşiye Yeni Klasör Ekle"
+        icon={<Folder className="w-4 h-4" />}
+        onSubmit={handleCreateFolder}
+        cancelLabel="Vazgeç"
+        submitLabel="Klasörü Oluştur"
+      >
+        <FormField select label="Üst Süreç Grubu" value={newFolderPhase} onChange={(e) => setNewFolderPhase(e.target.value)}>
+          <MenuItem value="phase-1">1. Proje Aşaması (Tasarım)</MenuItem>
+          <MenuItem value="phase-2">2. İnşaat Aşaması (Şantiye)</MenuItem>
+          <MenuItem value="phase-3">3. İşletme Aşaması (Tesis)</MenuItem>
+        </FormField>
+        <FormField label="Klasör Adı" required placeholder="Örn: Geoteknik ve Sismografi Analizleri" value={newFolderName} onChange={(e) => setNewFolderName(e.target.value)} slotProps={{ inputLabel: { shrink: true } }} />
+      </FormDialog>
 
       {/* FULL SCREEN DOCUMENT PREVIEW LIGHTBOX */}
       {fullScreenPreviewDoc && (
@@ -1946,14 +1802,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                         </div>
 
                         <div className="flex items-center gap-2">
-                          <Search className="w-3.5 h-3.5 text-slate-400" />
-                          <input
-                            type="text"
-                            placeholder="Tabloda ara..."
-                            value={xlsxSearchQuery}
-                            onChange={(e) => setXlsxSearchQuery(e.target.value)}
-                            className="bg-[#080c14] border border-slate-800 rounded px-2.5 py-1 text-[10px] text-white focus:outline-none focus:border-emerald-500 w-44"
-                          />
+                          <SearchInput width={176} placeholder="Tabloda ara..." value={xlsxSearchQuery} onChange={setXlsxSearchQuery} />
                         </div>
                       </div>
 
@@ -2218,15 +2067,8 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                     {/* Left bookmarks panel */}
                     <div className="w-full md:w-56 bg-[#0a0e17] border border-slate-800 p-3 rounded-xl flex flex-col gap-2 shrink-0">
                       <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest block mb-1">PDF İÇİNDEKİLER</span>
-                      <div className="relative mb-2">
-                        <Search className="absolute left-2 top-2.5 w-3 h-3 text-slate-500" />
-                        <input
-                          type="text"
-                          placeholder="Bölümlerde ara..."
-                          value={pdfBookmarkSearch}
-                          onChange={(e) => setPdfBookmarkSearch(e.target.value)}
-                          className="w-full bg-[#101524] border border-slate-800 rounded px-2.5 pl-6 py-1.5 text-[10px] text-white focus:outline-none"
-                        />
+                      <div className="mb-2">
+                        <SearchInput placeholder="Bölümlerde ara..." value={pdfBookmarkSearch} onChange={setPdfBookmarkSearch} />
                       </div>
 
                       <div className="space-y-1 overflow-y-auto max-h-[160px] md:max-h-none flex-1 scrollbar-none">
@@ -2417,15 +2259,16 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                             dimension: 'Ölçülendirme / Tolerans'
                           };
                           return (
-                            <label 
+                            <label
                               key={layerName}
                               className="flex items-center gap-2 p-2 bg-slate-900/30 hover:bg-slate-900/60 border border-slate-800/40 rounded text-[10px] text-slate-300 cursor-pointer"
                             >
-                              <input
-                                type="checkbox"
+                              <Checkbox
+                                size="small"
+                                color="secondary"
                                 checked={cadLayers[layerName]}
                                 onChange={() => setCadLayers(prev => ({ ...prev, [layerName]: !prev[layerName] }))}
-                                className="accent-indigo-500 rounded cursor-pointer"
+                                sx={{ p: 0 }}
                               />
                               <span className="font-medium text-slate-300">{aliases[layerName] || layerName}</span>
                             </label>
@@ -2623,15 +2466,16 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                       {/* Projection Selector */}
                       <div className="space-y-1">
                         <label className="text-[10px] font-black text-slate-500 uppercase">PROJEKSİYON SİSTEMİ:</label>
-                        <select
+                        <FilterSelect
+                          fullWidth
                           value={gisProjection}
-                          onChange={(e) => setGisProjection(e.target.value)}
-                          className="w-full bg-[#111624] border border-slate-800 rounded px-2 py-1 text-[10px] text-slate-200 focus:outline-none"
-                        >
-                          <option value="EPSG:4326 (WGS84)">EPSG:4326 (WGS84 - Coğrafi)</option>
-                          <option value="EPSG:32635 (UTM-35N)">EPSG:32635 (UTM-35N / ED50)</option>
-                          <option value="EPSG:3857 (Web Mercator)">EPSG:3857 (Web Mercator)</option>
-                        </select>
+                          onChange={setGisProjection}
+                          options={[
+                            { value: 'EPSG:4326 (WGS84)', label: 'EPSG:4326 (WGS84 - Coğrafi)' },
+                            { value: 'EPSG:32635 (UTM-35N)', label: 'EPSG:32635 (UTM-35N / ED50)' },
+                            { value: 'EPSG:3857 (Web Mercator)', label: 'EPSG:3857 (Web Mercator)' },
+                          ]}
+                        />
                       </div>
 
                       {/* Map Layers Toggles */}
@@ -2646,11 +2490,12 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                           };
                           return (
                             <label key={layerKey} className="flex items-center gap-2 p-1.5 bg-[#121726]/40 hover:bg-[#121726]/80 border border-slate-800/40 rounded text-[10px] text-slate-300 cursor-pointer">
-                              <input
-                                type="checkbox"
+                              <Checkbox
+                                size="small"
+                                color="secondary"
                                 checked={gisLayers[layerKey]}
                                 onChange={() => setGisLayers(prev => ({ ...prev, [layerKey]: !prev[layerKey] }))}
-                                className="accent-indigo-500 rounded cursor-pointer"
+                                sx={{ p: 0 }}
                               />
                               <span>{aliases[layerKey] || layerKey}</span>
                             </label>
@@ -2790,14 +2635,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                             <span className="text-slate-400">Parlaklık (Brightness)</span>
                             <span className="font-mono text-white font-bold">{imgBrightness}%</span>
                           </div>
-                          <input
-                            type="range"
-                            min="50"
-                            max="180"
-                            value={imgBrightness}
-                            onChange={(e) => setImgBrightness(Number(e.target.value))}
-                            className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
-                          />
+                          <Slider size="small" color="secondary" min={50} max={180} value={imgBrightness} onChange={(_, v) => setImgBrightness(v as number)} aria-label="Parlaklık" />
                         </div>
 
                         <div className="space-y-1">
@@ -2805,14 +2643,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                             <span className="text-slate-400">Kontrast (Contrast)</span>
                             <span className="font-mono text-white font-bold">{imgContrast}%</span>
                           </div>
-                          <input
-                            type="range"
-                            min="50"
-                            max="180"
-                            value={imgContrast}
-                            onChange={(e) => setImgContrast(Number(e.target.value))}
-                            className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
-                          />
+                          <Slider size="small" color="secondary" min={50} max={180} value={imgContrast} onChange={(_, v) => setImgContrast(v as number)} aria-label="Kontrast" />
                         </div>
                       </div>
 
@@ -2822,12 +2653,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                         
                         <label className="flex items-center justify-between p-2 bg-[#121726]/40 hover:bg-[#121726]/80 border border-slate-800/40 rounded text-[10px] text-slate-300 cursor-pointer">
                           <span>Siyah-Beyaz (Grayscale)</span>
-                          <input
-                            type="checkbox"
-                            checked={imgGrayscale}
-                            onChange={() => setImgGrayscale(g => !g)}
-                            className="accent-indigo-500 rounded cursor-pointer"
-                          />
+                          <Checkbox size="small" color="secondary" checked={imgGrayscale} onChange={() => setImgGrayscale(g => !g)} sx={{ p: 0 }} />
                         </label>
 
                         <div className="grid grid-cols-2 gap-1.5 pt-1">
@@ -3070,29 +2896,23 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
                                 {/* Volume Slider */}
                                 <div className="flex items-center gap-1">
                                   <Volume2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                                  <input
-                                    type="range"
-                                    min="0"
-                                    max="100"
-                                    value={vidVolume}
-                                    onChange={(e) => setVidVolume(Number(e.target.value))}
-                                    className="w-12 h-1 bg-slate-800 rounded appearance-none cursor-pointer accent-indigo-500"
-                                  />
+                                  <Slider size="small" color="secondary" min={0} max={100} value={vidVolume} onChange={(_, v) => setVidVolume(v as number)} aria-label="Ses düzeyi" sx={{ width: 48 }} />
                                 </div>
 
                                 {/* Speed selector */}
                                 <div className="flex items-center gap-1 font-mono text-[10px]">
                                   <span className="text-slate-500">Hız:</span>
-                                  <select
-                                    value={vidSpeed}
-                                    onChange={(e) => setVidSpeed(Number(e.target.value))}
-                                    className="bg-slate-900 border border-slate-800 rounded px-1 text-[10px] text-white focus:outline-none"
-                                  >
-                                    <option value={0.5}>0.5x</option>
-                                    <option value={1}>1.0x</option>
-                                    <option value={1.5}>1.5x</option>
-                                    <option value={2}>2.0x</option>
-                                  </select>
+                                  <FilterSelect
+                                    minWidth={56}
+                                    value={String(vidSpeed)}
+                                    onChange={(v) => setVidSpeed(Number(v))}
+                                    options={[
+                                      { value: '0.5', label: '0.5x' },
+                                      { value: '1', label: '1.0x' },
+                                      { value: '1.5', label: '1.5x' },
+                                      { value: '2', label: '2.0x' },
+                                    ]}
+                                  />
                                 </div>
                               </div>
                             </div>
@@ -3156,137 +2976,134 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
       )}
 
       {/* SUB-MODAL 3: AUDIT LEDGER MODAL */}
-      {showAuditLedgerModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-55 flex items-center justify-center p-4">
-          <div className="bg-[#0c101c] border border-slate-800 p-6 rounded-2xl w-full max-w-4xl max-h-[85vh] flex flex-col space-y-4 shadow-[0_20px_50px_rgba(0,0,0,0.6)]">
-            {/* Header */}
-            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-              <div className="flex items-center gap-2">
-                <div className="p-1.5 bg-indigo-500/10 border border-indigo-500/20 rounded-lg">
-                  <Shield className="w-5 h-5 text-indigo-400" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-black text-slate-100 uppercase tracking-wider">CDE Dijital İmza Kanıt Defteri</h3>
-                  <p className="text-[10px] text-slate-500 font-mono">5070 Sayılı Elektronik İmza Kanunu Güvenlik & Doğruluk Defteri</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowAuditLedgerModal(false)}
-                className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800/50 rounded-lg cursor-pointer transition"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+      <Dialog
+        open={showAuditLedgerModal}
+        onClose={() => setShowAuditLedgerModal(false)}
+        fullWidth
+        maxWidth="lg"
+        sx={{ zIndex: 9999 }}
+        slotProps={{
+          backdrop: { sx: { bgcolor: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' } },
+          paper: { sx: { bgcolor: 'background.paper', backgroundImage: 'none', border: 1, borderColor: 'divider', borderRadius: 4, maxHeight: '85vh' } },
+        }}
+      >
+        <DialogTitle component="div" sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 6, py: 4, borderBottom: 1, borderColor: 'divider' }}>
+          <Stack direction="row" spacing={3} sx={{ alignItems: 'center' }}>
+            <MuiBox sx={{ p: 1.5, display: 'flex', color: 'secondary.light', bgcolor: (t) => alpha(t.palette.secondary.main, 0.12), border: 1, borderColor: (t) => alpha(t.palette.secondary.main, 0.25), borderRadius: 2 }}>
+              <Shield className="w-5 h-5" />
+            </MuiBox>
+            <MuiBox>
+              <Typography variant="h4" component="h3" sx={{ fontSize: 14, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em' }}>CDE Dijital İmza Kanıt Defteri</Typography>
+              <Typography sx={{ fontSize: 10, fontFamily: 'monospace', color: 'text.secondary' }}>5070 Sayılı Elektronik İmza Kanunu Güvenlik & Doğruluk Defteri</Typography>
+            </MuiBox>
+          </Stack>
+          <IconButton size="small" onClick={() => setShowAuditLedgerModal(false)} aria-label="Kapat" sx={{ color: 'text.secondary' }}>
+            <X className="w-4 h-4" />
+          </IconButton>
+        </DialogTitle>
 
+        <DialogContent sx={{ px: 6, '&&': { pt: 4 } }}>
+          <Stack spacing={3}>
             {/* Filter Search Bar */}
-            <div className="flex gap-2 items-center">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                <input
-                  type="text"
-                  placeholder="Döküman Adı, Onaylayan Yetkili veya Rolüne göre kanıt ara..."
-                  value={searchLedgerQuery}
-                  onChange={e => setSearchLedgerQuery(e.target.value)}
-                  className="w-full bg-[#121624] border border-slate-800 rounded-lg pl-9 pr-4 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 placeholder-slate-500"
-                />
-              </div>
-              <span className="text-[10px] text-slate-500 font-mono shrink-0">
+            <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
+              <InputBase
+                fullWidth
+                placeholder="Döküman Adı, Onaylayan Yetkili veya Rolüne göre kanıt ara..."
+                value={searchLedgerQuery}
+                onChange={e => setSearchLedgerQuery(e.target.value)}
+                startAdornment={<Search className="w-4 h-4" style={{ marginRight: 8, opacity: 0.6 }} />}
+                inputProps={{ 'aria-label': 'Kanıt ara' }}
+                sx={{ px: 3, py: 0.5, fontSize: 12, bgcolor: 'background.default', border: 1, borderColor: 'divider', borderRadius: 2 }}
+              />
+              <Typography component="span" sx={{ flexShrink: 0, fontSize: 10, fontFamily: 'monospace', color: 'text.secondary' }}>
                 Toplam Kayıt: {signatureLogs.length}
-              </span>
-            </div>
+              </Typography>
+            </Stack>
 
             {/* Logs List Container */}
-            <div className="flex-1 overflow-auto bg-[#070b13] border border-slate-900 rounded-xl max-h-[50vh]" style={{ scrollbarWidth: 'thin' }}>
-              {(() => {
-                const filteredLogs = signatureLogs.filter(log => 
-                  log.docName.toLowerCase().includes(searchLedgerQuery.toLowerCase()) ||
-                  log.approver.toLowerCase().includes(searchLedgerQuery.toLowerCase()) ||
-                  log.role.toLowerCase().includes(searchLedgerQuery.toLowerCase()) ||
-                  log.id.toLowerCase().includes(searchLedgerQuery.toLowerCase())
-                );
+            {(() => {
+              const q = searchLedgerQuery.toLowerCase();
+              const filteredLogs = signatureLogs.filter(log =>
+                log.docName.toLowerCase().includes(q) ||
+                log.approver.toLowerCase().includes(q) ||
+                log.role.toLowerCase().includes(q) ||
+                log.id.toLowerCase().includes(q)
+              );
 
-                if (filteredLogs.length === 0) {
-                  return (
-                    <div className="p-8 text-center text-slate-600 font-mono text-[10px] space-y-2">
-                      <Lock className="w-10 h-10 text-slate-800 mx-auto" />
-                      <p className="uppercase font-bold text-slate-500">Defterde Kayıt Bulunamadı</p>
-                      <p className="text-[10px] text-slate-600">Arama kriterini değiştirebilir veya bekleyen dökümanları imzalayarak yeni kanıt oluşturabilirsiniz.</p>
-                    </div>
-                  );
-                }
-
+              if (filteredLogs.length === 0) {
                 return (
-                  <table className="w-full text-left border-collapse text-[10px]">
-                    <thead>
-                      <tr className="border-b border-slate-800 bg-[#0c101c] text-slate-400 font-mono font-black uppercase text-[10px] tracking-widest">
-                        <th className="py-2 px-3">Sertifika No</th>
-                        <th className="py-2 px-3">Döküman Adı</th>
-                        <th className="py-2 px-3">Onaylayan / Rol</th>
-                        <th className="py-2 px-3">Zaman Damgası</th>
-                        <th className="py-2 px-3">Doğrulama IP</th>
-                        <th className="py-2 px-3">İmza Görsel Kanıtı</th>
-                        <th className="py-2 px-3">Kriptografik Hash (SHA256)</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-900/60 font-medium">
+                  <Stack spacing={1.5} sx={{ p: 8, alignItems: 'center', textAlign: 'center', fontFamily: 'monospace', bgcolor: 'background.default', border: 1, borderColor: 'divider', borderRadius: 3 }}>
+                    <Lock className="w-10 h-10" style={{ opacity: 0.4 }} />
+                    <Typography sx={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: 'text.secondary' }}>Defterde Kayıt Bulunamadı</Typography>
+                    <Typography sx={{ fontSize: 10, color: 'text.disabled' }}>Arama kriterini değiştirebilir veya bekleyen dökümanları imzalayarak yeni kanıt oluşturabilirsiniz.</Typography>
+                  </Stack>
+                );
+              }
+
+              return (
+                <TableContainer sx={{ maxHeight: '50vh', bgcolor: 'background.default', border: 1, borderColor: 'divider', borderRadius: 3 }}>
+                  <Table stickyHeader size="small">
+                    <TableHead>
+                      <TableRow>
+                        {['Sertifika No', 'Döküman Adı', 'Onaylayan / Rol', 'Zaman Damgası', 'Doğrulama IP', 'İmza Görsel Kanıtı', 'Kriptografik Hash (SHA256)'].map((h) => (
+                          <TableCell key={h} sx={{ fontFamily: 'monospace', fontSize: 10, fontWeight: 900, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'text.secondary', bgcolor: 'background.paper' }}>{h}</TableCell>
+                        ))}
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
                       {filteredLogs.map(log => (
-                        <tr key={log.id} className="hover:bg-slate-800/10 transition">
-                          <td className="py-3 px-3 font-mono font-bold text-indigo-400 select-all">{log.id}</td>
-                          <td className="py-3 px-3 font-semibold text-slate-200 max-w-[150px] truncate" title={log.docName}>{log.docName}</td>
-                          <td className="py-3 px-3 text-slate-300">
-                            <span className="block font-bold">{log.approver}</span>
-                            <span className="text-[10px] text-slate-500">{log.role}</span>
-                          </td>
-                          <td className="py-3 px-3 font-mono text-slate-400 text-[10px]">{log.timestamp}</td>
-                          <td className="py-3 px-3 font-mono text-slate-500 text-[10px]">{log.ipAddress}</td>
-                          <td className="py-3 px-3">
-                            <div className="bg-white/5 border border-slate-800/60 rounded px-1.5 py-1 min-h-[30px] flex items-center justify-center max-w-[120px]">
+                        <TableRow key={log.id} hover>
+                          <TableCell sx={{ fontFamily: 'monospace', fontWeight: 700, fontSize: 10, color: 'secondary.light', userSelect: 'all' }}>{log.id}</TableCell>
+                          <TableCell title={log.docName} sx={{ fontSize: 10, fontWeight: 600, maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{log.docName}</TableCell>
+                          <TableCell sx={{ fontSize: 10 }}>
+                            <MuiBox component="span" sx={{ display: 'block', fontWeight: 700 }}>{log.approver}</MuiBox>
+                            <MuiBox component="span" sx={{ fontSize: 10, color: 'text.secondary' }}>{log.role}</MuiBox>
+                          </TableCell>
+                          <TableCell sx={{ fontFamily: 'monospace', fontSize: 10, color: 'text.secondary' }}>{log.timestamp}</TableCell>
+                          <TableCell sx={{ fontFamily: 'monospace', fontSize: 10, color: 'text.secondary' }}>{log.ipAddress}</TableCell>
+                          <TableCell>
+                            <MuiBox sx={{ px: 1.5, py: 1, minHeight: 30, maxWidth: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'action.hover', border: 1, borderColor: 'divider', borderRadius: 1 }}>
                               {log.signatureType === 'draw' && log.signatureData.startsWith('data:image') ? (
-                                <img 
-                                  src={log.signatureData} 
-                                  alt="Signature Proof" 
+                                <img
+                                  src={log.signatureData}
+                                  alt="Signature Proof"
                                   className="max-h-6 object-contain filter invert opacity-80 brightness-200"
                                   referrerPolicy="no-referrer"
                                 />
                               ) : (
-                                <span className="font-serif italic text-[11px] text-indigo-300 font-bold max-w-[110px] truncate">
+                                <MuiBox component="span" sx={{ fontFamily: 'serif', fontStyle: 'italic', fontSize: 11, fontWeight: 700, color: 'secondary.light', maxWidth: 110, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                   {log.signatureData}
-                                </span>
+                                </MuiBox>
                               )}
-                            </div>
-                          </td>
-                          <td className="py-3 px-3 font-mono text-slate-500 text-[10px] max-w-[120px] truncate select-all" title={log.hash}>
+                            </MuiBox>
+                          </TableCell>
+                          <TableCell title={log.hash} sx={{ fontFamily: 'monospace', fontSize: 10, color: 'text.secondary', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', userSelect: 'all' }}>
                             {log.hash}
-                          </td>
-                        </tr>
+                          </TableCell>
+                        </TableRow>
                       ))}
-                    </tbody>
-                  </table>
-                );
-              })()}
-            </div>
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              );
+            })()}
 
             {/* Footer Information */}
-            <div className="p-3 bg-indigo-950/10 border border-indigo-500/15 rounded-xl flex items-start gap-2.5">
-              <Shield className="w-5 h-5 text-indigo-400 mt-0.5 shrink-0" />
-              <div className="text-[10px] leading-relaxed text-slate-400">
-                <strong className="text-slate-200 font-bold block mb-0.5">CDE Dağıtık Blokzincir & Loglama Protokolü Açıklaması:</strong>
+            <Stack direction="row" spacing={2.5} sx={{ p: 3, alignItems: 'flex-start', bgcolor: (t) => alpha(t.palette.secondary.main, 0.06), border: 1, borderColor: (t) => alpha(t.palette.secondary.main, 0.2), borderRadius: 3 }}>
+              <MuiBox component="span" sx={{ display: 'flex', mt: 0.5, color: 'secondary.light', flexShrink: 0 }}><Shield className="w-5 h-5" /></MuiBox>
+              <Typography component="div" sx={{ fontSize: 10, lineHeight: 1.7, color: 'text.secondary' }}>
+                <MuiBox component="strong" sx={{ display: 'block', mb: 0.5, fontWeight: 700, color: 'text.primary' }}>CDE Dağıtık Blokzincir & Loglama Protokolü Açıklaması:</MuiBox>
                 Burada loglanan tüm olaylar değiştirilemez, silinemez niteliktedir. Her onay işleminde oluşturulan benzersiz SHA-256 hash değeri; doküman içeriği, revizyon numarası, IP adresi ve yetkili zaman damgası bilgileri kullanılarak kriptografik olarak hesaplanır. CDE bütünlüğü bu şifreleme zinciri ile korunmaktadır.
-              </div>
-            </div>
+              </Typography>
+            </Stack>
+          </Stack>
+        </DialogContent>
 
-            <div className="flex justify-between items-center text-[10px] text-slate-600 font-mono pt-2 border-t border-slate-900">
-              <span>Sistem Sürümü: v4.2-SecureArc</span>
-              <button
-                onClick={() => setShowAuditLedgerModal(false)}
-                className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-[10px] font-black uppercase transition cursor-pointer"
-              >
-                Kapat
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+        <DialogActions sx={{ px: 6, py: 3, justifyContent: 'space-between', borderTop: 1, borderColor: 'divider' }}>
+          <Typography component="span" sx={{ fontSize: 10, fontFamily: 'monospace', color: 'text.disabled' }}>Sistem Sürümü: v4.2-SecureArc</Typography>
+          <Button onClick={() => setShowAuditLedgerModal(false)} variant="contained" color="secondary" size="small">Kapat</Button>
+        </DialogActions>
+      </Dialog>
 
     </div>
   );

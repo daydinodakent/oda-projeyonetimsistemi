@@ -1,4 +1,15 @@
 import React, { useState, useEffect } from 'react';
+import { useColorScheme } from '@mui/material/styles';
+import PermissionDialog from './components/chrome/PermissionDialog';
+import AddProjectDialog from './components/chrome/AddProjectDialog';
+import EditProjectStatusDialog from './components/chrome/EditProjectStatusDialog';
+import ProjectPicker from './components/chrome/ProjectPicker';
+import NotificationCenter from './components/chrome/NotificationCenter';
+import ModuleGridDialog from './components/chrome/ModuleGridDialog';
+import { HeaderBar, ModuleTab, SegmentTab, SegmentGroup, ToolbarIconButton, AccentIconButton, SearchIconButton, ProfileMenu, ProfileButton, type ProfileMenuItem } from './components/chrome/HeaderControls';
+import { headerSurface } from './theme/tokens';
+import { FormField } from './components/chrome/FormDialog';
+import FilterSelect from './components/ui/FilterSelect';
 import { 
   Compass, LayoutGrid, Database, Smartphone, Sun, Moon, Bell, ChevronDown, CheckCircle, 
   AlertTriangle, DollarSign, Layers, Plus, FileText, Settings, UserCheck, HelpCircle, 
@@ -88,6 +99,9 @@ const AnimatedNumber: React.FC<AnimatedNumberProps> = ({ value, prefix = "", suf
 export default function App() {
   // Theme state
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const { setMode: setMuiMode } = useColorScheme();
+  const [profileAnchor, setProfileAnchor] = useState<HTMLElement | null>(null);
+  const [compactProfileAnchor, setCompactProfileAnchor] = useState<HTMLElement | null>(null);
 
   // Core database states (The single truth backbone)
   const [projects, setProjects] = useState<Project[]>(initialProjects);
@@ -280,10 +294,11 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Sync state with DOM attribute
+  // Sync state with DOM attribute + MUI color scheme
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
-  }, [theme]);
+    setMuiMode(theme);
+  }, [theme, setMuiMode]);
 
   // Set default selected asset when project changes
   useEffect(() => {
@@ -599,364 +614,76 @@ export default function App() {
     setShowAddProjectModal(false);
   };
 
-  const renderProjectDropdown = (isCompact: boolean = false) => {
-    const activeProject = projects.find(p => p.id === selectedProjectId);
-    const activeName = activeProject ? activeProject.name.replace(/-/g, ' ').toUpperCase() : 'PROJE SEÇİN';
+  const renderProjectDropdown = (isCompact: boolean = false) => (
+    <ProjectPicker
+      compact={isCompact}
+      projects={projects}
+      selectedProjectId={selectedProjectId}
+      onSelect={(id) => {
+        setSelectedProjectId(id);
+        setSelectedBlockId(null);
+      }}
+      onAdd={() => {
+        setNewProjectName('');
+        setNewProjectCode('');
+        setShowAddProjectModal(true);
+      }}
+      onEdit={handleOpenEditStatusForProject}
+    />
+  );
 
-    return (
-      <div className="relative">
-        {/* Toggle Button */}
-        <button
-          onClick={() => setShowProjectComboDropdown(!showProjectComboDropdown)}
-          className={`flex items-center justify-between gap-2 bg-[#111112] hover:bg-[#202022] border border-[#2d2d30] rounded-xl text-[#dfdfe2] focus:outline-none cursor-pointer transition select-none ${
-            isCompact
-              ? 'pl-7 pr-8 py-1.5 text-[10px] font-extrabold max-w-[286px] rounded-lg'
-              : 'pl-8 pr-10 py-1.5 text-[11px] font-black tracking-wide uppercase min-w-[210px] max-w-[442px]'
-          }`}
-          title="CBS Sahaları ve Projeler"
-        >
-          {/* Globe/Planet Icon on the left */}
-          <div className="absolute inset-y-0 left-2.5 flex items-center pointer-events-none text-sky-400">
-            <Globe className={`${isCompact ? 'w-3 h-3' : 'w-3.5 h-3.5'}`} />
-          </div>
-
-          {/* Project Name (truncated if too long to maintain alignment) */}
-          <span className="truncate pr-1 text-[#f1c40f] font-black">{activeName}</span>
-
-          {/* ChevronDown on the right */}
-          <div className={`absolute inset-y-0 right-2.5 flex items-center pointer-events-none text-slate-500`}>
-            <ChevronDown className={`${isCompact ? 'w-3 h-3' : 'w-3.5 h-3.5'}`} />
-          </div>
-        </button>
-
-        {/* Dropdown Panel */}
-        {showProjectComboDropdown && (
-          <>
-            {/* Transparent click-catcher background to close the dropdown on click outside */}
-            <div 
-              className="fixed inset-0 bg-transparent z-45 cursor-default" 
-              onClick={() => setShowProjectComboDropdown(false)}
-            />
-            <div className={`absolute left-0 mt-2 w-[420px] max-w-[95vw] bg-[#0c101c]/95 border border-[#1e293b] rounded-2xl shadow-2xl p-4.5 space-y-3 z-50 animate-fade-in text-slate-200 backdrop-blur-md`}>
-              
-              {/* Header: Title & "+ Ekle" Action */}
-              <div className="flex justify-between items-center pb-2.5 border-b border-[#1e293b]/70">
-                <span className="text-[10px] tracking-widest text-slate-400 font-extrabold uppercase">
-                  CBS SAHALARI VE PROJELER
-                </span>
-                
-                {/* Superuser "+ Ekle" inside the dropdown */}
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setShowProjectComboDropdown(false);
-                    setNewProjectName('');
-                    setNewProjectCode('');
-                    setShowAddProjectModal(true);
-                  }}
-                  className="px-2.5 py-1 text-[10px] font-black text-amber-400 hover:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-lg transition-all flex items-center gap-1 cursor-pointer"
-                  title="Yeni Proje Ekle (Süper Yetkili)"
-                >
-                  <Plus className="w-3 h-3" />
-                  <span>+ Ekle</span>
-                </button>
-              </div>
-
-              {/* Scrollable list of projects */}
-              <div className="space-y-1.5 max-h-[300px] overflow-y-auto pr-1" style={{ scrollbarWidth: 'none' }}>
-                {projects.map((proj) => {
-                  const isActive = proj.id === selectedProjectId;
-                  return (
-                    <div
-                      key={proj.id}
-                      onClick={() => {
-                        setSelectedProjectId(proj.id);
-                        setSelectedBlockId(null);
-                        setShowProjectComboDropdown(false);
-                      }}
-                      className={`group relative p-2.5 rounded-xl cursor-pointer flex items-center justify-between gap-3 transition-all border ${
-                        isActive
-                          ? 'bg-[#13192a]/95 border-[#3b82f6]/40 shadow-md shadow-blue-500/5'
-                          : 'bg-[#111422]/50 hover:bg-[#181d32]/80 border-transparent'
-                      }`}
-                    >
-                      {/* Left side text and details */}
-                      <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-                        <div className="flex items-center gap-2">
-                          {isActive && (
-                            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0 animate-pulse" />
-                          )}
-                          <span className={`text-[11px] font-bold tracking-wide truncate ${isActive ? 'text-white' : 'text-slate-300 group-hover:text-slate-100'}`}>
-                            {proj.name.replace(/-/g, ' ').toUpperCase()}
-                          </span>
-                        </div>
-                        <span className="text-[10px] text-slate-400 font-bold block leading-none pl-3.5">
-                          {proj.location || 'Genel'} • Tamamlanma: %{proj.overallProgress || 0}
-                        </span>
-                      </div>
-
-                      {/* Right side edit button for each project */}
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setShowProjectComboDropdown(false);
-                          handleOpenEditStatusForProject(proj);
-                        }}
-                        className="p-1.5 hover:bg-slate-800/80 rounded-lg text-slate-400 hover:text-amber-400 border border-slate-800 hover:border-amber-500/30 transition shrink-0 cursor-pointer flex items-center justify-center bg-[#0e121e]/80"
-                        title={`${proj.name} Bilgilerini Düzenle`}
-                      >
-                        <Pencil className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-
-            </div>
-          </>
-        )}
-      </div>
-    );
+  const selectModule = (tab: 'plan' | 'insaat' | 'isletme') => {
+    setActiveTab(tab);
+    setCeoPocketMode(false);
+    setCenterTab(prev => prev === 'map' ? 'map' : 'kpis');
   };
 
-  const renderNotificationListDropdown = () => {
-    if (!showNotificationList) return null;
-    return (
-      <>
-        {/* Transparent Click-Catcher backdrop to close on outside click */}
-        <div 
-          className="fixed inset-0 bg-transparent z-45 cursor-default" 
-          onClick={() => setShowNotificationList(false)}
-        />
-        <div className="absolute right-0 top-full mt-2 w-[490px] max-w-[95vw] bg-[#0c101c]/95 border border-[#1e293b] rounded-2xl shadow-2xl z-50 p-4.5 space-y-4 animate-fade-in text-slate-200 backdrop-blur-md">
-          {/* Header: Title & Actions */}
-          <div className="flex justify-between items-center pb-3 border-b border-[#1e293b]/70">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-full bg-[#0091ff]/15 border border-[#0091ff]/20 flex items-center justify-center text-[#0091ff]">
-                <Bell className="w-4.5 h-4.5" />
-              </div>
-              <div className="flex flex-col">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-sm font-black text-white">Bildirim Merkezi</span>
-                  {unreadNotifications.length > 0 && (
-                    <span className="bg-[#7f1d1d]/85 text-[#f87171] text-[10px] px-1.5 py-0.5 rounded-full font-black border border-[#ef4444]/25">
-                      {unreadNotifications.length} Yeni
-                    </span>
-                  )}
-                </div>
-                <span className="text-[10px] text-slate-400 font-bold mt-0.5">
-                  Dosya Yöneticisi & Saha Uygunsuzlukları (NCR)
-                </span>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <button 
-                onClick={markAllNotificationsRead}
-                className="p-1.5 hover:bg-[#1a2333] rounded transition cursor-pointer text-slate-400 hover:text-emerald-400 flex items-center justify-center"
-                title="Hepsini Okundu Yap"
-              >
-                <Check className="w-4 h-4" />
-              </button>
-              <button 
-                onClick={clearAllNotifications}
-                className="p-1.5 hover:bg-[#1a2333] rounded transition cursor-pointer text-slate-400 hover:text-red-400 flex items-center justify-center"
-                title="Tümünü Sil"
-              >
-                <Trash className="w-4 h-4" />
-              </button>
-              <button 
-                onClick={() => setShowNotificationList(false)}
-                className="p-1.5 hover:bg-[#1a2333] rounded transition cursor-pointer text-slate-400 hover:text-white flex items-center justify-center"
-                title="Kapat"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
+  const searchSvg = (size: number) => (
+    <svg style={{ width: `${size * 0.25}rem`, height: `${size * 0.25}rem` }} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+  );
 
-          {/* Filter Tabs */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
-            <button
-              onClick={() => setNotifFilter('all')}
-              className={`text-[10px] font-black px-3.5 py-1.5 rounded-full transition whitespace-nowrap cursor-pointer ${
-                notifFilter === 'all'
-                  ? 'bg-[#0091ff] text-white shadow'
-                  : 'bg-[#131926] hover:bg-[#1c2438] border border-[#20293a] text-slate-300'
-              }`}
-            >
-              Tümü ({notifications.length})
-            </button>
-
-            <button
-              onClick={() => setNotifFilter('unread')}
-              className={`text-[10px] font-black px-3.5 py-1.5 rounded-full transition flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
-                notifFilter === 'unread'
-                  ? 'bg-[#0091ff] text-white shadow'
-                  : 'bg-[#131926] hover:bg-[#1c2438] border border-[#20293a] text-slate-300'
-              }`}
-            >
-              <span>Okunmamış</span>
-              {unreadNotifications.length > 0 && (
-                <span className="bg-red-500 text-white text-[10px] w-4.5 h-4.5 rounded-full flex items-center justify-center font-bold">
-                  {unreadNotifications.length}
-                </span>
-              )}
-            </button>
-
-            <button
-              onClick={() => setNotifFilter('files')}
-              className={`text-[10px] font-black px-3.5 py-1.5 rounded-full transition flex items-center gap-1 whitespace-nowrap cursor-pointer ${
-                notifFilter === 'files'
-                  ? 'bg-[#0091ff] text-white shadow'
-                  : 'bg-[#131926] hover:bg-[#1c2438] border border-[#20293a] text-slate-300'
-              }`}
-            >
-              <FileText className="w-3.5 h-3.5 text-sky-400" />
-              <span>Dosyalar ({notifications.filter(n => n.category === 'Dosyalar').length})</span>
-            </button>
-
-            <button
-              onClick={() => setNotifFilter('ncr')}
-              className={`text-[10px] font-black px-3.5 py-1.5 rounded-full transition flex items-center gap-1 whitespace-nowrap cursor-pointer ${
-                notifFilter === 'ncr'
-                  ? 'bg-[#0091ff] text-white shadow'
-                  : 'bg-[#131926] hover:bg-[#1c2438] border border-[#20293a] text-slate-300'
-              }`}
-            >
-              <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
-              <span>Saha NCR ({notifications.filter(n => n.category === 'Saha NCR').length})</span>
-            </button>
-          </div>
-
-          {/* Scrollable Notification Cards List */}
-          <div className="space-y-3 max-h-[380px] overflow-y-auto pr-1" style={{ scrollbarWidth: 'none' }}>
-            {notifications.filter(n => {
-              if (notifFilter === 'all') return true;
-              if (notifFilter === 'unread') return !n.read;
-              if (notifFilter === 'files') return n.category === 'Dosyalar';
-              if (notifFilter === 'ncr') return n.category === 'Saha NCR';
-              return true;
-            }).length === 0 ? (
-              <div className="text-center py-8 text-slate-500 text-xs font-bold">
-                Filtreye uygun bildirim bulunmamaktadır.
-              </div>
-            ) : (
-              notifications.filter(n => {
-                if (notifFilter === 'all') return true;
-                if (notifFilter === 'unread') return !n.read;
-                if (notifFilter === 'files') return n.category === 'Dosyalar';
-                if (notifFilter === 'ncr') return n.category === 'Saha NCR';
-                return true;
-              }).map((notif) => (
-                <div 
-                  key={notif.id} 
-                  className={`relative bg-[#131722]/90 border border-[#222c3f]/80 p-3.5 rounded-xl flex gap-3 animate-fade-in group hover:border-[#3b82f6]/40 transition text-left ${
-                    !notif.read ? 'ring-1 ring-[#0091ff]/20' : ''
-                  }`}
-                >
-                  {/* Blue Accent left bar */}
-                  <div className="absolute top-4 bottom-4 left-0 w-1 bg-[#3b82f6] rounded-r-full font-sans"></div>
-
-                  {/* Left icon box */}
-                  <div className="shrink-0">
-                    {notif.category === 'Saha NCR' ? (
-                      <div className="w-8.5 h-8.5 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400">
-                        <AlertTriangle className="w-4 h-4" />
-                      </div>
-                    ) : (
-                      <div className="w-8.5 h-8.5 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400">
-                        <Layers className="w-4 h-4" />
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Right text box */}
-                  <div className="flex-1 min-w-0 flex flex-col gap-1">
-                    {/* Breadcrumb Path & Level badge */}
-                    <div className="flex justify-between items-center text-[10px] uppercase font-extrabold tracking-wider">
-                      <span className="text-slate-400">{notif.path || 'SİSTEM / UYARI'}</span>
-                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-black border ${
-                        notif.badgeType === 'danger'
-                          ? 'bg-red-500/15 border-red-500/30 text-red-400'
-                          : notif.badgeType === 'warning'
-                            ? 'bg-amber-500/15 border-amber-500/30 text-amber-400'
-                            : 'bg-blue-500/15 border-blue-500/30 text-blue-400'
-                      }`}>
-                        {notif.badge || 'UYARI'}
-                      </span>
-                    </div>
-
-                    {/* Title */}
-                    <h4 className="text-[11px] font-bold text-white leading-tight">
-                      {notif.title || notif.message}
-                    </h4>
-
-                    {/* Description message */}
-                    <p className="text-[10px] text-slate-300 leading-relaxed font-semibold">
-                      {notif.message}
-                    </p>
-
-                    {/* Tags pills */}
-                    {notif.tags && notif.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 mt-1">
-                        {notif.tags.map((tag, tIdx) => (
-                          <span key={tIdx} className="bg-[#1a2333] border border-[#2b3a54] text-slate-400 text-[10px] px-2 py-0.5 rounded font-black tracking-tight">
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Divider inside card */}
-                    <div className="border-t border-[#222c3f]/40 my-1"></div>
-
-                    {/* Footer: Date and inline actions */}
-                    <div className="flex justify-between items-center mt-0.5">
-                      <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-bold">
-                        <Clock className="w-3.5 h-3.5 text-slate-500" />
-                        <span>{notif.date}</span>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        {notif.actionText && (
-                          <a 
-                            href={notif.actionLink || '#'} 
-                            className="flex items-center gap-1 text-[10px] font-bold text-sky-400 bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/20 px-2 py-0.5 rounded transition cursor-pointer"
-                          >
-                            <span>{notif.actionText}</span>
-                            <ArrowUpRight className="w-3 h-3" />
-                          </a>
-                        )}
-                        
-                        {!notif.read && (
-                          <button 
-                            onClick={() => markSingleAsRead(notif.id)}
-                            className="p-1 hover:bg-[#1c2438] rounded text-slate-400 hover:text-emerald-400 transition cursor-pointer"
-                            title="Okundu İşaretle"
-                          >
-                            <Check className="w-4 h-4" />
-                          </button>
-                        )}
-
-                        <button 
-                          onClick={() => deleteSingleNotification(notif.id)}
-                          className="p-1 hover:bg-[#1c2438] rounded text-slate-400 hover:text-red-400 transition cursor-pointer"
-                          title="Sil"
-                        >
-                          <Trash className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))
+  const buildProfileItems = (close: () => void, compact: boolean): ProfileMenuItem[] => {
+    const ic = compact ? 'w-3 h-3' : 'w-3.5 h-3.5';
+    return [
+      {
+        key: 'admin',
+        icon: <UserCheck className={ic} />,
+        primary: 'Admin Paneli',
+        secondary: 'PostgreSQL & PostGIS',
+        selected: centerTab === 'admin' && !ceoPocketMode,
+        onClick: () => {
+          setCenterTab(prev => prev === 'admin' ? 'dashboard' : 'admin');
+          setCeoPocketMode(false);
+          close();
+        },
+      },
+      { key: 'help', icon: <HelpCircle className={ic} />, primary: 'Destek ve Yardım', secondary: 'Kılavuz ve SSS', onClick: close },
+      {
+        key: 'theme',
+        icon: theme === 'dark' ? <Sun className={`${ic} text-amber-400`} /> : <Moon className={`${ic} text-indigo-400`} />,
+        primary: 'Tema Değiştir',
+        secondary: theme === 'dark' ? 'Açık Temaya Geç' : 'Koyu Temaya Geç',
+        onClick: () => toggleTheme(),
+      },
+      {
+        key: 'notif',
+        icon: <Bell className={ic} />,
+        primary: (
+          <span className="flex items-center gap-1.5">
+            <span>Bildirimler</span>
+            {unreadNotifications.length > 0 && (
+              <span className="bg-red-500 text-white text-[10px] font-black px-1.5 rounded-full">{unreadNotifications.length}</span>
             )}
-          </div>
-        </div>
-      </>
-    );
+          </span>
+        ),
+        secondary: 'Dosyalar ve NCR',
+        selected: showNotificationList,
+        onClick: () => {
+          setShowNotificationList(prev => !prev);
+          close();
+        },
+      },
+    ];
   };
 
   return (
@@ -964,11 +691,11 @@ export default function App() {
       
       {/* 1. MASTER HEADER NAVIGATION */}
       {headerExpanded ? (
-        <header className="sticky top-0 z-40 bg-[#222224] border-b border-[#313135] text-white flex flex-col transition-all duration-300">
-          
+        <HeaderBar>
+
           {/* Bar 1 (Master Row) */}
-          <div className="grid grid-cols-3 items-center px-5 py-3 border-b border-[#313135] gap-3 select-none overflow-x-auto lg:overflow-visible">
-            
+          <div className="grid grid-cols-3 items-center px-5 py-3 gap-3 select-none overflow-x-auto lg:overflow-visible" style={{ borderBottom: `1px solid ${headerSurface.border}` }}>
+
             {/* App Branding & Platform Tag */}
             <div className="flex items-center gap-2 order-1 shrink-0 justify-start">
               <div className="w-9 h-9 rounded-lg bg-gradient-to-tr from-cyan-500 via-blue-500 to-indigo-600 p-0.5 shadow-lg shadow-blue-500/10 flex items-center justify-center">
@@ -985,235 +712,39 @@ export default function App() {
               </div>
             </div>
 
-            {/* Middle Area (Navigation Tabs - Shortened compact labels to keep 1st row always as a single row) */}
+            {/* Middle Area (Navigation Tabs) */}
             <div className="flex items-center gap-1.5 sm:gap-2.5 md:gap-3 order-2 justify-center">
-              {/* Plan Tab */}
-              <button 
-                onClick={() => { setActiveTab('plan'); setCeoPocketMode(false); setCenterTab(prev => prev === 'map' ? 'map' : 'kpis'); }}
-                className={`h-9 sm:h-10 px-2.5 sm:px-4 rounded-full text-[10px] sm:text-[11px] font-black uppercase tracking-wider transition-all duration-300 flex items-center gap-1.5 sm:gap-2 border cursor-pointer shrink-0 ${
-                  activeTab === 'plan' && !ceoPocketMode
-                    ? 'bg-gradient-to-r from-blue-600 via-blue-600 to-indigo-600 border-2 border-amber-400 text-white shadow-[0_0_12px_rgba(59,130,246,0.35)]'
-                    : 'bg-[#161820]/90 border-slate-800 text-[#a0a2ad] hover:text-white hover:border-slate-700'
-                }`}
-                title="Plan"
-              >
-                <div className={`w-5.5 h-5.5 sm:w-6 sm:h-6 rounded-full border flex items-center justify-center shrink-0 transition-all ${
-                  activeTab === 'plan' && !ceoPocketMode ? 'border-amber-400/80 bg-slate-900/60 text-amber-400' : 'border-slate-700 bg-slate-800 text-slate-400'
-                }`}>
-                  <Briefcase className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                </div>
-                <span className="font-black text-white">PLAN</span>
-                {activeTab === 'plan' && !ceoPocketMode && (
-                  <ChevronRight className="w-3 h-3 text-blue-200 shrink-0" />
-                )}
-              </button>
-
-              {/* Insaat Tab */}
-              <button 
-                onClick={() => { setActiveTab('insaat'); setCeoPocketMode(false); setCenterTab(prev => prev === 'map' ? 'map' : 'kpis'); }}
-                className={`h-9 sm:h-10 px-2.5 sm:px-4 rounded-full text-[10px] sm:text-[11px] font-black uppercase tracking-wider transition-all duration-300 flex items-center gap-1.5 sm:gap-2 border cursor-pointer shrink-0 ${
-                  activeTab === 'insaat' && !ceoPocketMode
-                    ? 'bg-gradient-to-r from-amber-600 via-amber-600 to-orange-600 border-2 border-orange-400 text-white shadow-[0_0_12px_rgba(245,158,11,0.35)]'
-                    : 'bg-[#161820]/90 border-slate-800 text-[#a0a2ad] hover:text-white hover:border-slate-700'
-                }`}
-                title="İnşaat"
-              >
-                <div className={`w-5.5 h-5.5 sm:w-6 sm:h-6 rounded-full border flex items-center justify-center shrink-0 transition-all ${
-                  activeTab === 'insaat' && !ceoPocketMode ? 'border-orange-400/80 bg-slate-900/60 text-orange-400' : 'border-slate-700 bg-slate-800 text-slate-400'
-                }`}>
-                  <HardHat className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                </div>
-                <span className="font-black text-white">İNŞAAT</span>
-                {activeTab === 'insaat' && !ceoPocketMode && (
-                  <ChevronRight className="w-3 h-3 text-orange-200 shrink-0" />
-                )}
-              </button>
-
-              {/* Isletme Tab */}
-              <button 
-                onClick={() => { setActiveTab('isletme'); setCeoPocketMode(false); setCenterTab(prev => prev === 'map' ? 'map' : 'kpis'); }}
-                className={`h-9 sm:h-10 px-2.5 sm:px-4 rounded-full text-[10px] sm:text-[11px] font-black uppercase tracking-wider transition-all duration-300 flex items-center gap-1.5 sm:gap-2 border cursor-pointer shrink-0 ${
-                  activeTab === 'isletme' && !ceoPocketMode
-                    ? 'bg-gradient-to-r from-emerald-600 via-emerald-600 to-green-600 border-2 border-green-400 text-white shadow-[0_0_12px_rgba(16,185,129,0.35)]'
-                    : 'bg-[#161820]/90 border-slate-800 text-[#a0a2ad] hover:text-white hover:border-slate-700'
-                }`}
-                title="İşletme"
-              >
-                <div className={`w-5.5 h-5.5 sm:w-6 sm:h-6 rounded-full border flex items-center justify-center shrink-0 transition-all ${
-                  activeTab === 'isletme' && !ceoPocketMode ? 'border-green-400/80 bg-slate-900/60 text-green-400' : 'border-slate-700 bg-slate-800 text-slate-400'
-                }`}>
-                  <Wrench className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                </div>
-                <span className="font-black text-white">İŞLETME</span>
-                {activeTab === 'isletme' && !ceoPocketMode && (
-                  <ChevronRight className="w-3 h-3 text-green-200 shrink-0" />
-                )}
-              </button>
+              <ModuleTab tone="plan" label="PLAN" title="Plan" active={activeTab === 'plan' && !ceoPocketMode} icon={<Briefcase className="w-3 h-3 sm:w-3.5 sm:h-3.5" />} onClick={() => selectModule('plan')} />
+              <ModuleTab tone="insaat" label="İNŞAAT" title="İnşaat" active={activeTab === 'insaat' && !ceoPocketMode} icon={<HardHat className="w-3 h-3 sm:w-3.5 sm:h-3.5" />} onClick={() => selectModule('insaat')} />
+              <ModuleTab tone="isletme" label="İŞLETME" title="İşletme" active={activeTab === 'isletme' && !ceoPocketMode} icon={<Wrench className="w-3 h-3 sm:w-3.5 sm:h-3.5" />} onClick={() => selectModule('isletme')} />
             </div>
 
             {/* Right Area (Toolbar & Actions) */}
             <div className="flex items-center gap-1.5 sm:gap-2 order-3 shrink-0 justify-end">
-              
-              {/* Grid Switcher (Brown background, gold icon) */}
-              <button 
-                onClick={() => setShowModullerGrid(prev => !prev)}
-                className="p-2.5 bg-[#332c1e] border border-[#f1c40f]/20 rounded-xl hover:bg-[#3d3422] text-[#f1c40f] transition shadow-sm relative flex items-center justify-center cursor-pointer"
-                title="Analiz ve Modül Araçları"
-                id="hdr-btn-modules"
-              >
-                <LayoutGrid className="w-4 h-4" />
-              </button>
+              <AccentIconButton kind="gold" id="hdr-btn-modules" title="Analiz ve Modül Araçları" icon={<LayoutGrid className="w-4 h-4" />} onClick={() => setShowModullerGrid(prev => !prev)} />
+              <SearchIconButton id="hdr-btn-search" onClick={() => setShowSearchModal(true)} icon={searchSvg(4)} />
 
-              {/* Search button */}
-              <button 
-                onClick={() => setShowSearchModal(true)}
-                className="p-2 text-sky-400 hover:text-sky-300 hover:bg-sky-500/10 rounded-xl transition cursor-pointer flex items-center justify-center"
-                title="Genel Arama & Komut Paleti (Ctrl + K veya /)"
-                id="hdr-btn-search"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-              </button>
-
-              {/* Profile Pill AY & SpU with dropdown menu (combining the 4 buttons: Admin, Help, Theme, Notifications) */}
+              {/* Profile Pill AY & SpU with dropdown menu (Admin, Help, Theme, Notifications) */}
               <div className="relative flex items-center">
-                <button 
-                  onClick={() => setShowProfileDropdown(prev => !prev)}
-                  className="flex items-center gap-1.5 bg-[#1a1a1c] hover:bg-[#252528] transition p-1 rounded-full border border-slate-700/40 text-xs font-extrabold pr-2.5 cursor-pointer relative"
-                  title="Kullanıcı Menüsü"
-                >
-                  <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-[10px] text-white">
-                    AY
-                  </div>
-                  <span className="text-amber-500 text-[10px]">SpU</span>
-                </button>
-
-                {/* Warning badge on top of user button — global button CSS
-                    (index.css: button:not(.native-btn)) sets overflow:hidden
-                    on every <button>, which clipped this badge's negative
-                    offset; rendered as a sibling of the button (inside the
-                    same relative wrapper) instead so it isn't clipped. */}
-                {unreadNotifications.length > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center border-2 border-[#1c1c1e] animate-pulse pointer-events-none">
-                    {unreadNotifications.length}
-                  </span>
-                )}
-
-                {/* Dropdown Menu */}
-                {showProfileDropdown && (
-                  <>
-                    {/* Backdrop to close on click outside */}
-                    <div 
-                      className="fixed inset-0 z-40 bg-transparent cursor-default" 
-                      onClick={() => setShowProfileDropdown(false)}
-                    />
-                    <div className="absolute right-0 top-full mt-2 w-64 bg-[#141416] border border-[#2c2c2e] p-3 rounded-2xl shadow-2xl z-50 space-y-3 animate-fade-in text-slate-200">
-                      
-                      {/* User Info Header */}
-                      <div className="px-1 py-1.5 border-b border-[#2c2c2e]/60">
-                        <div className="text-xs font-black text-white text-left">Ayhan Yılmaz</div>
-                        <div className="text-[10px] font-bold text-amber-500/80 mt-0.5 text-left">Süper Kullanıcı (Super User)</div>
-                      </div>
-
-                      {/* Menu List representing the 4 buttons */}
-                      <div className="flex flex-col gap-1">
-                        {/* 1. Admin Paneli */}
-                        <button
-                          onClick={() => {
-                            setCenterTab(prev => prev === 'admin' ? 'dashboard' : 'admin');
-                            setCeoPocketMode(false);
-                            setShowProfileDropdown(false);
-                          }}
-                          className={`w-full px-2.5 py-2 text-left rounded-lg text-[10px] font-extrabold uppercase tracking-wide transition flex items-center gap-2.5 cursor-pointer ${
-                            centerTab === 'admin' && !ceoPocketMode
-                              ? 'bg-sky-500/10 text-sky-400 border border-sky-500/20'
-                              : 'text-slate-300 hover:bg-slate-800/60 border border-transparent'
-                          }`}
-                        >
-                          <UserCheck className="w-3.5 h-3.5" />
-                          <div className="flex-1">
-                            <div>Admin Paneli</div>
-                            <div className="text-[10px] text-slate-500 font-medium lowercase tracking-normal">PostgreSQL & PostGIS</div>
-                          </div>
-                        </button>
-
-                        {/* 2. Destek ve Yardım */}
-                        <button
-                          onClick={() => {
-                            setShowProfileDropdown(false);
-                          }}
-                          className="w-full px-2.5 py-2 text-left rounded-lg text-[10px] font-extrabold uppercase tracking-wide text-slate-300 hover:bg-slate-800/60 transition flex items-center gap-2.5 cursor-pointer border border-transparent"
-                        >
-                          <HelpCircle className="w-3.5 h-3.5" />
-                          <div className="flex-1">
-                            <div>Destek ve Yardım</div>
-                            <div className="text-[10px] text-slate-500 font-medium lowercase tracking-normal">Kılavuz ve SSS</div>
-                          </div>
-                        </button>
-
-                        {/* 3. Tema Değiştir */}
-                        <button
-                          onClick={() => {
-                            toggleTheme();
-                          }}
-                          className="w-full px-2.5 py-2 text-left rounded-lg text-[10px] font-extrabold uppercase tracking-wide text-slate-300 hover:bg-slate-800/60 transition flex items-center gap-2.5 cursor-pointer border border-transparent"
-                        >
-                          {theme === 'dark' ? <Sun className="w-3.5 h-3.5 text-amber-400" /> : <Moon className="w-3.5 h-3.5 text-indigo-400" />}
-                          <div className="flex-1">
-                            <div>Tema Değiştir</div>
-                            <div className="text-[10px] text-slate-500 font-medium lowercase tracking-normal">
-                              {theme === 'dark' ? 'Açık Temaya Geç' : 'Koyu Temaya Geç'}
-                            </div>
-                          </div>
-                        </button>
-
-                        {/* 4. Sistem Bildirimleri */}
-                        <button
-                          onClick={() => {
-                            setShowNotificationList(prev => !prev);
-                            setShowProfileDropdown(false);
-                          }}
-                          className={`w-full px-2.5 py-2 text-left rounded-lg text-[10px] font-extrabold uppercase tracking-wide transition flex items-center gap-2.5 cursor-pointer relative ${
-                            showNotificationList
-                              ? 'bg-sky-500/10 text-sky-400 border border-sky-500/20'
-                              : 'text-slate-300 hover:bg-slate-800/60 border border-transparent'
-                          }`}
-                        >
-                          <Bell className="w-3.5 h-3.5" />
-                          <div className="flex-1">
-                            <div className="flex items-center gap-1.5">
-                              <span>Bildirimler</span>
-                              {unreadNotifications.length > 0 && (
-                                <span className="bg-red-500 text-white text-[10px] font-black px-1.5 rounded-full">
-                                  {unreadNotifications.length}
-                                </span>
-                              )}
-                            </div>
-                            <div className="text-[10px] text-slate-500 font-medium lowercase tracking-normal">Dosyalar ve NCR</div>
-                          </div>
-                        </button>
-                      </div>
-                    </div>
-                  </>
-                )}
-                {renderNotificationListDropdown()}
+                <ProfileButton unread={unreadNotifications.length} onClick={(el) => { setProfileAnchor(el); setShowProfileDropdown(prev => !prev); }} />
+                <ProfileMenu
+                  anchorEl={profileAnchor}
+                  open={showProfileDropdown}
+                  onClose={() => setShowProfileDropdown(false)}
+                  name="Ayhan Yılmaz"
+                  role="Süper Kullanıcı (Super User)"
+                  items={buildProfileItems(() => setShowProfileDropdown(false), false)}
+                />
               </div>
 
-              {/* Collapse Button (Folder style on brownish-gold background) */}
-              <button 
-                onClick={() => setHeaderExpanded(false)}
-                className="p-2.5 rounded-xl bg-[#383321] border border-[#f39c12]/30 hover:bg-[#433b25] text-[#f39c12] transition shadow cursor-pointer flex items-center justify-center"
-                title="Menüyü Daralt"
-              >
-                <ChevronUp className="w-4 h-4" />
-              </button>
-
+              <AccentIconButton kind="orange" title="Menüyü Daralt" icon={<ChevronUp className="w-4 h-4" />} onClick={() => setHeaderExpanded(false)} />
             </div>
 
           </div>
 
           {/* Bar 2 (Sub-header Project Status Row) */}
-          <div className="grid grid-cols-3 items-center px-5 py-2.5 bg-[#1c1c1e] text-xs font-bold transition-all shadow-inner gap-4">
-            
+          <div className="grid grid-cols-3 items-center px-5 py-2.5 text-xs font-bold transition-all shadow-inner gap-4" style={{ backgroundColor: headerSurface.sub }}>
+
             {/* Left side Dropdown with superuser '+' button */}
             <div className="flex items-center gap-2 justify-start">
               {renderProjectDropdown(false)}
@@ -1221,108 +752,28 @@ export default function App() {
 
             {/* Middle: Harita & Dinamik KPI (Centered) */}
             <div className="flex items-center justify-center">
-              <div className="flex items-center bg-[#141416] border border-[#2c2c2e] p-1 rounded-xl shadow-inner select-none transition-all duration-300">
-                <div className="flex items-center gap-1.5">
-                  {/* Dinamik KPI Butonu */}
-                  <button
-                    onClick={() => setCenterTab('kpis')}
-                    className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-md transition duration-200 cursor-pointer flex items-center gap-1.5 ${
-                      centerTab === 'kpis'
-                        ? 'bg-amber-600/15 border border-amber-500/30 text-amber-400 shadow-sm font-black'
-                        : 'text-slate-400 hover:text-white hover:bg-slate-800/50 border border-transparent font-extrabold'
-                    }`}
-                    id="center-tab-btn-kpis"
-                  >
-                    <Activity className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Dinamik KPI</span>
-                  </button>
-
-                  {/* Harita Butonu */}
-                  <button
-                    onClick={() => setCenterTab(prev => prev === 'map' ? 'kpis' : 'map')}
-                    className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-md transition duration-200 cursor-pointer flex items-center gap-1.5 ${
-                      centerTab === 'map'
-                        ? 'bg-sky-500/15 border border-sky-500/30 text-sky-400 shadow-sm font-black'
-                        : 'text-slate-400 hover:text-white hover:bg-slate-800/50 border border-transparent font-extrabold'
-                    }`}
-                    id="center-tab-btn-map"
-                  >
-                    <Map className="w-3.5 h-3.5 text-sky-400" />
-                    <span>Harita</span>
-                  </button>
-                </div>
-              </div>
+              <SegmentGroup>
+                <SegmentTab kind="kpis" id="center-tab-btn-kpis" label="Dinamik KPI" active={centerTab === 'kpis'} icon={<Activity className="w-3.5 h-3.5 text-amber-400" />} onClick={() => setCenterTab('kpis')} />
+                <SegmentTab kind="map" id="center-tab-btn-map" label="Harita" active={centerTab === 'map'} icon={<Map className="w-3.5 h-3.5 text-sky-400" />} onClick={() => setCenterTab(prev => prev === 'map' ? 'kpis' : 'map')} />
+              </SegmentGroup>
             </div>
 
             {/* Right side: The 4 toolbar buttons */}
             <div className="flex items-center gap-1.5 flex-wrap justify-end">
-              {/* Sol: Dashboard Butonu */}
-              <button
-                onClick={() => setCenterTab(prev => prev === 'dashboard' ? 'kpis' : 'dashboard')}
-                className={`group p-2 rounded-xl border transition-all duration-300 flex items-center justify-center cursor-pointer shadow-md hover:scale-110 ${
-                  centerTab === 'dashboard'
-                    ? 'bg-gradient-to-r from-indigo-600/30 to-blue-600/30 border-indigo-500 text-indigo-400 ring-2 ring-indigo-500/30 shadow-[0_0_12px_rgba(99,102,241,0.35)]'
-                    : 'bg-[#151926] hover:bg-indigo-600/20 border-indigo-500/50 hover:border-indigo-400 text-indigo-400 shadow-inner hover:shadow-[0_0_12px_rgba(99,102,241,0.45)]'
-                }`}
-                title="Dashboard"
-                id="hdr-btn-dashboard-trigger"
-              >
-                <LayoutGrid className={`w-3.5 h-3.5 transition-transform duration-300 text-indigo-400 group-hover:text-indigo-300 ${centerTab === 'dashboard' ? 'scale-110' : ''}`} />
-              </button>
-
-              {/* Orta: İş-Zaman Butonu (Timeline) */}
-              <button
-                onClick={() => setCenterTab(prev => prev === 'gantt' ? 'kpis' : 'gantt')}
-                className={`group p-2 rounded-xl border transition-all duration-300 flex items-center justify-center cursor-pointer shadow-md hover:scale-110 ${
-                  centerTab === 'gantt'
-                    ? 'bg-gradient-to-r from-emerald-600/30 to-teal-600/30 border-emerald-500 text-emerald-400 ring-2 ring-emerald-500/30 shadow-[0_0_12px_rgba(16,185,129,0.35)]'
-                    : 'bg-[#0f2118] hover:bg-emerald-600/20 border-emerald-500/50 hover:border-emerald-400 text-emerald-400 shadow-inner hover:shadow-[0_0_12px_rgba(16,185,129,0.45)]'
-                }`}
-                title="İş-Zaman Çizelgesi (Timeline)"
-                id="hdr-btn-gantt-trigger"
-              >
-                <Clock className={`w-3.5 h-3.5 transition-transform duration-500 text-emerald-400 group-hover:text-emerald-300 ${centerTab === 'gantt' ? 'rotate-180' : 'group-hover:rotate-45'}`} />
-              </button>
-
-              {/* Sağ: İş Gücü & Tedarik Butonu */}
-              <button
-                onClick={() => setCenterTab(prev => prev === 'resources' ? 'kpis' : 'resources')}
-                className={`group p-2 rounded-xl border transition-all duration-300 flex items-center justify-center cursor-pointer shadow-md hover:scale-110 ${
-                  centerTab === 'resources'
-                    ? 'bg-gradient-to-r from-purple-600/30 to-fuchsia-600/30 border-purple-500 text-purple-400 ring-2 ring-purple-500/30 shadow-[0_0_12px_rgba(168,85,247,0.35)]'
-                    : 'bg-[#1b1526] hover:bg-purple-600/20 border-purple-500/50 hover:border-purple-400 text-purple-400 shadow-inner hover:shadow-[0_0_12px_rgba(168,85,247,0.45)]'
-                }`}
-                title="İş Gücü & Tedarik"
-                id="hdr-btn-resources-trigger"
-              >
-                <Users className={`w-3.5 h-3.5 transition-transform duration-300 text-purple-400 group-hover:text-purple-300 ${centerTab === 'resources' ? 'scale-110' : ''}`} />
-              </button>
-
-              {/* 4. Buton: Doküman Arşivi (Technical Specifications & Docs) */}
-              <button
-                onClick={() => setCenterTab(prev => prev === 'documents' ? 'kpis' : 'documents')}
-                className={`group p-2 rounded-xl border transition-all duration-300 flex items-center justify-center cursor-pointer shadow-md hover:scale-110 ${
-                  centerTab === 'documents'
-                    ? 'bg-gradient-to-r from-indigo-600/30 to-blue-600/30 border-indigo-500 text-indigo-400 ring-2 ring-indigo-500/30 shadow-[0_0_12px_rgba(99,102,241,0.35)]'
-                    : 'bg-[#121a2e] hover:bg-indigo-600/20 border-indigo-500/50 hover:border-indigo-400 text-indigo-400 shadow-inner hover:shadow-[0_0_12px_rgba(99,102,241,0.45)]'
-                }`}
-                title="Doküman Yönetimi"
-                id="hdr-btn-document-archive-trigger"
-              >
-                <FileText className={`w-3.5 h-3.5 transition-transform duration-300 text-indigo-400 group-hover:text-indigo-300 ${centerTab === 'documents' ? 'scale-110' : ''}`} />
-              </button>
+              <ToolbarIconButton tone="indigo" id="hdr-btn-dashboard-trigger" title="Dashboard" active={centerTab === 'dashboard'} icon={<LayoutGrid className="w-3.5 h-3.5" />} onClick={() => setCenterTab(prev => prev === 'dashboard' ? 'kpis' : 'dashboard')} />
+              <ToolbarIconButton tone="emerald" id="hdr-btn-gantt-trigger" title="İş-Zaman Çizelgesi (Timeline)" active={centerTab === 'gantt'} icon={<Clock className="w-3.5 h-3.5" />} onClick={() => setCenterTab(prev => prev === 'gantt' ? 'kpis' : 'gantt')} />
+              <ToolbarIconButton tone="purple" id="hdr-btn-resources-trigger" title="İş Gücü & Tedarik" active={centerTab === 'resources'} icon={<Users className="w-3.5 h-3.5" />} onClick={() => setCenterTab(prev => prev === 'resources' ? 'kpis' : 'resources')} />
+              <ToolbarIconButton tone="indigo" id="hdr-btn-document-archive-trigger" title="Doküman Yönetimi" active={centerTab === 'documents'} icon={<FileText className="w-3.5 h-3.5" />} onClick={() => setCenterTab(prev => prev === 'documents' ? 'kpis' : 'documents')} />
             </div>
 
           </div>
 
-
-
-        </header>
+        </HeaderBar>
       ) : (
-        /* Collapsed compact view (Image 2) */
-        <header className="sticky top-0 z-40 bg-[#222224] border-b border-[#313135] text-white py-2 px-4 shadow-sm transition-all duration-300">
-          <div className="grid grid-cols-3 items-center gap-4">
-            
+        /* Collapsed compact view */
+        <HeaderBar>
+          <div className="grid grid-cols-3 items-center gap-4 py-2 px-4">
+
             {/* Left side compact logo & Dropdown */}
             <div className="flex items-center gap-3 justify-start">
               <div className="flex items-center gap-2">
@@ -1338,217 +789,44 @@ export default function App() {
               {renderProjectDropdown(true)}
             </div>
 
-            {/* Middle Area (Compact Navigation Tabs Matching Image 2) */}
+            {/* Middle Area (Compact Navigation Tabs) */}
             <div className="flex items-center gap-1.5 sm:gap-2.5 justify-center">
-              {/* Compact Plan */}
-              <button 
-                onClick={() => { setActiveTab('plan'); setCeoPocketMode(false); setCenterTab(prev => prev === 'map' ? 'map' : 'kpis'); }}
-                className={`px-3 py-1 rounded-full text-[11px] font-black uppercase transition-all flex items-center gap-1.5 cursor-pointer ${
-                  activeTab === 'plan' && !ceoPocketMode
-                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-[0_0_12px_rgba(37,99,235,0.4)]'
-                    : 'text-slate-300 hover:text-white bg-transparent'
-                }`}
-                title="Plan"
-              >
-                <Briefcase className="w-3.5 h-3.5" />
-                <span>PLAN</span>
-              </button>
-
-              {/* Compact Insaat */}
-              <button 
-                onClick={() => { setActiveTab('insaat'); setCeoPocketMode(false); setCenterTab(prev => prev === 'map' ? 'map' : 'kpis'); }}
-                className={`px-3 py-1 rounded-full text-[11px] font-black uppercase transition-all flex items-center gap-1.5 cursor-pointer ${
-                  activeTab === 'insaat' && !ceoPocketMode
-                    ? 'bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-[0_0_12px_rgba(245,158,11,0.4)]'
-                    : 'text-slate-300 hover:text-white bg-transparent'
-                }`}
-                title="İnşaat"
-              >
-                <HardHat className="w-3.5 h-3.5" />
-                <span>İNŞAAT</span>
-              </button>
-
-              {/* Compact Isletme */}
-              <button 
-                onClick={() => { setActiveTab('isletme'); setCeoPocketMode(false); setCenterTab(prev => prev === 'map' ? 'map' : 'kpis'); }}
-                className={`px-3 py-1 rounded-full text-[11px] font-black uppercase transition-all flex items-center gap-1.5 cursor-pointer ${
-                  activeTab === 'isletme' && !ceoPocketMode
-                    ? 'bg-gradient-to-r from-emerald-600 to-green-600 text-white shadow-[0_0_12px_rgba(16,185,129,0.4)]'
-                    : 'text-slate-300 hover:text-white bg-transparent'
-                }`}
-                title="İşletme"
-              >
-                <Wrench className="w-3.5 h-3.5" />
-                <span>İŞLETME</span>
-              </button>
+              <ModuleTab compact tone="plan" label="PLAN" title="Plan" active={activeTab === 'plan' && !ceoPocketMode} icon={<Briefcase className="w-3.5 h-3.5" />} onClick={() => selectModule('plan')} />
+              <ModuleTab compact tone="insaat" label="İNŞAAT" title="İnşaat" active={activeTab === 'insaat' && !ceoPocketMode} icon={<HardHat className="w-3.5 h-3.5" />} onClick={() => selectModule('insaat')} />
+              <ModuleTab compact tone="isletme" label="İŞLETME" title="İşletme" active={activeTab === 'isletme' && !ceoPocketMode} icon={<Wrench className="w-3.5 h-3.5" />} onClick={() => selectModule('isletme')} />
             </div>
 
             {/* Right side compact controls */}
             <div className="flex items-center gap-1.5 justify-end">
-              
-              {/* Yönetici Özeti & Dinamik KPI Button Group, elegantly placed in the right section of the header */}
-              <div className="flex items-center bg-[#141416]/95 border border-[#2c2c2e]/60 p-0.5 rounded-lg shadow-inner select-none transition-all duration-300 mr-2 shrink-0">
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => { setCenterTab('kpis'); setCeoPocketMode(false); }}
-                    className={`px-2 py-0.5 text-[10px] font-black uppercase tracking-wider rounded transition duration-200 cursor-pointer flex items-center gap-1 ${
-                      centerTab === 'kpis' && !ceoPocketMode
-                        ? 'bg-amber-600/15 border border-amber-500/30 text-amber-400 shadow-sm font-black'
-                        : 'text-slate-400 hover:text-white hover:bg-slate-800/50 border border-transparent font-bold'
-                    }`}
-                  >
-                    <Activity className="w-2.5 h-2.5 text-amber-400" />
-                    <span>KPI</span>
-                  </button>
-                  <button
-                    onClick={() => { setCenterTab('map'); setCeoPocketMode(false); }}
-                    className={`px-2 py-0.5 text-[10px] font-black uppercase tracking-wider rounded transition duration-200 cursor-pointer flex items-center gap-1 ${
-                      centerTab === 'map' && !ceoPocketMode
-                        ? 'bg-sky-500/15 border border-sky-500/30 text-sky-400 shadow-sm font-black'
-                        : 'text-slate-400 hover:text-white hover:bg-slate-800/50 border border-transparent font-bold'
-                    }`}
-                  >
-                    <Map className="w-2.5 h-2.5 text-sky-400" />
-                    <span>Harita</span>
-                  </button>
-                </div>
+              <div className="mr-2 shrink-0">
+                <SegmentGroup compact>
+                  <SegmentTab compact kind="kpis" label="KPI" active={centerTab === 'kpis' && !ceoPocketMode} icon={<Activity className="w-2.5 h-2.5 text-amber-400" />} onClick={() => { setCenterTab('kpis'); setCeoPocketMode(false); }} />
+                  <SegmentTab compact kind="map" label="Harita" active={centerTab === 'map' && !ceoPocketMode} icon={<Map className="w-2.5 h-2.5 text-sky-400" />} onClick={() => { setCenterTab('map'); setCeoPocketMode(false); }} />
+                </SegmentGroup>
               </div>
-              
-              <button 
-                onClick={() => setShowSearchModal(true)}
-                className="p-1.5 text-sky-400 hover:text-sky-300 hover:bg-sky-500/10 rounded-lg transition cursor-pointer flex items-center justify-center"
-                title="Genel Arama & Komut Paleti (Ctrl + K veya /)"
-                id="hdr-btn-search-compact"
-              >
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-              </button>
 
-              <button 
-                onClick={() => setShowModullerGrid(prev => !prev)}
-                className="p-1.5 bg-[#332c1e] text-[#f1c40f] rounded-lg border border-[#f1c40f]/15 hover:bg-[#3d3422] transition flex items-center justify-center cursor-pointer"
-                title="Modüller"
-              >
-                <LayoutGrid className="w-3.5 h-3.5" />
-              </button>
+              <SearchIconButton compact id="hdr-btn-search-compact" onClick={() => setShowSearchModal(true)} icon={searchSvg(3.5)} />
+              <AccentIconButton compact kind="gold" title="Modüller" icon={<LayoutGrid className="w-3.5 h-3.5" />} onClick={() => setShowModullerGrid(prev => !prev)} />
 
-              {/* Profile Pill AY & SpU with dropdown menu (combining the 4 buttons: Admin, Help, Theme, Notifications) */}
+              {/* Profile avatar with dropdown menu */}
               <div className="relative flex items-center">
-                <button 
-                  onClick={() => setShowCompactProfileDropdown(prev => !prev)}
-                  className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-[10px] text-white font-black shrink-0 relative cursor-pointer"
-                  title="Kullanıcı Menüsü"
-                >
-                  AY
-                </button>
-
-                {/* Warning badge on top of user button — rendered as a
-                    sibling of the button (see non-compact profile pill
-                    above for why: global button CSS clips it otherwise). */}
-                {unreadNotifications.length > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-3 h-3 rounded-full flex items-center justify-center border border-[#141416] animate-pulse pointer-events-none">
-                    {unreadNotifications.length}
-                  </span>
-                )}
-
-                {/* Dropdown Menu */}
-                {showCompactProfileDropdown && (
-                  <>
-                    {/* Backdrop to close on click outside */}
-                    <div 
-                      className="fixed inset-0 z-40 bg-transparent cursor-default" 
-                      onClick={() => setShowCompactProfileDropdown(false)}
-                    />
-                    <div className="absolute right-0 top-full mt-2 w-56 bg-[#141416] border border-[#2c2c2e] p-2.5 rounded-xl shadow-2xl z-50 space-y-2 animate-fade-in text-slate-200">
-                      
-                      {/* User Info Header */}
-                      <div className="px-1 py-1 border-b border-[#2c2c2e]/60">
-                        <div className="text-[11px] font-black text-white text-left">Ayhan Yılmaz</div>
-                        <div className="text-[10px] font-bold text-amber-500/80 mt-0.5 text-left">Süper Kullanıcı</div>
-                      </div>
-
-                      {/* Menu List representing the 4 buttons */}
-                      <div className="flex flex-col gap-0.5">
-                        {/* 1. Admin Paneli */}
-                        <button
-                          onClick={() => {
-                            setCenterTab(prev => prev === 'admin' ? 'dashboard' : 'admin');
-                            setCeoPocketMode(false);
-                            setShowCompactProfileDropdown(false);
-                          }}
-                          className={`w-full px-2 py-1.5 text-left rounded-md text-[10px] font-extrabold uppercase tracking-wide transition flex items-center gap-2 cursor-pointer ${
-                            centerTab === 'admin' && !ceoPocketMode
-                              ? 'bg-sky-500/10 text-sky-400 border border-sky-500/10'
-                              : 'text-slate-300 hover:bg-slate-800/60 border border-transparent'
-                          }`}
-                        >
-                          <UserCheck className="w-3 h-3" />
-                          <span>Admin Paneli</span>
-                        </button>
-
-                        {/* 2. Destek ve Yardım */}
-                        <button
-                          onClick={() => {
-                            setShowCompactProfileDropdown(false);
-                          }}
-                          className="w-full px-2 py-1.5 text-left rounded-md text-[10px] font-extrabold uppercase tracking-wide text-slate-300 hover:bg-slate-800/60 transition flex items-center gap-2 cursor-pointer border border-transparent"
-                        >
-                          <HelpCircle className="w-3 h-3" />
-                          <span>Destek ve Yardım</span>
-                        </button>
-
-                        {/* 3. Tema Değiştir */}
-                        <button
-                          onClick={() => {
-                            toggleTheme();
-                          }}
-                          className="w-full px-2 py-1.5 text-left rounded-md text-[10px] font-extrabold uppercase tracking-wide text-slate-300 hover:bg-slate-800/60 transition flex items-center gap-2 cursor-pointer border border-transparent"
-                        >
-                          {theme === 'dark' ? <Sun className="w-3 h-3 text-amber-400" /> : <Moon className="w-3 h-3 text-indigo-400" />}
-                          <span>Tema Değiştir</span>
-                        </button>
-
-                        {/* 4. Sistem Bildirimleri */}
-                        <button
-                          onClick={() => {
-                            setShowNotificationList(prev => !prev);
-                            setShowCompactProfileDropdown(false);
-                          }}
-                          className={`w-full px-2 py-1.5 text-left rounded-md text-[10px] font-extrabold uppercase tracking-wide transition flex items-center gap-2 cursor-pointer relative ${
-                            showNotificationList
-                              ? 'bg-sky-500/10 text-sky-400 border border-sky-500/10'
-                              : 'text-slate-300 hover:bg-slate-800/60 border border-transparent'
-                          }`}
-                        >
-                          <Bell className="w-3 h-3" />
-                          <div className="flex-1 flex items-center justify-between">
-                            <span>Bildirimler</span>
-                            {unreadNotifications.length > 0 && (
-                              <span className="bg-red-500 text-white text-[10px] font-black px-1 rounded-full">
-                                {unreadNotifications.length}
-                              </span>
-                            )}
-                          </div>
-                        </button>
-                      </div>
-                    </div>
-                  </>
-                )}
-                {renderNotificationListDropdown()}
+                <ProfileButton compact unread={unreadNotifications.length} onClick={(el) => { setCompactProfileAnchor(el); setShowCompactProfileDropdown(prev => !prev); }} />
+                <ProfileMenu
+                  compact
+                  anchorEl={compactProfileAnchor}
+                  open={showCompactProfileDropdown}
+                  onClose={() => setShowCompactProfileDropdown(false)}
+                  name="Ayhan Yılmaz"
+                  role="Süper Kullanıcı"
+                  items={buildProfileItems(() => setShowCompactProfileDropdown(false), true)}
+                />
               </div>
 
-              {/* Expand Folder Button (re-expands master header) */}
-              <button 
-                onClick={() => setHeaderExpanded(true)}
-                className="p-1.5 rounded-lg bg-[#383321] border border-[#f39c12]/30 text-[#f39c12] hover:bg-[#433b25] transition cursor-pointer flex items-center justify-center"
-                title="Menüyü Genişlet"
-              >
-                <ChevronDown className="w-3.5 h-3.5" />
-              </button>
-
+              <AccentIconButton compact kind="orange" title="Menüyü Genişlet" icon={<ChevronDown className="w-3.5 h-3.5" />} onClick={() => setHeaderExpanded(true)} />
             </div>
 
           </div>
-        </header>
+        </HeaderBar>
       )}
 
       {/* 2. MAIN SPLIT CONTENT AREA */}
@@ -1898,42 +1176,41 @@ export default function App() {
                           {/* Department/Project Filter Dropdown */}
                           <div className="flex flex-col gap-1 min-w-[170px] flex-1 sm:flex-initial">
                             <label className="micro-label">ÇALIŞMA GRUBU</label>
-                            <select
+                            <FilterSelect
+                              fullWidth
                               value={kpiDepartment}
-                              onChange={(e) => setKpiDepartment(e.target.value)}
-                              className="bg-[var(--bg-secondary)] border border-[var(--border)] text-[var(--text-primary)] rounded-lg px-2.5 py-1.5 text-xs font-bold outline-none cursor-pointer focus:border-amber-500/50"
-                            >
-                              <option value="all">📁 Tüm Departmanlar (Global)</option>
-                              <option value="insaat">🏗️ İnşaat Mühendisliği</option>
-                              <option value="elektrik">⚡ Elektrik & Altyapı</option>
-                              <option value="tesisat">🔧 Mekanik & Tesisat</option>
-                              <option value="isg">🛡️ İSG, Güvenlik & Çevre</option>
-                            </select>
+                              onChange={setKpiDepartment}
+                              options={[
+                                { value: 'all', label: '📁 Tüm Departmanlar (Global)' },
+                                { value: 'insaat', label: '🏗️ İnşaat Mühendisliği' },
+                                { value: 'elektrik', label: '⚡ Elektrik & Altyapı' },
+                                { value: 'tesisat', label: '🔧 Mekanik & Tesisat' },
+                                { value: 'isg', label: '🛡️ İSG, Güvenlik & Çevre' },
+                              ]}
+                            />
                           </div>
 
                           {/* Date Range Picker: Start Date */}
                           <div className="flex flex-col gap-1 min-w-[125px] flex-1 sm:flex-initial">
                             <label className="micro-label">BAŞLANGIÇ TARİHİ</label>
-                            <input
+                            <FormField
+                              size="small"
                               type="date"
                               value={kpiStartDate}
-                              min="2026-03-01"
-                              max={kpiEndDate}
                               onChange={(e) => setKpiStartDate(e.target.value)}
-                              className="bg-[var(--bg-secondary)] border border-[var(--border)] text-[var(--text-primary)] rounded-lg px-2.5 py-1 text-xs font-mono font-bold outline-none focus:border-amber-500/50 cursor-pointer"
+                              slotProps={{ htmlInput: { min: '2026-03-01', max: kpiEndDate } }}
                             />
                           </div>
 
                           {/* Date Range Picker: End Date */}
                           <div className="flex flex-col gap-1 min-w-[125px] flex-1 sm:flex-initial">
                             <label className="micro-label">BİTİŞ TARİHİ</label>
-                            <input
+                            <FormField
+                              size="small"
                               type="date"
                               value={kpiEndDate}
-                              min={kpiStartDate}
-                              max="2026-08-31"
                               onChange={(e) => setKpiEndDate(e.target.value)}
-                              className="bg-[var(--bg-secondary)] border border-[var(--border)] text-[var(--text-primary)] rounded-lg px-2.5 py-1 text-xs font-mono font-bold outline-none focus:border-amber-500/50 cursor-pointer"
+                              slotProps={{ htmlInput: { min: kpiStartDate, max: '2026-08-31' } }}
                             />
                           </div>
                         </div>
@@ -2539,165 +1816,18 @@ export default function App() {
         </div>
       )}
       
-      {/* 3. MODÜLLER WORKSPACES OVERLAY GRID (from mockup image 3) */}
-      {showModullerGrid && (
-        <div className="fixed inset-0 bg-black/75 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <div className={`w-full max-w-4xl p-6 shadow-2xl relative animate-fade-in rounded-3xl border transition-colors duration-300 ${
-            theme === 'light' 
-              ? 'bg-white border-slate-200 text-slate-800' 
-              : 'bg-[#111a2e] border-slate-800 text-slate-200'
-          }`}>
-            <button 
-              onClick={() => setShowModullerGrid(false)}
-              className={`absolute top-6 right-6 p-2 rounded-xl transition cursor-pointer z-10 ${
-                theme === 'light'
-                  ? 'hover:bg-slate-100 text-slate-500 hover:text-slate-800'
-                  : 'hover:bg-slate-800 text-slate-400 hover:text-white'
-              }`}
-              id="grid-btn-close"
-              title="Kapat"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            <div className={`mb-6 pb-2 border-b ${theme === 'light' ? 'border-slate-100' : 'border-slate-800'}`}>
-              <span className="px-2 py-0.5 bg-blue-600/20 text-blue-500 font-bold text-[10px] rounded block w-max uppercase tracking-widest mb-1.5">ODA+PYS</span>
-              <h3 className={`text-lg font-black ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>Yönetim Modülleri</h3>
-              <p className={`text-xs ${theme === 'light' ? 'text-slate-500' : 'text-slate-400'}`}>Tek veri omurgasına bağlı alt uygulamalara hızlıca erişin.</p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              
-              {/* Box 1: Yönetici Dashboard */}
-              <div className={`p-4 rounded-2xl flex flex-col justify-between hover:border-blue-500/50 transition border ${
-                theme === 'light'
-                  ? 'bg-slate-50 border-slate-200'
-                  : 'bg-[#090d16] border-slate-800'
-              }`}>
-                <div>
-                  <div className="w-8 h-8 rounded-lg bg-blue-600/10 flex items-center justify-center text-blue-500 mb-2">
-                    <TrendingUp className="w-4 h-4" />
-                  </div>
-                  <h4 className={`text-xs font-black mb-1 ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>Yönetici Analitiği</h4>
-                  <p className={`text-[10px] leading-relaxed ${theme === 'light' ? 'text-slate-600' : 'text-slate-400'}`}>Proje bütçeleri, fiziki imalat ilerlemeleri ve şantiye riskleri özet raporları.</p>
-                </div>
-                <button 
-                  onClick={() => { setCenterTab('dashboard'); setShowModullerGrid(false); }}
-                  className="mt-4 text-[10px] font-black text-blue-500 hover:underline text-left text-xs cursor-pointer"
-                >
-                  Dashboard Panelini Aç →
-                </button>
-              </div>
-
-              {/* Box 2: Rapor Al */}
-              <div className={`p-4 rounded-2xl flex flex-col justify-between hover:border-blue-500/50 transition border ${
-                theme === 'light'
-                  ? 'bg-slate-50 border-slate-200'
-                  : 'bg-[#090d16] border-slate-800'
-              }`}>
-                <div>
-                  <div className="w-8 h-8 rounded-lg bg-emerald-600/10 flex items-center justify-center text-emerald-500 mb-2">
-                    <FileText className="w-4 h-4" />
-                  </div>
-                  <h4 className={`text-xs font-black mb-1 ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>Rapor Al (Dışa Aktar)</h4>
-                  <p className={`text-[10px] leading-relaxed ${theme === 'light' ? 'text-slate-600' : 'text-slate-400'}`}>Tüm proje, yapı ve şantiye imalat verilerini PDF veya Excel formatlarında indirin.</p>
-                </div>
-                <button 
-                  onClick={() => { alert('Analitik rapor PDF/Excel olarak dışa aktarılıyor...'); setShowModullerGrid(false); }}
-                  className="mt-4 text-[10px] font-black text-emerald-500 hover:underline text-left cursor-pointer"
-                >
-                  Rapor Oluşturucuyu Aç →
-                </button>
-              </div>
-
-              {/* Box 3: GIS / BIM / CAD */}
-              <div className={`p-4 rounded-2xl flex flex-col justify-between hover:border-blue-500/50 transition border ${
-                theme === 'light'
-                  ? 'bg-slate-50 border-slate-200'
-                  : 'bg-[#090d16] border-slate-800'
-              }`}>
-                <div>
-                  <div className="w-8 h-8 rounded-lg bg-indigo-600/10 flex items-center justify-center text-indigo-500 mb-2">
-                    <Layers className="w-4 h-4" />
-                  </div>
-                  <h4 className={`text-xs font-black mb-1 ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>GIS / BIM / CAD Ortak Alanı</h4>
-                  <p className={`text-[10px] leading-relaxed ${theme === 'light' ? 'text-slate-600' : 'text-slate-400'}`}>SHP, KML, DWG ve IFC BIM modellerinin koordinat tabanlı entegrasyonu.</p>
-                </div>
-                <button 
-                  onClick={() => { setActiveTab('insaat'); setShowModullerGrid(false); }}
-                  className="mt-4 text-[10px] font-black text-indigo-500 hover:underline text-left cursor-pointer"
-                >
-                  Ortak Çalışma Konsolu Aç →
-                </button>
-              </div>
-
-              {/* Box 4: Otomatik Hakediş Raporu */}
-              <div className={`p-4 rounded-2xl flex flex-col justify-between hover:border-blue-500/50 transition border ${
-                theme === 'light'
-                  ? 'bg-slate-50 border-slate-200'
-                  : 'bg-[#090d16] border-slate-800'
-              }`}>
-                <div>
-                  <div className="w-8 h-8 rounded-lg bg-amber-600/10 flex items-center justify-center text-amber-500 mb-2">
-                    <DollarSign className="w-4 h-4" />
-                  </div>
-                  <h4 className={`text-xs font-black mb-1 ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>Otomatik Hakediş Raporu</h4>
-                  <p className={`text-[10px] leading-relaxed ${theme === 'light' ? 'text-slate-600' : 'text-slate-400'}`}>Sahada tamamlanan imalat metrajlarına göre anlık hakediş hiyerarşisi oluşturun.</p>
-                </div>
-                <button 
-                  onClick={() => { setActiveTab('insaat'); setShowModullerGrid(false); }}
-                  className="mt-4 text-[10px] font-black text-amber-500 hover:underline text-left cursor-pointer"
-                >
-                  Hakediş Oluşturucu Aç →
-                </button>
-              </div>
-
-              {/* Box 5: İK & Tedarik */}
-              <div className={`p-4 rounded-2xl flex flex-col justify-between hover:border-blue-500/50 transition border ${
-                theme === 'light'
-                  ? 'bg-slate-50 border-slate-200'
-                  : 'bg-[#090d16] border-slate-800'
-              }`}>
-                <div>
-                  <div className="w-8 h-8 rounded-lg bg-purple-600/10 flex items-center justify-center text-purple-500 mb-2">
-                    <UserCheck className="w-4 h-4" />
-                  </div>
-                  <h4 className={`text-xs font-black mb-1 ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>İnsan Kaynakları & Tedarik</h4>
-                  <p className={`text-[10px] leading-relaxed ${theme === 'light' ? 'text-slate-600' : 'text-slate-400'}`}>Şantiye mühendis ve taşeron atamaları, kapasite çakışma ve kaynak havuz dengeleme.</p>
-                </div>
-                <button 
-                  onClick={() => { setCenterTab('resources'); setShowModullerGrid(false); }}
-                  className="mt-4 text-[10px] font-black text-purple-500 hover:underline text-left cursor-pointer"
-                >
-                  Kaynak Panelini Aç →
-                </button>
-              </div>
-
-              {/* Box 6: Doküman Yönetimi */}
-              <div className={`p-4 rounded-2xl flex flex-col justify-between hover:border-blue-500/50 transition border ${
-                theme === 'light'
-                  ? 'bg-slate-50 border-slate-200'
-                  : 'bg-[#090d16] border-slate-800'
-              }`}>
-                <div>
-                  <div className="w-8 h-8 rounded-lg bg-indigo-600/10 flex items-center justify-center text-indigo-500 mb-2">
-                    <FileText className="w-4 h-4" />
-                  </div>
-                  <h4 className={`text-xs font-black mb-1 ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>Doküman Yönetimi</h4>
-                  <p className={`text-[10px] leading-relaxed ${theme === 'light' ? 'text-slate-600' : 'text-slate-400'}`}>Şartnameler, sözleşmeler ve as-built teknik çizimlerin versiyonlu onay akışları.</p>
-                </div>
-                <button 
-                  onClick={() => { setCenterTab('documents'); setShowModullerGrid(false); }}
-                  className="mt-4 text-[10px] font-black text-indigo-500 hover:underline text-left cursor-pointer"
-                >
-                  Doküman Panelini Aç →
-                </button>
-              </div>
-
-            </div>
-          </div>
-        </div>
-      )}
+      {/* 3. MODÜLLER WORKSPACES OVERLAY GRID */}
+      <ModuleGridDialog
+        open={showModullerGrid}
+        onClose={() => setShowModullerGrid(false)}
+        onSelect={(id) => {
+          if (id === 'dashboard') setCenterTab('dashboard');
+          else if (id === 'report') alert('Analitik rapor PDF/Excel olarak dışa aktarılıyor...');
+          else if (id === 'gis' || id === 'hakedis') setActiveTab('insaat');
+          else if (id === 'resources') setCenterTab('resources');
+          else if (id === 'documents') setCenterTab('documents');
+        }}
+      />
 
       {/* 4. STATIC FOOTER */}
       <footer className="bg-[var(--bg-secondary)] border-t border-[var(--border)] py-2 px-5 text-center text-[10px] text-[var(--text-secondary)] font-bold transition-colors duration-300">
@@ -2722,319 +1852,67 @@ export default function App() {
         setShowModullerGrid={setShowModullerGrid}
       />
 
-      {/* ACCESS REQUEST PERMISSION MODAL */}
-      {showPermissionModal && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[10000] flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-[#0b0f19] border border-slate-200 dark:border-slate-800 rounded-xl w-full max-w-[210px] overflow-hidden shadow-2xl animate-fade-in text-slate-600 dark:text-slate-300 p-3 relative">
+      <NotificationCenter
+        open={showNotificationList}
+        anchorEl={headerExpanded ? profileAnchor : compactProfileAnchor}
+        onClose={() => setShowNotificationList(false)}
+        notifications={notifications}
+        filter={notifFilter}
+        setFilter={setNotifFilter}
+        onMarkAllRead={markAllNotificationsRead}
+        onClearAll={clearAllNotifications}
+        onMarkRead={markSingleAsRead}
+        onDelete={deleteSingleNotification}
+      />
 
-            {/* Header */}
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-xs font-normal tracking-tight text-slate-600 dark:text-slate-300">
-                Access request
-              </h3>
-              <button
-                onClick={() => setShowPermissionModal(false)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-white transition p-0.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
-                aria-label="Close"
-              >
-                <X className="w-2.5 h-2.5" />
-              </button>
-            </div>
+      <PermissionDialog
+        open={showPermissionModal}
+        onClose={() => setShowPermissionModal(false)}
+        camera={permCamera}
+        setCamera={setPermCamera}
+        microphone={permMicrophone}
+        setMicrophone={setPermMicrophone}
+        dontAsk={permDontAsk}
+        setDontAsk={setPermDontAsk}
+        onApply={() => {
+          if (permDontAsk) {
+            localStorage.setItem('dont_ask_permissions_choice', 'true');
+          }
+          setShowPermissionModal(false);
+        }}
+      />
 
-            {/* Description */}
-            <p className="text-[9px] text-slate-600 dark:text-slate-300 leading-relaxed mb-3">
-              The app requests access to the following permissions:
-            </p>
+      <AddProjectDialog
+        open={showAddProjectModal}
+        onClose={() => setShowAddProjectModal(false)}
+        onSubmit={handleAddNewProjectSubmit}
+        name={newProjectName}
+        setName={setNewProjectName}
+        code={newProjectCode}
+        setCode={setNewProjectCode}
+        location={newProjectLocation}
+        setLocation={setNewProjectLocation}
+        progress={newProjectProgress}
+        setProgress={setNewProjectProgress}
+        budget={newProjectBudget}
+        setBudget={setNewProjectBudget}
+      />
 
-            {/* Permission Toggles */}
-            <div className="space-y-1.5 mb-3">
-              {/* Camera Row */}
-              <div className="flex items-center justify-between p-1.5 bg-slate-50 dark:bg-[#111625] border border-slate-100 dark:border-slate-800/80 rounded-lg transition">
-                <span className="text-[10px] font-normal text-slate-600 dark:text-slate-300">Camera</span>
-                <button
-                  type="button"
-                  onClick={() => setPermCamera(!permCamera)}
-                  className={`relative inline-flex h-3 w-6 shrink-0 cursor-pointer rounded-full border border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                    permCamera ? 'bg-slate-900 dark:bg-white' : 'bg-slate-200 dark:bg-slate-800'
-                  }`}
-                >
-                  <span
-                    className={`pointer-events-none inline-block h-2.5 w-2.5 transform rounded-full shadow-lg ring-0 transition duration-200 ease-in-out ${
-                      permCamera
-                        ? 'translate-x-3 bg-white dark:bg-slate-900'
-                        : 'translate-x-0 bg-white dark:bg-slate-400'
-                    }`}
-                  />
-                </button>
-              </div>
-
-              {/* Microphone Row */}
-              <div className="flex items-center justify-between p-1.5 bg-slate-50 dark:bg-[#111625] border border-slate-100 dark:border-slate-800/80 rounded-lg transition">
-                <span className="text-[10px] font-normal text-slate-600 dark:text-slate-300">Microphone</span>
-                <button
-                  type="button"
-                  onClick={() => setPermMicrophone(!permMicrophone)}
-                  className={`relative inline-flex h-3 w-6 shrink-0 cursor-pointer rounded-full border border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                    permMicrophone ? 'bg-slate-900 dark:bg-white' : 'bg-slate-200 dark:bg-slate-800'
-                  }`}
-                >
-                  <span
-                    className={`pointer-events-none inline-block h-2.5 w-2.5 transform rounded-full shadow-lg ring-0 transition duration-200 ease-in-out ${
-                      permMicrophone
-                        ? 'translate-x-3 bg-white dark:bg-slate-900'
-                        : 'translate-x-0 bg-white dark:bg-slate-400'
-                    }`}
-                  />
-                </button>
-              </div>
-            </div>
-
-            {/* "Daha sorma" & Apply Action Bar */}
-            <div className="flex items-center justify-between pt-1 border-t border-slate-100 dark:border-slate-800/60 mt-2">
-
-              {/* "Daha sorma" Checkbox */}
-              <label className="flex items-center gap-1 cursor-pointer group select-none">
-                <input
-                  type="checkbox"
-                  checked={permDontAsk}
-                  onChange={(e) => setPermDontAsk(e.target.checked)}
-                  className="sr-only"
-                />
-                <div className={`w-2.5 h-2.5 rounded border flex items-center justify-center transition-all ${
-                  permDontAsk
-                    ? 'bg-slate-500 border-slate-500 dark:bg-slate-400 dark:border-slate-400 text-white'
-                    : 'border-slate-400/70 hover:border-slate-500 dark:border-slate-500/80 dark:hover:border-slate-400 bg-slate-50 dark:bg-slate-800/20'
-                }`}
-                title="Daha sorma"
-                >
-                  {permDontAsk && <Check className="w-2 h-2 stroke-[3] text-white" />}
-                </div>
-                <span className="text-[9px] font-normal text-slate-600 dark:text-slate-300 group-hover:underline transition">
-                  Daha sorma
-                </span>
-              </label>
-
-              {/* Apply Button */}
-              <button
-                type="button"
-                onClick={() => {
-                  if (permDontAsk) {
-                    localStorage.setItem('dont_ask_permissions_choice', 'true');
-                  }
-                  setShowPermissionModal(false);
-                }}
-                className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-950 text-[9px] font-normal transition shadow-lg shadow-slate-950/10 dark:shadow-white/5 cursor-pointer"
-              >
-                Apply
-              </button>
-            </div>
-
-          </div>
-        </div>
-      )}
-
-      {/* ADD PROJECT MODAL */}
-      {showAddProjectModal && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
-          <div className="bg-[#0b0f19] border border-slate-800 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-fade-in">
-            <div className="px-6 py-4 bg-gradient-to-r from-emerald-950/40 to-slate-900 border-b border-slate-800 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="px-1.5 py-0.5 bg-emerald-600/20 text-emerald-400 rounded text-[10px] font-black uppercase tracking-wider">Süper Yetkili</span>
-                <h3 className="text-sm font-black text-white uppercase tracking-wider">Yeni Proje Ekle</h3>
-              </div>
-              <button 
-                onClick={() => setShowAddProjectModal(false)}
-                className="text-slate-400 hover:text-white transition text-xs font-bold cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-[10px] uppercase text-slate-400 font-extrabold mb-1">Proje Adı</label>
-                <input 
-                  type="text"
-                  placeholder="örn. IGA CITY 5. Etap - Kargo Terminali"
-                  value={newProjectName}
-                  onChange={(e) => setNewProjectName(e.target.value)}
-                  className="w-full bg-[#111625] border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[10px] uppercase text-slate-400 font-extrabold mb-1">Proje Kodu</label>
-                  <input 
-                    type="text"
-                    placeholder="örn. IGA-ETAP-5"
-                    value={newProjectCode}
-                    onChange={(e) => setNewProjectCode(e.target.value)}
-                    className="w-full bg-[#111625] border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] uppercase text-slate-400 font-extrabold mb-1">Konum</label>
-                  <input 
-                    type="text"
-                    placeholder="örn. Arnavutköy"
-                    value={newProjectLocation}
-                    onChange={(e) => setNewProjectLocation(e.target.value)}
-                    className="w-full bg-[#111625] border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[10px] uppercase text-slate-400 font-extrabold mb-1">Başlangıç İlerlemesi (%)</label>
-                  <input 
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={newProjectProgress}
-                    onChange={(e) => setNewProjectProgress(parseInt(e.target.value) || 0)}
-                    className="w-full bg-[#111625] border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] uppercase text-slate-400 font-extrabold mb-1">Toplam Bütçe (Milyon TL)</label>
-                  <input 
-                    type="number"
-                    min="1"
-                    value={newProjectBudget}
-                    onChange={(e) => setNewProjectBudget(parseInt(e.target.value) || 1000)}
-                    className="w-full bg-[#111625] border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="px-6 py-4 bg-[#090d16] border-t border-slate-800/60 flex items-center justify-end gap-3">
-              <button 
-                onClick={() => setShowAddProjectModal(false)}
-                className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs text-slate-300 font-bold cursor-pointer transition"
-              >
-                İptal
-              </button>
-              <button 
-                onClick={handleAddNewProjectSubmit}
-                disabled={!newProjectName.trim()}
-                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-xs text-white font-black cursor-pointer shadow-lg shadow-emerald-600/20 disabled:opacity-50 disabled:cursor-not-allowed transition"
-              >
-                Proje Yarat
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* EDIT ACTIVE PROJECT STATUS PARAMETERS MODAL */}
-      {showEditProjectStatusModal && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
-          <div className="bg-[#0b0f19] border border-slate-800 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-fade-in">
-            <div className="px-6 py-4 bg-gradient-to-r from-amber-950/40 to-slate-900 border-b border-slate-800 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="px-1.5 py-0.5 bg-amber-600/20 text-amber-400 rounded text-[10px] font-black uppercase tracking-wider">Durum Düzenleme</span>
-              </div>
-              <button 
-                onClick={() => setShowEditProjectStatusModal(false)}
-                className="text-slate-400 hover:text-white transition text-xs font-bold cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-[10px] uppercase text-slate-400 font-extrabold mb-1">Proje Başlığı</label>
-                <input 
-                  type="text"
-                  value={editProjectName}
-                  onChange={(e) => setEditProjectName(e.target.value)}
-                  className="w-full bg-[#111625] border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500 transition font-bold"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[10px] uppercase text-slate-400 font-extrabold mb-1">Genel İlerleme Durumu (%)</label>
-                <div className="flex items-center gap-4">
-                  <input 
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={editProjectProgress}
-                    onChange={(e) => setEditProjectProgress(parseInt(e.target.value) || 0)}
-                    className="flex-1 accent-amber-500 bg-slate-800 rounded-lg appearance-none h-2 cursor-pointer"
-                  />
-                  <span className="text-xs font-black text-amber-400 w-12 text-right">%{editProjectProgress}</span>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[10px] uppercase text-slate-400 font-extrabold mb-1">Ruhsat Durumu</label>
-                  <select 
-                    value={editProjectPermit}
-                    onChange={(e) => setEditProjectPermit(e.target.value)}
-                    className="w-full bg-[#111625] border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500 transition cursor-pointer"
-                  >
-                    <option value="ALINDI">ALINDI</option>
-                    <option value="BEKLİYOR">BEKLİYOR</option>
-                    <option value="REVİZYONDA">REVİZYONDA</option>
-                    <option value="SÜRESİ DOLDU">SÜRESİ DOLDU</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-[10px] uppercase text-slate-400 font-extrabold mb-1">Bütçe Durumu</label>
-                  <select 
-                    value={editProjectBudgetStatus}
-                    onChange={(e) => setEditProjectBudgetStatus(e.target.value)}
-                    className="w-full bg-[#111625] border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500 transition cursor-pointer font-bold text-emerald-400"
-                  >
-                    <option value="TAMAM" className="text-emerald-400">TAMAM</option>
-                    <option value="KRİTİK" className="text-amber-400">KRİTİK</option>
-                    <option value="AŞILDI" className="text-rose-400">AŞILDI</option>
-                    <option value="GÖZDEN GEÇİRİLİYOR" className="text-cyan-400">GÖZDEN GEÇİRİLİYOR</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[10px] uppercase text-slate-400 font-extrabold mb-1">Sistem Durum Fazı</label>
-                <select 
-                  value={editProjectStatus}
-                  onChange={(e) => setEditProjectStatus(e.target.value as any)}
-                  className="w-full bg-[#111625] border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500 transition cursor-pointer"
-                >
-                  <option value="Planlama">Planlama</option>
-                  <option value="Devam Ediyor">Devam Ediyor</option>
-                  <option value="Tamamlandı">Tamamlandı</option>
-                  <option value="Kritik">Kritik</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="px-6 py-4 bg-[#090d16] border-t border-slate-800/60 flex items-center justify-end gap-3">
-              <button 
-                onClick={() => setShowEditProjectStatusModal(false)}
-                className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs text-slate-300 font-bold cursor-pointer transition"
-              >
-                Vazgeç
-              </button>
-              <button 
-                onClick={handleSaveProjectStatus}
-                className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-xs text-white font-black cursor-pointer shadow-lg shadow-amber-600/20 transition"
-              >
-                Kaydet
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-
+      <EditProjectStatusDialog
+        open={showEditProjectStatusModal}
+        onClose={() => setShowEditProjectStatusModal(false)}
+        onSubmit={handleSaveProjectStatus}
+        name={editProjectName}
+        setName={setEditProjectName}
+        progress={editProjectProgress}
+        setProgress={setEditProjectProgress}
+        permit={editProjectPermit}
+        setPermit={setEditProjectPermit}
+        budgetStatus={editProjectBudgetStatus}
+        setBudgetStatus={setEditProjectBudgetStatus}
+        status={editProjectStatus}
+        setStatus={(v) => setEditProjectStatus(v as any)}
+      />
 
     </div>
   );

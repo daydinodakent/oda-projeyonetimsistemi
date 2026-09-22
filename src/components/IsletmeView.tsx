@@ -2,6 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, BarChart, Bar } from 'recharts';
 import { Box, Wrench, AlertTriangle, TrendingUp, Plus, FileText, CheckCircle, Info, Play, Pencil, X, Save } from 'lucide-react';
 import { Project, Asset, MaintenanceLog } from '../types';
+import FilterSelect from './ui/FilterSelect';
+import MuiBox from '@mui/material/Box';
+import MenuItem from '@mui/material/MenuItem';
+import Typography from '@mui/material/Typography';
+import FormDialog, { FormField, FieldRow } from './chrome/FormDialog';
 
 interface IsletmeViewProps {
   project: Project;
@@ -362,16 +367,7 @@ export default function IsletmeView({
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2">
               <span className="text-xs text-[var(--text-secondary)]">Varlık Türü Sınıflandırma:</span>
-              <select 
-                value={assetTypeFilter}
-                onChange={(e) => setAssetTypeFilter(e.target.value)}
-                className="bg-[var(--bg-secondary)] border border-[var(--border)] text-xs font-bold rounded-lg px-2.5 py-1.5 focus:outline-none text-[var(--text-primary)] cursor-pointer"
-              >
-                <option value="all">Tüm Sınıflar (Bina / Altyapı / Cihaz)</option>
-                <option value="Bina">Sadece Yapı / Bloklar</option>
-                <option value="Ekipman">Saha Ekipmanları</option>
-                <option value="Altyapı">Mekanik/Elektrik Altyapısı</option>
-              </select>
+              <FilterSelect value={assetTypeFilter} onChange={setAssetTypeFilter} options={[{ value: "all", label: "Tüm Sınıflar (Bina / Altyapı / Cihaz)" }, { value: "Bina", label: "Sadece Yapı / Bloklar" }, { value: "Ekipman", label: "Saha Ekipmanları" }, { value: "Altyapı", label: "Mekanik/Elektrik Altyapısı" }]} />
             </div>
 
             <button 
@@ -709,500 +705,184 @@ export default function IsletmeView({
       )}
 
       {/* EVM Editor Modal */}
-      {showEvmModal && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
-          <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl w-full max-w-md p-6 shadow-2xl">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-wider flex items-center gap-1.5">
-                <Pencil className="w-4 h-4 text-blue-500" />
-                EVM & BÜTÇE EDİTÖRÜ (SpU)
-              </h3>
-              <button onClick={() => setShowEvmModal(false)} className="p-1 hover:bg-[var(--bg-primary)] rounded-md transition text-slate-400 hover:text-red-500">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <form onSubmit={handleEvmSubmit} className="space-y-4 text-xs">
-              <div>
-                <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">Kümülatif Atanan Bütçe (Milyon ₺)</label>
-                <input 
-                  type="number" 
-                  value={evmForm.budget} 
-                  onChange={(e) => setEvmForm(p => ({ ...p, budget: Number(e.target.value) }))}
-                  required
-                  className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none font-bold"
-                />
-              </div>
-              <div>
-                <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">Planlanan Harcama (PV) (Milyon ₺)</label>
-                <input 
-                  type="number" 
-                  value={evmForm.plannedSpent} 
-                  onChange={(e) => setEvmForm(p => ({ ...p, plannedSpent: Number(e.target.value) }))}
-                  required
-                  className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none font-bold"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold font-bold font-bold font-bold">Gerçekleşen Değer (EV) (Milyon ₺)</label>
-                  <input 
-                    type="number" 
-                    value={evmForm.earnedValue} 
-                    onChange={(e) => setEvmForm(p => ({ ...p, earnedValue: Number(e.target.value) }))}
-                    required
-                    className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none font-bold"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold font-bold">Gerçekleşen Harcama (AC) (Milyon ₺)</label>
-                  <input 
-                    type="number" 
-                    value={evmForm.spent} 
-                    onChange={(e) => setEvmForm(p => ({ ...p, spent: Number(e.target.value) }))}
-                    required
-                    className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none font-bold"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">İlerleme Oranı (%)</label>
-                  <input 
-                    type="number" 
-                    min="0"
-                    max="100"
-                    value={evmForm.overallProgress} 
-                    onChange={(e) => setEvmForm(p => ({ ...p, overallProgress: Number(e.target.value) }))}
-                    required
-                    className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none font-bold"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">Proje Durumu</label>
-                  <select 
-                    value={evmForm.status} 
-                    onChange={(e) => setEvmForm(p => ({ ...p, status: e.target.value }))}
-                    className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none font-bold"
-                  >
-                    <option value="Planlama">Planlama</option>
-                    <option value="İnşaat">İnşaat</option>
-                    <option value="İşletme">İşletme</option>
-                    <option value="Askıda">Askıda</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-4 border-t border-[var(--border)]">
-                <button 
-                  type="button" 
-                  onClick={() => setShowEvmModal(false)}
-                  className="px-4 py-2 rounded-lg border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-                >
-                  Vazgeç
-                </button>
-                <button 
-                  type="submit" 
-                  className="px-4 py-2 rounded-lg bg-emerald-600 text-white font-bold hover:bg-emerald-700 transition flex items-center gap-1.5"
-                >
-                  <Save className="w-4 h-4" />
-                  Güncelle
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <FormDialog
+        open={showEvmModal}
+        onClose={() => setShowEvmModal(false)}
+        title="EVM & BÜTÇE EDİTÖRÜ (SpU)"
+        icon={<Pencil className="w-4 h-4" />}
+        onSubmit={handleEvmSubmit}
+        cancelLabel="Vazgeç"
+        submitLabel="Güncelle"
+        submitIcon={<Save className="w-4 h-4" />}
+      >
+        <FormField type="number" label="Kümülatif Atanan Bütçe (Milyon ₺)" value={evmForm.budget} onChange={(e) => setEvmForm(p => ({ ...p, budget: Number(e.target.value) }))} required />
+        <FormField type="number" label="Planlanan Harcama (PV) (Milyon ₺)" value={evmForm.plannedSpent} onChange={(e) => setEvmForm(p => ({ ...p, plannedSpent: Number(e.target.value) }))} required />
+        <FieldRow>
+          <FormField type="number" label="Gerçekleşen Değer (EV) (Milyon ₺)" value={evmForm.earnedValue} onChange={(e) => setEvmForm(p => ({ ...p, earnedValue: Number(e.target.value) }))} required />
+          <FormField type="number" label="Gerçekleşen Harcama (AC) (Milyon ₺)" value={evmForm.spent} onChange={(e) => setEvmForm(p => ({ ...p, spent: Number(e.target.value) }))} required />
+        </FieldRow>
+        <FieldRow>
+          <FormField type="number" label="İlerleme Oranı (%)" value={evmForm.overallProgress} onChange={(e) => setEvmForm(p => ({ ...p, overallProgress: Number(e.target.value) }))} required slotProps={{ htmlInput: { min: 0, max: 100 } }} />
+          <FormField select label="Proje Durumu" value={evmForm.status} onChange={(e) => setEvmForm(p => ({ ...p, status: e.target.value }))}>
+            {['Planlama', 'İnşaat', 'İşletme', 'Askıda'].map((s) => (
+              <MenuItem key={s} value={s}>{s}</MenuItem>
+            ))}
+          </FormField>
+        </FieldRow>
+      </FormDialog>
 
       {/* Asset Editing Modal */}
-      {editingAsset && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
-          <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl w-full max-w-md p-6 shadow-2xl">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-wider flex items-center gap-1.5">
-                <Pencil className="w-4 h-4 text-blue-500" />
-                Varlık Kartı Düzenleme (SpU)
-              </h3>
-              <button onClick={() => setEditingAsset(null)} className="p-1 hover:bg-[var(--bg-primary)] rounded-md transition text-slate-400 hover:text-red-500">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <form onSubmit={handleEditAssetSubmit} className="space-y-4 text-xs">
-              <div>
-                <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">Varlık Adı / Etiketi</label>
-                <input 
-                  type="text" 
-                  value={editingAsset.name} 
-                  onChange={(e) => setEditingAsset(p => p ? ({ ...p, name: e.target.value }) : null)}
-                  required
-                  className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold font-bold">Üretici / Marka</label>
-                  <input 
-                    type="text" 
-                    value={editingAsset.manufacturer} 
-                    onChange={(e) => setEditingAsset(p => p ? ({ ...p, manufacturer: e.target.value }) : null)}
-                    required
-                    className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">Garanti Durumu</label>
-                  <input 
-                    type="text" 
-                    value={editingAsset.warrantyStatus} 
-                    onChange={(e) => setEditingAsset(p => p ? ({ ...p, warrantyStatus: e.target.value }) : null)}
-                    required
-                    className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">Beklenen Faydalı Ömür (Yıl)</label>
-                  <input 
-                    type="number" 
-                    value={editingAsset.expectedLifeYears} 
-                    onChange={(e) => setEditingAsset(p => p ? ({ ...p, expectedLifeYears: Number(e.target.value) }) : null)}
-                    required
-                    className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">Varlık Sınıfı</label>
-                  <select 
-                    value={editingAsset.type} 
-                    onChange={(e) => setEditingAsset(p => p ? ({ ...p, type: e.target.value as any }) : null)}
-                    className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none font-bold"
-                  >
-                    <option value="Bina">Bina / Yapı</option>
-                    <option value="Ekipman">Ekipman</option>
-                    <option value="Altyapı">Altyapı</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">Küm. Bakım Gideri (₺M)</label>
-                  <input 
-                    type="number" 
-                    step="0.01"
-                    value={editingAsset.maintenanceCost} 
-                    onChange={(e) => setEditingAsset(p => p ? ({ ...p, maintenanceCost: Number(e.target.value) }) : null)}
-                    required
-                    className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none font-bold"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">Enerji Gideri (₺M)</label>
-                  <input 
-                    type="number" 
-                    step="0.01"
-                    value={editingAsset.energyCost || 0} 
-                    onChange={(e) => setEditingAsset(p => p ? ({ ...p, energyCost: Number(e.target.value) }) : null)}
-                    required
-                    className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none font-bold"
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-4 border-t border-[var(--border)]">
-                <button 
-                  type="button" 
-                  onClick={() => setEditingAsset(null)}
-                  className="px-4 py-2 rounded-lg border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-                >
-                  Vazgeç
-                </button>
-                <button 
-                  type="submit" 
-                  className="px-4 py-2 rounded-lg bg-emerald-600 text-white font-bold hover:bg-emerald-700 transition flex items-center gap-1.5"
-                >
-                  <Save className="w-4 h-4" />
-                  Değişiklikleri Kaydet
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <FormDialog
+        open={!!editingAsset}
+        onClose={() => setEditingAsset(null)}
+        title="Varlık Kartı Düzenleme (SpU)"
+        icon={<Pencil className="w-4 h-4" />}
+        onSubmit={handleEditAssetSubmit}
+        cancelLabel="Vazgeç"
+        submitLabel="Değişiklikleri Kaydet"
+        submitIcon={<Save className="w-4 h-4" />}
+      >
+        {editingAsset && (
+          <>
+            <FormField label="Varlık Adı / Etiketi" value={editingAsset.name} onChange={(e) => setEditingAsset(p => p ? ({ ...p, name: e.target.value }) : null)} required />
+            <FieldRow>
+              <FormField label="Üretici / Marka" value={editingAsset.manufacturer} onChange={(e) => setEditingAsset(p => p ? ({ ...p, manufacturer: e.target.value }) : null)} required />
+              <FormField label="Garanti Durumu" value={editingAsset.warrantyStatus} onChange={(e) => setEditingAsset(p => p ? ({ ...p, warrantyStatus: e.target.value }) : null)} required />
+            </FieldRow>
+            <FieldRow>
+              <FormField type="number" label="Beklenen Faydalı Ömür (Yıl)" value={editingAsset.expectedLifeYears} onChange={(e) => setEditingAsset(p => p ? ({ ...p, expectedLifeYears: Number(e.target.value) }) : null)} required />
+              <FormField select label="Varlık Sınıfı" value={editingAsset.type} onChange={(e) => setEditingAsset(p => p ? ({ ...p, type: e.target.value as any }) : null)}>
+                <MenuItem value="Bina">Bina / Yapı</MenuItem>
+                <MenuItem value="Ekipman">Ekipman</MenuItem>
+                <MenuItem value="Altyapı">Altyapı</MenuItem>
+              </FormField>
+            </FieldRow>
+            <FieldRow>
+              <FormField type="number" label="Küm. Bakım Gideri (₺M)" value={editingAsset.maintenanceCost} onChange={(e) => setEditingAsset(p => p ? ({ ...p, maintenanceCost: Number(e.target.value) }) : null)} required slotProps={{ htmlInput: { step: 0.01 } }} />
+              <FormField type="number" label="Enerji Gideri (₺M)" value={editingAsset.energyCost || 0} onChange={(e) => setEditingAsset(p => p ? ({ ...p, energyCost: Number(e.target.value) }) : null)} required slotProps={{ htmlInput: { step: 0.01 } }} />
+            </FieldRow>
+          </>
+        )}
+      </FormDialog>
 
       {/* Maintenance Log Editing Modal */}
-      {editingLog && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
-          <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl w-full max-w-md p-6 shadow-2xl">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-wider flex items-center gap-1.5">
-                <Pencil className="w-4 h-4 text-blue-500" />
-                Bakım Kaydı Düzenleme (SpU)
-              </h3>
-              <button onClick={() => setEditingLog(null)} className="p-1 hover:bg-[var(--bg-primary)] rounded-md transition text-slate-400 hover:text-red-500">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <form onSubmit={handleEditLogSubmit} className="space-y-4 text-xs">
-              <div>
-                <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">Bakım / Arıza Açıklaması</label>
-                <textarea 
-                  value={editingLog.description} 
-                  onChange={(e) => setEditingLog(p => p ? ({ ...p, description: e.target.value }) : null)}
-                  required
-                  rows={3}
-                  className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none resize-none font-bold"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold font-bold font-bold font-bold">Hizmet Maliyeti (TL)</label>
-                  <input 
-                    type="number" 
-                    value={editingLog.cost} 
-                    onChange={(e) => setEditingLog(p => p ? ({ ...p, cost: Number(e.target.value) }) : null)}
-                    required
-                    className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold font-bold font-bold">Sorumlu Servis / Teknisyen</label>
-                  <input 
-                    type="text" 
-                    value={editingLog.technician} 
-                    onChange={(e) => setEditingLog(p => p ? ({ ...p, technician: e.target.value }) : null)}
-                    required
-                    className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">Emir Durumu</label>
-                  <select 
-                    value={editingLog.status} 
-                    onChange={(e) => setEditingLog(p => p ? ({ ...p, status: e.target.value as any }) : null)}
-                    className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none"
-                  >
-                    <option value="Açık">Açık (Müdahale Bekliyor)</option>
-                    <option value="Kapalı">Kapalı (Tamamlandı)</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">Hizmet Sınıfı</label>
-                  <select 
-                    value={editingLog.type} 
-                    onChange={(e) => setEditingLog(p => p ? ({ ...p, type: e.target.value as any }) : null)}
-                    className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none font-bold"
-                  >
-                    <option value="Planlı Bakım (PM)">Planlı Bakım (PM)</option>
-                    <option value="Arıza Bildirimi (CM)">Arıza Bildirimi (CM)</option>
-                    <option value="Revizyon (Overhaul)">Revizyon (Overhaul)</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-4 border-t border-[var(--border)]">
-                <button 
-                  type="button" 
-                  onClick={() => setEditingLog(null)}
-                  className="px-4 py-2 rounded-lg border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-                >
-                  Vazgeç
-                </button>
-                <button 
-                  type="submit" 
-                  className="px-4 py-2 rounded-lg bg-emerald-600 text-white font-bold hover:bg-emerald-700 transition flex items-center gap-1.5"
-                >
-                  <Save className="w-4 h-4" />
-                  Değişiklikleri Kaydet
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <FormDialog
+        open={!!editingLog}
+        onClose={() => setEditingLog(null)}
+        title="Bakım Kaydı Düzenleme (SpU)"
+        icon={<Pencil className="w-4 h-4" />}
+        onSubmit={handleEditLogSubmit}
+        cancelLabel="Vazgeç"
+        submitLabel="Değişiklikleri Kaydet"
+        submitIcon={<Save className="w-4 h-4" />}
+      >
+        {editingLog && (
+          <>
+            <FormField label="Bakım / Arıza Açıklaması" value={editingLog.description} onChange={(e) => setEditingLog(p => p ? ({ ...p, description: e.target.value }) : null)} required multiline rows={3} />
+            <FieldRow>
+              <FormField type="number" label="Hizmet Maliyeti (TL)" value={editingLog.cost} onChange={(e) => setEditingLog(p => p ? ({ ...p, cost: Number(e.target.value) }) : null)} required />
+              <FormField label="Sorumlu Servis / Teknisyen" value={editingLog.technician} onChange={(e) => setEditingLog(p => p ? ({ ...p, technician: e.target.value }) : null)} required />
+            </FieldRow>
+            <FieldRow>
+              <FormField select label="Emir Durumu" value={editingLog.status} onChange={(e) => setEditingLog(p => p ? ({ ...p, status: e.target.value as any }) : null)}>
+                <MenuItem value="Açık">Açık (Müdahale Bekliyor)</MenuItem>
+                <MenuItem value="Kapalı">Kapalı (Tamamlandı)</MenuItem>
+              </FormField>
+              <FormField select label="Hizmet Sınıfı" value={editingLog.type} onChange={(e) => setEditingLog(p => p ? ({ ...p, type: e.target.value as any }) : null)}>
+                <MenuItem value="Planlı Bakım (PM)">Planlı Bakım (PM)</MenuItem>
+                <MenuItem value="Arıza Bildirimi (CM)">Arıza Bildirimi (CM)</MenuItem>
+                <MenuItem value="Revizyon (Overhaul)">Revizyon (Overhaul)</MenuItem>
+              </FormField>
+            </FieldRow>
+          </>
+        )}
+      </FormDialog>
 
       {/* TCO comparative Area Chart Editor Modal */}
-      {showTcoModal && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm max-h-[100vh] overflow-y-auto">
-          <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl w-full max-w-lg p-6 shadow-2xl my-8">
-            <div className="flex justify-between items-center mb-4 pb-2 border-b border-[var(--border)]">
-              <h3 className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-wider flex items-center gap-1.5">
-                <Pencil className="w-4 h-4 text-blue-500" />
-                TCO KÜMÜLATİF MALİYET SİMÜLASYONU EDİTÖRÜ (SpU)
-              </h3>
-              <button onClick={() => setShowTcoModal(false)} className="p-1 hover:bg-[var(--bg-primary)] rounded-md transition text-slate-400 hover:text-red-500">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <form onSubmit={handleTcoSubmit} className="space-y-4 text-xs">
-              <div className="space-y-3">
-                {editingTco.map((tItem, index) => (
-                  <div key={tItem.id} className="p-3 bg-[var(--bg-primary)] border border-[var(--border)] rounded-xl space-y-2">
-                    <span className="font-extrabold text-[var(--text-primary)] block text-[11px]">{tItem.year} Projeksiyonu</span>
-                    <div className="grid grid-cols-3 gap-3">
-                      <div>
-                        <label className="block text-[10px] text-[var(--text-secondary)] mb-0.5">İnşaat Maliyeti (₺M)</label>
-                        <input 
-                          type="number" 
-                          value={tItem.insaat} 
-                          onChange={(e) => {
-                            const val = Number(e.target.value);
-                            setEditingTco(prev => prev.map((item, idx) => idx === index ? { ...item, insaat: val } : item));
-                          }}
-                          required
-                          className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-md p-1.5 text-[var(--text-primary)] focus:outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[10px] text-[var(--text-secondary)] mb-0.5 font-bold font-bold">İşletme & Bakım (₺M)</label>
-                        <input 
-                          type="number" 
-                          value={tItem.isletme} 
-                          onChange={(e) => {
-                            const val = Number(e.target.value);
-                            setEditingTco(prev => prev.map((item, idx) => idx === index ? { ...item, isletme: val } : item));
-                          }}
-                          required
-                          className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-md p-1.5 text-[var(--text-primary)] focus:outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[10px] text-[var(--text-secondary)] mb-0.5">Enerji Giderleri (₺M)</label>
-                        <input 
-                          type="number" 
-                          value={tItem.enerji} 
-                          onChange={(e) => {
-                            const val = Number(e.target.value);
-                            setEditingTco(prev => prev.map((item, idx) => idx === index ? { ...item, enerji: val } : item));
-                          }}
-                          required
-                          className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-md p-1.5 text-[var(--text-primary)] focus:outline-none"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex justify-end gap-2 pt-4 border-t border-[var(--border)]">
-                <button 
-                  type="button" 
-                  onClick={() => setShowTcoModal(false)}
-                  className="px-4 py-2 rounded-lg border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-primary)] transition"
-                >
-                  Vazgeç
-                </button>
-                <button 
-                  type="submit" 
-                  className="px-4 py-2 rounded-lg bg-emerald-600 text-white font-bold hover:bg-emerald-700 transition flex items-center gap-1.5"
-                >
-                  <Save className="w-4 h-4" />
-                  Güncelle
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <FormDialog
+        open={showTcoModal}
+        onClose={() => setShowTcoModal(false)}
+        title="TCO KÜMÜLATİF MALİYET SİMÜLASYONU EDİTÖRÜ (SpU)"
+        icon={<Pencil className="w-4 h-4" />}
+        maxWidth="sm"
+        onSubmit={handleTcoSubmit}
+        cancelLabel="Vazgeç"
+        submitLabel="Güncelle"
+        submitIcon={<Save className="w-4 h-4" />}
+      >
+        {editingTco.map((tItem, index) => (
+          <MuiBox key={tItem.id} sx={{ p: 3, bgcolor: 'background.default', border: 1, borderColor: 'divider', borderRadius: 3 }}>
+            <Typography sx={{ mb: 2, fontSize: 11, fontWeight: 800 }}>{tItem.year} Projeksiyonu</Typography>
+            <FieldRow cols={3}>
+              <FormField
+                type="number"
+                label="İnşaat Maliyeti (₺M)"
+                value={tItem.insaat}
+                onChange={(e) => {
+                  const val = Number(e.target.value);
+                  setEditingTco(prev => prev.map((item, idx) => idx === index ? { ...item, insaat: val } : item));
+                }}
+                required
+              />
+              <FormField
+                type="number"
+                label="İşletme & Bakım (₺M)"
+                value={tItem.isletme}
+                onChange={(e) => {
+                  const val = Number(e.target.value);
+                  setEditingTco(prev => prev.map((item, idx) => idx === index ? { ...item, isletme: val } : item));
+                }}
+                required
+              />
+              <FormField
+                type="number"
+                label="Enerji Giderleri (₺M)"
+                value={tItem.enerji}
+                onChange={(e) => {
+                  const val = Number(e.target.value);
+                  setEditingTco(prev => prev.map((item, idx) => idx === index ? { ...item, enerji: val } : item));
+                }}
+                required
+              />
+            </FieldRow>
+          </MuiBox>
+        ))}
+      </FormDialog>
 
       {/* Maintenance Log Creation Modal */}
-      {showLogModal && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
-          <div className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl w-full max-w-md p-6 shadow-2xl">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-sm font-bold text-[var(--text-primary)]">Yeni Saha Arıza / Bakım Bildirimi Kaydı</h3>
-              <button onClick={() => setShowLogModal(false)} className="text-slate-400 hover:text-red-500 p-1">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <form onSubmit={handleLogSubmit} className="space-y-3 text-xs">
-              <div>
-                <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">Bildirim Yapılan Envanter Varlığı</label>
-                <select 
-                  value={selectedAssetId}
-                  onChange={(e) => setSelectedAssetId(e.target.value)}
-                  className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none font-bold"
-                >
-                  {assets.map(a => (
-                    <option key={a.id} value={a.id}>{a.name} (ID: {a.id.split('-').pop()?.toUpperCase()})</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">Bildirim/Bakım Türü</label>
-                <select 
-                  value={newLog.type}
-                  onChange={(e) => setNewLog(l => ({ ...l, type: e.target.value as any }))}
-                  className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none font-bold"
-                >
-                  <option value="Planlı Bakım (PM)">Planlı Bakım (PM)</option>
-                  <option value="Arıza Bildirimi (CM)">Arıza Bildirimi (CM)</option>
-                  <option value="Revizyon (Overhaul)">Revizyon (Overhaul)</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">Hizmet / Arıza Detayı Açıklaması</label>
-                <textarea 
-                  value={newLog.description}
-                  onChange={(e) => setNewLog(l => ({ ...l, description: e.target.value }))}
-                  required
-                  rows={2}
-                  placeholder="Kompresör basınç kaybı kontrolü ve karter yağı değişimi yapılacak."
-                  className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none resize-none"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">Tahmini Hizmet Gideri (TL)</label>
-                  <input 
-                    type="number" 
-                    value={newLog.cost}
-                    onChange={(e) => setNewLog(l => ({ ...l, cost: Number(e.target.value) }))}
-                    required
-                    className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none font-bold"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] text-[var(--text-secondary)] mb-1 font-bold">Sorumlu Servis / Teknisyen</label>
-                  <input 
-                    type="text" 
-                    value={newLog.technician}
-                    onChange={(e) => setNewLog(l => ({ ...l, technician: e.target.value }))}
-                    required
-                    placeholder="Daikin Yetkili Servis"
-                    className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-2 text-[var(--text-primary)] focus:outline-none font-bold"
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-4 border-t border-[var(--border)]">
-                <button 
-                  type="button" 
-                  onClick={() => setShowLogModal(false)}
-                  className="px-3.5 py-1.5 rounded-lg border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-                >
-                  Geri Dön
-                </button>
-                <button 
-                  type="submit" 
-                  className="px-3.5 py-1.5 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 transition"
-                >
-                  Bildirimi Kaydet
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <FormDialog
+        open={showLogModal}
+        onClose={() => setShowLogModal(false)}
+        title="Yeni Saha Arıza / Bakım Bildirimi Kaydı"
+        onSubmit={handleLogSubmit}
+        cancelLabel="Geri Dön"
+        submitLabel="Bildirimi Kaydet"
+      >
+        <FormField select label="Bildirim Yapılan Envanter Varlığı" value={selectedAssetId} onChange={(e) => setSelectedAssetId(e.target.value)}>
+          {assets.map(a => (
+            <MenuItem key={a.id} value={a.id}>{a.name} (ID: {a.id.split('-').pop()?.toUpperCase()})</MenuItem>
+          ))}
+        </FormField>
+        <FormField select label="Bildirim/Bakım Türü" value={newLog.type} onChange={(e) => setNewLog(l => ({ ...l, type: e.target.value as any }))}>
+          <MenuItem value="Planlı Bakım (PM)">Planlı Bakım (PM)</MenuItem>
+          <MenuItem value="Arıza Bildirimi (CM)">Arıza Bildirimi (CM)</MenuItem>
+          <MenuItem value="Revizyon (Overhaul)">Revizyon (Overhaul)</MenuItem>
+        </FormField>
+        <FormField
+          label="Hizmet / Arıza Detayı Açıklaması"
+          value={newLog.description}
+          onChange={(e) => setNewLog(l => ({ ...l, description: e.target.value }))}
+          required
+          multiline
+          rows={2}
+          placeholder="Kompresör basınç kaybı kontrolü ve karter yağı değişimi yapılacak."
+          slotProps={{ inputLabel: { shrink: true } }}
+        />
+        <FieldRow>
+          <FormField type="number" label="Tahmini Hizmet Gideri (TL)" value={newLog.cost} onChange={(e) => setNewLog(l => ({ ...l, cost: Number(e.target.value) }))} required />
+          <FormField label="Sorumlu Servis / Teknisyen" value={newLog.technician} onChange={(e) => setNewLog(l => ({ ...l, technician: e.target.value }))} required placeholder="Daikin Yetkili Servis" slotProps={{ inputLabel: { shrink: true } }} />
+        </FieldRow>
+      </FormDialog>
     </div>
   );
 }

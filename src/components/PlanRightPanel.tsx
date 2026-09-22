@@ -1,6 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { DollarSign, FileCheck, CheckCircle2, AlertTriangle, Clock, Percent, Activity, Box, Ruler, Pencil, X } from 'lucide-react';
+import { useState, useEffect, type ReactNode } from 'react';
+import Box from '@mui/material/Box';
+import IconButton from '@mui/material/IconButton';
+import LinearProgress from '@mui/material/LinearProgress';
+import MenuItem from '@mui/material/MenuItem';
+import Stack from '@mui/material/Stack';
+import TextField from '@mui/material/TextField';
+import Typography from '@mui/material/Typography';
+import { alpha, useTheme } from '@mui/material/styles';
+import { DollarSign, FileCheck, AlertTriangle, Percent, Activity, Pencil } from 'lucide-react';
 import { Project } from '../types';
+import AppDialog from './chrome/AppDialog';
+import Tag from './ui/Tag';
+import FeedbackToast from './ui/FeedbackToast';
+import VolumeCard from './ui/VolumeCard';
+import { toneColors, type Tone } from './ui/tone';
 
 // Custom lightweight shoelace calculation to find polygon area in square meters without Turf
 const calculatePolygonArea = (coords: [number, number][]) => {
@@ -19,11 +32,54 @@ const calculatePolygonArea = (coords: [number, number][]) => {
   return Math.abs(area / 2);
 };
 
+const PERMIT_STATUS_TONES: Record<string, Tone> = {
+  'Alındı': 'success',
+  'Bekliyor': 'warning',
+  'Süresi Doluyor': 'info',
+  'Süresi Doldu': 'error',
+};
+
+const microLabelSx = { display: 'block', fontSize: 9, fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase' as const, color: 'text.secondary' };
+
+/** Ölçüm kutusu: küçük etiket + değer, yüzey rengi ve kenarlıkla. */
+function MetricBox({ label, children, center }: { label: string; children: ReactNode; center?: boolean }) {
+  return (
+    <Box sx={{ p: 2, bgcolor: 'background.default', border: 1, borderColor: 'divider', textAlign: center ? 'center' : 'left' }}>
+      <Typography component="span" sx={{ ...microLabelSx, lineHeight: 1, mb: 1 }}>{label}</Typography>
+      {children}
+    </Box>
+  );
+}
+
+/** Bölüm başlığı (ikon + eyebrow) ve sağ tarafta isteğe bağlı eylem alanı. */
+function SectionHeader({ icon, title, right }: { icon: ReactNode; title: string; right?: ReactNode }) {
+  return (
+    <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+      <Typography component="span" sx={{ display: 'flex', alignItems: 'center', gap: 1.5, fontSize: 10, fontWeight: 900, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'text.secondary' }}>
+        {icon}
+        {title}
+      </Typography>
+      <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>{right}</Stack>
+    </Stack>
+  );
+}
+
+function EditButton({ title, onClick }: { title: string; onClick: () => void }) {
+  return (
+    <IconButton size="small" title={title} onClick={onClick} sx={{ p: 1, color: 'text.secondary', '&:hover': { color: 'text.primary' } }}>
+      <Pencil className="w-3.5 h-3.5" />
+    </IconButton>
+  );
+}
+
 interface PlanRightPanelProps {
   project: Project;
 }
 
 export default function PlanRightPanel({ project }: PlanRightPanelProps) {
+  const theme = useTheme();
+  const c = (tone: Tone) => toneColors(theme, tone);
+
   // Dynamic state for active map buildings
   const [buildings, setBuildings] = useState<any[]>(() => {
     const saved = localStorage.getItem('iga_added_buildings');
@@ -43,7 +99,7 @@ export default function PlanRightPanel({ project }: PlanRightPanelProps) {
   // Superuser Edit States
   const [permits, setPermits] = useState(project.permits);
   const [isEditingPermits, setIsEditingPermits] = useState(false);
-  
+
   const [subcontractorCap, setSubcontractorCap] = useState(85);
   const [plannedCost, setPlannedCost] = useState("₺142.50M");
   const [actualCost, setActualCost] = useState("₺149.20M");
@@ -65,12 +121,12 @@ export default function PlanRightPanel({ project }: PlanRightPanelProps) {
         }
       }
     };
-    
+
     syncData();
     window.addEventListener('storage', syncData);
     window.addEventListener('iga_added_buildings_changed', syncData);
     const interval = setInterval(syncData, 1500);
-    
+
     return () => {
       window.removeEventListener('storage', syncData);
       window.removeEventListener('iga_added_buildings_changed', syncData);
@@ -78,24 +134,11 @@ export default function PlanRightPanel({ project }: PlanRightPanelProps) {
     };
   }, []);
 
-  // Map out permits for display with clean styling
-  const permitStatusColors = {
-    'Alındı': 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
-    'Bekliyor': 'bg-amber-500/10 text-amber-500 border-amber-500/20',
-    'Süresi Doluyor': 'bg-blue-500/10 text-blue-500 border-blue-500/20',
-    'Süresi Doldu': 'bg-red-500/10 text-red-500 border-red-500/20',
-  };
-
   // Local EVM map layer toggle state
   const [mapColorMode, setMapColorMode] = useState<'progress' | 'cost'>('progress');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  const showFeedbackToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => {
-      setToastMessage(null);
-    }, 4000);
-  };
+  const showFeedbackToast = (msg: string) => setToastMessage(msg);
 
   // Filter buildings by current active project
   const currentProjectBuildings = buildings.filter(b => b.projectId === project.id);
@@ -109,7 +152,7 @@ export default function PlanRightPanel({ project }: PlanRightPanelProps) {
         const areaM2 = calculatePolygonArea(b.coordinates);
         const floors = b.floors || 8;
         const volumeM3 = areaM2 * floors * avgFloorHeight;
-        
+
         totalArea += areaM2;
         totalVolume += volumeM3;
       } catch (err) {
@@ -118,465 +161,328 @@ export default function PlanRightPanel({ project }: PlanRightPanelProps) {
     }
   });
 
+  const riskTone: Tone = project.riskLevel === 'Düşük' ? 'success' : project.riskLevel === 'Orta' ? 'warning' : 'error';
+  const sectionSx = { pt: 2.5, borderTop: 1, borderColor: 'divider' };
+  const updatePermit = (idx: number, patch: Partial<(typeof permits)[number]>) => {
+    const updated = [...permits];
+    updated[idx] = { ...updated[idx], ...patch };
+    setPermits(updated);
+  };
+
+  const modeButtonSx = (active: boolean, tone: Tone) => ({
+    display: 'flex',
+    width: '100%',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    py: 1,
+    px: 2.5,
+    border: 1,
+    textAlign: 'left' as const,
+    cursor: 'pointer',
+    fontSize: 10,
+    fontFamily: 'inherit',
+    fontWeight: active ? 800 : 500,
+    color: active ? c(tone).light : 'text.secondary',
+    bgcolor: active ? alpha(c(tone).main, 0.15) : 'transparent',
+    borderColor: active ? c(tone).main : 'divider',
+    '&:hover': { color: active ? c(tone).light : 'text.primary' },
+  });
+
+  const dialogFieldSx = { '& .MuiInputBase-input': { fontSize: 12 } };
+
   return (
-    <div className="space-y-2.5">
+    <Stack spacing={2.5}>
       {/* 1. PROJE GENEL METRİKLERİ */}
-      <div className="card py-1.5 rounded-none bg-transparent border-0 shadow-none px-0">
-        <span className="section-eyebrow block mb-2">
+      <Box sx={{ py: 1.5 }}>
+        <Typography component="span" sx={{ display: 'block', mb: 2, fontSize: 10, fontWeight: 900, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'text.secondary' }}>
           Proje Fizibilite Göstergeleri
-        </span>
+        </Typography>
 
-        <div className="grid grid-cols-2 gap-2 mb-2">
-          <div className="p-2 bg-[var(--bg-primary)] border border-[var(--border)] rounded-none">
-            <span className="micro-label block leading-none mb-1">Toplam Alan</span>
-            <strong className="text-[11px] text-[var(--text-primary)] font-black">{project.area}</strong>
-          </div>
-          <div className="p-2 bg-[var(--bg-primary)] border border-[var(--border)] rounded-none">
-            <span className="micro-label block leading-none mb-1">Bütçe (BAC)</span>
-            <strong className="text-[11px] text-emerald-500 font-black">₺{project.budget}M</strong>
-          </div>
-        </div>
+        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, mb: 2 }}>
+          <MetricBox label="Toplam Alan">
+            <Typography component="strong" sx={{ fontSize: 11, fontWeight: 900 }}>{project.area}</Typography>
+          </MetricBox>
+          <MetricBox label="Bütçe (BAC)">
+            <Typography component="strong" sx={{ fontSize: 11, fontWeight: 900, color: 'success.main' }}>₺{project.budget}M</Typography>
+          </MetricBox>
+        </Box>
 
-        <div className="space-y-2 pt-2 border-t border-[var(--border)]">
-          <div className="flex justify-between items-center text-[11px]">
-            <span className="text-[var(--text-secondary)] font-bold">Planlanan Harcama:</span>
-            <span className="font-extrabold text-[var(--text-primary)]">₺{project.plannedSpent}M</span>
-          </div>
-          <div className="flex justify-between items-center text-[11px]">
-            <span className="text-[var(--text-secondary)] font-bold">Fiziki Hazırlık Oranı:</span>
-            <div className="flex items-center gap-1 font-extrabold text-blue-500">
+        <Stack spacing={2} sx={{ pt: 2, borderTop: 1, borderColor: 'divider' }}>
+          <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', fontSize: 11 }}>
+            <Typography component="span" sx={{ fontSize: 11, fontWeight: 700, color: 'text.secondary' }}>Planlanan Harcama:</Typography>
+            <Typography component="span" sx={{ fontSize: 11, fontWeight: 800 }}>₺{project.plannedSpent}M</Typography>
+          </Stack>
+          <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
+            <Typography component="span" sx={{ fontSize: 11, fontWeight: 700, color: 'text.secondary' }}>Fiziki Hazırlık Oranı:</Typography>
+            <Stack direction="row" spacing={1} sx={{ alignItems: 'center', fontSize: 11, fontWeight: 800, color: 'info.main' }}>
               <Percent className="w-3 h-3" />
               <span>%{project.overallProgress}</span>
-            </div>
-          </div>
-          <div className="flex justify-between items-center text-[11px]">
-            <span className="text-[var(--text-secondary)] font-bold">Risk Profil Derecesi:</span>
-            <span className={`px-1.5 py-0.5 rounded-none text-[10px] font-extrabold ${
-              project.riskLevel === 'Düşük' 
-               ? 'bg-emerald-500/15 text-emerald-500' 
-                : project.riskLevel === 'Orta' 
-                  ? 'bg-amber-500/15 text-amber-500' 
-                  : 'bg-red-500/15 text-red-500 animate-pulse'
-            }`}>
-              {project.riskLevel} RİSK
-            </span>
-          </div>
-        </div>
-      </div>
+            </Stack>
+          </Stack>
+          <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
+            <Typography component="span" sx={{ fontSize: 11, fontWeight: 700, color: 'text.secondary' }}>Risk Profil Derecesi:</Typography>
+            <Tag tone={riskTone} variant="plain">{project.riskLevel} RİSK</Tag>
+          </Stack>
+        </Stack>
+      </Box>
 
       {/* CANLI CBS POLİGON İNŞAAT HACMİ METRİK KARTI */}
-      <div className="bg-slate-900/60 border border-amber-500/30 p-3 rounded-none space-y-2.5 relative overflow-hidden backdrop-blur-sm shadow-lg">
-        {/* Glow effect */}
-        <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-full blur-2xl pointer-events-none" />
-        
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500">
-              <Box className="w-3 h-3" />
-            </div>
-            <span className="text-[11px] font-black uppercase tracking-wider text-slate-200">Tahmini İnşaat Hacmi</span>
-          </div>
-          <span className="text-[10px] font-mono font-bold text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded animate-pulse">
-            CANLI SYNC
-          </span>
-        </div>
-
-        <div className="space-y-0.5">
-          <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Toplam Kübik Hacim</span>
-          <div className="flex items-baseline gap-1">
-            <span className="text-xl font-black font-mono tracking-tight text-white">
-              {totalVolume > 0 ? Math.round(totalVolume).toLocaleString('tr-TR') : '0'}
-            </span>
-            <span className="text-xs font-black text-amber-500 font-mono">m³</span>
-          </div>
-        </div>
-
-        {/* Ortalama Kat Yüksekliği Parametresi Kontrolü */}
-        <div className="bg-slate-950/50 p-2 border border-slate-800/80 rounded space-y-1.5 font-mono">
-          <div className="flex justify-between items-center text-[10px]">
-            <span className="text-slate-400 font-bold flex items-center gap-1">
-              <Ruler className="w-2.5 h-2.5 text-slate-500" /> Ort. Kat Yüksekliği:
-            </span>
-            <span className="text-amber-400 font-black">{avgFloorHeight.toFixed(1)} m</span>
-          </div>
-          <input
-            type="range"
-            min="2.5"
-            max="4.5"
-            step="0.1"
-            value={avgFloorHeight}
-            onChange={(e) => setAvgFloorHeight(parseFloat(e.target.value))}
-            className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-500"
-          />
-          <div className="flex justify-between text-[10px] text-slate-500">
-            <span>2.5m</span>
-            <span>3.5m (Standart)</span>
-            <span>4.5m</span>
-          </div>
-        </div>
-
-        {/* Poligon Taban Detay Özetleri */}
-        <div className="grid grid-cols-2 gap-2 text-[10px] font-mono">
-          <div className="p-1.5 bg-slate-950/40 rounded border border-slate-800/50 flex flex-col">
-            <span className="text-slate-500 block uppercase font-bold text-[10px]">Çizilen Poligon</span>
-            <span className="text-slate-200 font-extrabold mt-0.5">{currentProjectBuildings.length} Adet</span>
-          </div>
-          <div className="p-1.5 bg-slate-950/40 rounded border border-slate-800/50 flex flex-col">
-            <span className="text-slate-500 block uppercase font-bold text-[10px]">Toplam Taban Alanı</span>
-            <span className="text-slate-200 font-extrabold mt-0.5">
-              {totalArea > 0 ? Math.round(totalArea).toLocaleString('tr-TR') : '0'} m²
-            </span>
-          </div>
-        </div>
-      </div>
+      <VolumeCard
+        totalVolume={totalVolume}
+        totalArea={totalArea}
+        polygonCount={currentProjectBuildings.length}
+        avgFloorHeight={avgFloorHeight}
+        onAvgFloorHeightChange={setAvgFloorHeight}
+      />
 
       {/* 2. RUHSAT & İZİNLER TABLOSU */}
-      <div className="card py-1.5 rounded-none bg-transparent border-0 shadow-none px-0 border-t border-[var(--border)] pt-2.5">
-        <div className="flex justify-between items-center mb-2">
-          <span className="section-eyebrow flex items-center gap-1.5">
-            <FileCheck className="w-3.5 h-3.5 text-blue-500" />
-            Yasal İzinler & Ruhsatlar
-          </span>
-          <div className="flex items-center gap-1.5">
-            <span className="text-[10px] text-blue-500 font-bold">({permits.length} Evrak)</span>
-            <button
-              onClick={() => setIsEditingPermits(true)}
-              className="p-1 hover:bg-slate-800 rounded transition cursor-pointer text-slate-400 hover:text-white flex items-center justify-center shrink-0"
-              title="İzinleri Düzenle (SpU)"
-            >
-              <Pencil className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </div>
+      <Box sx={{ ...sectionSx, py: 1.5, pt: 2.5 }}>
+        <SectionHeader
+          icon={<FileCheck className="w-3.5 h-3.5" style={{ color: c('info').main }} />}
+          title="Yasal İzinler & Ruhsatlar"
+          right={
+            <>
+              <Typography component="span" sx={{ fontSize: 10, fontWeight: 700, color: 'info.main' }}>({permits.length} Evrak)</Typography>
+              <EditButton title="İzinleri Düzenle (SpU)" onClick={() => setIsEditingPermits(true)} />
+            </>
+          }
+        />
 
-        <div className="space-y-1.5 max-h-[140px] overflow-y-auto pr-1" style={{ scrollbarWidth: 'none' }}>
+        <Stack spacing={1.5} sx={{ maxHeight: 140, overflowY: 'auto', pr: 1, scrollbarWidth: 'none' }}>
           {permits.map((permit) => (
-            <div key={permit.id} className="p-2 bg-[var(--bg-primary)] border border-[var(--border)] rounded-none text-[10px] space-y-1">
-              <div className="flex justify-between items-start gap-1">
-                <span className="font-bold text-[var(--text-primary)] leading-normal truncate block w-[120px]" title={permit.name}>
+            <Box key={permit.id} sx={{ p: 2, bgcolor: 'background.default', border: 1, borderColor: 'divider', fontSize: 10 }}>
+              <Stack direction="row" spacing={1} sx={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <Typography component="span" title={permit.name} noWrap sx={{ width: 120, fontSize: 10, fontWeight: 700 }}>
                   {permit.name}
-                </span>
-                <span className={`px-1.5 py-0.5 rounded-none border text-[10px] font-extrabold ${permitStatusColors[permit.status]}`}>
-                  {permit.status}
-                </span>
-              </div>
-              <div className="flex justify-between text-[10px] text-[var(--text-secondary)] pt-0.5">
+                </Typography>
+                <Tag tone={PERMIT_STATUS_TONES[permit.status] ?? 'info'}>{permit.status}</Tag>
+              </Stack>
+              <Stack direction="row" sx={{ justifyContent: 'space-between', pt: 0.5, fontSize: 10, color: 'text.secondary' }}>
                 <span>Kurum: <strong>{permit.authority}</strong></span>
-                <span>Bitiş: <strong className="text-red-400 font-mono">{permit.expiryDate}</strong></span>
-              </div>
-            </div>
+                <span>Bitiş: <Box component="strong" sx={{ color: 'error.light', fontFamily: 'monospace' }}>{permit.expiryDate}</Box></span>
+              </Stack>
+            </Box>
           ))}
-        </div>
-      </div>
+        </Stack>
+      </Box>
 
       {/* 3. KAYNAK & BÜTÇE GRUBU */}
-      <div className="card py-1.5 rounded-none bg-transparent border-0 shadow-none px-0 border-t border-[var(--border)] pt-2.5">
-        <div className="flex justify-between items-center mb-2">
-          <span className="section-eyebrow flex items-center gap-1.5">
-            <DollarSign className="w-3.5 h-3.5 text-amber-500" />
-            Kaynak & Bütçe Yönetimi
-          </span>
-          <div className="flex items-center gap-1.5">
-            <span className="text-[10px] text-amber-500 font-black bg-amber-500/10 px-1.5 py-0.5 rounded uppercase">
-              Çakışma Var (%{subcontractorCap})
-            </span>
-            <button
-              onClick={() => setIsEditingResources(true)}
-              className="p-1 hover:bg-slate-800 rounded transition cursor-pointer text-slate-400 hover:text-white flex items-center justify-center shrink-0"
-              title="Kaynak ve Bütçe Düzenle (SpU)"
-            >
-              <Pencil className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </div>
+      <Box sx={{ ...sectionSx, py: 1.5, pt: 2.5 }}>
+        <SectionHeader
+          icon={<DollarSign className="w-3.5 h-3.5" style={{ color: c('warning').main }} />}
+          title="Kaynak & Bütçe Yönetimi"
+          right={
+            <>
+              <Tag tone="warning" variant="plain" uppercase>Çakışma Var (%{subcontractorCap})</Tag>
+              <EditButton title="Kaynak ve Bütçe Düzenle (SpU)" onClick={() => setIsEditingResources(true)} />
+            </>
+          }
+        />
 
-        <div className="space-y-2">
-          <p className="text-[10px] text-[var(--text-secondary)] leading-relaxed">
+        <Stack spacing={2}>
+          <Typography sx={{ fontSize: 10, lineHeight: 1.6, color: 'text.secondary' }}>
             Şantiyede görevli alt yüklenici, makine-ekipman ve birim fiyat planlaması.
-          </p>
+          </Typography>
 
           {/* Alt Yüklenici Detayı */}
-          <div className="p-2 bg-[var(--bg-primary)] border border-[var(--border)] rounded-none space-y-1.5">
-            <div className="flex justify-between items-center text-[10px]">
-              <span className="font-bold text-[var(--text-primary)]">Kalyon Altyapı A.Ş.</span>
-              <span className="text-amber-500 font-extrabold">Kapasite: %{subcontractorCap}</span>
-            </div>
-            <div className="w-full bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
-              <div className="bg-amber-500 h-full rounded-full" style={{ width: `${subcontractorCap}%` }} />
-            </div>
-          </div>
+          <Box sx={{ p: 2, bgcolor: 'background.default', border: 1, borderColor: 'divider' }}>
+            <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+              <Typography component="span" sx={{ fontSize: 10, fontWeight: 700 }}>Kalyon Altyapı A.Ş.</Typography>
+              <Typography component="span" sx={{ fontSize: 10, fontWeight: 800, color: 'warning.main' }}>Kapasite: %{subcontractorCap}</Typography>
+            </Stack>
+            <LinearProgress
+              variant="determinate"
+              color="warning"
+              value={subcontractorCap}
+              sx={{ height: 6, borderRadius: 3, bgcolor: 'action.hover' }}
+            />
+          </Box>
 
           {/* Kaynak Çakışma Alert */}
-          <div className="p-2 bg-amber-500/10 border border-amber-500/20 text-[var(--text-primary)] rounded-none space-y-0.5">
-            <div className="flex items-center gap-1 text-amber-500 font-extrabold text-[10px] uppercase tracking-wider">
+          <Box sx={{ p: 2, bgcolor: alpha(c('warning').main, 0.1), border: 1, borderColor: alpha(c('warning').main, 0.2) }}>
+            <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mb: 0.5, color: 'warning.main', fontSize: 10, fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
               <AlertTriangle className="w-3 h-3 shrink-0" />
               <span>KAYNAK ÇAKIŞMA ALARMI</span>
-            </div>
-            <p className="text-[10px] text-[var(--text-secondary)] leading-tight">
+            </Stack>
+            <Typography sx={{ fontSize: 10, lineHeight: 1.4, color: 'text.secondary' }}>
               <strong>CAT-390 Ağır Ekskavatör</strong>, kümülatif olarak Sektör-A ve Sektör-B kazılarına ortak atanmış durumda.
-            </p>
-          </div>
+            </Typography>
+          </Box>
 
           {/* Maliyet Özetleri */}
-          <div className="grid grid-cols-2 gap-1.5 text-[10px]">
-            <div className="p-2 bg-[var(--bg-primary)] rounded-none border border-[var(--border)]">
-              <span className="micro-label block">PLANLANAN MALİYET</span>
-              <span className="font-mono font-black text-[var(--text-primary)] text-[10px]">{plannedCost}</span>
-            </div>
-            <div className="p-2 bg-[var(--bg-primary)] rounded-none border border-[var(--border)]">
-              <span className="micro-label block">GERÇEKLEŞEN BÜTÇE</span>
-              <span className="font-mono font-black text-[var(--text-primary)] text-[10px]">{actualCost}</span>
-            </div>
-          </div>
-        </div>
-      </div>
+          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
+            <MetricBox label="PLANLANAN MALİYET">
+              <Typography component="span" sx={{ fontFamily: 'monospace', fontWeight: 900, fontSize: 10 }}>{plannedCost}</Typography>
+            </MetricBox>
+            <MetricBox label="GERÇEKLEŞEN BÜTÇE">
+              <Typography component="span" sx={{ fontFamily: 'monospace', fontWeight: 900, fontSize: 10 }}>{actualCost}</Typography>
+            </MetricBox>
+          </Box>
+        </Stack>
+      </Box>
 
       {/* 4. EVM & SAPMA RAPORU */}
-      <div className="card py-1.5 rounded-none bg-transparent border-0 shadow-none px-0 border-t border-[var(--border)] pt-2.5">
-        <div className="flex justify-between items-center mb-2">
-          <span className="section-eyebrow flex items-center gap-1.5">
-            <Activity className="w-3.5 h-3.5 text-emerald-500" />
-            EVM & Sapma Raporu
-          </span>
-          <span className="text-[10px] font-black text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded uppercase">
-            CPI: 1.05 | SPI: 0.98
-          </span>
-        </div>
+      <Box sx={{ ...sectionSx, py: 1.5, pt: 2.5 }}>
+        <SectionHeader
+          icon={<Activity className="w-3.5 h-3.5" style={{ color: c('success').main }} />}
+          title="EVM & Sapma Raporu"
+          right={<Tag tone="success" variant="plain" uppercase>CPI: 1.05 | SPI: 0.98</Tag>}
+        />
 
-        <div className="space-y-2">
-          <p className="text-[10px] text-[var(--text-secondary)] leading-relaxed">
+        <Stack spacing={2}>
+          <Typography sx={{ fontSize: 10, lineHeight: 1.6, color: 'text.secondary' }}>
             Kazanılmış Değer Analizi (Earned Value Management) kümülatif SAPMA özetleri.
-          </p>
+          </Typography>
 
           {/* EVM Metrics PV, EV, AC */}
-          <div className="grid grid-cols-3 gap-1 text-center text-[10px]">
-            <div className="p-1.5 bg-[var(--bg-primary)] rounded-none border border-[var(--border)]">
-              <span className="micro-label block">PV</span>
-              <span className="font-mono font-black text-[var(--text-primary)] text-[10px]">₺{project.plannedSpent}M</span>
-            </div>
-            <div className="p-1.5 bg-[var(--bg-primary)] rounded-none border border-[var(--border)]">
-              <span className="micro-label block">EV</span>
-              <span className="font-mono font-black text-[var(--text-primary)] text-[10px]">₺{project.earnedValue}M</span>
-            </div>
-            <div className="p-1.5 bg-[var(--bg-primary)] rounded-none border border-[var(--border)]">
-              <span className="micro-label block">AC</span>
-              <span className="font-mono font-black text-[var(--text-primary)] text-[10px]">₺{project.spent}M</span>
-            </div>
-          </div>
+          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1 }}>
+            {[
+              { label: 'PV', value: project.plannedSpent },
+              { label: 'EV', value: project.earnedValue },
+              { label: 'AC', value: project.spent },
+            ].map((m) => (
+              <MetricBox key={m.label} label={m.label} center>
+                <Typography component="span" sx={{ fontFamily: 'monospace', fontWeight: 900, fontSize: 10 }}>₺{m.value}M</Typography>
+              </MetricBox>
+            ))}
+          </Box>
 
           {/* SPI & CPI Micro cards */}
-          <div className="grid grid-cols-2 gap-1.5">
-            <div className="p-2 bg-gradient-to-r from-red-500/10 to-transparent rounded-none border border-red-500/20">
-              <div className="flex justify-between items-center mb-0.5">
-                <span className="text-[10px] text-[var(--text-secondary)] font-bold">SPI (Süreç)</span>
-                <span className="text-[10px] font-black text-red-500 uppercase">Gecikme</span>
-              </div>
-              <span className="text-[11px] font-black text-red-500">0.98</span>
-            </div>
-
-            <div className="p-2 bg-gradient-to-r from-emerald-500/10 to-transparent rounded-none border border-emerald-500/20">
-              <div className="flex justify-between items-center mb-0.5">
-                <span className="text-[10px] text-[var(--text-secondary)] font-bold">CPI (Maliyet)</span>
-                <span className="text-[10px] font-black text-emerald-400 uppercase">Karda</span>
-              </div>
-              <span className="text-[11px] font-black text-emerald-500">1.05</span>
-            </div>
-          </div>
+          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
+            {([
+              { label: 'SPI (Süreç)', state: 'Gecikme', value: '0.98', tone: 'error' },
+              { label: 'CPI (Maliyet)', state: 'Karda', value: '1.05', tone: 'success' },
+            ] as const).map((m) => (
+              <Box
+                key={m.label}
+                sx={{
+                  p: 2,
+                  border: 1,
+                  borderColor: alpha(c(m.tone).main, 0.2),
+                  backgroundImage: `linear-gradient(90deg, ${alpha(c(m.tone).main, 0.1)}, transparent)`,
+                }}
+              >
+                <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
+                  <Typography component="span" sx={{ fontSize: 10, fontWeight: 700, color: 'text.secondary' }}>{m.label}</Typography>
+                  <Typography component="span" sx={{ fontSize: 10, fontWeight: 900, textTransform: 'uppercase', color: `${m.tone}.light` }}>{m.state}</Typography>
+                </Stack>
+                <Typography component="span" sx={{ fontSize: 11, fontWeight: 900, color: `${m.tone}.main` }}>{m.value}</Typography>
+              </Box>
+            ))}
+          </Box>
 
           {/* Map Color Mode Selector */}
-          <div className="space-y-1.5 border-t border-[var(--border)] pt-2.5">
-            <span className="text-[10px] font-black text-[var(--text-secondary)] uppercase block tracking-wider">HARİTA TEMATİK ISI KATMANI</span>
-            <div className="flex flex-col gap-1">
-              <button
+          <Stack spacing={1.5} sx={{ pt: 2.5, borderTop: 1, borderColor: 'divider' }}>
+            <Typography component="span" sx={{ ...microLabelSx, fontSize: 10, fontWeight: 900, letterSpacing: '0.05em' }}>HARİTA TEMATİK ISI KATMANI</Typography>
+            <Stack spacing={1}>
+              <Box
+                component="button"
+                type="button"
                 onClick={() => {
                   setMapColorMode('progress');
                   showFeedbackToast('🌡️ Haritada imalat ilerleme yüzdesi tematik renk modu (Isı Haritası) uygulandı.');
                 }}
-                className={`w-full py-1 px-2.5 rounded-none border text-left transition flex justify-between items-center cursor-pointer ${
-                  mapColorMode === 'progress'
-                    ? 'bg-indigo-600/15 border-indigo-500 text-indigo-400 font-extrabold shadow-sm'
-                    : 'bg-transparent border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                }`}
+                sx={modeButtonSx(mapColorMode === 'progress', 'secondary')}
               >
-                <span className="text-[10px]">İlerleme Yüzdesi Isı Haritası</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
-              </button>
-              <button
+                <span>İlerleme Yüzdesi Isı Haritası</span>
+                <Box component="span" sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: 'secondary.light' }} />
+              </Box>
+              <Box
+                component="button"
+                type="button"
                 onClick={() => {
                   setMapColorMode('cost');
                   showFeedbackToast('🌡️ Haritada maliyet sapma bütçe durum tematik renk modu uygulandı.');
                 }}
-                className={`w-full py-1 px-2.5 rounded-none border text-left transition flex justify-between items-center cursor-pointer ${
-                  mapColorMode === 'cost'
-                    ? 'bg-amber-600/15 border-amber-500 text-amber-400 font-extrabold shadow-sm'
-                    : 'bg-transparent border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                }`}
+                sx={modeButtonSx(mapColorMode === 'cost', 'warning')}
               >
-                <span className="text-[10px]">Maliyet Sapması Isı Haritası</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-              </button>
-            </div>
-          </div>
+                <span>Maliyet Sapması Isı Haritası</span>
+                <Box component="span" sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: 'warning.light' }} />
+              </Box>
+            </Stack>
+          </Stack>
+        </Stack>
+      </Box>
 
-          {/* Local FeedBack Toast Banner */}
-          {toastMessage && (
-            <div className="p-1.5 bg-slate-950 text-white text-[10px] rounded border border-slate-800 animate-fade-in flex justify-between items-center">
-              <span>{toastMessage}</span>
-              <button onClick={() => setToastMessage(null)} className="text-slate-500 hover:text-white font-bold ml-1">✕</button>
-            </div>
-          )}
-        </div>
-      </div>
+      <FeedbackToast message={toastMessage} onClose={() => setToastMessage(null)} />
 
       {/* Permits Edit Modal (Süper Kullanıcı) */}
-      {isEditingPermits && (
-        <div className="fixed inset-0 z-[999] bg-black/75 flex items-center justify-center p-4 animate-fade-in backdrop-blur-sm">
-          <div className="bg-[#141416] border border-[#2c2c2e] p-5 rounded-2xl shadow-2xl w-full max-w-md max-h-[85vh] overflow-y-auto space-y-4">
-            <div className="flex justify-between items-center border-b border-[#2c2c2e] pb-2 text-white">
-              <div className="flex items-center gap-2">
-                <Pencil className="w-4 h-4 text-blue-400 animate-pulse" />
-                <h3 className="text-xs font-black uppercase tracking-wider">Yasal İzinler & Ruhsatlar Düzenleme</h3>
-              </div>
-              <button onClick={() => setIsEditingPermits(false)} className="text-slate-400 hover:text-white cursor-pointer">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <p className="text-[10px] text-slate-400 text-left">
-              Süper kullanıcı yetkisiyle yasal izinlerin ve ruhsatların isim, merci ve durum bilgisini güncelleyebilirsiniz.
-            </p>
-
-            <div className="space-y-3 pt-2 text-left">
-              {permits.map((p, idx) => (
-                <div key={p.id} className="p-3 bg-slate-900/60 border border-slate-800 rounded-xl space-y-2">
-                  <div className="space-y-1">
-                    <label className="block text-[10px] text-slate-400 font-bold uppercase">EVRAK / İZİN ADI</label>
-                    <input
-                      type="text"
-                      value={p.name}
-                      onChange={(e) => {
-                        const updated = [...permits];
-                        updated[idx] = { ...updated[idx], name: e.target.value };
-                        setPermits(updated);
-                      }}
-                      className="w-full bg-[#1c1c1e] border border-[#2c2c2e] rounded-lg px-2.5 py-1 text-xs text-white focus:outline-none focus:border-blue-500"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="space-y-1">
-                      <label className="block text-[10px] text-slate-400 font-bold uppercase">KURUM / MERCİ</label>
-                      <input
-                        type="text"
-                        value={p.authority}
-                        onChange={(e) => {
-                          const updated = [...permits];
-                          updated[idx] = { ...updated[idx], authority: e.target.value };
-                          setPermits(updated);
-                        }}
-                        className="w-full bg-[#1c1c1e] border border-[#2c2c2e] rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-blue-500"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="block text-[10px] text-slate-400 font-bold uppercase">DURUM</label>
-                      <select
-                        value={p.status}
-                        onChange={(e) => {
-                          const updated = [...permits];
-                          updated[idx] = { ...updated[idx], status: e.target.value };
-                          setPermits(updated);
-                        }}
-                        className="w-full bg-[#1c1c1e] border border-[#2c2c2e] rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-blue-500"
-                      >
-                        <option value="Alındı">Alındı (Yeşil)</option>
-                        <option value="Bekliyor">Bekliyor (Sarı)</option>
-                        <option value="Süresi Doluyor">Süresi Doluyor (Mavi)</option>
-                        <option value="Süresi Doldu">Süresi Doldu (Kırmızı)</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <button
-              onClick={() => {
-                setIsEditingPermits(false);
-                showFeedbackToast('💾 Yasal izinler ve ruhsat bilgileri güncellendi.');
-              }}
-              className="w-full py-2 bg-blue-600 hover:bg-blue-500 text-xs font-black text-white rounded-xl transition cursor-pointer"
-            >
-              KAYDET VE KAPAT
-            </button>
-          </div>
-        </div>
-      )}
+      <AppDialog
+        open={isEditingPermits}
+        onClose={() => setIsEditingPermits(false)}
+        badge="Süper Yetkili"
+        title="Yasal İzinler & Ruhsatlar Düzenleme"
+        tone="secondary"
+        submitLabel="Kaydet ve Kapat"
+        onSubmit={() => {
+          setIsEditingPermits(false);
+          showFeedbackToast('💾 Yasal izinler ve ruhsat bilgileri güncellendi.');
+        }}
+      >
+        <Typography sx={{ fontSize: 10, color: 'text.secondary' }}>
+          Süper kullanıcı yetkisiyle yasal izinlerin ve ruhsatların isim, merci ve durum bilgisini güncelleyebilirsiniz.
+        </Typography>
+        {permits.map((p, idx) => (
+          <Stack key={p.id} spacing={2} sx={{ p: 3, bgcolor: 'background.paper', border: 1, borderColor: 'divider', borderRadius: 3 }}>
+            <TextField
+              label="Evrak / İzin Adı"
+              value={p.name}
+              onChange={(e) => updatePermit(idx, { name: e.target.value })}
+              sx={dialogFieldSx}
+            />
+            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+              <TextField
+                label="Kurum / Merci"
+                value={p.authority}
+                onChange={(e) => updatePermit(idx, { authority: e.target.value })}
+                sx={dialogFieldSx}
+              />
+              <TextField
+                select
+                label="Durum"
+                value={p.status}
+                onChange={(e) => updatePermit(idx, { status: e.target.value as typeof p.status })}
+                sx={dialogFieldSx}
+              >
+                <MenuItem value="Alındı">Alındı (Yeşil)</MenuItem>
+                <MenuItem value="Bekliyor">Bekliyor (Sarı)</MenuItem>
+                <MenuItem value="Süresi Doluyor">Süresi Doluyor (Mavi)</MenuItem>
+                <MenuItem value="Süresi Doldu">Süresi Doldu (Kırmızı)</MenuItem>
+              </TextField>
+            </Box>
+          </Stack>
+        ))}
+      </AppDialog>
 
       {/* Resources Edit Modal (Süper Kullanıcı) */}
-      {isEditingResources && (
-        <div className="fixed inset-0 z-[999] bg-black/75 flex items-center justify-center p-4 animate-fade-in backdrop-blur-sm">
-          <div className="bg-[#141416] border border-[#2c2c2e] p-5 rounded-2xl shadow-2xl w-full max-w-sm max-h-[85vh] overflow-y-auto space-y-4">
-            <div className="flex justify-between items-center border-b border-[#2c2c2e] pb-2 text-white">
-              <div className="flex items-center gap-2">
-                <Pencil className="w-4 h-4 text-amber-400 animate-pulse" />
-                <h3 className="text-xs font-black uppercase tracking-wider">Kaynak & Bütçe Düzenleme</h3>
-              </div>
-              <button onClick={() => setIsEditingResources(false)} className="text-slate-400 hover:text-white cursor-pointer">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <p className="text-[10px] text-slate-400 text-left">
-              Süper kullanıcı yetkisiyle kaynak çakışma kapasitelerini ve maliyet bütçe bilgilerini güncelleyebilirsiniz.
-            </p>
-
-            <div className="space-y-3 pt-2 text-left">
-              <div className="space-y-1">
-                <label className="block text-[10px] text-slate-400 font-bold uppercase">ALT YÜKLENİCİ KAPASİTE ORANI (%)</label>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={subcontractorCap}
-                  onChange={(e) => setSubcontractorCap(Math.min(100, Math.max(0, parseInt(e.target.value) || 0)))}
-                  className="w-full bg-[#1c1c1e] border border-[#2c2c2e] rounded-lg px-2.5 py-1 text-xs text-white focus:outline-none focus:border-amber-500"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <label className="block text-[10px] text-slate-400 font-bold uppercase">PLANLANAN MALİYET</label>
-                  <input
-                    type="text"
-                    value={plannedCost}
-                    onChange={(e) => setPlannedCost(e.target.value)}
-                    className="w-full bg-[#1c1c1e] border border-[#2c2c2e] rounded-lg px-2.5 py-1 text-xs text-white focus:outline-none focus:border-amber-500"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="block text-[10px] text-slate-400 font-bold uppercase">GERÇEKLEŞEN BÜTÇE</label>
-                  <input
-                    type="text"
-                    value={actualCost}
-                    onChange={(e) => setActualCost(e.target.value)}
-                    className="w-full bg-[#1c1c1e] border border-[#2c2c2e] rounded-lg px-2.5 py-1 text-xs text-white focus:outline-none focus:border-amber-500"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <button
-              onClick={() => {
-                setIsEditingResources(false);
-                showFeedbackToast('💾 Kaynak kapasitesi ve bütçe detayları güncellendi.');
-              }}
-              className="w-full py-2 bg-amber-600 hover:bg-amber-500 text-xs font-black text-white rounded-xl transition cursor-pointer"
-            >
-              KAYDET VE KAPAT
-            </button>
-          </div>
-        </div>
-      )}
-
-    </div>
+      <AppDialog
+        open={isEditingResources}
+        onClose={() => setIsEditingResources(false)}
+        badge="Süper Yetkili"
+        title="Kaynak & Bütçe Düzenleme"
+        tone="warning"
+        submitLabel="Kaydet ve Kapat"
+        onSubmit={() => {
+          setIsEditingResources(false);
+          showFeedbackToast('💾 Kaynak kapasitesi ve bütçe detayları güncellendi.');
+        }}
+      >
+        <Typography sx={{ fontSize: 10, color: 'text.secondary' }}>
+          Süper kullanıcı yetkisiyle kaynak çakışma kapasitelerini ve maliyet bütçe bilgilerini güncelleyebilirsiniz.
+        </Typography>
+        <TextField
+          type="number"
+          label="Alt Yüklenici Kapasite Oranı (%)"
+          value={subcontractorCap}
+          onChange={(e) => setSubcontractorCap(Math.min(100, Math.max(0, parseInt(e.target.value) || 0)))}
+          slotProps={{ htmlInput: { min: 0, max: 100 } }}
+          sx={dialogFieldSx}
+        />
+        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+          <TextField label="Planlanan Maliyet" value={plannedCost} onChange={(e) => setPlannedCost(e.target.value)} sx={dialogFieldSx} />
+          <TextField label="Gerçekleşen Bütçe" value={actualCost} onChange={(e) => setActualCost(e.target.value)} sx={dialogFieldSx} />
+        </Box>
+      </AppDialog>
+    </Stack>
   );
 }

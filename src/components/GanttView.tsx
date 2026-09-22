@@ -10,6 +10,13 @@ import {
   CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell, Area 
 } from 'recharts';
 import { WBSTask } from '../types';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import MenuItem from '@mui/material/MenuItem';
+import Slider from '@mui/material/Slider';
+import Stack from '@mui/material/Stack';
+import Typography from '@mui/material/Typography';
+import { FormField } from './chrome/FormDialog';
 
 interface GanttViewProps {
   project: {
@@ -461,138 +468,53 @@ export default function GanttView({ project, tasks, onUpdateTasks, theme, onClos
 
       {/* Conditional Add Form Box */}
       {showAddForm && (
-        <form onSubmit={handleAddNewTask} className="bg-[var(--bg-secondary)] border border-[var(--border)] p-4 rounded-xl space-y-3 animate-fade-in text-[var(--text-primary)]">
-          <div className="text-[10px] font-black text-amber-500 uppercase tracking-widest flex items-center gap-1">
+        <Box
+          component="form"
+          onSubmit={handleAddNewTask}
+          className="animate-fade-in"
+          sx={{ p: 4, bgcolor: 'background.paper', border: 1, borderColor: 'divider', borderRadius: 3, display: 'flex', flexDirection: 'column', gap: 3 }}
+        >
+          <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center', fontSize: 10, fontWeight: 900, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'warning.main' }}>
             <AlertTriangle className="w-3.5 h-3.5" />
-            Yeni Görev Planlama Kartı oluşturuluyor
-          </div>
+            <span>Yeni Görev Planlama Kartı oluşturuluyor</span>
+          </Stack>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div>
-              <label className="text-[10px] font-black uppercase text-[var(--text-secondary)] block mb-1">Görev Adı</label>
-              <input
-                type="text"
-                required
-                placeholder="Örn: Sky Tower Çatı Çelik Karkas Montajı"
-                value={newForm.name}
-                onChange={e => setNewForm({...newForm, name: e.target.value})}
-                className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:border-blue-500 text-[var(--text-primary)]"
-              />
-            </div>
-            
-            <div>
-              <label className="text-[10px] font-black uppercase text-[var(--text-secondary)] block mb-1">Süreç Kategorisi</label>
-              <select
-                value={newForm.phase}
-                onChange={e => setNewForm({...newForm, phase: e.target.value as any})}
-                className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-md px-2.5 py-1.5 text-xs focus:outline-none text-[var(--text-primary)] font-bold"
-              >
-                <option value="planlama" className="bg-[var(--bg-primary)] text-[var(--text-primary)]">📐 Planlama Süreçleri</option>
-                <option value="insaat" className="bg-[var(--bg-primary)] text-[var(--text-primary)]">🏗️ İnşaat Süreçleri</option>
-                <option value="isletme" className="bg-[var(--bg-primary)] text-[var(--text-primary)]">⚙️ İşletme Süreçleri</option>
-              </select>
-            </div>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' }, gap: 3 }}>
+            <FormField label="Görev Adı" required placeholder="Örn: Sky Tower Çatı Çelik Karkas Montajı" value={newForm.name} onChange={e => setNewForm({ ...newForm, name: e.target.value })} slotProps={{ inputLabel: { shrink: true } }} />
+            <FormField select label="Süreç Kategorisi" value={newForm.phase} onChange={e => setNewForm({ ...newForm, phase: e.target.value as any })}>
+              <MenuItem value="planlama">📐 Planlama Süreçleri</MenuItem>
+              <MenuItem value="insaat">🏗️ İnşaat Süreçleri</MenuItem>
+              <MenuItem value="isletme">⚙️ İşletme Süreçleri</MenuItem>
+            </FormField>
+            <FormField label="Sorumlu Mühendis / Mimar" required placeholder="Örn: Saha Müd. Serdar B." value={newForm.responsible} onChange={e => setNewForm({ ...newForm, responsible: e.target.value })} slotProps={{ inputLabel: { shrink: true } }} />
+            <FormField label="Yüklenici / Taşeron Firma" placeholder="Örn: Kalyon Yapı A.Ş." value={newForm.contractor} onChange={e => setNewForm({ ...newForm, contractor: e.target.value })} slotProps={{ inputLabel: { shrink: true } }} />
+            <FormField type="date" label="Başlangıç Tarihi (Ağustos 2026)" value={newForm.startDate} onChange={e => setNewForm({ ...newForm, startDate: e.target.value })} slotProps={{ inputLabel: { shrink: true } }} />
+            <FormField type="date" label="Bitiş Tarihi (Ağustos 2026)" value={newForm.endDate} onChange={e => setNewForm({ ...newForm, endDate: e.target.value })} slotProps={{ inputLabel: { shrink: true } }} />
+            <FormField type="number" label="Maliyet Etkisi (Milyon TL)" value={newForm.cost} onChange={e => setNewForm({ ...newForm, cost: parseFloat(e.target.value) || 0 })} slotProps={{ htmlInput: { step: 0.1 } }} />
+            <FormField select label="Öncelikli Görev Bağlantısı" value={newForm.dependencies} onChange={e => setNewForm({ ...newForm, dependencies: e.target.value })}>
+              <MenuItem value="">Bağlantı Yok</MenuItem>
+              {ganttTasks.map(t => (
+                <MenuItem key={t.id} value={t.id}>{t.name}</MenuItem>
+              ))}
+            </FormField>
+            <FormField select label="Sistem Statüsü" value={newForm.status} onChange={e => setNewForm({ ...newForm, status: e.target.value as any })}>
+              <MenuItem value="Talep">Talep Edildi</MenuItem>
+              <MenuItem value="Onay">Onay Bekliyor</MenuItem>
+              <MenuItem value="Devam">Devam Ediyor</MenuItem>
+              <MenuItem value="Kontrol">Kontrol Aşamasında</MenuItem>
+              <MenuItem value="Kapanış">Tamamlandı</MenuItem>
+            </FormField>
+          </Box>
 
-            <div>
-              <label className="text-[10px] font-black uppercase text-[var(--text-secondary)] block mb-1">Sorumlu Mühendis / Mimar</label>
-              <input
-                type="text"
-                required
-                placeholder="Örn: Saha Müd. Serdar B."
-                value={newForm.responsible}
-                onChange={e => setNewForm({...newForm, responsible: e.target.value})}
-                className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:border-blue-500 text-[var(--text-primary)]"
-              />
-            </div>
-
-            <div>
-              <label className="text-[10px] font-black uppercase text-[var(--text-secondary)] block mb-1">Yüklenici / Taşeron Firma</label>
-              <input
-                type="text"
-                placeholder="Örn: Kalyon Yapı A.Ş."
-                value={newForm.contractor}
-                onChange={e => setNewForm({...newForm, contractor: e.target.value})}
-                className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:border-blue-500 text-[var(--text-primary)]"
-              />
-            </div>
-
-            <div>
-              <label className="text-[10px] font-black uppercase text-[var(--text-secondary)] block mb-1">Başlangıç Tarihi (Ağustos 2026)</label>
-              <input
-                type="date"
-                value={newForm.startDate}
-                onChange={e => setNewForm({...newForm, startDate: e.target.value})}
-                className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:border-blue-500 text-[var(--text-primary)] font-mono"
-              />
-            </div>
-
-            <div>
-              <label className="text-[10px] font-black uppercase text-[var(--text-secondary)] block mb-1">Bitiş Tarihi (Ağustos 2026)</label>
-              <input
-                type="date"
-                value={newForm.endDate}
-                onChange={e => setNewForm({...newForm, endDate: e.target.value})}
-                className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:border-blue-500 text-[var(--text-primary)] font-mono"
-              />
-            </div>
-
-            <div>
-              <label className="text-[10px] font-black uppercase text-[var(--text-secondary)] block mb-1">Maliyet Etkisi (Milyon TL)</label>
-              <input
-                type="number"
-                step="0.1"
-                value={newForm.cost}
-                onChange={e => setNewForm({...newForm, cost: parseFloat(e.target.value) || 0})}
-                className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:border-blue-500 text-[var(--text-primary)] font-bold"
-              />
-            </div>
-
-            <div>
-              <label className="text-[10px] font-black uppercase text-[var(--text-secondary)] block mb-1">Öncelikli Görev Bağlantısı</label>
-              <select
-                value={newForm.dependencies}
-                onChange={e => setNewForm({...newForm, dependencies: e.target.value})}
-                className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-md px-2.5 py-1.5 text-xs focus:outline-none text-[var(--text-primary)]"
-              >
-                <option value="" className="bg-[var(--bg-primary)] text-[var(--text-primary)]">Bağlantı Yok</option>
-                {ganttTasks.map(t => (
-                  <option key={t.id} value={t.id} className="bg-[var(--bg-primary)] text-[var(--text-primary)]">{t.name}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="text-[10px] font-black uppercase text-[var(--text-secondary)] block mb-1">Sistem Statüsü</label>
-              <select
-                value={newForm.status}
-                onChange={e => setNewForm({...newForm, status: e.target.value as any})}
-                className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-md px-2.5 py-1.5 text-xs focus:outline-none text-[var(--text-primary)] font-bold"
-              >
-                <option value="Talep" className="bg-[var(--bg-primary)] text-[var(--text-primary)]">Talep Edildi</option>
-                <option value="Onay" className="bg-[var(--bg-primary)] text-[var(--text-primary)]">Onay Bekliyor</option>
-                <option value="Devam" className="bg-[var(--bg-primary)] text-[var(--text-primary)]">Devam Ediyor</option>
-                <option value="Kontrol" className="bg-[var(--bg-primary)] text-[var(--text-primary)]">Kontrol Aşamasında</option>
-                <option value="Kapanış" className="bg-[var(--bg-primary)] text-[var(--text-primary)]">Tamamlandı</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-2 pt-2 border-t border-[var(--border)]">
-            <button
-              type="button"
-              onClick={() => setShowAddForm(false)}
-              className="px-3.5 py-1.5 rounded-lg border border-[var(--border)] text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-primary)] transition cursor-pointer"
-            >
+          <Stack direction="row" spacing={2} sx={{ justifyContent: 'flex-end', pt: 2, borderTop: 1, borderColor: 'divider' }}>
+            <Button type="button" variant="outlined" color="inherit" onClick={() => setShowAddForm(false)} sx={{ borderColor: 'divider', color: 'text.secondary' }}>
               İptal Et
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-black rounded-lg transition-all cursor-pointer"
-            >
+            </Button>
+            <Button type="submit" variant="contained" color="primary">
               Zaman Çizelgesine Kaydet
-            </button>
-          </div>
-        </form>
+            </Button>
+          </Stack>
+        </Box>
       )}
 
       {/* Main Gantt Split View */}
@@ -645,95 +567,37 @@ export default function GanttView({ project, tasks, onUpdateTasks, theme, onClos
                     }`}
                   >
                     {isEditing ? (
-                      <div className="space-y-2.5 text-xs">
-                        <input
-                          type="text"
-                          value={editFormData.name || ''}
-                          onChange={e => setEditFormData({...editFormData, name: e.target.value})}
-                          className="w-full bg-[var(--bg-primary)] border border-blue-500/40 rounded px-2 py-1 text-white text-xs"
-                        />
-                        
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <span className="text-[10px] text-slate-400 block uppercase font-bold">Yüklenici</span>
-                            <input
-                              type="text"
-                              value={editFormData.contractor || ''}
-                              onChange={e => setEditFormData({...editFormData, contractor: e.target.value})}
-                              className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded px-1.5 py-0.5 text-white text-[10px]"
-                            />
-                          </div>
-                          <div>
-                            <span className="text-[10px] text-slate-400 block uppercase font-bold">Sorumlu</span>
-                            <input
-                              type="text"
-                              value={editFormData.responsible || ''}
-                              onChange={e => setEditFormData({...editFormData, responsible: e.target.value})}
-                              className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded px-1.5 py-0.5 text-white text-[10px]"
-                            />
-                          </div>
-                        </div>
+                      <Stack spacing={2.5}>
+                        <FormField size="small" value={editFormData.name || ''} onChange={e => setEditFormData({ ...editFormData, name: e.target.value })} slotProps={{ htmlInput: { 'aria-label': 'Görev adı' } }} />
 
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <span className="text-[10px] text-slate-400 block uppercase font-bold">Bütçe (mTL)</span>
-                            <input
-                              type="number"
-                              step="0.1"
-                              value={editFormData.cost || 0}
-                              onChange={e => setEditFormData({...editFormData, cost: parseFloat(e.target.value) || 0})}
-                              className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded px-1.5 py-0.5 text-white text-[10px] font-bold"
-                            />
-                          </div>
-                          <div>
-                            <span className="text-[10px] text-slate-400 block uppercase font-bold">Durum</span>
-                            <select
-                              value={editFormData.status}
-                              onChange={e => setEditFormData({...editFormData, status: e.target.value as any})}
-                              className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded px-1.5 py-0.5 text-white text-[10px]"
-                            >
-                              <option value="Talep">Talep</option>
-                              <option value="Onay">Onay</option>
-                              <option value="Devam">Devam</option>
-                              <option value="Kontrol">Kontrol</option>
-                              <option value="Kapanış">Kapanış</option>
-                            </select>
-                          </div>
-                        </div>
+                        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                          <FormField size="small" label="Yüklenici" value={editFormData.contractor || ''} onChange={e => setEditFormData({ ...editFormData, contractor: e.target.value })} />
+                          <FormField size="small" label="Sorumlu" value={editFormData.responsible || ''} onChange={e => setEditFormData({ ...editFormData, responsible: e.target.value })} />
+                        </Box>
+
+                        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                          <FormField size="small" type="number" label="Bütçe (mTL)" value={editFormData.cost || 0} onChange={e => setEditFormData({ ...editFormData, cost: parseFloat(e.target.value) || 0 })} slotProps={{ htmlInput: { step: 0.1 } }} />
+                          <FormField size="small" select label="Durum" value={editFormData.status} onChange={e => setEditFormData({ ...editFormData, status: e.target.value as any })}>
+                            {['Talep', 'Onay', 'Devam', 'Kontrol', 'Kapanış'].map((s) => (
+                              <MenuItem key={s} value={s}>{s}</MenuItem>
+                            ))}
+                          </FormField>
+                        </Box>
 
                         {/* Drag and slide progress state */}
-                        <div className="space-y-1">
-                          <div className="flex justify-between items-center">
-                            <span className="text-[10px] text-slate-400 block uppercase font-bold">İlerleme Oranı</span>
-                            <span className="text-[10px] font-bold text-amber-400">{editFormData.progress}%</span>
-                          </div>
-                          <input
-                            type="range"
-                            min="0"
-                            max="100"
-                            value={editFormData.progress || 0}
-                            onChange={e => setEditFormData({...editFormData, progress: parseInt(e.target.value)})}
-                            className="w-full accent-amber-500 h-1 rounded bg-slate-800"
-                          />
-                        </div>
+                        <Box>
+                          <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                            <Typography component="span" sx={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: 'text.secondary' }}>İlerleme Oranı</Typography>
+                            <Typography component="span" sx={{ fontSize: 10, fontWeight: 700, color: 'warning.main' }}>{editFormData.progress}%</Typography>
+                          </Stack>
+                          <Slider size="small" color="warning" min={0} max={100} value={editFormData.progress || 0} onChange={(_, v) => setEditFormData({ ...editFormData, progress: v as number })} aria-label="İlerleme oranı" />
+                        </Box>
 
-                        <div className="flex justify-end gap-1.5 pt-1.5 border-t border-[var(--border)]">
-                          <button
-                            type="button"
-                            onClick={cancelEdit}
-                            className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-[10px] font-bold"
-                          >
-                            İptal
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => saveEdit(task.id)}
-                            className="px-2.5 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded text-[10px] font-black"
-                          >
-                            Kaydet
-                          </button>
-                        </div>
-                      </div>
+                        <Stack direction="row" spacing={1.5} sx={{ justifyContent: 'flex-end', pt: 1.5, borderTop: 1, borderColor: 'divider' }}>
+                          <Button type="button" size="small" variant="outlined" color="inherit" onClick={cancelEdit} sx={{ borderColor: 'divider', color: 'text.secondary' }}>İptal</Button>
+                          <Button type="button" size="small" variant="contained" color="primary" onClick={() => saveEdit(task.id)}>Kaydet</Button>
+                        </Stack>
+                      </Stack>
                     ) : (
                       <div className="space-y-2">
                         <div className="flex justify-between items-start gap-1">
@@ -1112,31 +976,14 @@ export default function GanttView({ project, tasks, onUpdateTasks, theme, onClos
                               </button>
                             </div>
 
-                            <div className="space-y-1">
-                              <label className="text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-wider block">Görev Adı</label>
-                              <input 
-                                type="text"
-                                value={quickEditName}
-                                onChange={(e) => setQuickEditName(e.target.value)}
-                                className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg px-2 py-1 text-[11px] font-semibold text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                placeholder="Görev adı..."
-                              />
-                            </div>
+                            <FormField size="small" label="Görev Adı" value={quickEditName} onChange={(e) => setQuickEditName(e.target.value)} placeholder="Görev adı..." slotProps={{ inputLabel: { shrink: true } }} />
 
                             <div className="space-y-1">
                               <div className="flex justify-between items-center">
                                 <label className="text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-wider">İlerleme</label>
                                 <span className="text-[10px] font-mono font-black text-blue-400">{quickEditProgress}%</span>
                               </div>
-                              <input 
-                                type="range"
-                                min="0"
-                                max="100"
-                                step="5"
-                                value={quickEditProgress}
-                                onChange={(e) => setQuickEditProgress(Number(e.target.value))}
-                                className="w-full h-1 bg-[var(--border)] rounded-lg appearance-none cursor-pointer accent-blue-500"
-                              />
+                              <Slider size="small" min={0} max={100} step={5} value={quickEditProgress} onChange={(_, v) => setQuickEditProgress(v as number)} aria-label="İlerleme" />
                               
                               {/* Quick % Pills */}
                               <div className="flex justify-between gap-1 mt-1">
@@ -1388,21 +1235,14 @@ export default function GanttView({ project, tasks, onUpdateTasks, theme, onClos
                       <span className="font-mono font-black text-[var(--text-primary)]">İlerleme: %{selectedTask.progress}</span>
                     </div>
 
-                    <input
-                      type="range"
-                      min="0"
-                      max="100"
-                      value={selectedTask.progress}
-                      onChange={(e) => {
-                        const newProgress = parseInt(e.target.value) || 0;
+                    <Slider size="small" color="secondary" min={0} max={100} value={selectedTask.progress} aria-label="Canlı simülatör ilerleme" onChange={(_, v) => {
+                        const newProgress = (v as number) || 0;
                         const updated = ganttTasks.map(t => 
                           t.id === selectedTask.id ? { ...t, progress: newProgress } : t
                         );
                         setGanttTasks(updated);
                         onUpdateTasks(updated as any);
-                      }}
-                      className="w-full accent-indigo-500 cursor-pointer h-1 bg-slate-800 rounded-lg appearance-none"
-                    />
+                      }} />
                     <p className="text-[10px] text-slate-500 leading-tight">
                       * Kaydırıcıyı hareket ettirerek fiziki ilerleme oranını eş zamanlı simüle edip zaman çizelgesiyle senkronize edebilirsiniz.
                     </p>

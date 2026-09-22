@@ -5,7 +5,27 @@ import {
   Clock, ShieldAlert, Cpu, ArrowRight, CornerDownLeft, Sparkles,
   TrendingUp, CheckCircle, AlertCircle
 } from 'lucide-react';
+import Box from '@mui/material/Box';
+import Chip from '@mui/material/Chip';
+import Dialog from '@mui/material/Dialog';
+import IconButton from '@mui/material/IconButton';
+import InputBase from '@mui/material/InputBase';
+import Typography from '@mui/material/Typography';
+import { alpha, useTheme } from '@mui/material/styles';
 import { Project, WBSTask, ProjectDocument, Asset, Permit } from '../types';
+
+const BADGE_TONES: Record<string, { fg: string }> = {
+  blue: { fg: '#60a5fa' },
+  emerald: { fg: '#34d399' },
+  amber: { fg: '#fbbf24' },
+  sky: { fg: '#38bdf8' },
+  purple: { fg: '#c084fc' },
+  rose: { fg: '#fb7185' },
+  indigo: { fg: '#818cf8' },
+  yellow: { fg: '#facc15' },
+  cyan: { fg: '#22d3ee' },
+  slate: { fg: '#cbd5e1' },
+};
 
 export interface SearchResultItem {
   id: string;
@@ -13,6 +33,7 @@ export interface SearchResultItem {
   subtitle: string;
   category: 'project' | 'task' | 'block' | 'document' | 'permit' | 'asset' | 'navigation' | 'layer';
   badge?: string;
+  /** Rozet rengi (ton adı): blue | emerald | amber | sky | purple | rose | indigo | yellow | cyan */
   badgeColor?: string;
   action: () => void;
   metadata?: {
@@ -55,6 +76,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
   setCeoPocketMode,
   setShowModullerGrid,
 }) => {
+  const theme = useTheme();
   const [query, setQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<FilterCategory>('all');
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -104,7 +126,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
         subtitle: 'Konsept tasarım, yasal izinler, WBS ağacı ve bütçe planlama paneli',
         category: 'navigation',
         badge: 'Modül',
-        badgeColor: 'bg-blue-600/20 text-blue-400 border-blue-500/30',
+        badgeColor: 'blue',
         action: () => {
           setActiveTab('plan');
           setCeoPocketMode(false);
@@ -117,7 +139,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
         subtitle: 'Şantiye ilerleme takibi, iş programı, hakedişler ve drone analizi',
         category: 'navigation',
         badge: 'Modül',
-        badgeColor: 'bg-emerald-600/20 text-emerald-400 border-emerald-500/30',
+        badgeColor: 'emerald',
         action: () => {
           setActiveTab('insaat');
           setCeoPocketMode(false);
@@ -130,7 +152,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
         subtitle: 'Bina ekipmanları, sensörler, periyodik bakım ve enerji izleme',
         category: 'navigation',
         badge: 'Modül',
-        badgeColor: 'bg-amber-600/20 text-amber-400 border-amber-500/30',
+        badgeColor: 'amber',
         action: () => {
           setActiveTab('isletme');
           setCeoPocketMode(false);
@@ -143,7 +165,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
         subtitle: 'CBS katman yönetimi, kullanıcı rolleri, denetim logları ve ham veri tablosu',
         category: 'navigation',
         badge: 'Yönetim',
-        badgeColor: 'bg-sky-600/20 text-sky-400 border-sky-500/30',
+        badgeColor: 'sky',
         action: () => {
           setActiveTab('admin');
           setCeoPocketMode(false);
@@ -156,7 +178,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
         subtitle: '3D binalar, arazi yükseklikleri, katman kontrolleri ve hava fotoğrafları',
         category: 'navigation',
         badge: 'Harita',
-        badgeColor: 'bg-purple-600/20 text-purple-400 border-purple-500/30',
+        badgeColor: 'purple',
         action: () => {
           setCenterTab('3d');
           setCeoPocketMode(false);
@@ -169,7 +191,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
         subtitle: 'Bütçe dağılımı, S-Eğrisi EVM performansı ve kritik yol analizleri',
         category: 'navigation',
         badge: 'Analiz',
-        badgeColor: 'bg-rose-600/20 text-rose-400 border-rose-500/30',
+        badgeColor: 'rose',
         action: () => {
           setCenterTab('kpis');
           setCeoPocketMode(false);
@@ -182,7 +204,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
         subtitle: 'Maliyet optimizasyonu, 4D simülasyon, BIM/CAD entegrasyon konsolu',
         category: 'navigation',
         badge: 'Konsol',
-        badgeColor: 'bg-indigo-600/20 text-indigo-400 border-indigo-500/30',
+        badgeColor: 'indigo',
         action: () => {
           setShowModullerGrid(true);
           onClose();
@@ -194,7 +216,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
         subtitle: 'Yönetici seviyesi kritik özetler, nakit akışı ve anlık şantiye riskleri',
         category: 'navigation',
         badge: 'Mobil',
-        badgeColor: 'bg-yellow-600/20 text-yellow-400 border-yellow-500/30',
+        badgeColor: 'yellow',
         action: () => {
           setCeoPocketMode(true);
           onClose();
@@ -210,7 +232,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
         subtitle: `${p.code} • ${p.location} • Ada/Parsel: ${p.adaParcel}`,
         category: 'project',
         badge: `%${p.overallProgress} İlerleme`,
-        badgeColor: 'bg-blue-600/20 text-blue-400 border-blue-500/30',
+        badgeColor: 'blue',
         metadata: {
           projectId: p.id,
           cost: `₺${p.budget}M Bütçe`,
@@ -231,7 +253,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
           subtitle: `Yükseklik: ${b.height}m • Kat Sayısı: ${b.floors} Kat • Durum: ${b.status}`,
           category: 'block',
           badge: `%${b.progress} Yapı`,
-          badgeColor: 'bg-cyan-600/20 text-cyan-400 border-cyan-500/30',
+          badgeColor: 'cyan',
           metadata: {
             projectId: p.id,
             progress: b.progress,
@@ -254,7 +276,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
           subtitle: `${pm.authority} • Kapsam: ${pm.geographicScope} • Geçerlilik: ${pm.expiryDate}`,
           category: 'document',
           badge: pm.status,
-          badgeColor: pm.status === 'Alındı' ? 'bg-emerald-600/20 text-emerald-400' : 'bg-amber-600/20 text-amber-400',
+          badgeColor: pm.status === 'Alındı' ? 'emerald' : 'amber',
           metadata: {
             projectId: p.id,
             status: pm.status,
@@ -280,7 +302,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
             subtitle: `Proje: ${proj?.name || pId} • Taşeron: ${t.contractor} • Sorumlu: ${t.responsible}`,
             category: 'task',
             badge: `%${t.progress} (${t.status})`,
-            badgeColor: 'bg-emerald-600/20 text-emerald-400 border-emerald-500/30',
+            badgeColor: 'emerald',
             metadata: {
               projectId: pId,
               cost: `₺${t.cost}M`,
@@ -306,7 +328,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
         subtitle: `Versiyon: ${doc.version} • Boyut: ${doc.fileSize} • Yüklenme: ${doc.uploadDate}`,
         category: 'document',
         badge: 'CDE Dosyası',
-        badgeColor: 'bg-purple-600/20 text-purple-400 border-purple-500/30',
+        badgeColor: 'purple',
         metadata: {
           date: doc.uploadDate
         },
@@ -326,7 +348,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
         subtitle: `Tür: ${a.type} • Üretici: ${a.manufacturer} • Proje: ${proj?.name || a.associatedProjectId}`,
         category: 'asset',
         badge: a.status,
-        badgeColor: a.status === 'Sorunsuz' ? 'bg-emerald-600/20 text-emerald-400' : 'bg-rose-600/20 text-rose-400',
+        badgeColor: a.status === 'Sorunsuz' ? 'emerald' : 'rose',
         metadata: {
           projectId: a.associatedProjectId,
           cost: `₺${a.maintenanceCost}M Bakım`,
@@ -398,8 +420,6 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
     }
   };
 
-  if (!isOpen) return null;
-
   const getCategoryIcon = (category: SearchResultItem['category']) => {
     switch (category) {
       case 'project':
@@ -425,11 +445,11 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
     const parts = text.split(new RegExp(`(${searchQuery.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'));
     return (
       <>
-        {parts.map((part, i) => 
+        {parts.map((part, i) =>
           part.toLowerCase() === searchQuery.toLowerCase().trim() ? (
-            <span key={i} className="text-yellow-400 underline decoration-yellow-400/40 bg-yellow-400/10 px-0.5 rounded">
+            <Box key={i} component="span" sx={{ color: '#facc15', textDecoration: 'underline', textDecorationColor: alpha('#facc15', 0.4), bgcolor: alpha('#facc15', 0.1), px: 0.5, borderRadius: 0.5 }}>
               {part}
-            </span>
+            </Box>
           ) : (
             part
           )
@@ -438,168 +458,184 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
     );
   };
 
+  const kbd = (label: string) => (
+    <Box component="kbd" sx={{ px: 1, py: 0.5, fontSize: 10, fontFamily: 'monospace', color: '#94a3b8', bgcolor: '#1e293b', border: 1, borderColor: '#334155', borderRadius: 1 }}>
+      {label}
+    </Box>
+  );
+
+  const filters: { id: FilterCategory; label: string }[] = [
+    { id: 'all', label: 'Tümü' },
+    { id: 'project', label: 'Projeler' },
+    { id: 'task', label: 'WBS & Görevler' },
+    { id: 'block', label: 'Yapılar & Bloklar' },
+    { id: 'document', label: 'Belgeler & İzinler' },
+    { id: 'asset', label: 'Ekipmanlar (FM)' },
+    { id: 'navigation', label: 'Modüller' },
+  ];
+
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-20 px-3 bg-black/75 backdrop-blur-md animate-fade-in">
-      {/* Backdrop click to close */}
-      <div className="fixed inset-0" onClick={onClose} />
+    <Dialog
+      open={isOpen}
+      onClose={onClose}
+      maxWidth={false}
+      sx={{ '& .MuiDialog-container': { alignItems: 'flex-start', pt: { xs: 16, sm: 20 } } }}
+      slotProps={{
+        backdrop: { sx: { bgcolor: alpha('#000', 0.75), backdropFilter: 'blur(12px)' } },
+        paper: {
+          sx: {
+            width: 672,
+            maxWidth: 'calc(100% - 24px)',
+            m: 0,
+            maxHeight: '80vh',
+            display: 'flex',
+            flexDirection: 'column',
+            bgcolor: 'background.paper',
+            backgroundImage: 'none',
+            border: 1,
+            borderColor: 'divider',
+            borderRadius: 4,
+            overflow: 'hidden',
+          },
+        },
+      }}
+    >
+      {/* Search Input Bar */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, px: 4, py: 3.5, borderBottom: 1, borderColor: 'divider', bgcolor: alpha(theme.palette.background.default, 0.8) }}>
+        <Search className="w-5 h-5 text-sky-400 shrink-0" />
+        <InputBase
+          inputRef={inputRef}
+          id="global-search-input"
+          fullWidth
+          value={query}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setSelectedIndex(0);
+          }}
+          onKeyDown={handleKeyDown}
+          placeholder="Proje, WBS görevi, bina bloğu, ruhsat veya modül ara... (örn: Ataköy, Sky Tower, 01, DHMİ)"
+          sx={{ fontSize: { xs: 12, sm: 14 }, fontWeight: 500, color: 'text.primary' }}
+        />
+        {query && (
+          <IconButton size="small" title="Temizle" onClick={() => { setQuery(''); inputRef.current?.focus(); }} sx={{ p: 1, color: 'text.secondary' }}>
+            <X className="w-4 h-4" />
+          </IconButton>
+        )}
+        <Box sx={{ display: { xs: 'none', sm: 'flex' }, flexShrink: 0 }}>{kbd('ESC')}</Box>
+      </Box>
 
-      {/* Search Modal Box */}
-      <div 
-        className="relative w-full max-w-2xl bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh] z-10 transition-all duration-300"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Search Input Bar */}
-        <div className="flex items-center px-4 py-3.5 border-b border-[var(--border)] bg-[var(--bg-primary)]/80 gap-3">
-          <Search className="w-5 h-5 text-sky-400 shrink-0" />
-          <input
-            ref={inputRef}
-            type="text"
-            value={query}
-            onChange={(e) => {
-              setQuery(e.target.value);
-              setSelectedIndex(0);
-            }}
-            onKeyDown={handleKeyDown}
-            placeholder="Proje, WBS görevi, bina bloğu, ruhsat veya modül ara... (örn: Ataköy, Sky Tower, 01, DHMİ)"
-            className="w-full bg-transparent text-xs sm:text-sm text-[var(--text-primary)] placeholder-slate-500 focus:outline-none font-medium"
-            id="global-search-input"
-          />
-          {query && (
-            <button 
-              onClick={() => { setQuery(''); inputRef.current?.focus(); }}
-              className="p-1 text-slate-400 hover:text-white rounded-md transition cursor-pointer"
-              title="Temizle"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
-          <div className="hidden sm:flex items-center gap-1 shrink-0">
-            <kbd className="px-1.5 py-0.5 text-[10px] font-mono text-slate-400 bg-slate-800 border border-slate-700 rounded shadow-sm">ESC</kbd>
-          </div>
-        </div>
-
-        {/* Filter Pills */}
-        <div className="flex items-center gap-1.5 px-4 py-2 border-b border-[var(--border)] overflow-x-auto no-scrollbar bg-[var(--bg-secondary)] text-xs">
-          {[
-            { id: 'all', label: 'Tümü' },
-            { id: 'project', label: 'Projeler' },
-            { id: 'task', label: 'WBS & Görevler' },
-            { id: 'block', label: 'Yapılar & Bloklar' },
-            { id: 'document', label: 'Belgeler & İzinler' },
-            { id: 'asset', label: 'Ekipmanlar (FM)' },
-            { id: 'navigation', label: 'Modüller' },
-          ].map((cat) => (
-            <button
+      {/* Filter Pills */}
+      <Box sx={{ display: 'flex', gap: 1.5, px: 4, py: 2, borderBottom: 1, borderColor: 'divider', overflowX: 'auto', scrollbarWidth: 'none', flexShrink: 0 }}>
+        {filters.map((cat) => {
+          const active = activeCategory === cat.id;
+          return (
+            <Chip
               key={cat.id}
+              label={cat.label}
               onClick={() => {
-                setActiveCategory(cat.id as FilterCategory);
+                setActiveCategory(cat.id);
                 setSelectedIndex(0);
                 inputRef.current?.focus();
               }}
-              className={`px-2.5 py-1 rounded-lg font-bold text-[11px] whitespace-nowrap transition cursor-pointer border ${
-                activeCategory === cat.id
-                  ? 'bg-blue-600 text-white border-blue-500 shadow-sm'
-                  : 'bg-[var(--bg-primary)] border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-slate-600'
-              }`}
-            >
-              {cat.label}
-            </button>
-          ))}
-        </div>
+              sx={{
+                flexShrink: 0,
+                height: 26,
+                borderRadius: 2,
+                fontSize: 11,
+                fontWeight: 700,
+                border: 1,
+                borderColor: active ? 'primary.main' : 'divider',
+                bgcolor: active ? 'primary.dark' : 'background.default',
+                color: active ? '#fff' : 'text.secondary',
+                '&:hover': { bgcolor: active ? 'primary.dark' : 'background.default', color: active ? '#fff' : 'text.primary' },
+              }}
+            />
+          );
+        })}
+      </Box>
 
-        {/* Results List */}
-        <div 
-          ref={resultsContainerRef}
-          className="flex-1 overflow-y-auto p-2 divide-y divide-[var(--border)]/40 max-h-[50vh]"
-        >
-          {filteredResults.length === 0 ? (
-            <div className="p-8 text-center flex flex-col items-center justify-center text-slate-400 gap-2">
-              <AlertCircle className="w-8 h-8 text-slate-500 stroke-1" />
-              <p className="text-xs font-bold text-[var(--text-secondary)]">"{query}" ile eşleşen bir sonuç bulunamadı.</p>
-              <p className="text-[11px] text-slate-500">Aramayı farklı bir anahtar kelime veya filtre seçerek deneyebilirsiniz.</p>
-            </div>
-          ) : (
-            filteredResults.map((item, index) => {
-              const isSelected = index === selectedIndex;
-              return (
-                <div
-                  key={item.id}
-                  data-search-item
-                  onClick={() => item.action()}
-                  onMouseEnter={() => setSelectedIndex(index)}
-                  className={`p-2.5 sm:p-3 rounded-xl transition flex items-center justify-between gap-3 cursor-pointer ${
-                    isSelected
-                      ? 'bg-blue-600/15 border border-blue-500/40 shadow-sm'
-                      : 'hover:bg-[var(--bg-primary)] border border-transparent'
-                  }`}
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border ${
-                      isSelected 
-                        ? 'bg-blue-600/20 border-blue-500/40' 
-                        : 'bg-[var(--bg-primary)] border-[var(--border)]'
-                    }`}>
-                      {getCategoryIcon(item.category)}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <h4 className={`text-[10px] sm:text-[11px] truncate ${
-                          isSelected ? 'text-blue-400' : 'text-[var(--text-primary)]'
-                        }`}>
-                          {highlightMatch(item.title, query)}
-                        </h4>
-                        {item.badge && (
-                          <span className={`text-[10px] px-1.5 py-0.5 rounded font-black border uppercase tracking-wider shrink-0 ${
-                            item.badgeColor || 'bg-slate-800 text-slate-300 border-slate-700'
-                          }`}>
-                            {item.badge}
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-[10px] text-[var(--text-secondary)] truncate mt-0.5 font-mono">
-                        {highlightMatch(item.subtitle, query)}
-                      </p>
-                    </div>
-                  </div>
+      {/* Results List */}
+      <Box ref={resultsContainerRef} sx={{ flex: 1, overflowY: 'auto', p: 2, maxHeight: '50vh', display: 'flex', flexDirection: 'column', gap: 1 }}>
+        {filteredResults.length === 0 ? (
+          <Box sx={{ p: 8, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, color: '#94a3b8' }}>
+            <AlertCircle className="w-8 h-8 text-slate-500 stroke-1" />
+            <Typography sx={{ fontSize: 12, fontWeight: 700, color: 'text.secondary' }}>"{query}" ile eşleşen bir sonuç bulunamadı.</Typography>
+            <Typography sx={{ fontSize: 11, color: '#64748b' }}>Aramayı farklı bir anahtar kelime veya filtre seçerek deneyebilirsiniz.</Typography>
+          </Box>
+        ) : (
+          filteredResults.map((item, index) => {
+            const isSelected = index === selectedIndex;
+            const badge = BADGE_TONES[item.badgeColor ?? ''] ?? BADGE_TONES.slate;
+            return (
+              <Box
+                key={item.id}
+                data-search-item
+                onClick={() => item.action()}
+                onMouseEnter={() => setSelectedIndex(index)}
+                sx={{
+                  p: { xs: 2.5, sm: 3 },
+                  borderRadius: 3,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 3,
+                  cursor: 'pointer',
+                  border: 1,
+                  borderColor: isSelected ? alpha('#3b82f6', 0.4) : 'transparent',
+                  bgcolor: isSelected ? alpha('#2563eb', 0.15) : 'transparent',
+                  '&:hover': { bgcolor: isSelected ? alpha('#2563eb', 0.15) : 'background.default' },
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, minWidth: 0 }}>
+                  <Box sx={{ width: 32, height: 32, borderRadius: 2, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', border: 1, borderColor: isSelected ? alpha('#3b82f6', 0.4) : 'divider', bgcolor: isSelected ? alpha('#2563eb', 0.2) : 'background.default' }}>
+                    {getCategoryIcon(item.category)}
+                  </Box>
+                  <Box sx={{ minWidth: 0 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                      <Typography noWrap sx={{ fontSize: { xs: 10, sm: 11 }, color: isSelected ? '#60a5fa' : 'text.primary' }}>
+                        {highlightMatch(item.title, query)}
+                      </Typography>
+                      {item.badge && (
+                        <Box component="span" sx={{ flexShrink: 0, px: 1.5, py: 0.5, borderRadius: 1, border: 1, fontSize: 10, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em', color: badge.fg, bgcolor: alpha(badge.fg, 0.15), borderColor: alpha(badge.fg, 0.3) }}>
+                          {item.badge}
+                        </Box>
+                      )}
+                    </Box>
+                    <Typography noWrap sx={{ fontSize: 10, mt: 0.5, fontFamily: 'monospace', color: 'text.secondary' }}>
+                      {highlightMatch(item.subtitle, query)}
+                    </Typography>
+                  </Box>
+                </Box>
 
-                  {/* Metadata or Enter action hint */}
-                  <div className="flex items-center gap-2 shrink-0">
-                    {item.metadata?.cost && (
-                      <span className="hidden sm:inline-block text-[10px] font-extrabold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
-                        {item.metadata.cost}
-                      </span>
-                    )}
-                    {isSelected ? (
-                      <div className="flex items-center gap-1 text-blue-400 text-[10px] font-bold bg-blue-600/20 px-2 py-1 rounded-md border border-blue-500/30">
-                        <span className="hidden sm:inline">Aç</span>
-                        <CornerDownLeft className="w-3 h-3" />
-                      </div>
-                    ) : (
-                      <ArrowRight className="w-3.5 h-3.5 text-slate-600" />
-                    )}
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexShrink: 0 }}>
+                  {item.metadata?.cost && (
+                    <Box component="span" sx={{ display: { xs: 'none', sm: 'inline-block' }, px: 1.5, py: 0.5, borderRadius: 1, border: 1, fontSize: 10, fontWeight: 800, color: '#34d399', bgcolor: alpha('#10b981', 0.1), borderColor: alpha('#10b981', 0.2) }}>
+                      {item.metadata.cost}
+                    </Box>
+                  )}
+                  {isSelected ? (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 2, py: 1, borderRadius: 1.5, border: 1, fontSize: 10, fontWeight: 700, color: '#60a5fa', bgcolor: alpha('#2563eb', 0.2), borderColor: alpha('#3b82f6', 0.3) }}>
+                      <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>Aç</Box>
+                      <CornerDownLeft className="w-3 h-3" />
+                    </Box>
+                  ) : (
+                    <ArrowRight className="w-3.5 h-3.5 text-slate-600" />
+                  )}
+                </Box>
+              </Box>
+            );
+          })
+        )}
+      </Box>
 
-        {/* Modal Footer Hotkey Guidelines */}
-        <div className="px-4 py-2.5 bg-[var(--bg-primary)] border-t border-[var(--border)] flex items-center justify-between text-[10px] text-[var(--text-secondary)] font-medium">
-          <div className="flex items-center gap-3">
-            <span className="flex items-center gap-1">
-              <kbd className="px-1 py-0.5 font-mono text-slate-400 bg-slate-800 rounded border border-slate-700">↑</kbd>
-              <kbd className="px-1 py-0.5 font-mono text-slate-400 bg-slate-800 rounded border border-slate-700">↓</kbd> Gezin
-            </span>
-            <span className="flex items-center gap-1">
-              <kbd className="px-1 py-0.5 font-mono text-slate-400 bg-slate-800 rounded border border-slate-700">ENTER</kbd> Seç & Git
-            </span>
-          </div>
-          <span className="text-[10px] text-slate-500 font-mono">
-            {filteredResults.length} sonuç listelendi
-          </span>
-        </div>
-      </div>
-    </div>
+      {/* Modal Footer Hotkey Guidelines */}
+      <Box sx={{ px: 4, py: 2.5, borderTop: 1, borderColor: 'divider', bgcolor: 'background.default', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 10, fontWeight: 500, color: 'text.secondary', flexShrink: 0 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+          <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>{kbd('↑')}{kbd('↓')} Gezin</Box>
+          <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>{kbd('ENTER')} Seç & Git</Box>
+        </Box>
+        <Box component="span" sx={{ fontFamily: 'monospace', color: '#64748b' }}>{filteredResults.length} sonuç listelendi</Box>
+      </Box>
+    </Dialog>
   );
 };

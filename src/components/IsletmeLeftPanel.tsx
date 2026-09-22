@@ -1,6 +1,15 @@
-import React, { useState } from 'react';
-import { ChevronDown, ChevronRight, Box, Radio, Sparkles, Building2, Pencil, X } from 'lucide-react';
+import { useState } from 'react';
+import Box from '@mui/material/Box';
+import ButtonBase from '@mui/material/ButtonBase';
+import IconButton from '@mui/material/IconButton';
+import Stack from '@mui/material/Stack';
+import TextField from '@mui/material/TextField';
+import Typography from '@mui/material/Typography';
+import { alpha } from '@mui/material/styles';
+import { ChevronDown, ChevronRight, Box as BoxIcon, Radio, Building2, Pencil } from 'lucide-react';
 import { Project, Asset } from '../types';
+import AppDialog from './chrome/AppDialog';
+import FeedbackToast from './ui/FeedbackToast';
 
 interface IsletmeLeftPanelProps {
   project: Project;
@@ -17,7 +26,62 @@ interface TreeItem {
   blockId?: string;
 }
 
-export default function IsletmeLeftPanel({ project, assets, selectedAssetId, onSelectAsset }: IsletmeLeftPanelProps) {
+type Category = 'all' | 'HVAC' | 'Elektronik' | 'Mekanik';
+
+const CATEGORIES: { id: Category; name: string }[] = [
+  { id: 'all', name: 'Tümü' },
+  { id: 'HVAC', name: 'HVAC' },
+  { id: 'Elektronik', name: 'Elek' },
+  { id: 'Mekanik', name: 'Mek' },
+];
+
+const INITIAL_HIERARCHY: TreeItem[] = [
+  {
+    id: 'block-a',
+    name: 'Kule-A (Konut & Ofis)',
+    type: 'building',
+    blockId: 'block-a',
+    children: [
+      {
+        id: 'block-a-floor-basement',
+        name: 'Bodrum Kat (Mekanik Daire)',
+        type: 'floor',
+        children: [
+          { id: 'space-chiller-room', name: 'Chiller & Hidrofor Odası', type: 'space' },
+          { id: 'space-electric-room', name: 'Ana Elektrik Kumanda Panosu', type: 'space' }
+        ]
+      },
+      {
+        id: 'block-a-floor-ground',
+        name: 'Zemin Kat (Lobi)',
+        type: 'floor',
+        children: [
+          { id: 'space-lobby', name: 'Ana Giriş Resepsiyon', type: 'space' }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'block-b',
+    name: 'Blok-B (AVM & Sosyal Hub)',
+    type: 'building',
+    blockId: 'block-b',
+    children: [
+      {
+        id: 'block-b-floor-roof',
+        name: 'Çatı Katı (HVAC İstasyonu)',
+        type: 'floor',
+        children: [
+          { id: 'space-cooling-tower', name: 'Soğutma Kuleleri Bölgesi', type: 'space' }
+        ]
+      }
+    ]
+  }
+];
+
+const dialogFieldSx = { '& .MuiInputBase-input': { fontSize: 12 } };
+
+export default function IsletmeLeftPanel({ assets, selectedAssetId, onSelectAsset }: IsletmeLeftPanelProps) {
   // Collapsed sections tree state
   const [expandedNodes, setExpandedNodes] = useState<Record<string, boolean>>({
     'block-a': true,
@@ -26,66 +90,17 @@ export default function IsletmeLeftPanel({ project, assets, selectedAssetId, onS
   });
 
   // Active Category filter for Assets
-  const [activeCategory, setActiveCategory] = useState<'all' | 'HVAC' | 'Elektronik' | 'Mekanik'>('all');
+  const [activeCategory, setActiveCategory] = useState<Category>('all');
 
   const toggleNode = (nodeId: string) => {
     setExpandedNodes(prev => ({ ...prev, [nodeId]: !prev[nodeId] }));
   };
 
   // Building Space/Floor hierarchy structure mapped from the project
-  const [hierarchy, setHierarchy] = useState<TreeItem[]>([
-    {
-      id: 'block-a',
-      name: 'Kule-A (Konut & Ofis)',
-      type: 'building',
-      blockId: 'block-a',
-      children: [
-        {
-          id: 'block-a-floor-basement',
-          name: 'Bodrum Kat (Mekanik Daire)',
-          type: 'floor',
-          children: [
-            { id: 'space-chiller-room', name: 'Chiller & Hidrofor Odası', type: 'space' },
-            { id: 'space-electric-room', name: 'Ana Elektrik Kumanda Panosu', type: 'space' }
-          ]
-        },
-        {
-          id: 'block-a-floor-ground',
-          name: 'Zemin Kat (Lobi)',
-          type: 'floor',
-          children: [
-            { id: 'space-lobby', name: 'Ana Giriş Resepsiyon', type: 'space' }
-          ]
-        }
-      ]
-    },
-    {
-      id: 'block-b',
-      name: 'Blok-B (AVM & Sosyal Hub)',
-      type: 'building',
-      blockId: 'block-b',
-      children: [
-        {
-          id: 'block-b-floor-roof',
-          name: 'Çatı Katı (HVAC İstasyonu)',
-          type: 'floor',
-          children: [
-            { id: 'space-cooling-tower', name: 'Soğutma Kuleleri Bölgesi', type: 'space' }
-          ]
-        }
-      ]
-    }
-  ]);
+  const [hierarchy, setHierarchy] = useState<TreeItem[]>(INITIAL_HIERARCHY);
 
   const [isEditingHierarchy, setIsEditingHierarchy] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-
-  const showFeedbackToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => {
-      setToastMessage(null);
-    }, 4000);
-  };
 
   // Helper to check what assets reside in a selected space or block
   const getSpaceAssets = (spaceId: string) => {
@@ -96,7 +111,7 @@ export default function IsletmeLeftPanel({ project, assets, selectedAssetId, onS
         if (activeCategory === 'Elektronik' && !asset.name.includes('Asansör') && !asset.name.includes('Sensör') && !asset.name.includes('Elektrik')) return false;
         if (activeCategory === 'Mekanik' && !asset.name.includes('Pompa') && !asset.name.includes('Kompresör') && !asset.name.includes('Hidrofor')) return false;
       }
-      
+
       // Map space assets
       if (spaceId === 'space-chiller-room') {
         return asset.name.includes('Kompresör') || asset.name.includes('Hidrofor') || asset.name.includes('Pompa');
@@ -114,202 +129,189 @@ export default function IsletmeLeftPanel({ project, assets, selectedAssetId, onS
     });
   };
 
-  const renderTree = (nodes: TreeItem[], depth = 0) => {
+  const renderTree = (nodes: TreeItem[]) => {
     return nodes.map((node) => {
       const isExpanded = !!expandedNodes[node.id];
-      const hasChildren = node.children && node.children.length > 0;
+      const hasChildren = !!node.children && node.children.length > 0;
       const spaceAssets = node.type === 'space' ? getSpaceAssets(node.id) : [];
 
       return (
-        <div key={node.id} className="space-y-1 select-none text-left">
+        <Stack key={node.id} spacing={1} sx={{ userSelect: 'none', textAlign: 'left' }}>
           {/* Node Row */}
-          <div 
-            onClick={() => hasChildren ? toggleNode(node.id) : null}
-            className={`flex items-center gap-1 py-1 rounded-lg transition cursor-pointer text-xs ${
-              node.type === 'building' 
-                ? 'font-black text-[var(--text-primary)] hover:bg-[var(--bg-primary)]' 
-                : node.type === 'floor' 
-                  ? 'font-bold text-[var(--text-secondary)] hover:bg-[var(--bg-primary)] pl-2' 
-                  : 'text-slate-400 font-medium pl-4 hover:text-white'
-            }`}
+          <Stack
+            direction="row"
+            spacing={1}
+            onClick={() => hasChildren && toggleNode(node.id)}
+            sx={{
+              alignItems: 'center',
+              py: 1,
+              borderRadius: 2,
+              cursor: 'pointer',
+              fontSize: 12,
+              pl: node.type === 'building' ? 0 : node.type === 'floor' ? 2 : 4,
+              fontWeight: node.type === 'building' ? 900 : node.type === 'floor' ? 700 : 500,
+              color: node.type === 'building' ? 'text.primary' : node.type === 'floor' ? 'text.secondary' : 'text.disabled',
+              '&:hover': { bgcolor: node.type === 'space' ? 'transparent' : 'background.default', color: node.type === 'space' ? 'text.primary' : undefined },
+            }}
           >
-            {hasChildren && (
-              isExpanded ? <ChevronDown className="w-3.5 h-3.5 text-slate-500" /> : <ChevronRight className="w-3.5 h-3.5 text-slate-500" />
+            {hasChildren ? (
+              <Box component="span" sx={{ display: 'flex', color: 'text.disabled' }}>
+                {isExpanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+              </Box>
+            ) : (
+              <Box component="span" sx={{ display: 'inline-block', width: 14, height: 14 }} />
             )}
-            {!hasChildren && <span className="w-3.5 h-3.5 inline-block"></span>}
-            
-            {node.type === 'building' && <Building2 className="w-3.5 h-3.5 text-blue-500" />}
-            
+
+            {node.type === 'building' && <Box component="span" sx={{ display: 'flex', color: 'info.main' }}><Building2 className="w-3.5 h-3.5" /></Box>}
+
             <span>{node.name}</span>
-          </div>
+          </Stack>
 
           {/* Children block */}
           {hasChildren && isExpanded && (
-            <div className="pl-3 border-l border-[var(--border)] ml-3.5 space-y-1">
-              {renderTree(node.children!, depth + 1)}
-            </div>
+            <Stack spacing={1} sx={{ pl: 3, ml: 3.5, borderLeft: 1, borderColor: 'divider' }}>
+              {renderTree(node.children!)}
+            </Stack>
           )}
 
           {/* If space has assets, list assets dynamically */}
           {node.type === 'space' && spaceAssets.length > 0 && (
-            <div className="pl-6 ml-3 space-y-1 border-l border-dashed border-[var(--border)] pt-1">
+            <Stack spacing={1} sx={{ pl: 6, ml: 3, pt: 1, borderLeft: 1, borderStyle: 'dashed', borderColor: 'divider' }}>
               {spaceAssets.map((asset) => {
                 const isSelected = selectedAssetId === asset.id;
                 const isFaulty = asset.status === 'Arızalı';
+                const dotColor = isFaulty ? 'error.main' : asset.status === 'Bakım Bekliyor' ? 'warning.main' : 'success.main';
 
                 return (
-                  <button
+                  <ButtonBase
                     key={asset.id}
                     onClick={() => onSelectAsset(asset.id)}
-                    className={`w-full text-left px-2 py-1.5 rounded-lg text-[10px] font-bold flex items-center justify-between transition border ${
-                      isSelected 
-                        ? 'bg-blue-600/10 border-blue-500/30 text-blue-400' 
-                        : 'bg-transparent border-transparent text-[var(--text-secondary)] hover:bg-[var(--bg-primary)] hover:text-[var(--text-primary)]'
-                    }`}
+                    sx={(theme) => ({
+                      width: '100%',
+                      justifyContent: 'space-between',
+                      textAlign: 'left',
+                      px: 2,
+                      py: 1.5,
+                      borderRadius: 2,
+                      border: 1,
+                      fontSize: 10,
+                      fontWeight: 700,
+                      fontFamily: 'inherit',
+                      color: isSelected ? 'info.light' : 'text.secondary',
+                      bgcolor: isSelected ? alpha(theme.palette.info.main, 0.1) : 'transparent',
+                      borderColor: isSelected ? alpha(theme.palette.info.main, 0.3) : 'transparent',
+                      '&:hover': { bgcolor: isSelected ? undefined : 'background.default', color: isSelected ? undefined : 'text.primary' },
+                    })}
                   >
-                    <span className="flex items-center gap-1.5 truncate">
-                      <Box className={`w-3 h-3 ${isFaulty ? 'text-red-500 animate-pulse' : 'text-blue-500'}`} />
-                      <span className="truncate">{asset.name}</span>
-                    </span>
-                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                      isFaulty ? 'bg-red-500' : asset.status === 'Bakım Bekliyor' ? 'bg-amber-500' : 'bg-emerald-500'
-                    }`} />
-                  </button>
+                    <Stack direction="row" spacing={1.5} component="span" sx={{ alignItems: 'center', minWidth: 0 }}>
+                      <Box component="span" sx={{ display: 'flex', color: isFaulty ? 'error.main' : 'info.main' }}><BoxIcon className="w-3 h-3" /></Box>
+                      <Typography component="span" noWrap sx={{ fontSize: 10, fontWeight: 700 }}>{asset.name}</Typography>
+                    </Stack>
+                    <Box component="span" sx={{ width: 6, height: 6, borderRadius: '50%', flexShrink: 0, bgcolor: dotColor }} />
+                  </ButtonBase>
                 );
               })}
-            </div>
+            </Stack>
           )}
-        </div>
+        </Stack>
       );
     });
   };
 
+  const updateBuilding = (bIdx: number, name: string) => {
+    const updated = [...hierarchy];
+    updated[bIdx] = { ...updated[bIdx], name };
+    setHierarchy(updated);
+  };
+
+  const updateFloor = (bIdx: number, fIdx: number, name: string) => {
+    const updated = [...hierarchy];
+    const bChildren = [...(updated[bIdx].children || [])];
+    bChildren[fIdx] = { ...bChildren[fIdx], name };
+    updated[bIdx] = { ...updated[bIdx], children: bChildren };
+    setHierarchy(updated);
+  };
+
   return (
-    <div className="space-y-3 relative">
+    <Stack spacing={3} sx={{ position: 'relative' }}>
       {/* SYSTEM CATEGORY FILTERS */}
-      <div className="card p-0 pt-1 rounded-none bg-transparent border-0 shadow-none px-0 flex items-center justify-between gap-1 flex-wrap text-left">
-        <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider w-full mb-1">
+      <Stack direction="row" sx={{ pt: 1, alignItems: 'center', justifyContent: 'space-between', gap: 1, flexWrap: 'wrap', textAlign: 'left' }}>
+        <Typography component="span" sx={{ width: '100%', mb: 1, fontSize: 10, fontWeight: 900, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'text.disabled' }}>
           Sistem Filtreleme
-        </span>
-        {[
-          { id: 'all', name: 'Tümü' },
-          { id: 'HVAC', name: 'HVAC' },
-          { id: 'Elektronik', name: 'Elek' },
-          { id: 'Mekanik', name: 'Mek' },
-        ].map((cat) => (
-          <button
-            key={cat.id}
-            onClick={() => setActiveCategory(cat.id as any)}
-            className={`px-2.5 py-1 rounded-none text-[10px] font-black transition border ${
-              activeCategory === cat.id 
-                ? 'bg-blue-600 text-white border-transparent font-black' 
-                : 'bg-[var(--bg-primary)] border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] font-black'
-            }`}
-          >
-            {cat.name}
-          </button>
-        ))}
-      </div>
+        </Typography>
+        {CATEGORIES.map((cat) => {
+          const active = activeCategory === cat.id;
+          return (
+            <ButtonBase
+              key={cat.id}
+              onClick={() => setActiveCategory(cat.id)}
+              sx={{
+                px: 2.5,
+                py: 1,
+                border: 1,
+                fontSize: 10,
+                fontWeight: 900,
+                fontFamily: 'inherit',
+                color: active ? 'info.contrastText' : 'text.secondary',
+                bgcolor: active ? 'info.main' : 'background.default',
+                borderColor: active ? 'transparent' : 'divider',
+                '&:hover': { color: active ? undefined : 'text.primary' },
+              }}
+            >
+              {cat.name}
+            </ButtonBase>
+          );
+        })}
+      </Stack>
 
       {/* SPACE HIERARCHY TREE */}
-      <div className="card p-0 rounded-none bg-transparent border-0 shadow-none px-0 space-y-2">
-        <div className="flex items-center justify-between mb-1 pb-1 border-b border-[var(--border)] pr-2">
-          <div className="flex items-center gap-1.5">
-            <Radio className="w-4 h-4 text-blue-500 animate-pulse" />
-            <span className="section-eyebrow">
+      <Stack spacing={2}>
+        <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between', mb: 1, pb: 1, pr: 2, borderBottom: 1, borderColor: 'divider' }}>
+          <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
+            <Box component="span" sx={{ display: 'flex', color: 'info.main' }}><Radio className="w-4 h-4" /></Box>
+            <Typography component="span" sx={{ fontSize: 10, fontWeight: 900, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'text.secondary' }}>
               Kat / Mekan Hiyerarşisi
-            </span>
-          </div>
-          <button
-            onClick={() => setIsEditingHierarchy(true)}
-            className="p-1 hover:bg-slate-800 rounded transition cursor-pointer text-slate-400 hover:text-white flex items-center justify-center shrink-0"
-            title="Hiyerarşiyi Düzenle (SpU)"
-          >
+            </Typography>
+          </Stack>
+          <IconButton size="small" title="Hiyerarşiyi Düzenle (SpU)" onClick={() => setIsEditingHierarchy(true)} sx={{ p: 1, color: 'text.secondary', '&:hover': { color: 'text.primary' } }}>
             <Pencil className="w-3.5 h-3.5" />
-          </button>
-        </div>
+          </IconButton>
+        </Stack>
 
-        <div className="space-y-1.5 max-h-[300px] overflow-y-auto pr-1" style={{ scrollbarWidth: 'none' }}>
+        <Stack spacing={1.5} sx={{ maxHeight: 300, overflowY: 'auto', pr: 1, scrollbarWidth: 'none' }}>
           {renderTree(hierarchy)}
-        </div>
-      </div>
+        </Stack>
+      </Stack>
 
-      {/* Local FeedBack Toast Banner */}
-      {toastMessage && (
-        <div className="p-1.5 bg-slate-950 text-white text-[10px] rounded border border-slate-800 animate-fade-in flex justify-between items-center z-[99]">
-          <span>{toastMessage}</span>
-          <button onClick={() => setToastMessage(null)} className="text-slate-500 hover:text-white font-bold ml-1">✕</button>
-        </div>
-      )}
+      <FeedbackToast message={toastMessage} onClose={() => setToastMessage(null)} />
 
       {/* Hierarchy Edit Modal (Süper Kullanıcı) */}
-      {isEditingHierarchy && (
-        <div className="fixed inset-0 z-[999] bg-black/75 flex items-center justify-center p-4 animate-fade-in backdrop-blur-sm text-left">
-          <div className="bg-[#141416] border border-[#2c2c2e] p-5 rounded-2xl shadow-2xl w-full max-w-sm max-h-[85vh] overflow-y-auto space-y-4">
-            <div className="flex justify-between items-center border-b border-[#2c2c2e] pb-2 text-white">
-              <div className="flex items-center gap-2">
-                <Pencil className="w-4 h-4 text-blue-400 animate-pulse" />
-                <h3 className="text-xs font-black uppercase tracking-wider">Hiyerarşi Düzenleme (SpU)</h3>
-              </div>
-              <button onClick={() => setIsEditingHierarchy(false)} className="text-slate-400 hover:text-white cursor-pointer">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <p className="text-[10px] text-slate-400">
-              Süper kullanıcı yetkisiyle kat ve bina hiyerarşi etiketlerini düzenleyebilirsiniz.
-            </p>
-
-            <div className="space-y-3 pt-1 text-left">
-              {hierarchy.map((building, bIdx) => (
-                <div key={building.id} className="p-3 bg-slate-900/60 border border-slate-800 rounded-xl space-y-2">
-                  <div className="space-y-1">
-                    <label className="block text-[10px] text-slate-400 font-bold uppercase">BİNA / BLOK ADI</label>
-                    <input
-                      type="text"
-                      value={building.name}
-                      onChange={(e) => {
-                        const updated = [...hierarchy];
-                        updated[bIdx] = { ...updated[bIdx], name: e.target.value };
-                        setHierarchy(updated);
-                      }}
-                      className="w-full bg-[#1c1c1e] border border-[#2c2c2e] rounded-lg px-2.5 py-1 text-xs text-white focus:outline-none focus:border-blue-500"
-                    />
-                  </div>
-
-                  {building.children && building.children.map((floor, fIdx) => (
-                    <div key={floor.id} className="pl-3 border-l border-blue-500/30 space-y-1.5 mt-2">
-                      <label className="block text-[10px] text-slate-500 font-bold uppercase">KAT ADI</label>
-                      <input
-                        type="text"
-                        value={floor.name}
-                        onChange={(e) => {
-                          const updated = [...hierarchy];
-                          const bChildren = [...(updated[bIdx].children || [])];
-                          bChildren[fIdx] = { ...bChildren[fIdx], name: e.target.value };
-                          updated[bIdx] = { ...updated[bIdx], children: bChildren };
-                          setHierarchy(updated);
-                        }}
-                        className="w-full bg-[#1c1c1e] border border-[#2c2c2e] rounded-lg px-2 py-0.5 text-xs text-white focus:outline-none focus:border-blue-500"
-                      />
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </div>
-
-            <button
-              onClick={() => {
-                setIsEditingHierarchy(false);
-                showFeedbackToast('💾 Bina ve kat hiyerarşi etiketleri güncellendi.');
-              }}
-              className="w-full py-2 bg-blue-600 hover:bg-blue-500 text-xs font-black text-white rounded-xl transition cursor-pointer"
-            >
-              KAYDET VE KAPAT
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
+      <AppDialog
+        open={isEditingHierarchy}
+        onClose={() => setIsEditingHierarchy(false)}
+        badge="Süper Yetkili"
+        title="Hiyerarşi Düzenleme"
+        tone="primary"
+        submitLabel="Kaydet ve Kapat"
+        onSubmit={() => {
+          setIsEditingHierarchy(false);
+          setToastMessage('💾 Bina ve kat hiyerarşi etiketleri güncellendi.');
+        }}
+      >
+        <Typography sx={{ fontSize: 10, color: 'text.secondary' }}>
+          Süper kullanıcı yetkisiyle kat ve bina hiyerarşi etiketlerini düzenleyebilirsiniz.
+        </Typography>
+        {hierarchy.map((building, bIdx) => (
+          <Stack key={building.id} spacing={2} sx={{ p: 3, bgcolor: 'background.paper', border: 1, borderColor: 'divider', borderRadius: 3 }}>
+            <TextField label="Bina / Blok Adı" value={building.name} onChange={(e) => updateBuilding(bIdx, e.target.value)} sx={dialogFieldSx} />
+            {building.children?.map((floor, fIdx) => (
+              <Box key={floor.id} sx={(theme) => ({ pl: 3, borderLeft: 1, borderColor: alpha(theme.palette.info.main, 0.3) })}>
+                <TextField label="Kat Adı" value={floor.name} onChange={(e) => updateFloor(bIdx, fIdx, e.target.value)} sx={dialogFieldSx} />
+              </Box>
+            ))}
+          </Stack>
+        ))}
+      </AppDialog>
+    </Stack>
   );
 }
