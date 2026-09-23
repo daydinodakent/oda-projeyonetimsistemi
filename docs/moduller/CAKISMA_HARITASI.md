@@ -230,3 +230,36 @@ Bunların hiçbiri `server/data/oda_pys.gpkg`'a yazılmaz — yalnızca `OdaMapM
 - **`tb_personel` ↔ yeni `kisi` tablosu** henüz bağlanmadı — İK modülü kurulurken 1-1 ilişki/geçiş planlanmalı (§7 soru 5).
 - **Proje→Etap/Blok→WBS→İş Kalemi** hiyerarşisi yeniden yapılandırılmadı; yalnızca yeni `maliyet_kodu` tablosu mevcut `tb_wbs_gorevler`'e ID ile referans veriyor.
 - `CEKIRDEK_KISI_ENCRYPTION_KEY` üretim ortamında MUTLAKA tanımlanmalı (`.env.example`'a eklendi) — tanımsızsa geliştirme anahtarına düşüyor ve konsola uyarı basıyor.
+
+---
+
+## P2 Uygulama Durumu (Sözleşme Yönetimi)
+
+"TÜM sözleşmelerin TEK kaynağı" olarak Sözleşme modülü uygulandı — `server/moduller/sozlesme/` (backend) ve `src/moduller/sozlesme/` (frontend TS istemcisi + **ekranlar**). Mevcut hiçbir dosya taşınmadı/silinmedi; mevcut ekranlar değişmedi.
+
+### Uygulandı
+
+| Kavram | Dosya | Not |
+|---|---|---|
+| Sözleşme (7 tip) | `sozlesme.js` + `db.js` (`sozlesme`) | `taraf_firma_id`/`taraf_kisi_id` Çekirdek'e REFERANS; varlık RAW tabloya değil **sahibin servisine** (`cariFirma.getir`/`kisi.getir`) sorularak doğrulanır. |
+| Versiyon / Zeyilname | `sozlesme_versiyon` | v1 = orijinalin değişmez anlık görüntüsü; her zeyilname YENİ bir satır — hiçbir satır UPDATE edilmez. |
+| Sözleşme Kalemi | `sozlesme_kalem` | `wbs_gorev_id` mevcut `tb_wbs_gorevler`'e REFERANS. Yürürlükteki (`yururlukte/askida/tamamlandi/feshedildi`) sözleşmenin kalemi DOĞRUDAN değiştirilemez — yalnızca zeyilname ile. |
+| Yükümlülük/Madde, Teminat | `sozlesme_madde`, `sozlesme_teminat` | Ceza/avans/fiyat farkı/sigorta/İSG/gizlilik maddeleri; teminat türü+bitiş tarihi+iade durumu. |
+| Belge bağlantısı | `sozlesme_belge` | Mevcut `tb_dokumanlar`'a ID ile REFERANS — YENİ bir belge deposu açılmadı (Çekirdek "Belge" servisi henüz yok, bkz. P1 ertelenenler). |
+| Durum makinesi + Maliyet Defteri entegrasyonu | `sozlesme.js#durumDegistir` | `taslak→onayda→imzali→yururlukte→(askida)→tamamlandi/feshedildi`. **"imzali"ya geçişte** (akışta ayrı bir "onaylandı" durumu olmadığından en yakın karşılığı seçildi) `maliyetDefteri.yaz()` ile TEK SEFERLİK TAAHHÜT (gider sözleşmeleri) veya GELİR (yalnızca `musteri_satis`) kaydı yazılır — `taahhut_yazildi` bayrağı + Çekirdek'in `UNIQUE(kaynak_modul,kaynak_id,tur)` kısıtı sayesinde mükerrer kayıt oluşmaz (birim testiyle doğrulandı: tam akış + askıya alıp tekrar yürürlüğe alma sonrası hâlâ tek kayıt). |
+| Zeyilname → Maliyet Defteri | `sozlesme.js#zeyilnameOlustur` | Taahhüt zaten yazılmışsa, zeyilname farkı AYRI bir olay (`kaynak_id: "{id}:v{n}"`) olarak işlenir — orijinal taahhüt kaydı değiştirilmez. |
+| `sozlesme.kalanBedel(id)` | `sozlesme.js` | Görev metnindeki sözleşme birebir uygulandı. **NOT:** Hakediş modülü henüz yok, bu yüzden "kalan bedel" bu geçişte "güncel toplam bedel"le (orijinal + tüm zeyilname farkları) eşdeğerdir; kullanım/hakediş düşümü yok (aşağıya bkz.). |
+| Kritik Tarihler | `sozlesme.js#kritikTarihler` | Sözleşme bitişi + teminat bitişi + madde kontrol tarihlerinin birleşimi; eşikler (30/15/7 gün) **parametrik** (Çekirdek `parametre` tablosundan okunur, yoksa koda gömülü varsayılana düşer). Yalnızca EKRANIN veri kaynağı — gerçek bildirim GÖNDERİMİ yapılmaz (Bildirim ortak servisi henüz yok). |
+| Şablon sistemi | `sablon.js` (`sozlesme_sablon`) | Tip bazlı madde şablonları + `{{taraf}}/{{bedel}}/{{tarih}}/{{proje}}/{{konu}}` değişkenli belge metni üretimi (`belgeUret`). E-imza entegrasyonu YOK (kapsam dışı, görev metninde belirtildiği gibi). |
+| **Ekranlar** | `src/moduller/sozlesme/ekranlar/` | `SozlesmeListesi` (filtre: tip/durum/arama), `SozlesmeDetay` (6 sekme: Özet/Kalemler/Maddeler/Teminatlar/Versiyonlar/Belgeler + "Bağlı Kayıtlar" yer tutucu), `SablonYonetimi`, `KritikTarihlerTakvimi`, hepsini saran `SozlesmeModulu`. Projenin kendi token tabanlı (CSS variables + Tailwind) tasarım diliyle yazıldı — **MUI/Ant EKLENMEDİ**. |
+
+**Doğrulama:** 57/57 birim testi yeşil (`npm run test` — 18 yeni sözleşme/şablon testi + önceki 39); `npm run build` başarılı; `npm run lint` yeni dosyalardan sıfır yeni hata; `/api/sozlesme/*` uçları gerçek sunucuda `curl` ile uçtan uca smoke test edildi (sözleşme oluştur → onayda → imzali [taahhüt yazıldı] → zeyilname → kalan bedel → kritik tarihler → şablon → belge üret). **Ekranlar ayrıca izole bir tarayıcı oturumunda (geçici DB + geçici port, gerçek dev veritabanına DOKUNULMADI) canlı olarak test edildi:** sözleşme oluşturma formu, durum geçiş akışı (taslak→onayda→imzali, "Taahhüt Deftere Yazıldı mı? Evet" doğru göründü), zeyilname ekleme (Özet sekmesinde 500.000+50.000=550.000 doğru yansıdı), şablon oluşturma + değişkenli belge üretimi — tümü ekran görüntüsüyle doğrulandı.
+
+### Bilinçli Olarak Ertelendi (bu geçişin kapsamı dışında)
+
+- **Ekranlar mevcut App.tsx navigasyonuna BAĞLANMADI** — `SozlesmeModulu` kendi kendine yeten bir bileşen olarak duruyor, `<SozlesmeModulu projeId={...} />` şeklinde ileride bir modül grid'ine (`ModuleGridDialog`) eklenebilir. "Mevcut ekranlar bozulmaz" kabul kriterini bu geçişte riske atmamak için (P1'deki AYNI karar, bkz. yukarısı).
+- **Hakediş/kullanım düşümü YOK** — `kalanBedel()` şu an yalnızca zeyilname dahil güncel toplam bedeli döner; gerçek "kalan" hesaplaması (ödenen/hakedişi düşülmüş) Hakediş modülü kurulduğunda, o modül `GERCEKLESEN` kayıtlarını `kaynak_modul='sozlesme'` ile yazarsa otomatik doğru çalışacak şekilde tasarlandı.
+- **Alt Yüklenici/Satın Alma/Müşteri/Taşeron modülleri** henüz `sozlesme.id`'ye referans VERMİYOR (o modüller henüz kurulmadı) — sözleşme tarafı bu geçişte yalnızca kendi API'sini sunuyor.
+- **E-imza entegrasyonu YOK** (görev kapsamı dışı) — yalnızca şablon metni üretimi var.
+- **GELİR/TAAHHÜT ayrımı basitleştirildi:** yalnızca `musteri_satis` GELİR sayılıyor; `arsa_sahibi` (kat karşılığı, ayni) dahil diğer tüm tipler TAAHHUT tarafında. Gerçek muhasebe ayrımı ileride parametrik hale getirilebilir.
+- **"İmzalı" durumu = taahhüt tetikleyici** kabul edildi (görev metnindeki "onaylanınca" ifadesi akışta ayrı bir durum karşılığı olmadığından en yakın karşılığı seçildi) — bu varsayım işlevsel gereksinimlere göre değişebilir.
