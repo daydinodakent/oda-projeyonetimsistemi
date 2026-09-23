@@ -33,6 +33,8 @@ import { listRecords, getRecord, putRecord, seedIfEmpty } from './db.js';
 import { buildGeoPackageBuffer } from './gpkg.js';
 import { router as cekirdekRouter } from './moduller/_cekirdek/routes.js';
 import { router as sozlesmeRouter } from './moduller/sozlesme/routes.js';
+import { router as depoRouter } from './moduller/depo/routes.js';
+import { router as satinalmaRouter } from './moduller/satinalma/routes.js';
 import path from 'node:path';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -68,6 +70,12 @@ app.use('/api/cekirdek', cekirdekRouter);
 // --- Sözleşme — TÜM sözleşmelerin TEK kaynağı (bkz. server/moduller/sozlesme/).
 // Aynı nedenle generic "/api/:table" deseninden ÖNCE mount edilir.
 app.use('/api/sozlesme', sozlesmeRouter);
+
+// --- Depo (GEÇİCİ/minimal malzeme kartı — bkz. server/moduller/depo/db.js,
+// P4'te Depo modülüne tam devredilecek) + Satın Alma — aynı nedenle generic
+// "/api/:table" deseninden ÖNCE mount edilir.
+app.use('/api/depo', depoRouter);
+app.use('/api/satinalma', satinalmaRouter);
 
 // --- CBS/PostGIS katmanlarını gerçek bir .gpkg dosyası olarak dışa aktarır ---
 // NOT: bu sabit rota, aşağıdaki generic "/api/:table" deseninden ÖNCE

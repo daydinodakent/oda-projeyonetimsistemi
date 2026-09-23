@@ -263,3 +263,46 @@ Bunların hiçbiri `server/data/oda_pys.gpkg`'a yazılmaz — yalnızca `OdaMapM
 - **E-imza entegrasyonu YOK** (görev kapsamı dışı) — yalnızca şablon metni üretimi var.
 - **GELİR/TAAHHÜT ayrımı basitleştirildi:** yalnızca `musteri_satis` GELİR sayılıyor; `arsa_sahibi` (kat karşılığı, ayni) dahil diğer tüm tipler TAAHHUT tarafında. Gerçek muhasebe ayrımı ileride parametrik hale getirilebilir.
 - **"İmzalı" durumu = taahhüt tetikleyici** kabul edildi (görev metnindeki "onaylanınca" ifadesi akışta ayrı bir durum karşılığı olmadığından en yakın karşılığı seçildi) — bu varsayım işlevsel gereksinimlere göre değişebilir.
+
+---
+
+## P3 Uygulama Durumu (Satın Alma Yönetimi)
+
+Talep → Onay → Teklif → Mukayese → Sipariş → Mal Kabul → Fatura → 3'lü Eşleştirme → Ödeme Talimatı akışı uygulandı — `server/moduller/satinalma/` (backend) + `src/moduller/satinalma/` (frontend TS istemcisi + **ekranlar**). Malzeme kartı için görev metninin AÇIKÇA istediği geçici sahiplik modeli kuruldu: `server/moduller/depo/` (yalnızca `malzeme_karti` tablosu + minimal CRUD) — P4'te Depo modülü bu dosyaları GENİŞLETECEK, YENİ bir malzeme tablosu AÇILMAYACAK.
+
+### MALİYET KURALI (çift sayımı önler — görev metninin açık isteği)
+
+| Durum | Kural | Uygulama |
+|---|---|---|
+| Sipariş onaylanınca | Maliyet Defteri'ne TAAHHUT | `siparis.js#durumDegistir` — tek seferlik (idempotent), `taahhut_yazildi` bayrağı + Çekirdek'in UNIQUE kısıtı |
+| Stoklu malzeme (malzeme_karti.stoklu_mu=1) faturalanınca | GERÇEKLEŞEN **YAZILMAZ** | `fatura.js#kaydet` — bilinçli boşluk, P4 Depo çıkışında (tüketimde) yazacak |
+| Stoklu olmayan / malzeme_id yok (hizmet, nakliye) faturalanınca | GERÇEKLEŞEN faturada yazılır | `fatura.js#kaydet` — aynı fonksiyon, `malzeme.stoklu_mu` kontrolüyle dallanır |
+
+Bu ayrım hem birim testiyle (`faturaEslestirme.test.js`) hem gerçek sunucuda `curl` ile HTTP seviyesinde doğrulandı: stoklu bir malzeme faturalandığında `maliyet_hareketi` tablosunda **hiç** GERÇEKLEŞEN kaydı oluşmuyor; aynı faturadaki hizmet kalemi için oluşuyor.
+
+### Uygulandı
+
+| Kavram | Dosya | Not |
+|---|---|---|
+| Talep (+kalemler) | `talep.js` | Malzeme kartı OLMADAN da kalem eklenebilir (görev: "çoğu zaman eksik tanımlıdır"). `min_teklif_istisna` + `istisna_gerekcesi` + `istisna_onaylayan` alanları. |
+| Teklif (istek + gelen teklif TEK kayıt) | `teklif.js` | `durum`: istendi→geldi→(elendi/kazandi). Ayrı bir "RFQ" tablosu AÇILMADI — basitleştirme. |
+| Mukayese | `teklif.js#mukayeseSonucu` | DB'ye YAZILMAZ, sorgu zamanı hesaplanır; her kalem için KDV dahil en düşük toplamlı teklif "önerilir" — SEÇİM insanın işidir (sipariş oluştururken `teklif_id`). |
+| Sipariş (+kalemler, teslim planı) | `siparis.js` | **Min. 3 teklif kuralı**: `talep_id` ile açılan siparişte talebe bağlı "geldi/kazandi" teklif <3 ise VE talepte istisna işaretli değilse REDDEDİLİR (test + curl ile doğrulandı). Onaylanan teklif otomatik `kazandi` işaretlenir. |
+| Mal Kabul (GEÇİCİ/minimal) | `malKabul.js` | Görev metni: "Mal Kabul (Depo modülü yapar)" — Depo henüz yok, bu yüzden yalnızca "X miktar teslim alındı" OLAYI tutulur (stok hareketi/kalite kontrolü YOK); sipariş durumunu (kismi_teslim/tamamlandi) otomatik ilerletir. |
+| Fatura (+kalemler, tevkifat) | `fatura.js` | Fatura no + firma UNIQUE (mükerrer fatura girişi engellenir). Tevkifat oranı ÇAĞIRANDAN gelir (parametrik — koda gömülmez). |
+| 3'lü Eşleştirme | `fatura.js#eslestir` | Sipariş ↔ mal kabul (teslim_edilen_miktar) ↔ fatura (faturalanan_miktar) karşılaştırması. Tolerans PARAMETRİK (Çekirdek `satinalma_eslesme_tolerans_yuzde`, yoksa %2 varsayılan). **KABUL kriteri doğrulandı:** kısmi teslim (6/10 ton) + fazla faturalanmış (8 ton) senaryosu `miktar_asimi` istisnası olarak yakalanıyor. |
+| Ödeme Talimatı | `fatura.js#odemeTalimatiOlustur` | Yalnızca istisnasız ("eslestirildi") faturalar için Çekirdek'in `odeme.talimatOlustur()`'ını çağırır; tevkifat kesinti olarak aktarılır. |
+| Tedarikçi Değerlendirme | `tedarikciKarnesi.js` | Görev: "P4 mal kabul verisinden otomatik". P4 yok — mevcut sipariş+mal kabul verisinden SORGU ZAMANI hesaplanır (ayrı tablo YOK). Kalite red oranı `null` (P4/Kalite Kontrol olmadan hesaplanamaz). |
+| **Ekranlar** | `src/moduller/satinalma/ekranlar/` | `TalepOlustur` (mobil, tek sütun, malzeme kartı seçimi YOK), `TalepHavuzu`, `TeklifMukayese` (kalem×teklif tablosu, önerilen hücre vurgulu), `SiparisTakip` (taslak/bekleyen/kısmi/tamam sekmeleri + mal kabul + fatura girişi), `FaturaEslestirmeIstisnalari`, `TedarikciKarnesi` — hepsi `SatinAlmaModulu` içinde birleşik. Token tabanlı tasarım (MUI EKLENMEDİ). |
+
+**Doğrulama:** 85/85 birim testi yeşil (`npm run test` — 20 yeni satın alma/depo testi + önceki 65); `npm run build` başarılı; `npm run lint` yeni dosyalardan sıfır yeni hata; `/api/satinalma/*` ve `/api/depo/*` uçları gerçek sunucuda `curl` ile uçtan uca smoke test edildi (talep→3 teklif→mukayese→sipariş→onay[TAAHHUT]→kısmi mal kabul→fazla faturalama→eşleştirme[miktar_asimi]→ödeme talimatı reddi→tedarikçi karnesi). **Ekranlar izole bir tarayıcı oturumunda (geçici DB+port, gerçek dev veritabanına DOKUNULMADI) canlı test edildi:** mobil (375px) ve masaüstü görünümde talep formu, talep havuzu listesi, tedarikçi karnesi — ekran görüntüsüyle doğrulandı.
+
+### Bilinçli Olarak Ertelendi (bu geçişin kapsamı dışında)
+
+- **Ekranlar mevcut App.tsx navigasyonuna BAĞLANMADI** — P1/P2'deki AYNI karar (bkz. yukarısı), "mevcut ekranlar bozulmaz" kriterini riske atmamak için.
+- **Malzeme kartı P4'e kadar GEÇİCİ/minimal** — yalnızca kod/ad/birim/stoklu_mu. Lokasyon, stok seviyesi, zimmet, kalite kontrolü P4 Depo modülünün işi.
+- **Mal Kabul P4'e kadar GEÇİCİ/minimal** — yalnızca "X miktar teslim alındı" olayı; gerçek stok girişi, kalite red kaydı YOK.
+- **GİB e-fatura/e-irsaliye entegrasyonu YOK** (görev kapsamı dışı, görev metninde açıkça belirtildi) — yalnızca manuel fatura girişi var; ileride bir içe aktarım noktası (`fatura.js#kaydet`'in kendisi zaten bu noktadır — otomatik bir GİB istemcisi eklenene kadar manuel çağrılır).
+- **Onay Akışı hâlâ basit sabit-kodlanmış durum makinesi** — Çekirdek'in genel amaçlı Onay Akışı ortak servisi henüz yazılmadı (P1'den beri ertelenen).
+- **Sözleşme (P2) entegrasyonu kısmi** — `satinalma_siparis.sozlesme_id` alanı var (çerçeve anlaşma referansı için) ama sözleşme kalemleriyle sipariş kalemlerini otomatik eşleştiren bir akış YOK; bu alan yalnızca bir REFERANS noktasıdır.
+- **Kalite red oranı hesaplanamıyor** — P4/Kalite Kontrol modülü kurulmadan tedarikçi karnesindeki bu alan her zaman `null` döner.
