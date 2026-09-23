@@ -35,6 +35,7 @@ import { router as cekirdekRouter } from './moduller/_cekirdek/routes.js';
 import { router as sozlesmeRouter } from './moduller/sozlesme/routes.js';
 import { router as depoRouter } from './moduller/depo/routes.js';
 import { router as satinalmaRouter } from './moduller/satinalma/routes.js';
+import { router as altyukleniciRouter } from './moduller/altyuklenici/routes.js';
 import path from 'node:path';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -76,6 +77,10 @@ app.use('/api/sozlesme', sozlesmeRouter);
 // "/api/:table" deseninden ÖNCE mount edilir.
 app.use('/api/depo', depoRouter);
 app.use('/api/satinalma', satinalmaRouter);
+
+// --- Alt Yüklenici (Hakediş'in TEK sahibi) — aynı nedenle generic
+// "/api/:table" deseninden ÖNCE mount edilir.
+app.use('/api/altyuklenici', altyukleniciRouter);
 
 // --- CBS/PostGIS katmanlarını gerçek bir .gpkg dosyası olarak dışa aktarır ---
 // NOT: bu sabit rota, aşağıdaki generic "/api/:table" deseninden ÖNCE

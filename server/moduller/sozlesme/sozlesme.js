@@ -124,6 +124,7 @@ const stmtKalemInsert = db.prepare(
    VALUES (@sozlesme_id, @wbs_gorev_id, @aciklama, @birim, @miktar, @birim_fiyat_kurus, @olusturan)`
 );
 const stmtKalemListele = db.prepare('SELECT * FROM sozlesme_kalem WHERE sozlesme_id = ? AND row_status = 1 ORDER BY id');
+const stmtKalemGet = db.prepare('SELECT * FROM sozlesme_kalem WHERE id = ? AND row_status = 1');
 const stmtKalemSil = db.prepare('UPDATE sozlesme_kalem SET row_status = 0 WHERE id = ?');
 
 function kilitKontrol(sozlesme) {
@@ -154,6 +155,11 @@ export function kalemEkle(sozlesmeId, item, aktor) {
 /** Görev metnindeki sözleşme: `sozlesme.kalemleriGetir(id)`. */
 export function kalemleriGetir(sozlesmeId) {
   return stmtKalemListele.all(sozlesmeId);
+}
+
+/** Diğer modüllerin (ör. P5 Alt Yüklenici Hakediş) tek bir sözleşme kalemine sahiplik kuralına uygun erişimi — RAW tabloya değil buna. */
+export function kalemGetir(kalemId) {
+  return stmtKalemGet.get(kalemId);
 }
 
 export function kalemSil(kalemId, aktor) {

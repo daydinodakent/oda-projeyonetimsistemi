@@ -357,3 +357,42 @@ Malzeme Kartı, Stok, Mal Kabul ve Zimmet'in KESİN sahibi olarak Depo modülü 
 - **Fire toleransı ALANI var, otomasyonu YOK** — `fire_toleransi_yuzde` malzeme kartında tutuluyor ama "toleransı aşan kullanım" tespiti (planlanan/gerçekleşen miktar karşılaştırması) kurulmadı — bu, WBS bazlı planlanan miktar verisi gerektirir (henüz yok).
 - **Sayım farkı Maliyet Defteri'ne YAZILMIYOR** — muhasebeleştirme (sayım farkının gider/gelir olarak kaydı) ayrı, kapsam dışı bir süreç olarak bırakıldı.
 - **Dosya yükleme altyapısı YOK** — Mal Kabul'ün `fotograf_url` alanı yalnızca bir metin/URL alanıdır, gerçek bir dosya depolama sistemi KURULMADI.
+
+---
+
+## P5 Uygulama Durumu (Alt Yüklenici Takibi / Hakediş)
+
+Hakediş'in KESİN sahibi olarak Alt Yüklenici modülü kuruldu — `server/moduller/altyuklenici/` (backend) + `src/moduller/altyuklenici/` (frontend TS istemcisi + ekranlar).
+
+### TANIM AYRIMI (görev metninin açık isteği — Taşeron/P6 ile çakışmayı önler)
+
+- **ALT YÜKLENİCİ** = tüzel kişilikli, kendi personeli ve SGK işyeri kaydı olan, iş kalemi/metraj üzerinden hakediş alan firma.
+- **TAŞERON (P6)** = sahada ekip olarak çalışan, puantaj/yevmiye veya basit metraj ile ödenen usta başı/ekip.
+- **Ölçüt sözleşme tipi ve ödeme yöntemidir — sınıf Firma'da DEĞİL, Sözleşme'de tutulur.** Bu, P2'de zaten `sozlesme.tip` alanının `'alt_yuklenici'` ve `'taseron'` değerlerini ayrı ayrı tanımlamasıyla HAZIRDI — Alt Yüklenici modülü hiçbir yeni sınıflandırma alanı EKLEMEDİ, yalnızca `hakedis.js#olustur`'da `sozlesme.tip === 'alt_yuklenici'` kontrolü yaparak bu ayrımı UYGULADI (taşeron sözleşmesi için hakediş açma denemesi reddedilir — testle doğrulandı). Aynı firma bir projede alt yüklenici, başka bir projede taşeron sözleşmesiyle çalışabilir; bu tasarım bunu doğal olarak destekler.
+- Alt yüklenici işçileri zaten Çekirdek Kişi'de `'alt_yuklenici_iscisi'` rolüyle tanımlanabiliyordu (P1'den beri) — bu modül için EK bir değişiklik gerekmedi.
+
+### Uygulandı
+
+| Kavram | Dosya | Not |
+|---|---|---|
+| Hakediş (kümülatif) | `hakedis.js` | Her dönem "önceki kümülatif + bu dönem = kümülatif"; önceki kümülatif, sözleşme kaleminin EN SON ONAYLI hakedişinden otomatik devralınır. |
+| Beyan / Onay ayrımı | `hakedis.js#beyanGir`/`#onayGir` | "Alt yüklenicinin beyan ettiği metraj ile şantiye şefinin onayladığı AYRI tutulmalı" — iki farklı sütun, iki farklı durum aşamasında girilir; ÖDEMEYE her zaman ONAY miktarı girer. |
+| Kümülatif aşım uyarısı | `hakedis.js#onayGir` | Sözleşme kalemi miktarını aşarsa işlem ENGELLENMEZ, bir UYARI nesnesi döner ("zeyilname gerekebilir" — P2'ye bağlantı). |
+| Kesinti satırları | `kesinti.js` | Avans mahsubu/ceza/SGK bekletme MANUEL; teminat kesintisi/stopaj/KDV tevkifatı PARAMETRİK (Çekirdek parametre, yürürlük tarihli); malzeme kesintisi P4'ün `kesinti_adayi_mi` işaretli stok hareketlerinden OTOMATİK toplanır — HER hareket kendi satırı olarak eklenir (mükerrer kesinti kesin eşleşmeyle önlenir). |
+| Blokaj | `evrak.js#blokajKontrolu` + `hakedis.js#durumDegistir` | Eksik/süresi geçmiş evrak varken "onayli"ya geçiş REDDEDİLİR; yetkili `blokajiAsarakOnayla()` ile gerekçe yazarak aşabilir (audit_log'a yazılır) — **KABUL kriteri** testle + HTTP smoke testle doğrulandı. |
+| Son hakedişte ilişiksizlik | `evrak.js` | `son_hakedis_mi` bayrağı işaretliyse `iliskiksizlik_belgesi` de zorunlu evrak listesine eklenir. |
+| Maliyet Defteri + Ödeme Talimatı | `hakedis.js#taahhutuIsle`/`#odemeTalimatiOlustur` | Onaylanınca HER hakediş kalemi kendi WBS'i için `alt_yuklenici` kaynak tipli maliyet koduna GERÇEKLEŞEN yazar (kod yoksa otomatik oluşturulur); net tutar üzerinden Çekirdek Ödeme Talimatı, kesinti dökümüyle birlikte oluşturulur. |
+| İlerleme Kaydı | `ilerleme.js` | WBS bazlı planlanan/gerçekleşen %; `gecikmeOzeti()` her WBS için en güncel kaydı esas alır. |
+| Performans Kartı | `performans.js` | Ağırlıklar PARAMETRİK (Çekirdek parametre, tanımsızsa eşit %25); NCR/İSG ihlal sayıları bu geçişte MANUEL girilir (otomasyon için Kalite Kontrol/İSG modülü gerekir — kapsam dışı). |
+| Evrak Kontrol Listesi | `evrak.js` | Çekirdek "Belge" servisi hâlâ yok (P1'den beri ertelendi) — `dokuman_id` yalnızca mevcut `tb_dokumanlar`'a opsiyonel bir referans. |
+| **Ekranlar** | `src/moduller/altyuklenici/ekranlar/` | `AltYukleniciListesi` (performans rozeti, açık hakediş sayısı, blokaj vurgusu), `HakedisHazirlama` (kalem tablosu, beyan/onay/kümülatif, kesinti ekleme, durum ilerletme, blokaj aşma), `HakedisCiktisi` (yazdırılabilir — `window.print()`), `IlerlemeGecikme`, `PerformansKarnesi`, `EvrakDurumu` — `AltYukleniciModulu` içinde birleşik, MUI EKLENMEDİ. |
+
+**Doğrulama:** 118/118 birim testi yeşil (`npm run test` — 16 yeni alt yüklenici testi + önceki 102); `npm run build` başarılı; `npm run lint` yeni dosyalardan sıfır yeni hata; `/api/altyuklenici/*` uçları gerçek sunucuda `curl` ile uçtan uca smoke test edildi. **KABUL kriteri doğrulandı:** 3 dönemlik kümülatif hakediş (100→180→300 m) + avans mahsubu (500.000 kuruş) + malzeme kesintisi (P4'ten, 200.000 kuruş) + tevkifat/teminat (parametrik %) senaryosu doğru net tutar üretti (dönem 1: 7.000.000, dönem 2: 7.800.000 kuruş — testle satır satır doğrulandı); blokaj kuralı (eksik evrak → red, tamamlanınca geçiş, yetkiliyle aşma) çalışıyor. Ekranlar izole bir tarayıcı oturumunda (gerçek dev veritabanına dokunulmadan) canlı test edildi: hakediş oluşturma, beyan (110) ile onay (100) ayrı girişi, kesinti sonrası net tutarın doğru düşmesi (₺100.000,00 → ₺95.000,00), yazdırılabilir hakediş çıktısı — ekran görüntüsüyle doğrulandı.
+
+### Bilinçli Olarak Ertelendi (bu geçişin kapsamı dışında)
+
+- **Ekranlar mevcut App.tsx navigasyonuna BAĞLANMADI** — P1-P4'teki AYNI karar.
+- **NCR (uygunsuzluk) ve İSG ihlal sayıları OTOMATİK toplanmıyor** — manuel girilir; gerçek bir Kalite Kontrol/İSG modülü (P8+) bu alanları besleyecek entegrasyon noktasına sahip değil henüz.
+- **Fiyat farkı (endeks bazlı) formülü YOK** — görev metni "formül sözleşme maddesinden (P2) okunur" diyor; P2'nin `sozlesme_madde` tablosunda `tur='fiyat_farki'` + `parametreler` (serbest JSON) alanı zaten var ama bu modül onu OKUYUP otomatik hesaplama YAPMIYOR — kapsam dışı bırakıldı.
+- **Evrak dosya yükleme YOK** — yalnızca geçerlilik tarihi + opsiyonel `dokuman_id` referansı tutuluyor.
+- **Malzeme kesintisi otomatik "getirme" gerektiriyor** — P4'ten kesinti adaylarının hakedişe eklenmesi OTOMATİK tetiklenmiyor, kullanıcının "Malzeme Kesintisi Getir" butonuna basması gerekiyor (bilinçli tasarım — kullanıcı hangi dönemde hangi kesintiyi uygulayacağını kontrol etmeli).
