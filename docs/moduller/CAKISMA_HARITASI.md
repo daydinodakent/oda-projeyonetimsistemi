@@ -196,3 +196,37 @@ Bunların hiçbiri `server/data/oda_pys.gpkg`'a yazılmaz — yalnızca `OdaMapM
 - **~5 000+ satır ölü CBS kodu** (üç ayrı, bağlanmamış harita denemesi) repoda duruyor; `zustand` ve `@google/genai` bağımlılıkları da fiilen kullanılmıyor.
 - Gerçek, çalışan ve kalıcı olan tek CBS/harita: `legacy-standalone-tools/oda-harita-cizim-araci.html` + `OdaMapModule.tsx` köprüsü + 4 CBS tablosu.
 - Ayrıntılı sahiplik/çakışma tablosu için §4, açık kararlar için §7'ye bakın (8 soru, her birine öneri eklendi).
+
+---
+
+## P1 Uygulama Durumu (Ortak Çekirdek)
+
+§7'deki kararlardan sonra, bu bölümde önerilen "Ortak Çekirdek" (Shared Kernel) uygulandı. Yeni kod `server/moduller/_cekirdek/` (backend, Node/Express + `node:sqlite`) ve `src/moduller/_cekirdek/` (frontend, TS istemcisi) altında — mevcut hiçbir dosya taşınmadı/silinmedi, mevcut ekranlar değişmedi.
+
+### Uygulandı
+
+| Kavram | Dosya | Not |
+|---|---|---|
+| Firma (Cari), çoklu rol | `server/moduller/_cekirdek/cariFirma.js` + `db.js` (`cari_firma`, `cari_firma_rol`) | VKN `UNIQUE`; §7 soru 4'teki "tek tablo + rol" önerisi uygulandı. |
+| Kişi, TCKN şifreli | `kisi.js`, `kripto.js` (AES-256-GCM) | §7 soru 5'teki "ayrı çekirdek Kişi tablosu" önerisi uygulandı; `tb_personel` **henüz** buna bağlanmadı (aşağıya bkz.). API yanıtında yalnız `tckn_maske`. |
+| Maliyet Kodu (WBS × Kaynak Tipi) | `maliyetKodu.js` | `wbs_gorev_id`, mevcut `tb_wbs_gorevler` kaydına ID ile referans verir, KOPYALAMAZ (sahiplik kuralı — birim testiyle doğrulandı). |
+| Maliyet Defteri (append-only, idempotent) | `maliyetDefteri.js` | `yaz(olay)` tek yazma yolu; `UNIQUE(kaynak_modul,kaynak_id,tur)`; iptal = ters kayıt (silme yok). |
+| Ödeme (talimat→onay→ödeme) | `odeme.js` | Durum makinesi (`TASLAK→ONAY_BEKLIYOR→ONAYLANDI→ODENDI`); dış sisteme entegrasyon YOK, yalnızca `disa_aktarildi` işaretli bekleyen-liste noktası var. |
+| Parametre tabloları | `parametre.js` | Yürürlük tarihli (`gecerli_baslangic/bitis`), koda gömülü değer yok. |
+| Numara serileri | `numaraSerisi.js` | `SERI-YIL-NNNN`, seri/yıl bazında bağımsız sayaç. |
+| Puantaj (ortak yapı) | `puantaj.js` | İK ve Taşeron aynı tabloyu kullanacak şekilde tasarlandı; `istemci_kayit_id` ile çevrimdışı-kuyruk idempotency'si. |
+| Audit Log | `audit.js` | Tüm servislerin create/update/iptal işlemleri buradan tek yoldan yazıyor. |
+| Çevrimdışı kuyruk altyapısı | `src/moduller/_cekirdek/offlineQueue.ts` | Genel amaçlı, localStorage tabanlı; `createOfflineQueue()`. **Bağımsız modül — bu geçişte hiçbir saha ekranına bağlanmadı.** |
+| Frontend tip/istemci katmanı | `src/moduller/_cekirdek/types.ts`, `api.ts` | `server/moduller/_cekirdek/routes.js` uçlarını sarmalar. |
+| Express mount | `server/index.js` | `/api/cekirdek/*`, jenerik `/api/:table`'dan ÖNCE mount edildi. |
+
+**Doğrulama:** 39/39 birim testi yeşil (`npm run test` → `node --test server/moduller/_cekirdek/*.test.js`); `npm run build` başarılı; `/api/cekirdek/*` uçları gerçek sunucu üzerinde `curl` ile manuel HTTP smoke testinden geçti (firma oluşturma, parametre oluşturma/okuma, numara serisi). `npm run lint` (`tsc --noEmit`) yalnızca P1 ÖNCESİNDEN var olan 7 hatayı gösteriyor (App.tsx×2, InsaatView.tsx×2, IsletmeView.tsx×2, GisMap.tsx×1) — yeni `_cekirdek` dosyaları sıfır yeni tip hatası ekledi.
+
+### Bilinçli Olarak Ertelendi (bu geçişin kapsamı dışında)
+
+- **Hiçbir mevcut ekran yeni çekirdeğe bağlanmadı.** `api.ts`/`offlineQueue.ts` hazır ama henüz hiçbir bileşen import etmiyor — "mevcut ekranlar bozulmaz" kabul kriterini bu geçişte riske atmamak için.
+- §4.2'deki 12 kopya/çakışma çifti (`Project↔ProjeRecord`, üçlü Doküman modeli, vb.) bu geçişte BİRLEŞTİRİLMEDİ — çekirdek yalnızca yeni ve henüz var olmayan kavramları (Firma, Kişi, Maliyet Kodu/Defteri, Ödeme, Puantaj) kapsıyor.
+- **Belge, Onay Akışı, Bildirim, Rol-Yetki** ortak servisleri henüz yazılmadı/genişletilmedi — mevcut `BelgeRecord`/`OnayRecord`/`BildirimRecord`/`YetkiRecord` (varsa) dokunulmadan duruyor. Ödeme'nin durum geçişi basit sabit-kodlanmış bir harita; genel amaçlı tutar/tip bazlı bir onay-akışı motoru DEĞİL.
+- **`tb_personel` ↔ yeni `kisi` tablosu** henüz bağlanmadı — İK modülü kurulurken 1-1 ilişki/geçiş planlanmalı (§7 soru 5).
+- **Proje→Etap/Blok→WBS→İş Kalemi** hiyerarşisi yeniden yapılandırılmadı; yalnızca yeni `maliyet_kodu` tablosu mevcut `tb_wbs_gorevler`'e ID ile referans veriyor.
+- `CEKIRDEK_KISI_ENCRYPTION_KEY` üretim ortamında MUTLAKA tanımlanmalı (`.env.example`'a eklendi) — tanımsızsa geliştirme anahtarına düşüyor ve konsola uyarı basıyor.

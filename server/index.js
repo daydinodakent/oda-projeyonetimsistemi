@@ -31,6 +31,7 @@
 import express from 'express';
 import { listRecords, getRecord, putRecord, seedIfEmpty } from './db.js';
 import { buildGeoPackageBuffer } from './gpkg.js';
+import { router as cekirdekRouter } from './moduller/_cekirdek/routes.js';
 import path from 'node:path';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -56,6 +57,12 @@ app.use((req, res, next) => {
 });
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));
+
+// --- Ortak Çekirdek (Firma, Kişi, Parametre, Maliyet Defteri, Ödeme,
+// Puantaj, Audit) — bkz. server/moduller/_cekirdek/. Generic "/api/:table"
+// deseninden ÖNCE mount edilmelidir (aksi halde Express "/api/cekirdek/..."i
+// table="cekirdek" olarak eşleştirir — bkz. GPKG export rotasındaki AYNI not).
+app.use('/api/cekirdek', cekirdekRouter);
 
 // --- CBS/PostGIS katmanlarını gerçek bir .gpkg dosyası olarak dışa aktarır ---
 // NOT: bu sabit rota, aşağıdaki generic "/api/:table" deseninden ÖNCE

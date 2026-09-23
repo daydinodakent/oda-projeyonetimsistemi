@@ -31,7 +31,10 @@ import { geomToGpkgBlob, geomFromGpkgBlob, flattenCoords, SRID_WGS84 } from './g
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = path.join(__dirname, 'data');
-const DB_PATH = path.join(DATA_DIR, 'oda_pys.gpkg');
+// ODA_DB_PATH: yalnızca birim testlerinde (bkz. server/moduller/_cekirdek/*.test.js)
+// geliştirme veritabanını kirletmemek için geçici bir dosyaya yönlendirmede
+// kullanılır — ortamda tanımlı değilse davranış DEĞİŞMEZ.
+const DB_PATH = process.env.ODA_DB_PATH || path.join(DATA_DIR, 'oda_pys.gpkg');
 
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 
