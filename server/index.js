@@ -36,6 +36,7 @@ import { router as sozlesmeRouter } from './moduller/sozlesme/routes.js';
 import { router as depoRouter } from './moduller/depo/routes.js';
 import { router as satinalmaRouter } from './moduller/satinalma/routes.js';
 import { router as altyukleniciRouter } from './moduller/altyuklenici/routes.js';
+import { router as taseronRouter } from './moduller/taseron/routes.js';
 import path from 'node:path';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -81,6 +82,10 @@ app.use('/api/satinalma', satinalmaRouter);
 // --- Alt Yüklenici (Hakediş'in TEK sahibi) — aynı nedenle generic
 // "/api/:table" deseninden ÖNCE mount edilir.
 app.use('/api/altyuklenici', altyukleniciRouter);
+
+// --- Taşeron (Ekip, Metraj, Ödeme Dönemi'nin TEK sahibi) — aynı nedenle
+// generic "/api/:table" deseninden ÖNCE mount edilir.
+app.use('/api/taseron', taseronRouter);
 
 // --- CBS/PostGIS katmanlarını gerçek bir .gpkg dosyası olarak dışa aktarır ---
 // NOT: bu sabit rota, aşağıdaki generic "/api/:table" deseninden ÖNCE

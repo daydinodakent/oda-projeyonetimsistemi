@@ -195,6 +195,12 @@ db.exec(`
     cikis_saati TEXT,
     gun_degeri REAL NOT NULL CHECK (gun_degeri IN (0, 0.5, 1)),
     fazla_mesai_saat REAL NOT NULL DEFAULT 0,
+    -- gun_tipi: P6 (Taşeron) görev metni — "hava muhalefeti (yağmur → yarım
+    -- gün/iptal)" gibi nedenleri gun_degeri'nden AYRI, raporlanabilir bir
+    -- etiket olarak tutar; gun_degeri'nin YERİNE GEÇMEZ.
+    gun_tipi TEXT DEFAULT 'tam' CHECK (gun_tipi IN ('tam','yarim','hava_muhalefeti','iptal')),
+    bayram_pazar_mi INTEGER NOT NULL DEFAULT 0,
+    maliyet_kodu_id INTEGER REFERENCES maliyet_kodu(id),
     durum TEXT NOT NULL DEFAULT 'TASLAK' CHECK (durum IN ('TASLAK','ONAYLANDI','REDDEDILDI')),
     kaynak TEXT NOT NULL DEFAULT 'manuel' CHECK (kaynak IN ('pdks','manuel','mobil')),
     istemci_kayit_id TEXT UNIQUE,
@@ -203,6 +209,12 @@ db.exec(`
     write_uid INTEGER, write_date TEXT
   );
   CREATE INDEX IF NOT EXISTS idx_puantaj_kisi_tarih ON puantaj_kaydi (kisi_id, tarih);
+  -- "Aynı kişi aynı gün iki yere puantaj alamaz (başka şantiye/ekip veya İK
+  -- personeli olarak)" (P6 görev metni) — bu kural İK/Taşeron/Alt Yüklenici
+  -- HANGİ modülden çağrılırsa çağrılsın AYNI paylaşılan tablo üzerinden,
+  -- burada, ÇEKİRDEK SEVİYESİNDE zorlanır (tek bir yerde, tekrarsız). Bu
+  -- UNIQUE INDEX, eski-şema tablolarla uyum için exec() bloğunun ALTINDA,
+  -- savunmacı olarak (ayrıca) oluşturulur — bkz. dosya sonu.
 
   -- ========== AUDIT LOG ==========
   -- CAKISMA_HARITASI.md'de eksik olarak işaretlenen gerçek denetim izi.
@@ -219,5 +231,20 @@ db.exec(`
   );
   CREATE INDEX IF NOT EXISTS idx_audit_varlik ON audit_log (varlik, varlik_id);
 `);
+
+// P1'de oluşturulmuş, eski-şema bir puantaj_kaydi zaten varsa (gun_tipi/
+// bayram_pazar_mi/maliyet_kodu_id sütunları yok) — P6 (Taşeron) için
+// SONRADAN eklemek üzere savunmacı ALTER TABLE'lar (bkz. depo/db.js'teki
+// AYNI idiom). Sütun zaten varsa fırlayan hata YOK SAYILIR.
+for (const alter of [
+  "ALTER TABLE puantaj_kaydi ADD COLUMN gun_tipi TEXT DEFAULT 'tam'",
+  'ALTER TABLE puantaj_kaydi ADD COLUMN bayram_pazar_mi INTEGER NOT NULL DEFAULT 0',
+  'ALTER TABLE puantaj_kaydi ADD COLUMN maliyet_kodu_id INTEGER REFERENCES maliyet_kodu(id)',
+]) {
+  try { db.exec(alter); } catch { /* sütun zaten var — sorun değil */ }
+}
+try {
+  db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_puantaj_kisi_tarih_tekil ON puantaj_kaydi (kisi_id, tarih) WHERE row_status = 1');
+} catch { /* eski veride mükerrer (kisi_id,tarih) satırı varsa index oluşmaz — geliştirme ortamında veri yok, göz ardı edilir */ }
 
 export { db };

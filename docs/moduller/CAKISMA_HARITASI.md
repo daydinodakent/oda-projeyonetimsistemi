@@ -396,3 +396,43 @@ Hakediş'in KESİN sahibi olarak Alt Yüklenici modülü kuruldu — `server/mod
 - **Fiyat farkı (endeks bazlı) formülü YOK** — görev metni "formül sözleşme maddesinden (P2) okunur" diyor; P2'nin `sozlesme_madde` tablosunda `tur='fiyat_farki'` + `parametreler` (serbest JSON) alanı zaten var ama bu modül onu OKUYUP otomatik hesaplama YAPMIYOR — kapsam dışı bırakıldı.
 - **Evrak dosya yükleme YOK** — yalnızca geçerlilik tarihi + opsiyonel `dokuman_id` referansı tutuluyor.
 - **Malzeme kesintisi otomatik "getirme" gerektiriyor** — P4'ten kesinti adaylarının hakedişe eklenmesi OTOMATİK tetiklenmiyor, kullanıcının "Malzeme Kesintisi Getir" butonuna basması gerekiyor (bilinçli tasarım — kullanıcı hangi dönemde hangi kesintiyi uygulayacağını kontrol etmeli).
+
+## P6 Uygulama Durumu (Taşeron Takibi)
+
+Taşeron modülü kuruldu — `server/moduller/taseron/` (backend) + `src/moduller/taseron/` (frontend TS istemcisi + ekranlar). Puantaj için AYRI bir sistem YAZILMADI: Çekirdek'in mevcut `puantaj_kaydi` tablosu/servisi (`server/moduller/_cekirdek/puantaj.js`) genişletilerek kullanıldı.
+
+### TANIM AYRIMI (P5'teki notla simetrik — CAKISMA_HARITASI'nin tek kaynağı)
+
+- **TAŞERON** = sahada ekip olarak çalışan, puantaj/yevmiye veya basit metraj ile ödenen usta başı/ekip (çoğunlukla şahıs). **ALT YÜKLENİCİ (P5)** = tüzel kişilikli, iş kalemi/metraj üzerinden hakediş alan firma.
+- Ölçüt yine **`sozlesme.tip`** — `ekip.js#olustur`, sözleşme tipi `'taseron'` değilse ekip kurulmasını REDDEDER (testle doğrulandı: `ekip.test.js`). Firma/Kişi'de sınıflandırma alanı YOK; aynı kişi/firma projeden projeye farklı sözleşme tipiyle çalışabilir.
+
+### Çekirdek'te yapılan TEK değişiklik (İK dahil TÜM puantaj tüketicilerini etkiler)
+
+- `puantaj_kaydi` tablosuna `gun_tipi` (tam/yarim/devamsiz), `bayram_pazar_mi`, `maliyet_kodu_id` sütunları eklendi (defansif `ALTER TABLE` — mevcut satırlar etkilenmez).
+- **Yeni kural: aynı kişi aynı gün İKİNCİ kez puantaja yazılamaz** — `(kisi_id, tarih)` üzerinde `row_status = 1` şartlı KISMİ UNIQUE INDEX eklendi. Bu kural Çekirdek seviyesinde olduğu için Taşeron'a ÖZEL değil; ileride İK'nın personel puantajı da aynı tabloyu kullanırsa bu tekillik OTOMATİK olarak onu da kapsar.
+- `maliyet_kodu_id` Çekirdek'te OPSİYONEL bırakıldı (İK'nın ihtiyacı bilinmiyor); Taşeron servis katmanında (`puantajTaseron.js#kaydet`) ise ZORUNLU kılındı — bilinçli, katmanlı bir kural.
+
+### Uygulandı
+
+| Kavram | Dosya | Not |
+|---|---|---|
+| Ekip / Ekip Üyesi | `ekip.js` | TANIM AYRIMI kontrolü; aynı kişi aynı ekibe iki kez eklenemez; yevmiye YÜRÜRLÜK TARİHLİ (`ekip_uye_yevmiye`, insert-only). |
+| Puantaj | `puantajTaseron.js` | Çekirdek `puantaj.js`'in ince bir sarmalayıcısı; `maliyet_kodu_id` zorunlu; kapalı döneme ait tarihe yazma ENGELLENİR; `tumEkibeUygula()` "hepsi tam gün" + istisna akışını destekler, bir üye SGK/İSG'den başarısız olsa DİĞERLERİNİ durdurmaz (kısmi başarı döner). |
+| KAYIT DIŞI İŞÇİ RİSKİ | `puantajTaseron.js#sgkIsgKontrolu` | SGK işe giriş bildirgesi veya İSG eğitim geçerliliği eksikse puantaj REDDEDİLİR; yetkili `yetkiliOnayi=true` + zorunlu `gerekce` ile aşabilir (audit_log'a yazılır) — **KABUL kriteri**, hem testle hem canlı tarayıcı testiyle doğrulandı. |
+| Metraj | `metraj.js` | Beyan (`miktar`) / şef onayı (`sef_onay_miktar`) AYRI sütunlar; yalnızca ONAY miktarı ödemeye ve verimlilik raporuna girer. |
+| Ödeme Dönemi | `odemeDonemi.js` | AKIŞ: açık→şef onayı→proje müdürü onayı→kapandı; kapanmış döneme ait puantaj/kesinti DEĞİŞTİRİLEMEZ (düzeltme = sonraki dönemde fark satırı); `taahhutuIsle()` yevmiye+fazla mesai+bayram/pazar çarpanlarını (PARAMETRİK) hesaplayıp HER puantaj kaydı için ayrı bir Maliyet Defteri GERÇEKLEŞEN satırı yazar; metraj/götürü ödeme tipinde puantaj tutulur ama ödemeye GİRMEZ. |
+| Kesintiler | `kesinti.js` | Avans/yemek/barınma/ceza MANUEL; malzeme fire kesintisi P4'ten (P5'teki AYNI desen: her stok hareketi kendi satırı, mükerrer kesin eşleşmeyle önlenir); alet kaybı — bkz. Ertelendi. |
+| Verimlilik Raporu | `verimlilik.js` | Ekip × sözleşme kalemi bazında adam-gün/birim (düşük = verimli); adam-gün, puantajın `maliyet_kodu_id`'si o kalemin WBS'ine bağlı `iscilik_taseron` koduyla eşleşerek bulunur (RAW puantaj sorgusu değil, Çekirdek'in kendi `kisiAraligiListele()` fonksiyonu üzerinden). |
+| **Ekranlar** | `src/moduller/taseron/ekranlar/` | `EkipListesi`, `MobilGunlukPuantaj` ("Hepsi Tam Gün" + istisna), `HaftalikPuantajMatrisi` (kişi×gün), `AvansGirisi`, `DonemHesapPusulasi` (yazdırılabilir, `window.print()`, akış butonları), `VerimlilikRaporu`, `EksikEvrakliIsciUyarilari` — `TaseronModulu` içinde birleşik, MUI EKLENMEDİ. |
+
+**Doğrulama:** 136/136 birim testi yeşil (`npm run test` — 15 yeni taşeron/puantaj testi + önceki 121); `npm run build` başarılı; `npm run lint` yeni dosyalardan sıfır yeni hata (yalnızca 7 önceden var olan hata). **KABUL kriteri doğrulandı** (`odemeDonemi.test.js`): yevmiye + fazla mesai + yarım gün + avans + malzeme kesintisi senaryosunda brüt 162.500, kesinti 35.000, net 127.500 kuruş — 3 ayrı GERÇEKLEŞEN hareketi toplamı brüt ile TUTARLI; aynı kişi aynı gün ikinci kez puantaja yazılamıyor; SGK/İSG eksik işçi uyarısı çalışıyor. Ekranlar izole bir tarayıcı oturumunda (gerçek dev veritabanına dokunulmadan, `ODA_DB_PATH`/`ODA_API_PORT` ile ayrı sunucu ve ayrı Vite örneği) canlı test edildi: "Hepsi Tam Gün" kaydı (1 kaydedildi) → tekrar basınca çift-puantaj engeli ("0 kaydedildi, 1 istisna") → haftalık matriste doğru görünüm → avans girişi (-₺500,00) → hesap pusulasında brüt/net doğru hesap (₺1.750,00 / ₺1.250,00 — tam gün+yarım gün+2 saat fazla mesai) → durum akışı şef onayı→proje müdürü onayı→kapandı → verimlilik raporu (20 m² / 1,5 adam-gün = 0,075) → eksik evraklı işçi uyarısı (SGK+İSG eksik ikinci üye) — hepsi ekran görüntüsüyle doğrulandı.
+
+**Canlı testte bulunup düzeltilen hata:** `verimlilik.js#raporOlustur`, HTTP query string'inden gelen `sozlesme_kalem_id`'yi (her zaman `string`) DB'den okunan `number` değerle `===` ile karşılaştırıyordu — bu yüzden `/api/taseron/verimlilik` ucundan çağrıldığında toplam metraj HER ZAMAN 0 dönüyordu, sessizce. Otomatik test bunu yakalayamamıştı çünkü fonksiyonu doğrudan (HTTP katmanı olmadan) `number` id ile çağırıyordu. Düzeltme: fonksiyon girişinde `sozlesmeKalemId = Number(sozlesmeKalemId)` zorunlu kılındı. **Ders:** query-string parametreleriyle çalışan servis fonksiyonları, otomatik testlerde olduğu gibi doğrudan number ile değil, gerçek HTTP isteğiyle de (curl/tarayıcı) en az bir kez doğrulanmalı — tip coercion hataları birim testlerinde görünmez kalabilir.
+
+### Bilinçli Olarak Ertelendi (bu geçişin kapsamı dışında)
+
+- **Ekranlar mevcut App.tsx navigasyonuna BAĞLANMADI** — P1-P5'teki AYNI karar.
+- **`MobilGunlukPuantaj.tsx` çevrimdışı kuyruk (`offlineQueue.ts`) KULLANMIYOR** — P4'ün `HizliCikisGiris.tsx`'i bu altyapıyı kullanıyordu; Taşeron'un mobil puantaj ekranı şimdilik doğrudan `fetch` çağrısı yapıyor. ÇALIŞMA KURALLARI'nın "sahadan veri girilen ekranlar... çevrimdışı kuyruklu olsun" maddesiyle ÇELİŞEN bilinçli bir kapsam kısıtlaması — bir sonraki geçişte `offlineQueue.ts` bu ekrana da sarmalanmalı.
+- **Alet kaybı kesintisi OTOMATİK tutar üretmiyor** — P4'ün zimmet kaydında parasal bir değer alanı yok; `kesinti.js#kayipZimmetleriGetir()` yalnızca BİLGİ amaçlı listeler, kullanıcı tutarı `kesinti.js#ekle()` ile manuel girer (P5'teki performans kartı NCR/İSG sayılarının manuel girilmesiyle AYNI türde bir kısıtlama).
+- **Taşeron gerçek kişiyle (taraf_kisi_id) sözleşme yapıldığında Ödeme Talimatı oluşturulamıyor** — Çekirdek'in `odeme_talimati` servisi şu an yalnızca Firma'ya (`cari_firma`) ödeme destekliyor; canlı testte bu senaryo denendi ve kullanıcıya net bir hata mesajıyla ENGELLENDİĞİ doğrulandı ("Bu sözleşmenin tarafı bir Firma değil..."). Gerçek kişi taşeronlara ödeme talimatı desteği Çekirdek'in `odeme.js`'inde ayrı bir geçiş gerektirir.
+- **`kesinti.js#malzemeFireKesintisiEkle` hiçbir ekrandan tetiklenmiyor** — API/servis katmanında hazır (P5'teki AYNI desen) ama "Malzeme Kesintisi Getir" butonu bu geçişte bir ekrana EKLENMEDİ; kullanıcı şu an yalnızca API üzerinden veya bir sonraki geçişte eklenecek bir ekrandan tetikleyebilir.

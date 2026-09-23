@@ -39,3 +39,29 @@ test('onayla: durumu ONAYLANDI yapar', () => {
   const onayli = puantaj.onayla(kayit.id, 1);
   assert.equal(onayli.durum, 'ONAYLANDI');
 });
+
+test('kaydet: AYNI kişi AYNI gün FARKLI bir proje/kayıt için İKİNCİ kez puantaja YAZILAMAZ (P6 görev metni — ÇEKİRDEK seviyesinde zorlanır)', () => {
+  const k = kisiKur();
+  puantaj.kaydet({ proje_id: 'IGA-ETAP-1', kisi_id: k.id, tarih: '2026-09-05', gun_degeri: 1 });
+  assert.throws(
+    () => puantaj.kaydet({ proje_id: 'IGA-ETAP-2', kisi_id: k.id, tarih: '2026-09-05', gun_degeri: 1 }),
+    /aynı kişi aynı gün iki yere puantaj alamaz/
+  );
+});
+
+test('kaydet: gun_tipi ve maliyet_kodu_id alanları doğru kaydedilir; geçersiz gun_tipi reddedilir', () => {
+  const k = kisiKur();
+  assert.throws(() => puantaj.kaydet({ proje_id: 'IGA-ETAP-1', kisi_id: k.id, tarih: '2026-09-06', gun_degeri: 1, gun_tipi: 'gecersiz' }), /Geçersiz gun_tipi/);
+  const { kayit } = puantaj.kaydet({ proje_id: 'IGA-ETAP-1', kisi_id: k.id, tarih: '2026-09-06', gun_degeri: 0.5, gun_tipi: 'hava_muhalefeti', bayram_pazar_mi: true });
+  assert.equal(kayit.gun_tipi, 'hava_muhalefeti');
+  assert.equal(kayit.bayram_pazar_mi, 1);
+});
+
+test('kisiGunGetir / kisiAraligiListele: doğru kayıtları döner', () => {
+  const k = kisiKur();
+  puantaj.kaydet({ proje_id: 'IGA-ETAP-1', kisi_id: k.id, tarih: '2026-09-10', gun_degeri: 1 });
+  puantaj.kaydet({ proje_id: 'IGA-ETAP-1', kisi_id: k.id, tarih: '2026-09-11', gun_degeri: 1 });
+  assert.ok(puantaj.kisiGunGetir(k.id, '2026-09-10'));
+  assert.equal(puantaj.kisiGunGetir(k.id, '2026-09-12'), null);
+  assert.equal(puantaj.kisiAraligiListele(k.id, '2026-09-10', '2026-09-11').length, 2);
+});
