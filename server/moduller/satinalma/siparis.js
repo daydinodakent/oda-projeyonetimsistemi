@@ -123,3 +123,27 @@ export function kalemleriGetir(siparisId) {
 export function kalemGetir(kalemId) {
   return stmtKalemGet.get(kalemId);
 }
+
+// ---------- Teslim ilerlemesi (Depo'nun Mal Kabul servisinden çağrılır) ----------
+// SAHİPLİK: Depo (server/moduller/depo/malKabul.js) kendi mal_kabul olayını
+// kaydettikten SONRA, Satın Alma'nın KENDİ tablosunu güncellemesi için bu
+// fonksiyonu çağırır — Depo, satinalma_siparis_kalem'e DOĞRUDAN yazmaz.
+const stmtKalemTeslimGuncelle = db.prepare('UPDATE satinalma_siparis_kalem SET teslim_edilen_miktar = teslim_edilen_miktar + ? WHERE id = ?');
+
+/** @param {number} kabulEdilenMiktar Mal kabulde KABUL edilen (reddedilen hariç) miktar — bkz. depo/malKabul.js. */
+export function teslimIlerlemesiGuncelle(kalemId, kabulEdilenMiktar, aktor) {
+  const kalem = stmtKalemGet.get(kalemId);
+  if (!kalem) throw new Error('Sipariş kalemi bulunamadı');
+  stmtKalemTeslimGuncelle.run(kabulEdilenMiktar, kalemId);
+
+  const guncelKalem = stmtKalemGet.get(kalemId);
+  const tumKalemler = stmtKalemListele.all(guncelKalem.siparis_id);
+  const tamamiTeslimEdildi = tumKalemler.every((k) => k.teslim_edilen_miktar >= k.miktar);
+  const kismenTeslimEdildi = tumKalemler.some((k) => k.teslim_edilen_miktar > 0);
+  const siparisKaydi = stmtGet.get(guncelKalem.siparis_id);
+  if (siparisKaydi && siparisKaydi.durum !== 'tamamlandi') {
+    if (tamamiTeslimEdildi) durumDegistir(guncelKalem.siparis_id, 'tamamlandi', aktor);
+    else if (kismenTeslimEdildi && siparisKaydi.durum === 'onaylandi') durumDegistir(guncelKalem.siparis_id, 'kismi_teslim', aktor);
+  }
+  return guncelKalem;
+}

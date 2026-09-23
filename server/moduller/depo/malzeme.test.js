@@ -25,3 +25,27 @@ test('pasifEt: soft-delete sonrası listele() artık göstermez', () => {
   malzeme.pasifEt(m.id);
   assert.equal(malzeme.listele().some((x) => x.id === m.id), false);
 });
+
+test('olustur: grup/demirbas_mi/min-max stok/fire toleransı alanları doğru kaydedilir', () => {
+  const demirbas = malzeme.olustur({ kod: 'MATKAP-1', ad: 'Kırıcı Matkap', birim: 'adet', grup: 'El Aletleri', demirbas_mi: true, stoklu_mu: false });
+  assert.equal(demirbas.demirbas_mi, 1);
+  assert.equal(demirbas.grup, 'El Aletleri');
+
+  const stoklu = malzeme.olustur({ kod: 'CIMENTO-2', ad: 'Çimento', birim: 'ton', min_stok: 5, max_stok: 50, fire_toleransi_yuzde: 2.5 });
+  assert.equal(stoklu.min_stok, 5);
+  assert.equal(stoklu.max_stok, 50);
+  assert.equal(stoklu.fire_toleransi_yuzde, 2.5);
+});
+
+test('birimeCevir: ana birimin KENDİSİ için katsayı 1 varsayılır (dönüşüm TANIMLANMASI gerekmez)', () => {
+  const m = malzeme.olustur({ kod: 'DEMIR-BIRIM', ad: 'Demir', birim: 'ton' });
+  assert.equal(malzeme.birimeCevir(m.id, 5, 'ton'), 5);
+  assert.equal(malzeme.birimeCevir(m.id, 5, 'TON'), 5, 'büyük/küçük harf duyarsız');
+});
+
+test('birimeCevir: tanımsız birim için hata fırlatır; tanımlı birim doğru dönüşüm katsayısını uygular', () => {
+  const m = malzeme.olustur({ kod: 'DEMIR-KG', ad: 'Demir (ton alınır, kg çıkılır)', birim: 'ton' });
+  assert.throws(() => malzeme.birimeCevir(m.id, 100, 'kg'), /dönüşüm katsayısı tanımlı değil/);
+  malzeme.birimDonusumTanimla(m.id, 'kg', 0.001); // 1 kg = 0.001 ton
+  assert.equal(malzeme.birimeCevir(m.id, 2500, 'kg'), 2.5);
+});

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Truck, PackageCheck, FileInput } from 'lucide-react';
+import { Truck, FileInput, PackageSearch } from 'lucide-react';
 import * as api from '../api';
 import type { SatinalmaSiparis, SatinalmaSiparisKalem } from '../types';
 import { formatKurus, formatTarih, SIPARIS_DURUM_ETIKET, SIPARIS_DURUM_RENK } from './format';
@@ -19,7 +19,6 @@ export default function SiparisTakip({ projeId, onFaturaOlusturuldu }: Props) {
   const [acikId, setAcikId] = useState<number | null>(null);
   const [kalemler, setKalemler] = useState<SatinalmaSiparisKalem[]>([]);
   const [hata, setHata] = useState<string | null>(null);
-  const [malKabulMiktar, setMalKabulMiktar] = useState<Record<number, number>>({});
   const [faturaFormAcik, setFaturaFormAcik] = useState(false);
   const [faturaNo, setFaturaNo] = useState('');
   const [faturaTarihi, setFaturaTarihi] = useState(new Date().toISOString().slice(0, 10));
@@ -41,18 +40,6 @@ export default function SiparisTakip({ projeId, onFaturaOlusturuldu }: Props) {
     setHata(null);
     try { await api.siparisDurumDegistir(id, 'onaylandi'); await yenile(); }
     catch (err) { setHata(String((err as Error).message || err)); }
-  }
-
-  async function malKabulKaydet(kalemId: number) {
-    setHata(null);
-    try {
-      await api.malKabulKaydet({ siparis_kalem_id: kalemId, miktar: malKabulMiktar[kalemId], tarih: new Date().toISOString().slice(0, 10) });
-      setMalKabulMiktar((prev) => ({ ...prev, [kalemId]: 0 }));
-      await yenile();
-      if (acikId) setKalemler(await api.siparisKalemleriGetir(acikId));
-    } catch (err) {
-      setHata(String((err as Error).message || err));
-    }
   }
 
   async function faturaKaydet() {
@@ -118,15 +105,13 @@ export default function SiparisTakip({ projeId, onFaturaOlusturuldu }: Props) {
                       <div className="text-[10px] text-[var(--text-secondary)] mt-0.5">
                         Sipariş: {k.miktar} {k.birim} • Teslim Alınan: {k.teslim_edilen_miktar} • Faturalanan: {k.faturalanan_miktar}
                       </div>
-                      {s.durum !== 'taslak' && (
-                        <div className="flex items-center gap-2 mt-2">
-                          <input type="number" placeholder="Teslim miktarı" value={malKabulMiktar[k.id] ?? ''} onChange={(e) => setMalKabulMiktar((prev) => ({ ...prev, [k.id]: Number(e.target.value) }))}
-                            className="w-28 bg-[var(--bg-primary)] border border-[var(--border)] rounded px-2 py-1 text-xs" />
-                          <button onClick={() => malKabulKaydet(k.id)} className="px-2 py-1 text-[10px] font-black uppercase bg-emerald-600/15 border border-emerald-500/30 text-emerald-400 rounded cursor-pointer flex items-center gap-1"><PackageCheck className="w-3 h-3" /> Mal Kabul Kaydet</button>
-                        </div>
-                      )}
                     </div>
                   ))}
+                  {s.durum !== 'taslak' && (
+                    <div className="text-[10px] text-[var(--text-secondary)] flex items-center gap-1.5">
+                      <PackageSearch className="w-3.5 h-3.5" /> Mal kabul artık Depo modülünde yapılır (Mal Kabul sekmesi — sipariş seçerek).
+                    </div>
+                  )}
 
                   {s.durum !== 'taslak' && (
                     faturaFormAcik ? (

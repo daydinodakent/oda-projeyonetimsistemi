@@ -17,6 +17,11 @@ const stmtInsert = db.prepare(
 const stmtGet = db.prepare('SELECT * FROM satinalma_talep WHERE id = ? AND row_status = 1');
 const stmtList = db.prepare('SELECT * FROM satinalma_talep WHERE proje_id = ? AND row_status = 1 ORDER BY olusturma_zamani DESC');
 const stmtDurumGuncelle = db.prepare("UPDATE satinalma_talep SET durum = ?, istisna_onaylayan = ?, write_uid = ?, write_date = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ?");
+const stmtAcikOtomatikTalep = db.prepare(
+  `SELECT t.id FROM satinalma_talep t JOIN satinalma_talep_kalem k ON k.talep_id = t.id
+   WHERE t.proje_id = ? AND t.row_status = 1 AND t.durum IN ('taslak','onay_bekliyor')
+     AND t.aciklama LIKE '[OTOMATIK-MIN-STOK]%' AND k.malzeme_id = ? AND k.row_status = 1 LIMIT 1`
+);
 
 export function listele(projeId) {
   return stmtList.all(projeId);
@@ -78,4 +83,14 @@ export function kalemEkle(talepId, item, aktor) {
 
 export function kalemleriGetir(talepId) {
   return stmtKalemListele.all(talepId);
+}
+
+/**
+ * Depo'nun (server/moduller/depo/stok.js) "min stok altına düşünce otomatik
+ * talep taslağı" tetikleyicisi için idempotency kontrolü — aynı proje +
+ * malzeme için zaten AÇIK (taslak/onay_bekliyor) bir otomatik talep varsa
+ * true döner, böylece her çıkışta tekrar tekrar talep OLUŞTURULMAZ.
+ */
+export function acikOtomatikTalepVarMi(projeId, malzemeId) {
+  return !!stmtAcikOtomatikTalep.get(projeId, malzemeId);
 }

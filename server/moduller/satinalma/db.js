@@ -134,20 +134,10 @@ db.exec(`
     olusturan INTEGER, olusturma_zamani TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
   );
 
-  -- ========== MAL KABUL (GEÇİCİ/minimal — bkz. depo/db.js başındaki AYNI not) ==========
-  -- Gerçek mal kabul (kalite kontrolü, depo lokasyonu, stok girişi) P4 Depo
-  -- modülünün işidir. Burada yalnızca "sipariş kalemi için X miktar teslim
-  -- alındı" OLAYI tutulur — 3'lü eşleştirmenin girdisidir, stok hareketi
-  -- YARATMAZ, GERÇEKLEŞEN maliyet YAZMAZ.
-  CREATE TABLE IF NOT EXISTS satinalma_mal_kabul (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    siparis_kalem_id INTEGER NOT NULL REFERENCES satinalma_siparis_kalem(id),
-    miktar REAL NOT NULL,
-    tarih TEXT NOT NULL,
-    irsaliye_no TEXT,
-    notes TEXT,
-    olusturan INTEGER, olusturma_zamani TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
-  );
+  -- MAL KABUL: P3'te burada GEÇİCİ/minimal bir tablo vardı; P4'te Depo
+  -- modülü gerçek (zengin) Mal Kabul'ü kurduğundan KALDIRILDI (bkz.
+  -- server/moduller/depo/db.js "mal_kabul" tablosu ve #teslimIlerlemesiGuncelle
+  -- — Depo, kabul ettiği miktarı bu fonksiyon üzerinden Satın Alma'ya bildirir).
 
   -- ========== FATURA ==========
   CREATE TABLE IF NOT EXISTS satinalma_fatura (

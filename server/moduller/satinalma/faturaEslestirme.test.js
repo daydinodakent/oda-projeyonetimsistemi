@@ -6,15 +6,18 @@ import crypto from 'node:crypto';
 
 process.env.ODA_DB_PATH = path.join(os.tmpdir(), `oda_test_${crypto.randomUUID()}.sqlite`);
 const siparis = await import('./siparis.js');
-const malKabul = await import('./malKabul.js');
+const malKabul = await import('../depo/malKabul.js');
 const fatura = await import('./fatura.js');
 const malzeme = await import('../depo/malzeme.js');
+const depo = await import('../depo/depo.js');
+const stok = await import('../depo/stok.js');
 const cariFirma = await import('../_cekirdek/cariFirma.js');
 const maliyetDefteri = await import('../_cekirdek/maliyetDefteri.js');
 const odeme = await import('../_cekirdek/odeme.js');
 
 const PROJE = 'IGA-ETAP-1';
 let vknSayaci = 4000000000;
+const merkezDepo = depo.olustur({ ad: 'Merkez Depo', tur: 'merkez' });
 
 function firmaHazirla() {
   vknSayaci += 1;
@@ -34,8 +37,8 @@ function siparisHazirla() {
 
 test('faturaKaydet: STOKLU malzeme için GERÇEKLEŞEN YAZILMAZ, stoklu olmayan (hizmet) için YAZILIR', () => {
   const { firma, siparis: s, kalemStoklu, kalemHizmet } = siparisHazirla();
-  malKabul.kaydet({ siparis_kalem_id: kalemStoklu.id, miktar: 10, tarih: '2026-10-15' });
-  malKabul.kaydet({ siparis_kalem_id: kalemHizmet.id, miktar: 1, tarih: '2026-10-15' });
+  malKabul.kaydet({ siparis_kalem_id: kalemStoklu.id, depo_id: merkezDepo.id, gelen_miktar: 10, kabul_miktar: 10, tarih: '2026-10-15' });
+  malKabul.kaydet({ siparis_kalem_id: kalemHizmet.id, gelen_miktar: 1, kabul_miktar: 1, tarih: '2026-10-15' });
 
   const f = fatura.kaydet({
     siparis_id: s.id, firma_id: firma.id, fatura_no: 'FTR-0001', fatura_tarihi: '2026-10-16', vade_tarihi: '2026-11-16',
@@ -46,9 +49,13 @@ test('faturaKaydet: STOKLU malzeme için GERÇEKLEŞEN YAZILMAZ, stoklu olmayan 
   });
 
   const hareketler = maliyetDefteri.projeIcinListele(PROJE).filter((h) => h.kaynak_modul === 'satinalma_fatura' && h.kaynak_id.startsWith(`${f.id}:`));
-  assert.equal(hareketler.length, 1, 'YALNIZCA hizmet kalemi için GERÇEKLEŞEN yazılmalı — stoklu malzeme İÇİN YAZILMAMALI (P4 Depo çıkışında yazacak)');
+  assert.equal(hareketler.length, 1, 'YALNIZCA hizmet kalemi için GERÇEKLEŞEN yazılmalı — stoklu malzeme İÇİN YAZILMAMALI (Depo çıkışında yazacak)');
   assert.equal(hareketler[0].tur, 'GERCEKLESEN');
   assert.equal(hareketler[0].tutar_kurus, 200000, 'yazılan tek kayıt hizmet kalemine ait olmalı (1 × 200.000)');
+
+  // Stoklu kalemin kabul edilen miktarı bir Depo stok GİRİŞİ oluşturmalı (maliyet defterine YAZILMADAN).
+  const bakiye = stok.bakiyeGetir(merkezDepo.id, kalemStoklu.malzeme_id);
+  assert.equal(bakiye.mevcut_miktar, 10);
 });
 
 test('kaydet: aynı firmadan aynı fatura numarası İKİNCİ kez girilemez (mükerrer fatura)', () => {
@@ -62,7 +69,7 @@ test('kaydet: aynı firmadan aynı fatura numarası İKİNCİ kez girilemez (mü
 
 test('eslestir: KISMİ TESLİM + FAZLA FATURALANMIŞ senaryo "miktar_asimi" istisnası olarak yakalanır (KABUL kriteri)', () => {
   const { firma, siparis: s, kalemStoklu } = siparisHazirla();
-  malKabul.kaydet({ siparis_kalem_id: kalemStoklu.id, miktar: 6, tarih: '2026-10-15' }); // 10 sipariş edildi, yalnızca 6 teslim alındı
+  malKabul.kaydet({ siparis_kalem_id: kalemStoklu.id, depo_id: merkezDepo.id, gelen_miktar: 6, kabul_miktar: 6, tarih: '2026-10-15' }); // 10 sipariş edildi, yalnızca 6 teslim alındı
   assert.equal(siparis.getir(s.id).durum, 'kismi_teslim');
 
   const f = fatura.kaydet({
@@ -80,7 +87,7 @@ test('eslestir: KISMİ TESLİM + FAZLA FATURALANMIŞ senaryo "miktar_asimi" isti
 
 test('eslestir: tolerans üstü fiyat sapması "fiyat_sapmasi" istisnası olarak yakalanır', () => {
   const { firma, siparis: s, kalemHizmet } = siparisHazirla(); // sipariş birim fiyatı 200.000
-  malKabul.kaydet({ siparis_kalem_id: kalemHizmet.id, miktar: 1, tarih: '2026-10-15' });
+  malKabul.kaydet({ siparis_kalem_id: kalemHizmet.id, gelen_miktar: 1, kabul_miktar: 1, tarih: '2026-10-15' });
   const f = fatura.kaydet({
     siparis_id: s.id, firma_id: firma.id, fatura_no: 'FTR-FIYAT', fatura_tarihi: '2026-10-16', vade_tarihi: '2026-11-16',
     kalemler: [{ siparis_kalem_id: kalemHizmet.id, miktar: 1, birim_fiyat_kurus: 260000, kdv_orani: 20 }], // %30 sapma — varsayılan %2 toleransı aşar
@@ -92,7 +99,7 @@ test('eslestir: tolerans üstü fiyat sapması "fiyat_sapmasi" istisnası olarak
 
 test('eslestir: sipariş ile birebir uyumlu fatura İSTİSNASIZ eşleşir; ardından Çekirdek Ödeme Talimatı oluşturulabilir', () => {
   const { firma, siparis: s, kalemHizmet } = siparisHazirla();
-  malKabul.kaydet({ siparis_kalem_id: kalemHizmet.id, miktar: 1, tarih: '2026-10-15' });
+  malKabul.kaydet({ siparis_kalem_id: kalemHizmet.id, gelen_miktar: 1, kabul_miktar: 1, tarih: '2026-10-15' });
   const f = fatura.kaydet({
     siparis_id: s.id, firma_id: firma.id, fatura_no: 'FTR-TEMIZ', fatura_tarihi: '2026-10-16', vade_tarihi: '2026-11-16',
     kalemler: [{ siparis_kalem_id: kalemHizmet.id, miktar: 1, birim_fiyat_kurus: 200000, kdv_orani: 20 }],
@@ -110,7 +117,7 @@ test('eslestir: sipariş ile birebir uyumlu fatura İSTİSNASIZ eşleşir; ardı
 
 test('odemeTalimatiOlustur: eşleşmemiş ("eslesme_istisna") faturada REDDEDİLİR', () => {
   const { firma, siparis: s, kalemStoklu } = siparisHazirla();
-  malKabul.kaydet({ siparis_kalem_id: kalemStoklu.id, miktar: 4, tarih: '2026-10-15' });
+  malKabul.kaydet({ siparis_kalem_id: kalemStoklu.id, depo_id: merkezDepo.id, gelen_miktar: 4, kabul_miktar: 4, tarih: '2026-10-15' });
   const f = fatura.kaydet({
     siparis_id: s.id, firma_id: firma.id, fatura_no: 'FTR-RED', fatura_tarihi: '2026-10-16', vade_tarihi: '2026-11-16',
     kalemler: [{ siparis_kalem_id: kalemStoklu.id, miktar: 9, birim_fiyat_kurus: 500000, kdv_orani: 20 }],

@@ -2,7 +2,7 @@
 // altındaki uçları çağırır.
 import type {
   SatinalmaTalep, SatinalmaTalepOlusturIstek, SatinalmaTalepKalem, TalepDurumu, SatinalmaTeklif, SatinalmaTeklifKalem, MukayeseSonucu,
-  SatinalmaSiparis, SiparisDurumu, SatinalmaSiparisKalem, SatinalmaMalKabul, SatinalmaFatura, SatinalmaFaturaKalem,
+  SatinalmaSiparis, SiparisDurumu, SatinalmaSiparisKalem, SatinalmaFatura, SatinalmaFaturaKalem,
   EslestirmeSonucu, EslesmeIstisnasi, TedarikciKarnesi,
 } from './types';
 
@@ -51,10 +51,7 @@ export const siparisKalemEkle = (siparisId: number, item: Partial<SatinalmaSipar
   istek<SatinalmaSiparisKalem>(`/siparisler/${siparisId}/kalemler`, { method: 'POST', body: JSON.stringify({ ...item, aktor }) });
 export const siparisFaturalariGetir = (siparisId: number) => istek<SatinalmaFatura[]>(`/siparisler/${siparisId}/faturalar`);
 
-// --- Mal Kabul (geçici/minimal) ---
-export const malKabulKaydet = (item: Partial<SatinalmaMalKabul>, aktor?: number) =>
-  istek<SatinalmaMalKabul>('/mal-kabul', { method: 'POST', body: JSON.stringify({ ...item, aktor }) });
-export const malKabulleriGetir = (siparisKalemId: number) => istek<SatinalmaMalKabul[]>(`/siparis-kalemleri/${siparisKalemId}/mal-kabul`);
+// Mal Kabul: P4'te Depo'ya taşındı — bkz. src/moduller/depo/api.ts (malKabulKaydet/malKabulleriGetir).
 
 // --- Fatura ---
 export const faturaGetir = (id: number) => istek<SatinalmaFatura>(`/faturalar/${id}`);

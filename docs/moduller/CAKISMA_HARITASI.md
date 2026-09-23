@@ -306,3 +306,54 @@ Bu ayrım hem birim testiyle (`faturaEslestirme.test.js`) hem gerçek sunucuda `
 - **Onay Akışı hâlâ basit sabit-kodlanmış durum makinesi** — Çekirdek'in genel amaçlı Onay Akışı ortak servisi henüz yazılmadı (P1'den beri ertelenen).
 - **Sözleşme (P2) entegrasyonu kısmi** — `satinalma_siparis.sozlesme_id` alanı var (çerçeve anlaşma referansı için) ama sözleşme kalemleriyle sipariş kalemlerini otomatik eşleştiren bir akış YOK; bu alan yalnızca bir REFERANS noktasıdır.
 - **Kalite red oranı hesaplanamıyor** — P4/Kalite Kontrol modülü kurulmadan tedarikçi karnesindeki bu alan her zaman `null` döner.
+
+---
+
+## P4 Uygulama Durumu (Depo Yönetimi)
+
+Malzeme Kartı, Stok, Mal Kabul ve Zimmet'in KESİN sahibi olarak Depo modülü kuruldu/genişletildi — `server/moduller/depo/` (backend) + `src/moduller/depo/` (frontend TS istemcisi + ekranlar).
+
+### Taşıma/Devir (görev metninin açık isteği)
+
+- **Malzeme Kartı** zaten P3'te doğru dosyada (`server/moduller/depo/`) GEÇİCİ olarak açılmıştı — bir "taşıma" gerekmedi, doğrudan **genişletildi** (yeni sütunlar: `grup`, `demirbas_mi`, `min_stok`, `max_stok`, `fire_toleransi_yuzde` + yeni `malzeme_birim_donusum` tablosu). Eski-şema bir tablo zaten varsa savunmacı `ALTER TABLE` ile sütunlar sonradan eklenir (bkz. `depo/db.js` başı).
+- **Mal Kabul**: P3'te `server/moduller/satinalma/malKabul.js` + `satinalma_mal_kabul` tablosu GEÇİCİ/minimal duruyordu (yalnızca miktar+tarih). Bu dosya ve tablo **KALDIRILDI**; gerçek (gelen/kabul/red miktar, red nedeni, fotoğraf, depo bağlantısı) Mal Kabul burada (`depo/malKabul.js`) kuruldu. Satın Alma artık kendi `satinalma_siparis_kalem`'ine Depo tarafından DOĞRUDAN yazılmıyor — Depo, kabul ettiği miktarı Satın Alma'nın **kendi servisi** olan `siparis.teslimIlerlemesiGuncelle()`'yi çağırarak bildiriyor (sahiplik kuralı).
+- **Tedarikçi Karnesi** (`satinalma/tedarikciKarnesi.js`) GÜNCELLENDİ: P3'te `kaliteRedOrani` her zaman `null` dönüyordu ("P4 kurulmadan hesaplanamaz" notuyla); şimdi Depo'nun `malKabul.kalemIcinListele()` servisini çağırarak (RAW SQL değil) gerçek red oranını hesaplıyor.
+
+### MALİYET KURALI (çift sayımı önler)
+
+| Olay | Kural | Uygulama |
+|---|---|---|
+| Stok GİRİŞİ | Maliyet Defteri'ne YAZILMAZ | `stok.js#giris` — yalnızca `stok_bakiye` (miktar + ağırlıklı ortalama maliyet) güncellenir; henüz tüketilmedi. |
+| Stok ÇIKIŞI, emanet_mi=0 | GERÇEKLEŞEN yazılır | `stok.js#cikis` — tutar = miktar × hareket anındaki ağırlıklı ortalama; maliyet kodu ÇIKIŞTA ZORUNLU. |
+| Stok ÇIKIŞI, emanet_mi=1 | GERÇEKLEŞEN YAZILMAZ | Emanet stok (müşteri/alt yüklenici malı) hiçbir zaman maliyete girmez (**KABUL kriteri** — testle + HTTP smoke testle doğrulandı). |
+| Transfer (çıkış/giriş) | Hiçbir zaman YAZILMAZ | Gerçek bir tüketim değil, yalnızca yer değişikliği. |
+| Sayım farkı | Bilinçli olarak YAZILMAZ | Muhasebeleştirme ayrı bir süreç — kapsam dışı (aşağıya bkz.). |
+
+### Uygulandı
+
+| Kavram | Dosya | Not |
+|---|---|---|
+| Birim dönüşümü | `malzeme.js#birimeCevir` | "Demir ton alınır kg çıkılır" — `malzeme_birim_donusum` katsayı tablosu; ana birimin kendisi için katsayı otomatik 1. **KABUL kriteri** (birim dönüşümlü giriş-çıkış sonrası stok/maliyet doğru) testle + HTTP smoke testle (20 torba çimento → 1 ton, ₺2.000,00/ton) doğrulandı. |
+| Çoklu depo | `depo.js` | merkez/şantiye/açık saha/konteyner; `proje_id=NULL` = merkez depo (tüm projelerden görülebilir). |
+| Stok Bakiye + Ağırlıklı Ortalama | `stok.js` | Parametrik yöntem seçimi FIFO'ya geçişe açık bırakıldı (tek giriş noktası: `#giris`/`#cikis`) — FIFO'nun kendisi YAZILMADI. |
+| Negatif stok engeli | `stok.js#cikis` | `negatifStokOnayi` olmadan stok eksiye düşemez ("yetkili istisnası ile" — görev metni). |
+| Çevrimdışı çıkış, mükerrer engeli | `stok.js#cikis`/`#giris` | `istemci_kayit_id` UNIQUE — **KABUL kriteri** testle doğrulandı (aynı kayıt ikinci kez gönderilince stok bakiyesi İKİNCİ kez düşmüyor). |
+| "Kime/hangi iş için" zorunluluğu | `stok.js#cikis` | `maliyet_kodu_id` + `teslim_alan_tipi` olmadan çıkış reddedilir. |
+| Taşeron/alt yükleniciye kesintili çıkış | `stok_hareketi.kesinti_adayi_mi` + `sozlesme_id` | Gerçek bir "olay" mekanizması (kuyruk/webhook) KURULMADI — yalnızca sorgulanabilir bir alan/liste (`stok.js#kesintiAdaylariniListele`) bırakıldı; P5/P6 bunu okuyacak. |
+| Min stok → otomatik talep taslağı | `stok.js#cikis` → `satinalma/talep.js#acikOtomatikTalepVarMi` | Aynı proje+malzeme için AÇIK bir otomatik talep varsa TEKRAR oluşturulmaz (testle doğrulandı). |
+| Transfer ("yoldaki stok") | `stok.js#transferBaslat/#transferTeslimAl` | Kaynak depodan HEMEN düşer, hedef depoya yalnızca teslim alınınca eklenir — aradaki süre "yolda" durumuyla izlenir. |
+| Sayım ve fark raporu | `stok.js#sayimBaslat/#sayimKalemGir/#sayimTamamla` | Fark, `stok_bakiye`'yi sayılan değere düzeltir + `sayim_farki` hareketi ekler (Maliyet Defteri'ne YAZILMAZ — aşağıya bkz.). |
+| Zimmet (demirbaş/KKD) | `zimmet.js` | Stok hareketleriyle İZLENMEZ — ayrı ver/iade akışı. `kkd_mi` alanı P8 (Şantiye/İSG) için hazır bekliyor (P8 henüz kurulmadı). |
+| **Ekranlar** | `src/moduller/depo/ekranlar/` | `StokDurumu` (depo×malzeme anlık + hareket geçmişi), `HizliCikisGiris` (mobil, çevrimdışı kuyruklu — `_cekirdek/offlineQueue.ts` **yeniden kullanıldı**, yeni bir kuyruk mekanizması YAZILMADI), `MalKabulEkrani` (sipariş seçerek), `Transfer`, `ZimmetListesi` (geri dönmesi gecikenler kırmızı vurgulu), `SayimFarkRaporu` — `DepoModulu` içinde birleşik. |
+
+**Doğrulama:** 102/102 birim testi yeşil (`npm run test` — 19 yeni depo testi + önceki 83); `npm run build` başarılı; `npm run lint` yeni dosyalardan sıfır yeni hata; `/api/depo/*` uçları gerçek sunucuda `curl` ile uçtan uca smoke test edildi (birim dönüşümlü giriş → maliyet kodlu çıkış → GERÇEKLEŞEN doğrulama → min stok tetikleyicisi → kısmi red'li mal kabul → tedarikçi karnesine yansıma). Ekranlar izole bir tarayıcı oturumunda (gerçek dev veritabanına dokunulmadan) canlı test edildi: hızlı giriş formu (20 torba → 1 ton, ₺2.000,00/ton doğru), hareket geçmişi, zimmet ver/iade akışı — ekran görüntüsüyle doğrulandı (bu sırada hareket geçmişi ekranında bir gösterim hatası — ana birim miktarı ile girilen birim etiketinin yanlış eşleştirilmesi — bulundu ve düzeltildi).
+
+### Bilinçli Olarak Ertelendi (bu geçişin kapsamı dışında)
+
+- **Ekranlar mevcut App.tsx navigasyonuna BAĞLANMADI** — P1/P2/P3'teki AYNI karar.
+- **Barkod/QR okuma YOK** — gerçek kamera/donanım entegrasyonu gerektirir; Hızlı Çıkış/Giriş şimdilik yalnızca listeden seçerek çalışır (görev metninin "veya listeden seçerek" alternatifi).
+- **FIFO maliyetlendirme YAZILMADI** — yalnızca ağırlıklı ortalama uygulandı; görev metninin "FIFO'ya geçilebilir olsun" isteği, `stok.js`'in TEK giriş noktasından (`#giris`/`#cikis`) geçmesi sayesinde mimari olarak mümkün bırakıldı.
+- **Kesinti adayı gerçek bir olay/kuyruk mekanizması DEĞİL** — yalnızca sorgulanabilir bir alan+liste; P5 (Alt Yüklenici) ve P6 (Taşeron) bunu nasıl tüketeceğine kendi geçişlerinde karar verecek.
+- **Fire toleransı ALANI var, otomasyonu YOK** — `fire_toleransi_yuzde` malzeme kartında tutuluyor ama "toleransı aşan kullanım" tespiti (planlanan/gerçekleşen miktar karşılaştırması) kurulmadı — bu, WBS bazlı planlanan miktar verisi gerektirir (henüz yok).
+- **Sayım farkı Maliyet Defteri'ne YAZILMIYOR** — muhasebeleştirme (sayım farkının gider/gelir olarak kaydı) ayrı, kapsam dışı bir süreç olarak bırakıldı.
+- **Dosya yükleme altyapısı YOK** — Mal Kabul'ün `fotograf_url` alanı yalnızca bir metin/URL alanıdır, gerçek bir dosya depolama sistemi KURULMADI.

@@ -4,7 +4,6 @@ import express from 'express';
 import * as talep from './talep.js';
 import * as teklif from './teklif.js';
 import * as siparis from './siparis.js';
-import * as malKabul from './malKabul.js';
 import * as fatura from './fatura.js';
 import * as tedarikciKarnesi from './tedarikciKarnesi.js';
 
@@ -84,12 +83,7 @@ router.post('/siparisler/:id/kalemler', (req, res) => {
 });
 router.get('/siparisler/:id/faturalar', (req, res) => res.json(fatura.siparisIcinListele(req.params.id)));
 
-// --- Mal Kabul (geçici/minimal) ---
-router.post('/mal-kabul', (req, res) => {
-  try { res.status(201).json(malKabul.kaydet(req.body, req.body.aktor)); }
-  catch (err) { hataYaniti(res, err); }
-});
-router.get('/siparis-kalemleri/:id/mal-kabul', (req, res) => res.json(malKabul.kalemIcinListele(req.params.id)));
+// Mal Kabul: P4'te Depo'ya taşındı — bkz. /api/depo/mal-kabul (server/moduller/depo/routes.js).
 
 // --- Fatura ---
 router.get('/faturalar/:id', (req, res) => {

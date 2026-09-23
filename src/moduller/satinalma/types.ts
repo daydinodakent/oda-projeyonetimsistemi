@@ -139,14 +139,7 @@ export interface SatinalmaSiparisKalem {
   faturalanan_miktar: number;
 }
 
-export interface SatinalmaMalKabul {
-  id: number;
-  siparis_kalem_id: number;
-  miktar: number;
-  tarih: string;
-  irsaliye_no?: string | null;
-  notes?: string | null;
-}
+// SatinalmaMalKabul: P4'te Depo'ya taşındı — bkz. src/moduller/depo/types.ts (MalKabul).
 
 export type FaturaDurumu = 'kaydedildi' | 'eslestirildi' | 'eslesme_istisna' | 'odeme_talimati_olusturuldu';
 
