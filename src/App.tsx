@@ -12,7 +12,7 @@ import { headerSurface } from './theme/tokens';
 import { FormField } from './components/chrome/FormDialog';
 import FilterSelect from './components/ui/FilterSelect';
 import { 
-  Compass, LayoutGrid, Database, Smartphone, Sun, Moon, Bell, ChevronDown, CheckCircle, 
+  Compass, LayoutGrid, BarChart3, Database, Smartphone, Sun, Moon, Bell, ChevronDown, CheckCircle, 
   AlertTriangle, DollarSign, Layers, Plus, FileText, Settings, UserCheck, HelpCircle, 
   MapPin, TrendingUp, Cpu, X, Menu, Briefcase, ChevronLeft, ChevronRight, ChevronUp, Map,
   Activity, FileCheck, Check, HardHat, Wrench, Trash, ArrowUpRight, Clock, Users,
@@ -762,7 +762,7 @@ export default function App() {
 
             {/* Right side: The 4 toolbar buttons */}
             <div className="flex items-center gap-1.5 flex-wrap justify-end">
-              <ToolbarIconButton tone="indigo" id="hdr-btn-dashboard-trigger" title="Dashboard" active={centerTab === 'dashboard'} icon={<LayoutGrid className="w-3.5 h-3.5" />} onClick={() => setCenterTab(prev => prev === 'dashboard' ? 'kpis' : 'dashboard')} />
+              <ToolbarIconButton tone="indigo" id="hdr-btn-dashboard-trigger" title="Dashboard" active={centerTab === 'dashboard'} icon={<BarChart3 className="w-3.5 h-3.5" />} onClick={() => setCenterTab(prev => prev === 'dashboard' ? 'kpis' : 'dashboard')} />
               <ToolbarIconButton tone="emerald" id="hdr-btn-gantt-trigger" title="İş-Zaman Çizelgesi (Timeline)" active={centerTab === 'gantt'} icon={<Clock className="w-3.5 h-3.5" />} onClick={() => setCenterTab(prev => prev === 'gantt' ? 'kpis' : 'gantt')} />
               <ToolbarIconButton tone="purple" id="hdr-btn-resources-trigger" title="İş Gücü & Tedarik" active={centerTab === 'resources'} icon={<Users className="w-3.5 h-3.5" />} onClick={() => setCenterTab(prev => prev === 'resources' ? 'kpis' : 'resources')} />
               <ToolbarIconButton tone="indigo" id="hdr-btn-document-archive-trigger" title="Doküman Yönetimi" active={centerTab === 'documents'} icon={<FileText className="w-3.5 h-3.5" />} onClick={() => setCenterTab(prev => prev === 'documents' ? 'kpis' : 'documents')} />
