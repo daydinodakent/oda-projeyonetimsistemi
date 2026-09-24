@@ -114,3 +114,10 @@ export function yevmiyeGecmisiGetir(ekipUyeId) {
 export function yevmiyeGetir(ekipUyeId, tarih) {
   return stmtYevmiyeGecerli.get(ekipUyeId, tarih, tarih) || null;
 }
+
+const stmtKisiUyelikleri = db.prepare('SELECT u.*, e.proje_id, e.sozlesme_id FROM ekip_uye u JOIN taseron_ekip e ON e.id = u.ekip_id WHERE u.kisi_id = ? AND u.row_status = 1');
+
+/** P8 (Şantiye giriş kontrolü) için — bir kişinin aktif ekip üyelikleri (SGK bildirge tarihiyle). */
+export function kisiUyelikleri(kisiId) {
+  return stmtKisiUyelikleri.all(kisiId);
+}

@@ -71,3 +71,16 @@ export function kaydet(item, aktor) {
 export function kalemIcinListele(siparisKalemId) {
   return stmtListByKalem.all(siparisKalemId);
 }
+
+const stmtTarihProje = db.prepare(
+  `SELECT mk.*, k.malzeme_id, k.birim, k.aciklama AS kalem_aciklama, s.proje_id
+   FROM mal_kabul mk
+   JOIN satinalma_siparis_kalem k ON k.id = mk.siparis_kalem_id
+   JOIN satinalma_siparis s ON s.id = k.siparis_id
+   WHERE s.proje_id = ? AND mk.tarih = ? ORDER BY mk.id`
+);
+
+/** P8 (Şantiye günlük raporu) için — bir projenin bir günkü mal kabulleri (Depo'nun KENDİ servisi; Şantiye ham tabloyu okumaz). */
+export function projeGunuIcinListele(projeId, tarih) {
+  return stmtTarihProje.all(projeId, tarih);
+}

@@ -142,6 +142,22 @@ db.exec(`
     write_uid INTEGER, write_date TEXT,
     UNIQUE(sozlesme_id, tur)
   );
+
+  -- ========== PERFORMANS OLAYI (P8 Şantiye'den gelen NCR/İSG ihlali) ==========
+  -- Görev metni: "NCR sorumlusu alt yükleniciyse P5 performans kartına olay
+  -- gönderilir; İSG ihlali de aynı şekilde." Kaynak kayıt (kaynak_modul+id)
+  -- başına TEK olay (idempotent).
+  CREATE TABLE IF NOT EXISTS performans_olay (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sozlesme_id INTEGER NOT NULL,
+    tur TEXT NOT NULL CHECK (tur IN ('ncr','isg_ihlali')),
+    kaynak_modul TEXT NOT NULL,
+    kaynak_id TEXT NOT NULL,
+    tarih TEXT NOT NULL,
+    aciklama TEXT,
+    olusturma_zamani TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+    UNIQUE(kaynak_modul, kaynak_id, tur)
+  );
 `);
 
 export { db };

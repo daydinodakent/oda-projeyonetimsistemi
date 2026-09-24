@@ -50,3 +50,15 @@ export function hesaplaVeKaydet(sozlesmeId, item, aktor) {
 export function listele(sozlesmeId) {
   return stmtListele.all(sozlesmeId);
 }
+
+const stmtOlayInsert = db.prepare('INSERT OR IGNORE INTO performans_olay (sozlesme_id, tur, kaynak_modul, kaynak_id, tarih, aciklama) VALUES (?, ?, ?, ?, ?, ?)');
+const stmtOlayListe = db.prepare('SELECT * FROM performans_olay WHERE sozlesme_id = ? ORDER BY tarih DESC');
+
+/** P8'den çağrılır — aynı kaynak kayıt için tekrar çağrı mükerrer olay AÇMAZ. */
+export function olayGonder(sozlesmeId, tur, kaynakModul, kaynakId, tarih, aciklama) {
+  const info = stmtOlayInsert.run(sozlesmeId, tur, kaynakModul, String(kaynakId), tarih, aciklama ?? null);
+  return { eklendi: info.changes > 0 };
+}
+export function olaylariListele(sozlesmeId) {
+  return stmtOlayListe.all(sozlesmeId);
+}

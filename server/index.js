@@ -38,6 +38,7 @@ import { router as satinalmaRouter } from './moduller/satinalma/routes.js';
 import { router as altyukleniciRouter } from './moduller/altyuklenici/routes.js';
 import { router as taseronRouter } from './moduller/taseron/routes.js';
 import { router as ikRouter } from './moduller/ik/routes.js';
+import { router as santiyeRouter } from './moduller/santiye/routes.js';
 import path from 'node:path';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -91,6 +92,10 @@ app.use('/api/taseron', taseronRouter);
 // --- İK (Personel, PDKS, İzin, Avans, Bordro Dönemi'nin TEK sahibi) —
 // aynı nedenle generic "/api/:table" deseninden ÖNCE mount edilir.
 app.use('/api/ik', ikRouter);
+
+// --- Şantiye (Görev, Günlük Rapor, İSG, Kalite, Ekipman, İş Programı'nın
+// TEK sahibi) — aynı nedenle generic "/api/:table" deseninden ÖNCE mount edilir.
+app.use('/api/santiye', santiyeRouter);
 
 // --- CBS/PostGIS katmanlarını gerçek bir .gpkg dosyası olarak dışa aktarır ---
 // NOT: bu sabit rota, aşağıdaki generic "/api/:table" deseninden ÖNCE

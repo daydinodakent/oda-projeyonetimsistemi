@@ -465,3 +465,36 @@ Taşeron modülü kuruldu — `server/moduller/taseron/` (backend) + `src/modull
 - Ayı tamamen izinli geçen (hiç puantajı olmayan) personelin maliyeti dağıtılamaz; WBS'siz günler deftere yazılmaz (P6 ile aynı kural). Genel merkez payı → genel gider kodu otomasyonu yok.
 - Kişi bazlı puantaj geçmişi için Çekirdek REST ucu yok; kart "Puantaj" sekmesi yalnız yönlendirme metni gösterir.
 - Bordro/izin/avans onay uçları ve `gorunenRol` gerçek yetkiyle korunmuyor.
+
+## P8 Uygulama Durumu (Şantiye Yönetimi)
+
+Şantiye modülü kuruldu — `server/moduller/santiye/` + `src/moduller/santiye/`. Görev, Günlük Rapor, İSG kayıtları, Kalite (NCR/Beton) ve Ekipman'ın sahibi burasıdır (§4.1).
+
+### Sahiplik / başka modüllere dokunuşlar (hepsi sahibinin SERVİSİ üzerinden)
+- **İSG Eğitim Kaydı artık P8'in** (`isg_egitim`). Eğitim eklenince Çekirdek `kisi.isg_egitim_*` alanı **türev önbellek** olarak güncellenir (P6'nın SGK/İSG kontrolü ve P7 İSG sekmesi çalışmaya devam eder). Eski/elle girilmiş `kisi.isg_egitim_*` değeri de giriş kontrolünde geçerli sayılır (geriye uyum).
+- Kişi sayıları/kim-nerede burada TOPLANMAZ: Çekirdek puantajdan (İK P7 / Taşeron P6 / alt yüklenici işçisi aynı tabloyu yazar) okunur; gelen malzeme Depo'nun yeni `malKabul.projeGunuIcinListele()`, KKD Depo `zimmet.listele()`, kira birim fiyatı Sözleşme `kalemleriGetir()`, SGK bilgisi Taşeron yeni `ekip.kisiUyelikleri()` / İK `personel.kisiIcinGetir()` üzerinden. Bu üç okuma fonksiyonu sahip modüllere eklenen TEK değişikliktir.
+- **P5'e olay:** `altyuklenici/db.js`'e `performans_olay` tablosu + `performans.olayGonder()` eklendi. NCR/İSG olayının sorumlusu alt yükleniciyse olay gönderilir (kaynak başına tek — mükerrer yok). Performans kartı puanları hâlâ manuel; olaylar `olaylariListele()` ile okunur (otomatik puanlama bu turda YOK).
+
+### Uygulandı
+| Kavram | Dosya | Not |
+|---|---|---|
+| Günlük rapor | `gunlukRapor.js` | Çalışan (firma bazlı, puantajdan), malzeme (mal kabulden), makine (ekipman kaydından) OTOMATİK; şef düzeltir (`otomatik_sayi` korunur, `sayi` ezer). `topluKaydet()` ATOMİK + `istemci_kayit_id` idempotent (çevrimdışı kuyruk). Onaylı rapor kilitli. İç rapordan resmi defter TASLAĞI metni üretilir (resmi defter yerine geçmez). |
+| Görev | `gorev.js` | Sorumlu kişi/taşeron ekibi/alt yüklenici (varlığı sahibine sorulur), WBS, blok/kat/daire veya harita noktası, son tarih; fotoğrafsız kapanış REDDEDİLİR. |
+| İş programı | `isProgrami.js` | CSV içe aktarım (Excel/MS Project dışa aktarımı; `;`/`,`, GG.AA.YYYY), doğrusal beklenen %, plan-gerçekleşen. P5 ilerleme kaydıyla çelişki (parametrik eşik `santiye_ilerleme_celiski_esik`, varsayılan 10 puan) UYARI olur; tek doğru şantiye onaylı ilerleme, P5 verisi değiştirilmez. |
+| İSG | `isg.js` | Eğitim, giriş kontrolü (eğitim/SGK yoksa uyarı, yetkili+gerekçe ile geçiş, her deneme kayıtlı), risk (olasılık×şiddet), iş izni akışı (onaylayan zorunlu), denetim şablon+yanıt (uygunsuz madde → otomatik düzeltici faaliyet), anonim ramak kala (kimlik hiç yazılmaz), olay/kaza (yasal bildirim son tarihi PARAMETRİK `isg_kaza_bildirim_gun`), düzeltici faaliyet (kapanış notu zorunlu). |
+| Kalite | `kalite.js` | NCR akışı acik→duzeltildi→kapali; beton döküm + numune (her numune için 7 ve 28 gün kırım planı, bekleyen hatırlatma). |
+| Ekipman | `ekipman.js` | Kiralıkta kira sözleşmesi ZORUNLU; çalışma kaydı saat×sözleşme birim fiyatı → Maliyet Defteri GERÇEKLEŞEN (`makine_ekipman` kodu); sayaç, arıza, operatör SRC belgesi kontrolü (Çekirdek Belge; uyarı), `istemci_kayit_id` ile çevrimdışı-idempotent. |
+| GeoJSON | `geojson.js` | `GET /api/santiye/geojson?proje_id=&katmanlar=` — görev/NCR/olay/ramak kala/fotoğraf/beton, `[lon,lat]`. Harita kodu DEĞİŞTİRİLMEDİ. |
+| Ekranlar | `src/moduller/santiye/ekranlar/` | Pano, mobil günlük rapor sihirbazı (6 adım, çevrimdışı kuyruklu), görev panosu (kanban/liste), Gantt plan-gerçekleşen, İSG merkezi (7 sekme), NCR, ekipman (çevrimdışı kuyruklu). |
+
+**Doğrulama:** 191/191 test yeşil; `npm run build` temiz; `npm run lint` yalnızca 7 eski hata. KABUL: günlük rapor puantaj+mal kabulü otomatik çekiyor (test + canlı: puantajdan 2 taşeron + 1 personel geldi, şef 2→1 düzeltti); eğitimsiz kişi girişte uyarı alıyor (canlı: eğitim + SGK uyarısı); konumlu kayıtlar GeoJSON (canlı: gorev/ncr/olay). İzole tarayıcı oturumunda pano, sihirbaz (kaydet→onay→defter taslağı), görev panosu, iş programı, İSG giriş kontrolü doğrulandı; konsol hatası yok.
+
+### Bilinçli Olarak Ertelendi
+- Ekranlar App.tsx'e ve ODA harita katmanına BAĞLANMADI (yalnız GeoJSON veri servisi).
+- Fotoğraf: dosya yükleme altyapısı yok — yalnızca ad/URL + konum metadata'sı (Belge ile aynı sınır).
+- Turnike/kartlı donanım entegrasyonu yok; giriş kontrolü servis çağrısı olarak hazır.
+- Alt yüklenici işçisi için SGK doğrulaması yapılamıyor (P5 yalnızca sözleşme düzeyinde "çalışan listesi" evrakı tutuyor) — yalnız İSG eğitimi kontrol edilir.
+- Beton numune kırım sonucunun sınıf dayanımına göre kabul/red değerlendirmesi yok (yalnız kayıt + hatırlatma).
+- P5 performans kartı puanı `performans_olay`'dan otomatik hesaplanmıyor (olay listesi hazır).
+- Günlük rapor çalışan kırılımı `kisi.rol`+firma bazlıdır; taşeron ekibi/alt yüklenici sözleşmesi bazında ayrım yok.
+- `santiye_giris`/rol bazlı yetki yok (gerçek oturum sistemi yok).
