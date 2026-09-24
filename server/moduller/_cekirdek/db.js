@@ -216,6 +216,28 @@ db.exec(`
   -- UNIQUE INDEX, eski-şema tablolarla uyum için exec() bloğunun ALTINDA,
   -- savunmacı olarak (ayrıca) oluşturulur — bkz. dosya sonu.
 
+  -- ========== BELGE (genel doküman metadata) ==========
+  -- Üç ayrı doküman modelinin (bkz. CAKISMA_HARITASI.md §4.1 "Belge, Onay
+  -- Akışı..." satırı) yerini alacak TEK Çekirdek doküman kaydı. Gerçek dosya
+  -- YÜKLEME altyapısı (multer disk depolama) bu turda EKLENMEDİ (görev
+  -- metninde istenmedi) — yalnızca METADATA (tür, dosya adı, geçerlilik
+  -- tarihi) tutulur; ilgili_tip/ilgili_id ile herhangi bir varlığa (şimdilik
+  -- yalnızca 'kisi') REFERANS verir, o varlığı KOPYALAMAZ.
+  CREATE TABLE IF NOT EXISTS belge (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ilgili_tip TEXT NOT NULL,
+    ilgili_id TEXT NOT NULL,
+    tur TEXT NOT NULL CHECK (tur IN ('is_sozlesmesi','kimlik','ikametgah','diploma','ehliyet','src_operator','mesleki_yeterlilik','saglik_raporu','isg_sertifikasi','diger')),
+    dosya_adi TEXT NOT NULL,
+    gecerlilik_baslangic TEXT,
+    gecerlilik_bitis TEXT, -- NULL = süresiz geçerli
+    notes TEXT,
+    row_status INTEGER NOT NULL DEFAULT 1,
+    create_uid INTEGER, create_date TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+    write_uid INTEGER, write_date TEXT
+  );
+  CREATE INDEX IF NOT EXISTS idx_belge_ilgili ON belge (ilgili_tip, ilgili_id);
+
   -- ========== AUDIT LOG ==========
   -- CAKISMA_HARITASI.md'de eksik olarak işaretlenen gerçek denetim izi.
   -- Her çekirdek servis create/update/iptal işleminde audit.js#kaydet()

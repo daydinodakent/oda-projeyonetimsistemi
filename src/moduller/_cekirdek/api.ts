@@ -5,7 +5,7 @@
 // TEKRAR YAZILMADI, aynı deseni izleyen bağımsız bir istemci.
 import type {
   CariFirma, Kisi, KisiOlusturIstek, Parametre, MaliyetKodu, MaliyetHareketi, MaliyetOlayi,
-  OdemeTalimati, Odeme, OdemeTalimatiDurumu, PuantajKaydi, AuditKaydi,
+  OdemeTalimati, Odeme, OdemeTalimatiDurumu, PuantajKaydi, Belge, BelgeTuru, AuditKaydi,
 } from './types';
 
 const BASE = '/api/cekirdek';
@@ -81,6 +81,15 @@ export const puantajKaydet = (item: Partial<PuantajKaydi>, aktor?: number) =>
   istek<{ kayit: PuantajKaydi; tekrarGonderim: boolean }>('/puantaj', { method: 'POST', body: JSON.stringify({ ...item, aktor }) });
 export const puantajOnayla = (id: number, aktor?: number) =>
   istek<PuantajKaydi>(`/puantaj/${id}/onay`, { method: 'POST', body: JSON.stringify({ aktor }) });
+
+// --- Belge ---
+export const belgeleriListele = (ilgiliTip: string, ilgiliId: number | string) =>
+  istek<Belge[]>(`/belgeler?ilgili_tip=${encodeURIComponent(ilgiliTip)}&ilgili_id=${encodeURIComponent(String(ilgiliId))}`);
+export const belgeleriSuresiDolanlariGetir = (ilgiliTip: string, tarih?: string, gunOncesi?: number) =>
+  istek<Belge[]>(`/belgeler/suresi-dolanlar?ilgili_tip=${encodeURIComponent(ilgiliTip)}${tarih ? `&tarih=${tarih}` : ''}${gunOncesi ? `&gun_oncesi=${gunOncesi}` : ''}`);
+export const belgeOlustur = (item: { ilgili_tip: string; ilgili_id: number | string; tur: BelgeTuru; dosya_adi: string; gecerlilik_baslangic?: string; gecerlilik_bitis?: string; notes?: string }, aktor?: number) =>
+  istek<Belge>('/belgeler', { method: 'POST', body: JSON.stringify({ ...item, aktor }) });
+export const belgePasifEt = (id: number) => istek<{ ok: boolean }>(`/belgeler/${id}`, { method: 'DELETE' });
 
 // --- Audit log (salt okunur) ---
 export const auditGecmisiniGetir = (varlik: string, varlikId: string | number) =>

@@ -221,6 +221,21 @@ export interface PuantajKaydi {
   istemci_kayit_id?: string | null;
 }
 
+export type BelgeTuru = 'is_sozlesmesi' | 'kimlik' | 'ikametgah' | 'diploma' | 'ehliyet' | 'src_operator' | 'mesleki_yeterlilik' | 'saglik_raporu' | 'isg_sertifikasi' | 'diger';
+
+/** Belge — Çekirdek genel doküman metadata'sı (gerçek dosya baytı YOK, bkz. server/moduller/_cekirdek/belge.js). */
+export interface Belge {
+  id: number;
+  ilgili_tip: string;
+  ilgili_id: string;
+  tur: BelgeTuru;
+  dosya_adi: string;
+  gecerlilik_baslangic?: string | null;
+  gecerlilik_bitis?: string | null;
+  notes?: string | null;
+  row_status: CekirdekRowStatus;
+}
+
 export type AuditEylem = 'OLUSTUR' | 'GUNCELLE' | 'IPTAL';
 
 export interface AuditKaydi {

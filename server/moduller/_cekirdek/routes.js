@@ -16,6 +16,7 @@ import * as maliyetKodu from './maliyetKodu.js';
 import * as maliyetDefteri from './maliyetDefteri.js';
 import * as odeme from './odeme.js';
 import * as puantaj from './puantaj.js';
+import * as belge from './belge.js';
 import * as audit from './audit.js';
 
 export const router = express.Router();
@@ -153,6 +154,24 @@ router.post('/puantaj', (req, res) => {
 router.post('/puantaj/:id/onay', (req, res) => {
   try { res.json(puantaj.onayla(req.params.id, req.body.aktor)); }
   catch (err) { hataYaniti(res, err); }
+});
+
+// --- Belge ---
+router.get('/belgeler', (req, res) => {
+  if (!req.query.ilgili_tip || !req.query.ilgili_id) return res.status(400).json({ error: 'ilgili_tip ve ilgili_id gereklidir' });
+  res.json(belge.ilgiliIcinListele(req.query.ilgili_tip, req.query.ilgili_id));
+});
+router.get('/belgeler/suresi-dolanlar', (req, res) => {
+  if (!req.query.ilgili_tip) return res.status(400).json({ error: 'ilgili_tip gereklidir' });
+  res.json(belge.suresiDolanlariGetir(req.query.ilgili_tip, req.query.tarih, req.query.gun_oncesi ? Number(req.query.gun_oncesi) : 0));
+});
+router.post('/belgeler', (req, res) => {
+  try { res.status(201).json(belge.olustur(req.body, req.body.aktor)); }
+  catch (err) { hataYaniti(res, err); }
+});
+router.delete('/belgeler/:id', (req, res) => {
+  belge.pasifEt(req.params.id, req.query.aktor);
+  res.json({ ok: true });
 });
 
 // --- Audit log (salt okunur, hiçbir yerden yazılmaz) ---

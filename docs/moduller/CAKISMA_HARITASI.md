@@ -436,3 +436,32 @@ Taşeron modülü kuruldu — `server/moduller/taseron/` (backend) + `src/modull
 - **Alet kaybı kesintisi OTOMATİK tutar üretmiyor** — P4'ün zimmet kaydında parasal bir değer alanı yok; `kesinti.js#kayipZimmetleriGetir()` yalnızca BİLGİ amaçlı listeler, kullanıcı tutarı `kesinti.js#ekle()` ile manuel girer (P5'teki performans kartı NCR/İSG sayılarının manuel girilmesiyle AYNI türde bir kısıtlama).
 - **Taşeron gerçek kişiyle (taraf_kisi_id) sözleşme yapıldığında Ödeme Talimatı oluşturulamıyor** — Çekirdek'in `odeme_talimati` servisi şu an yalnızca Firma'ya (`cari_firma`) ödeme destekliyor; canlı testte bu senaryo denendi ve kullanıcıya net bir hata mesajıyla ENGELLENDİĞİ doğrulandı ("Bu sözleşmenin tarafı bir Firma değil..."). Gerçek kişi taşeronlara ödeme talimatı desteği Çekirdek'in `odeme.js`'inde ayrı bir geçiş gerektirir.
 - **`kesinti.js#malzemeFireKesintisiEkle` hiçbir ekrandan tetiklenmiyor** — API/servis katmanında hazır (P5'teki AYNI desen) ama "Malzeme Kesintisi Getir" butonu bu geçişte bir ekrana EKLENMEDİ; kullanıcı şu an yalnızca API üzerinden veya bir sonraki geçişte eklenecek bir ekrandan tetikleyebilir.
+
+## P7 Uygulama Durumu (İK Yönetimi)
+
+İK modülü kuruldu — `server/moduller/ik/` + `src/moduller/ik/`. Puantaj için AYRI sistem yazılmadı (P6 ile aynı Çekirdek `puantaj_kaydi`).
+
+### Çekirdek'te yapılan TEK değişiklik
+- **`belge` tablosu + `belge.js`** (Çekirdek): §4.1'de "Belge" Çekirdek'e ait ama hiç yoktu. Genel metadata kaydı (`ilgili_tip`/`ilgili_id`, tür, geçerlilik); gerçek dosya baytı SAKLANMAZ (yükleme altyapısı yok). İK özlük evrakı `ilgili_tip='kisi'` ile bunu çağırır, kopyalamaz.
+
+### Uygulandı
+| Kavram | Dosya | Not |
+|---|---|---|
+| Personel | `personel.js` | Kişi(rol=personel) üzerine sicil/departman/unvan/çalışma şekli; ücret geçmişi yürürlük tarihli; proje ataması bilgi amaçlı; çıkışta kıdem GÜNÜ döner (tazminat hesabı YOK). |
+| PDKS | `pdks.js` | Yöntem (kartlı/QR/mobil GPS/manuel/biyometrik) `ik_pdks_meta`'da; Çekirdek enum'u genişletilmedi. Biyometrik: açık rıza yoksa REDDEDİLİR (KVKK, yetkili aşamaz). Yıllık fazla mesai limiti parametrik (`ik_fazla_mesai_yillik_limit_saat`), aşımda yetkili onayı+gerekçe. Ham kayıt değişmez: `duzelt()` = eskiyi iptal + onaylı yeni kayıt. |
+| İzin | `izin.js` | Kıdem bazlı hak tablosu (yürürlük tarihli) + yaş grubu asgari (`ik_izin_asgari_gun_yas_grubu`); bakiye devreder; yalnız `yillik` bakiyeden düşer. |
+| Avans | `avans.js` | Onayda eşit taksit (küsurat son taksitte); mahsup dönem onayında işaretlenir, önizleme salt okunur. |
+| Bordro ön hazırlık | `bordroDonemi.js` | Gün/mesai(bilgi)/izin/avans toplar; brüt = aylık/30 × gün. Proje dağıtımı PUANTAJ günlerinin `maliyet_kodu_id`'sine oranlı; onayda Maliyet Defteri GERÇEKLEŞEN. |
+| Ekranlar | `src/moduller/ik/ekranlar/` | Personel listesi/kartı (6 sekme, İSG salt okunur), PDKS günlük durum (çevrimdışı kuyruklu), izin, avans, bordro+CSV, evrak süresi dolanlar. |
+
+**İSG:** sahibi P8; P7'de Çekirdek Kişi'deki `isg_egitim_*` alanları salt okunur gösterilir.
+**Doğrulama:** 167/167 test; build temiz; lint yalnızca 7 eski hata. KABUL: çok şantiyeli maliyet oranlı (testle + canlı HTTP: 900.000/450.000), izin bakiyesi kıdem/devir doğru (test), maaş `gorunenRol='sef'` iken gizli (UI simülasyonu). Canlı tarayıcıda liste/kart/belgeler/İSG/izin/PDKS "içeride" doğrulandı.
+
+### Bilinçli Olarak Ertelendi
+- Ekranlar App.tsx'e bağlanmadı (P1-P6 ile aynı).
+- **Tam bordro motoru (SGK/gelir vergisi/damga/kümülatif matrah) YAZILMADI** — ayrı faz kararı sizin.
+- Geofence point-in-polygon hesaplanmıyor; `geofence_icinde_mi` bilgi olarak taşınır.
+- Rol bazlı maaş gizleme yalnız UI seviyesinde (gerçek oturum/yetki sistemi yok); API maaşı herkese döner.
+- Ayı tamamen izinli geçen (hiç puantajı olmayan) personelin maliyeti dağıtılamaz; WBS'siz günler deftere yazılmaz (P6 ile aynı kural). Genel merkez payı → genel gider kodu otomasyonu yok.
+- Kişi bazlı puantaj geçmişi için Çekirdek REST ucu yok; kart "Puantaj" sekmesi yalnız yönlendirme metni gösterir.
+- Bordro/izin/avans onay uçları ve `gorunenRol` gerçek yetkiyle korunmuyor.
