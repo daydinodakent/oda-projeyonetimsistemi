@@ -24,6 +24,8 @@ export function kaydet(item, aktor) {
   const plan = odemePlani.planGetir(item.satis_id);
   if (!plan) throw new Error('Aktif ödeme planı yok.');
   if (!Number.isInteger(item.tutar_kurus) || item.tutar_kurus <= 0) throw new Error('tutar_kurus pozitif tam sayı (kuruş) olmalıdır.');
+  const mevcut = odeme.tahsilatIstemciIdIleGetir(item.istemci_kayit_id);
+  if (mevcut) return { tahsilat: mevcut, dagilim: odemePlani.tahsilatDagilimi(mevcut.id), tekrarGonderim: true };
   const kur = item.kur ?? (s.para_birimi === 'TRY' ? 1 : s.kur);
   const m = stmtMusteriler.get(item.satis_id);
 
@@ -32,7 +34,7 @@ export function kaydet(item, aktor) {
     const t = odeme.tahsilatKaydet({
       proje_id: s.proje_id, kaynak_modul: 'musteri_satis', kaynak_id: item.satis_id, kisi_id: m?.kisi_id, firma_id: m?.firma_id,
       tutar_kurus: item.tutar_kurus, para_birimi: s.para_birimi, kur, kur_tarihi: item.kur_tarihi || item.tarih, tarih: item.tarih,
-      yontem: item.yontem, referans_no: item.referans_no, notes: item.notes,
+      yontem: item.yontem, referans_no: item.referans_no, istemci_kayit_id: item.istemci_kayit_id, notes: item.notes,
     }, aktor);
     const dagilim = odemePlani.dagit(t.id, item.tutar_kurus, plan.plan, item.tarih, { taksitId: item.taksit_id });
     maliyetDefteri.yaz({
@@ -55,7 +57,7 @@ export function kaydet(item, aktor) {
     }
     audit.kaydet('musteri_tahsilat', t.id, 'OLUSTUR', aktor, { satis_id: s.id, dagilim });
     db.exec('COMMIT');
-    return { tahsilat: t, dagilim };
+    return { tahsilat: t, dagilim, tekrarGonderim: false };
   } catch (e) { db.exec('ROLLBACK'); throw e; }
 }
 

@@ -184,7 +184,11 @@ export function topluKaydet(payload, aktor) {
       if (!b) throw new Error(`Düzeltilecek bölüm bulunamadı: ${d.tur} / ${d.etiket}`);
       sayiDuzelt(b.id, d.sayi, aktor);
     }
-    for (const b of payload.bolumler || []) bolumEkle(rapor.id, b, aktor);
+    // İki cihaz aynı günün raporunu farklı istemci_kayit_id ile gönderirse aynı
+    // içerikli elle bölümler (iş/fotoğraf/…) ÇOĞALMAZ (P11 bulgusu).
+    const mevcutBolumler = stmtBolumListe.all(rapor.id);
+    const ayniMi = (m, b) => m.tur === b.tur && m.etiket === b.etiket && (m.wbs_gorev_id ?? null) === (b.wbs_gorev_id ?? null) && (m.dosya_url ?? null) === (b.dosya_url ?? null) && (m.notes ?? null) === (b.notes ?? null);
+    for (const b of payload.bolumler || []) if (!mevcutBolumler.some((m) => m.otomatik_sayi == null && ayniMi(m, b))) bolumEkle(rapor.id, b, aktor);
     if (payload.istemci_kayit_id) stmtIstemciIsaretle.run(payload.istemci_kayit_id, rapor.id);
     db.exec('COMMIT');
     return { rapor: getir(rapor.id), tekrarGonderim: false };

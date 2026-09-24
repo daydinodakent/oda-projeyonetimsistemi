@@ -11,6 +11,7 @@ import { sonraki } from '../_cekirdek/numaraSerisi.js';
 import * as cariFirma from '../_cekirdek/cariFirma.js';
 import * as kisi from '../_cekirdek/kisi.js';
 import * as maliyetDefteri from '../_cekirdek/maliyetDefteri.js';
+import * as maliyetKodu from '../_cekirdek/maliyetKodu.js';
 import * as parametre from '../_cekirdek/parametre.js';
 import { getRecord } from '../../db.js';
 
@@ -90,6 +91,41 @@ export function olustur(item, aktor) {
   return stmtGet.get(id);
 }
 
+// Sözleşme tipi → maliyet kodu kaynak tipi. P11 entegrasyon bulgusu: taahhüt
+// tek satır ve maliyet kodsuz yazılınca WBS raporunda taahhüt 0 görünüyor ve
+// "bütçe aşımı taahhütte yakalanır" kuralı çalışmıyordu. Artık WBS'li KALEMLER
+// kendi maliyet koduna yazılır; kalemlerin karşılamadığı kısım (bedel −
+// Σ kalem tutarı) kodsuz kalır.
+const TIP_KAYNAK_TIPI = { alt_yuklenici: 'alt_yuklenici', taseron: 'iscilik_taseron', kira: 'makine_ekipman', tedarikci_cerceve: 'malzeme' };
+
+function taahhutuYaz(guncel, aktor) {
+  const kaynakTipi = TIP_KAYNAK_TIPI[guncel.tip];
+  const ortak = {
+    proje_id: guncel.proje_id, tur: taahhutTuru(guncel), para_birimi: guncel.para_birimi, kur: guncel.kur,
+    kur_tarihi: guncel.kur_tarihi || guncel.baslangic_tarihi, tarih: guncel.baslangic_tarihi, kaynak_modul: 'sozlesme',
+  };
+  let yeniYazildi = false; let dagitilan = 0;
+  const kalemler = kaynakTipi ? stmtKalemListele.all(guncel.id).filter((k) => k.wbs_gorev_id) : [];
+  for (const k of kalemler) {
+    const tutar = Math.round(k.miktar * k.birim_fiyat_kurus);
+    if (!tutar) continue;
+    let mk;
+    try {
+      mk = maliyetKodu.wbsIcinListele(k.wbs_gorev_id).find((x) => x.kaynak_tipi === kaynakTipi)
+        || maliyetKodu.olustur({ proje_id: guncel.proje_id, wbs_gorev_id: k.wbs_gorev_id, kaynak_tipi: kaynakTipi }, aktor);
+    } catch { continue; } // WBS kaydı artık yoksa kalem kodsuz kalan kısma düşer
+    const { tekrarGonderim } = maliyetDefteri.yaz({ ...ortak, maliyet_kodu_id: mk.id, tutar_kurus: tutar, kaynak_id: `${guncel.id}:kalem-${k.id}`, notes: `Sözleşme ${guncel.numara} imza taahhüdü — kalem #${k.id}` }, aktor);
+    if (!tekrarGonderim) yeniYazildi = true;
+    dagitilan += tutar;
+  }
+  const kalan = guncel.bedel_kurus - dagitilan;
+  if (kalan !== 0 || dagitilan === 0) {
+    const { tekrarGonderim } = maliyetDefteri.yaz({ ...ortak, tutar_kurus: kalan, kaynak_id: String(guncel.id), notes: `Sözleşme ${guncel.numara} imza taahhüdü${dagitilan ? ' (kalemlere dağıtılmayan kısım)' : ''}` }, aktor);
+    if (!tekrarGonderim) yeniYazildi = true;
+  }
+  return yeniYazildi;
+}
+
 /**
  * Durum makinesi: taslak→onayda→imzali→yururlukte→(askida)→tamamlandi/feshedildi.
  * "imzali"ya geçişte (sözleşme onaylanıp imzalanınca) Maliyet Defteri'ne
@@ -106,14 +142,7 @@ export function durumDegistir(id, yeniDurum, aktor) {
   stmtDurumGuncelle.run(yeniDurum, aktor ?? null, id);
   audit.kaydet('sozlesme', id, 'GUNCELLE', aktor, { durum: [mevcut.durum, yeniDurum] });
   if (yeniDurum === 'imzali' && !mevcut.taahhut_yazildi) {
-    const guncel = stmtGet.get(id);
-    const { tekrarGonderim } = maliyetDefteri.yaz({
-      proje_id: guncel.proje_id, tur: taahhutTuru(guncel), tutar_kurus: guncel.bedel_kurus,
-      para_birimi: guncel.para_birimi, kur: guncel.kur, kur_tarihi: guncel.kur_tarihi || guncel.baslangic_tarihi,
-      tarih: guncel.baslangic_tarihi, kaynak_modul: 'sozlesme', kaynak_id: String(id),
-      notes: `Sözleşme ${guncel.numara} imza taahhüdü`,
-    }, aktor);
-    if (!tekrarGonderim) stmtTaahhutIsaretle.run(id);
+    if (taahhutuYaz(stmtGet.get(id), aktor)) stmtTaahhutIsaretle.run(id);
   }
   return stmtGet.get(id);
 }

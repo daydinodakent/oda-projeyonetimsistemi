@@ -18,12 +18,19 @@ import '../musteri/db.js';
 import './db.js';
 import { db } from '../_cekirdek/db.js';
 
-const g = (sql, ...p) => db.prepare(sql).get(...p);
-const l = (sql, ...p) => db.prepare(sql).all(...p);
+// P11 performans bulgusu: her çağrıda db.prepare() yeniden derleniyordu (10k hareketlik
+// mutabakatta 30k derleme). Hazır sorgular önbelleğe alınır.
+const hazir = new Map();
+const hz = (sql) => { let st = hazir.get(sql); if (!st) { st = db.prepare(sql); hazir.set(sql, st); } return st; };
+const g = (sql, ...p) => hz(sql).get(...p);
+const l = (sql, ...p) => hz(sql).all(...p);
+const malzemeAdiOnbellek = new Map();
 const ilk = (kaynakId) => String(kaynakId).split(':')[0];
 
 /** Hareketin kaynak belgesini çözer. { bulundu, iptal, etiket, belge_tipi, belge_id, durum, ozet, zincir[], beklenen_tutar_kurus?, stoklu_fatura_kalemi? } */
-export function coz(h) {
+/** @param {{hafif?: boolean}} [secenek] hafif=true → zincir/etiket için ek sorgular ATLANIR (toplu mutabakat için; drill-down tam mod kullanır). */
+export function coz(h, secenek = {}) {
+  const hafif = !!secenek.hafif;
   const modul = h.kaynak_modul; const id = ilk(h.kaynak_id);
   const yok = { modul, bulundu: false, iptal: false, etiket: `${modul} #${h.kaynak_id}`, belge_tipi: modul, belge_id: h.kaynak_id, zincir: [] };
   const ana = !String(h.kaynak_id).includes(':'); // ':kur_farki' vb. ek satırlar tutar kıyaslamasına girmez
@@ -50,10 +57,10 @@ export function coz(h) {
   if (modul === 'depo_stok_hareketi') {
     const s = g('SELECT * FROM stok_hareketi WHERE id = ?', id);
     if (!s) return yok;
-    const mz = g('SELECT * FROM malzeme_karti WHERE id = ?', s.malzeme_id);
+    const mz = hafif ? null : g('SELECT * FROM malzeme_karti WHERE id = ?', s.malzeme_id);
     const zincir = [];
     // Çıkışın "geldiği yer": aynı depo+malzemenin en son mal kabulden gelen girişi → mal kabul → sipariş
-    const giris = g("SELECT * FROM stok_hareketi WHERE depo_id = ? AND malzeme_id = ? AND tur = 'giris' AND kaynak_belge_modul = 'depo_mal_kabul' AND id <= ? ORDER BY id DESC LIMIT 1", s.depo_id, s.malzeme_id, s.id);
+    const giris = hafif ? null : g("SELECT * FROM stok_hareketi WHERE depo_id = ? AND malzeme_id = ? AND tur = 'giris' AND kaynak_belge_modul = 'depo_mal_kabul' AND id <= ? ORDER BY id DESC LIMIT 1", s.depo_id, s.malzeme_id, s.id);
     if (giris) {
       zincir.push({ belge_tipi: 'Depo Girişi', belge_id: giris.id, etiket: `Stok girişi #${giris.id} (${giris.miktar})` });
       const mk = g('SELECT * FROM mal_kabul WHERE id = ?', giris.kaynak_belge_id);
@@ -136,7 +143,7 @@ export function defterdeOlmayanlar(projeId, ledgerRows) {
     if (!var_.has(`satinalma_siparis|${s.id}|TAAHHUT`)) bul.push({ tur: 'defterde_yok', modul: 'satinalma_siparis', kaynak_id: String(s.id), proje_id: s.proje_id, etiket: `Sipariş ${s.numara}`, mesaj: 'Onaylı sipariş için TAAHHÜT defterde yok', tutar_kurus: s.toplam_tutar_kurus });
   }
   for (const s of l(`SELECT * FROM sozlesme WHERE durum IN ('imzali','yururlukte','askida','tamamlandi')${pf}`, ...pp)) {
-    if (!var_.has(`sozlesme|${s.id}|TAAHHUT`) && !var_.has(`sozlesme|${s.id}|GELIR`)) bul.push({ tur: 'defterde_yok', modul: 'sozlesme', kaynak_id: String(s.id), proje_id: s.proje_id, etiket: `Sözleşme ${s.numara}`, mesaj: 'İmzalı sözleşme için TAAHHÜT/GELİR defterde yok', tutar_kurus: s.bedel_kurus });
+    if (!onek.has(`sozlesme|${s.id}`)) bul.push({ tur: 'defterde_yok', modul: 'sozlesme', kaynak_id: String(s.id), proje_id: s.proje_id, etiket: `Sözleşme ${s.numara}`, mesaj: 'İmzalı sözleşme için TAAHHÜT/GELİR defterde yok', tutar_kurus: s.bedel_kurus });
   }
   for (const s of l(`SELECT * FROM stok_hareketi WHERE tur = 'cikis' AND emanet_mi = 0 AND row_status = 1 AND maliyet_kodu_id IS NOT NULL${pf}`, ...pp)) {
     if (!var_.has(`depo_stok_hareketi|${s.id}|GERCEKLESEN`)) bul.push({ tur: 'defterde_yok', modul: 'depo_stok_hareketi', kaynak_id: String(s.id), proje_id: s.proje_id, etiket: `Depo çıkışı #${s.id}`, mesaj: 'Maliyete girmesi gereken depo çıkışı defterde yok', tutar_kurus: s.toplam_maliyet_kurus });

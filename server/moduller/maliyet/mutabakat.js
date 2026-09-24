@@ -24,7 +24,7 @@ export function mutabakatRaporu(projeId) {
   for (const h of hareketler) {
     if (h.kaynak_modul === BUTCE_MODUL) continue;
     if (h.iptal_edildi || h.ters_kayit_id || String(h.kaynak_id).endsWith(':IPTAL')) continue;
-    const k = kaynak.coz(h);
+    const k = kaynak.coz(h, { hafif: true });
     const temel = { hareket_id: h.id, proje_id: h.proje_id, modul: h.kaynak_modul, kaynak_id: h.kaynak_id, tur_hareket: h.tur, tutar_kurus: h.tutar_kurus, etiket: k.etiket };
     if (!k.bulundu) { bulgular.push({ ...temel, tur: 'kaynak_yok', seviye: 'hata', mesaj: 'Defter hareketinin kaynak belgesi bulunamadı' }); continue; }
     if (k.iptal) bulgular.push({ ...temel, tur: 'kaynak_iptal', seviye: 'hata', mesaj: `Kaynak belge iptal/geçersiz (durum: ${k.durum}) ama defterde ters kayıt yok` });

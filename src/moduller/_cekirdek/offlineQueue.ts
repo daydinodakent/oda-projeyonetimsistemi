@@ -27,6 +27,13 @@ export type CakismaCozumu = 'sunucuyu_koru' | 'istemciyi_gonder';
 export interface OfflineQueueSecenekleri<T> {
   /** localStorage anahtarını benzersiz kılmak için (ör. 'puantaj', 'gunluk-rapor'). */
   kuyrukAdi: string;
+  /**
+   * Bir kayıt bu kadar kez başarısız olursa "askıya" alınır ve otomatik
+   * yeniden denenmez (kalıcı hata — ör. çift puantaj engeli — sonsuza dek
+   * denenip kuyruğu şişirmesin). Varsayılan 5. askidakiler() ile listelenir,
+   * yenidenDene() ile tekrar açılır; veri ASLA sessizce silinmez.
+   */
+  maksDeneme?: number;
   /** Sunucuya gerçek gönderimi yapan fonksiyon (api.ts'ten, ör. puantajKaydet). */
   gonder: (veri: T & { istemci_kayit_id: string }) => Promise<unknown>;
   /**
@@ -39,6 +46,22 @@ export interface OfflineQueueSecenekleri<T> {
 }
 
 const STORAGE_PREFIX = 'oda-cekirdek-offline-queue:';
+
+/**
+ * crypto.randomUUID YALNIZCA güvenli bağlamda (https veya localhost) vardır.
+ * Telefon şantiye sunucusuna düz http://192.168.x.x ile bağlanınca tanımsızdır
+ * ve kuyruğa ekleme çöker (P11 bulgusu) — yedek üretici kullanılır.
+ */
+export function yeniKayitId(): string {
+  const c = (globalThis as { crypto?: Crypto }).crypto;
+  if (c && typeof c.randomUUID === 'function') return c.randomUUID();
+  const b = new Uint8Array(16);
+  if (c && typeof c.getRandomValues === 'function') c.getRandomValues(b);
+  else for (let i = 0; i < 16; i++) b[i] = Math.floor(Math.random() * 256);
+  b[6] = (b[6] & 0x0f) | 0x40; b[8] = (b[8] & 0x3f) | 0x80;
+  const h = Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('');
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+}
 
 function depoAnahtari(kuyrukAdi: string) {
   return `${STORAGE_PREFIX}${kuyrukAdi}`;
@@ -63,7 +86,7 @@ function guvenliYaz<T>(kuyrukAdi: string, girdiler: KuyrukGirdisi<T>[]): void {
 }
 
 export function createOfflineQueue<T extends object>(secenekler: OfflineQueueSecenekleri<T>) {
-  const { kuyrukAdi, gonder, cakismaCozumle } = secenekler;
+  const { kuyrukAdi, gonder, cakismaCozumle, maksDeneme = 5 } = secenekler;
   let gonderimSurmekte = false;
 
   function bekleyenleriListele(): KuyrukGirdisi<T>[] {
@@ -73,7 +96,7 @@ export function createOfflineQueue<T extends object>(secenekler: OfflineQueueSec
   /** Yeni bir kaydı kuyruğa ekler (önce yerel, ağ bağlantısı beklenmez). */
   function ekle(veri: T): KuyrukGirdisi<T> {
     const girdi: KuyrukGirdisi<T> = {
-      istemciKayitId: crypto.randomUUID(),
+      istemciKayitId: yeniKayitId(),
       veri,
       eklenmeZamani: new Date().toISOString(),
       gonderimDenemeSayisi: 0,
@@ -93,13 +116,14 @@ export function createOfflineQueue<T extends object>(secenekler: OfflineQueueSec
    * kurulduğunda (ör. `window online` olayında) çağrılır. Aynı anda tek
    * bir gönderim döngüsü çalışır (yeniden giriş korumalı).
    */
-  async function gonderiyiDene(): Promise<{ basarili: number; basarisiz: number }> {
-    if (gonderimSurmekte) return { basarili: 0, basarisiz: 0 };
+  async function gonderiyiDene(): Promise<{ basarili: number; basarisiz: number; askida: number }> {
+    if (gonderimSurmekte) return { basarili: 0, basarisiz: 0, askida: 0 };
     gonderimSurmekte = true;
     let basarili = 0;
     let basarisiz = 0;
     try {
       for (const girdi of guvenliOku<T>(kuyrukAdi)) {
+        if (girdi.gonderimDenemeSayisi >= maksDeneme) continue; // askıda — otomatik denenmez
         try {
           if (girdi.gonderimDenemeSayisi > 0 && cakismaCozumle) {
             const karar = await cakismaCozumle(girdi);
@@ -124,8 +148,19 @@ export function createOfflineQueue<T extends object>(secenekler: OfflineQueueSec
     } finally {
       gonderimSurmekte = false;
     }
-    return { basarili, basarisiz };
+    return { basarili, basarisiz, askida: guvenliOku<T>(kuyrukAdi).filter((g) => g.gonderimDenemeSayisi >= maksDeneme).length };
   }
 
-  return { ekle, cikar, bekleyenleriListele, gonderiyiDene };
+  /** Kalıcı hata nedeniyle askıya alınmış kayıtlar (kullanıcıya gösterilmeli). */
+  function askidakiler(): KuyrukGirdisi<T>[] {
+    return guvenliOku<T>(kuyrukAdi).filter((g) => g.gonderimDenemeSayisi >= maksDeneme);
+  }
+
+  /** Askıdaki kaydı tekrar otomatik denemeye açar (deneme sayacı sıfırlanır). */
+  function yenidenDene(istemciKayitId: string): void {
+    const mevcut = guvenliOku<T>(kuyrukAdi);
+    guvenliYaz(kuyrukAdi, mevcut.map((g) => (g.istemciKayitId === istemciKayitId ? { ...g, gonderimDenemeSayisi: 0 } : g)));
+  }
+
+  return { ekle, cikar, bekleyenleriListele, gonderiyiDene, askidakiler, yenidenDene };
 }

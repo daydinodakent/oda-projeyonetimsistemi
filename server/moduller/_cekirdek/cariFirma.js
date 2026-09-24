@@ -39,6 +39,17 @@ export function getir(id) {
   return rollerle(stmtGet.get(id));
 }
 
+/**
+ * P11 bulgusu: VKN/TCKN olduğu gibi saklanıyordu — "123 456 7890" ile
+ * "1234567890" farklı sayılıp mükerrer firma açılabiliyordu. Artık rakam
+ * dışı karakterler atılır ve uzunluk doğrulanır (VKN 10, TCKN 11 hane).
+ */
+function vknNormalle(ham) {
+  const t = String(ham ?? '').replace(/\D/g, '');
+  if (t.length !== 10 && t.length !== 11) throw new Error('VKN 10, TCKN 11 haneli olmalıdır.');
+  return t;
+}
+
 /** @param {{unvan, vkn_tckn, roller: string[], ...}} item */
 export function olustur(item, aktor) {
   for (const r of item.roller || []) {
@@ -46,7 +57,7 @@ export function olustur(item, aktor) {
   }
   const row = {
     unvan: item.unvan,
-    vkn_tckn: item.vkn_tckn,
+    vkn_tckn: vknNormalle(item.vkn_tckn),
     vergi_dairesi: item.vergi_dairesi ?? null,
     adres: item.adres ?? null,
     iban_listesi: item.iban_listesi ? JSON.stringify(item.iban_listesi) : null,

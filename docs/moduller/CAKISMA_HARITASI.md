@@ -573,3 +573,6 @@ Maliyet modülü kuruldu — `server/moduller/maliyet/` + `src/moduller/maliyet/
 - Mutabakat toplu Alt Yüklenici/Taşeron kontrollerinin bir kısmı dönem düzeyindedir (kalem bazlı eksik tespiti yok); İK bordro yalnız global taramada kontrol edilir.
 - XLSX okuyucu yalnız ilk sayfa ve değer hücreleri (formül önbellek değeri); stil/tarih serileri çözülmez.
 - Rol bazlı yetki yok; bütçe onaylayan serbest metindir.
+
+## P11 — Entegrasyon Doğrulama Notu
+Sahiplik denetimi (`scripts/sahiplik-denetimi.mjs`): yabancı tabloya yazma 0; tek çapraz okuma `maliyet/kaynak.js`. Ayrıntılar ve bulgular: `docs/moduller/DOGRULAMA_RAPORU.md`. Düzeltmeler: kesinti adayı çıkış hakedişte negatif GERÇEKLEŞEN ile dengelenir; sözleşme TAAHHÜT'ü maliyet koduna bölünür; `depo/malKabul` artık Satın Alma tablosu okumaz. Açık: kimlik doğrulama katmanı yok (Kritik).

@@ -9,6 +9,7 @@ import * as maliyetKodu from '../_cekirdek/maliyetKodu.js';
 import * as maliyetDefteri from '../_cekirdek/maliyetDefteri.js';
 import * as odeme from '../_cekirdek/odeme.js';
 import * as parametre from '../_cekirdek/parametre.js';
+import * as stok from '../depo/stok.js';
 import * as ekip from './ekip.js';
 import * as metraj from './metraj.js';
 import * as sozlesme from '../sozlesme/sozlesme.js';
@@ -163,8 +164,30 @@ function taahhutuIsle(donem, aktor) {
       }, aktor);
     }
   }
+  malzemeKesintileriniDus(donem, aktor);
   stmtTaahhutIsaretle.run(donem.id);
 }
+
+/**
+ * P11 bulgusu (çift sayım): Depo taşerona malzeme çıkışında (kesinti adayı)
+ * GERÇEKLEŞEN yazar; aynı malzeme bedeli dönem kesintisiyle taşeronun brüt
+ * hak edişinden düşülür. Brüt tam yazıldığından, kesilen kısım defterde TERS
+ * (negatif GERÇEKLEŞEN, çıkışın kendi maliyet kodunda) satırla geri alınır —
+ * aksi halde proje maliyeti kesinti tutarı kadar şişerdi.
+ */
+function malzemeKesintileriniDus(donem, aktor) {
+  const hareketler = new Map(stok.kesintiAdaylariniListele().map((h) => [String(h.id), h]));
+  for (const k of stmtKesintiListele.all(donem.id)) {
+    if (k.kaynak_modul !== 'depo_stok_hareketi') continue;
+    const h = hareketler.get(String(k.kaynak_id));
+    if (!h || !h.maliyet_kodu_id) continue;
+    maliyetDefteri.yaz({
+      proje_id: donem.proje_id, maliyet_kodu_id: h.maliyet_kodu_id, tur: 'GERCEKLESEN', tutar_kurus: -k.tutar_kurus, tarih: donem.donem_bitis,
+      kaynak_modul: 'taseron_odeme_donemi', kaynak_id: `${donem.id}:malzeme-kesinti-${k.id}`, notes: `Ödeme dönemi ${donem.numara}: depo malzemesi taşerondan geri kesildi (çift sayım önlemi)`,
+    }, aktor);
+  }
+}
+
 
 /**
  * Net tutar üzerinden Çekirdek Ödeme Talimatı oluşturur. SINIRLAMA: Çekirdek

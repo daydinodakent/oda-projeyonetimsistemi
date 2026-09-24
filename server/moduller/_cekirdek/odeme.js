@@ -98,10 +98,13 @@ export function disaAktarildiIsaretle(odemeId) {
 
 // ---------- Tahsilat (GELEN yön) ----------
 const stmtInsertTahsilat = db.prepare(
-  `INSERT INTO tahsilat (proje_id, kaynak_modul, kaynak_id, kisi_id, firma_id, tutar_kurus, para_birimi, kur, kur_tarihi, tarih, yontem, referans_no, notes, olusturan)
-   VALUES (@proje_id, @kaynak_modul, @kaynak_id, @kisi_id, @firma_id, @tutar_kurus, @para_birimi, @kur, @kur_tarihi, @tarih, @yontem, @referans_no, @notes, @olusturan)`
+  `INSERT INTO tahsilat (proje_id, kaynak_modul, kaynak_id, kisi_id, firma_id, tutar_kurus, para_birimi, kur, kur_tarihi, tarih, yontem, referans_no, istemci_kayit_id, notes, olusturan)
+   VALUES (@proje_id, @kaynak_modul, @kaynak_id, @kisi_id, @firma_id, @tutar_kurus, @para_birimi, @kur, @kur_tarihi, @tarih, @yontem, @referans_no, @istemci_kayit_id, @notes, @olusturan)`
 );
 const stmtGetTahsilat = db.prepare('SELECT * FROM tahsilat WHERE id = ?');
+const stmtTahsilatIstemci = db.prepare('SELECT * FROM tahsilat WHERE istemci_kayit_id = ?');
+/** İstemci anahtarıyla daha önce kaydedilmiş tahsilat (yoksa null). */
+export function tahsilatIstemciIdIleGetir(id) { return id ? (stmtTahsilatIstemci.get(id) || null) : null; }
 const stmtListTahsilatKaynak = db.prepare('SELECT * FROM tahsilat WHERE kaynak_modul = ? AND kaynak_id = ? AND iptal = 0 ORDER BY tarih, id');
 
 /** @param {{proje_id, kaynak_modul, kaynak_id, kisi_id?, firma_id?, tutar_kurus, para_birimi?, kur?, kur_tarihi?, tarih, yontem?, referans_no?, notes?}} item */
@@ -110,7 +113,7 @@ export function tahsilatKaydet(item, aktor) {
   const row = {
     proje_id: item.proje_id, kaynak_modul: item.kaynak_modul, kaynak_id: String(item.kaynak_id), kisi_id: item.kisi_id ?? null, firma_id: item.firma_id ?? null,
     tutar_kurus: item.tutar_kurus, para_birimi: item.para_birimi || 'TRY', kur: item.kur ?? 1, kur_tarihi: item.kur_tarihi || item.tarih, tarih: item.tarih,
-    yontem: item.yontem ?? null, referans_no: item.referans_no ?? null, notes: item.notes ?? null, olusturan: aktor ?? null,
+    yontem: item.yontem ?? null, referans_no: item.referans_no ?? null, istemci_kayit_id: item.istemci_kayit_id ?? null, notes: item.notes ?? null, olusturan: aktor ?? null,
   };
   const info = stmtInsertTahsilat.run(row);
   audit.kaydet('tahsilat', info.lastInsertRowid, 'OLUSTUR', aktor, { yeni: row });

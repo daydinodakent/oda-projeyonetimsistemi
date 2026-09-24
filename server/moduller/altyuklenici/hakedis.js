@@ -11,6 +11,7 @@ import * as maliyetDefteri from '../_cekirdek/maliyetDefteri.js';
 import * as odeme from '../_cekirdek/odeme.js';
 import * as evrak from './evrak.js';
 import * as kesinti from './kesinti.js';
+import * as stok from '../depo/stok.js';
 
 const AKIS = {
   taslak: ['alt_yuklenici_beyani'],
@@ -111,8 +112,24 @@ function taahhutuIsle(hakedisKaydi, aktor) {
       notes: `Hakediş ${hakedisKaydi.numara}`,
     }, aktor);
   }
+  malzemeKesintileriniDus(hakedisKaydi, aktor);
   stmtTaahhutIsaretle.run(hakedisKaydi.id);
 }
+
+/** P11 bulgusu (çift sayım) — bkz. taseron/odemeDonemi.js#malzemeKesintileriniDus: hakedişten kesilen depo malzemesi TERS GERÇEKLEŞEN ile geri alınır. */
+function malzemeKesintileriniDus(hakedisKaydi, aktor) {
+  const hareketler = new Map(stok.kesintiAdaylariniListele().map((h) => [String(h.id), h]));
+  for (const k of kesinti.listele(hakedisKaydi.id)) {
+    if (k.kaynak_modul !== 'depo_stok_hareketi') continue;
+    const h = hareketler.get(String(k.kaynak_id));
+    if (!h || !h.maliyet_kodu_id) continue;
+    maliyetDefteri.yaz({
+      proje_id: hakedisKaydi.proje_id, maliyet_kodu_id: h.maliyet_kodu_id, tur: 'GERCEKLESEN', tutar_kurus: -k.tutar_kurus, tarih: hakedisKaydi.donem_bitis,
+      kaynak_modul: 'altyuklenici_hakedis', kaynak_id: `${hakedisKaydi.id}:malzeme-kesinti-${k.id}`, notes: `Hakediş ${hakedisKaydi.numara}: depo malzemesi geri kesildi (çift sayım önlemi)`,
+    }, aktor);
+  }
+}
+
 
 /** Onaylı hakediş için net tutar üzerinden Çekirdek Ödeme Talimatı oluşturur (kesinti dökümüyle). */
 export function odemeTalimatiOlustur(id, vadeTarihi, aktor) {

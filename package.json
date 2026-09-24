@@ -12,7 +12,7 @@
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
-    "test": "node --test server/moduller/_cekirdek/*.test.js server/moduller/sozlesme/*.test.js server/moduller/depo/*.test.js server/moduller/satinalma/*.test.js server/moduller/altyuklenici/*.test.js server/moduller/taseron/*.test.js server/moduller/ik/*.test.js server/moduller/santiye/*.test.js server/moduller/musteri/*.test.js server/moduller/maliyet/*.test.js"
+    "test": "node --test server/moduller/_cekirdek/*.test.js server/moduller/sozlesme/*.test.js server/moduller/depo/*.test.js server/moduller/satinalma/*.test.js server/moduller/altyuklenici/*.test.js server/moduller/taseron/*.test.js server/moduller/ik/*.test.js server/moduller/santiye/*.test.js server/moduller/musteri/*.test.js server/moduller/maliyet/*.test.js server/moduller/_entegrasyon/*.test.js"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

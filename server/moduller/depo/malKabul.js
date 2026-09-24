@@ -72,15 +72,20 @@ export function kalemIcinListele(siparisKalemId) {
   return stmtListByKalem.all(siparisKalemId);
 }
 
-const stmtTarihProje = db.prepare(
-  `SELECT mk.*, k.malzeme_id, k.birim, k.aciklama AS kalem_aciklama, s.proje_id
-   FROM mal_kabul mk
-   JOIN satinalma_siparis_kalem k ON k.id = mk.siparis_kalem_id
-   JOIN satinalma_siparis s ON s.id = k.siparis_id
-   WHERE s.proje_id = ? AND mk.tarih = ? ORDER BY mk.id`
-);
+const stmtTarih = db.prepare('SELECT * FROM mal_kabul WHERE tarih = ? ORDER BY id');
 
-/** P8 (Şantiye günlük raporu) için — bir projenin bir günkü mal kabulleri (Depo'nun KENDİ servisi; Şantiye ham tabloyu okumaz). */
+/**
+ * P8 (Şantiye günlük raporu) için — bir projenin bir günkü mal kabulleri. Depo
+ * KENDİ tablosunu okur; sipariş/kalem bilgisi Satın Alma'nın SERVİSİNDEN
+ * (siparis.kalemGetir/getir) alınır — Satın Alma tablolarına doğrudan JOIN YOK.
+ */
 export function projeGunuIcinListele(projeId, tarih) {
-  return stmtTarihProje.all(projeId, tarih);
+  const sonuc = [];
+  for (const mk of stmtTarih.all(tarih)) {
+    const kalem = siparis.kalemGetir(mk.siparis_kalem_id);
+    const s = kalem ? siparis.getir(kalem.siparis_id) : null;
+    if (!s || s.proje_id !== projeId) continue;
+    sonuc.push({ ...mk, malzeme_id: kalem.malzeme_id, birim: kalem.birim, kalem_aciklama: kalem.aciklama, proje_id: s.proje_id });
+  }
+  return sonuc;
 }

@@ -91,7 +91,11 @@ test('YEVMİYE + FAZLA MESAİ + YARIM GÜN + AVANS + MALZEME KESİNTİSİ — do
   assert.equal(kapanan.durum, 'kapandi');
   assert.equal(kapanan.taahhut_dusuldu_mu, 1);
 
-  const hareketler = maliyetDefteri.projeIcinListele(PROJE).filter((h) => h.kaynak_modul === 'taseron_odeme_donemi' && h.kaynak_id.startsWith(`${donem.id}:`));
+  const tumu = maliyetDefteri.projeIcinListele(PROJE).filter((h) => h.kaynak_modul === 'taseron_odeme_donemi' && h.kaynak_id.startsWith(`${donem.id}:`));
+  const geriAlma = tumu.filter((h) => h.kaynak_id.includes('malzeme-kesinti'));
+  assert.equal(geriAlma.length, 1, 'P11: taşerondan kesilen depo malzemesi TERS GERÇEKLEŞEN ile geri alınır (çift sayım önlemi)');
+  assert.equal(geriAlma[0].tutar_kurus, -15000);
+  const hareketler = tumu.filter((h) => !h.kaynak_id.includes('malzeme-kesinti'));
   assert.equal(hareketler.length, 3, 'her puantaj kaydı için AYRI bir GERÇEKLEŞEN satırı olmalı');
   assert.equal(hareketler.reduce((t, h) => t + h.tutar_kurus, 0), 162500);
 

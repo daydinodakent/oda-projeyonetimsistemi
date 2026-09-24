@@ -179,9 +179,14 @@ test('3 DÖNEMLİK KÜMÜLATİF HAKEDİŞ + AVANS MAHSUBU + MALZEME KESİNTİSİ
   hakedis.durumDegistir(h3.id, 'onayli');
 
   // --- Maliyet Defteri: HER dönem için AYRI, mükerrer OLMAYAN GERÇEKLEŞEN kayıtları ---
-  const hareketler = maliyetDefteri.projeIcinListele(PROJE).filter((h) => h.kaynak_modul === 'altyuklenici_hakedis');
+  const tumHareketler = maliyetDefteri.projeIcinListele(PROJE).filter((h) => h.kaynak_modul === 'altyuklenici_hakedis');
+  const hareketler = tumHareketler.filter((h) => !h.kaynak_id.includes('malzeme-kesinti'));
   assert.equal(hareketler.length, 3, 'her onaylı hakediş İÇİN TEK bir GERÇEKLEŞEN kaydı olmalı');
   assert.equal(hareketler.reduce((t, h) => t + h.tutar_kurus, 0), 10000000 + 8000000 + 12000000);
+  // P11: hakedişten kesilen depo malzemesi (çift sayım önlemi) TERS GERÇEKLEŞEN satırıyla geri alınır
+  const geriAlma = tumHareketler.filter((h) => h.kaynak_id.includes('malzeme-kesinti'));
+  assert.equal(geriAlma.length, 1);
+  assert.ok(geriAlma[0].tutar_kurus < 0);
 
   // --- Çekirdek Ödeme Talimatları listede görünüyor mu ---
   assert.equal(odeme.talimatlariListele(PROJE).filter((t) => t.id === odemeTalimati1.id || t.id === odemeTalimati2.id).length, 2);

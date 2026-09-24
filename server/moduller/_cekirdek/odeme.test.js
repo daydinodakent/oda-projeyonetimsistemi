@@ -9,7 +9,7 @@ const odeme = await import('./odeme.js');
 const cariFirma = await import('./cariFirma.js');
 
 function firmaKur() {
-  return cariFirma.olustur({ unvan: 'Test Tedarikçi', vkn_tckn: crypto.randomUUID().slice(0, 10), roller: ['tedarikci'] });
+  return cariFirma.olustur({ unvan: 'Test Tedarikçi', vkn_tckn: String(Math.floor(1000000000 + Math.random() * 8999999999)), roller: ['tedarikci'] });
 }
 
 test('talimatOlustur: numara otomatik ve TASLAK durumunda üretilir', () => {

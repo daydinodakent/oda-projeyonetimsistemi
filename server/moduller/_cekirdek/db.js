@@ -209,6 +209,8 @@ db.exec(`
     write_uid INTEGER, write_date TEXT
   );
   CREATE INDEX IF NOT EXISTS idx_puantaj_kisi_tarih ON puantaj_kaydi (kisi_id, tarih);
+  -- P11 performans: projeGunuListele(proje_id, tarih) ve pano/günlük rapor sorguları için
+  CREATE INDEX IF NOT EXISTS idx_puantaj_proje_tarih ON puantaj_kaydi (proje_id, tarih);
   -- "Aynı kişi aynı gün iki yere puantaj alamaz (başka şantiye/ekip veya İK
   -- personeli olarak)" (P6 görev metni) — bu kural İK/Taşeron/Alt Yüklenici
   -- HANGİ modülden çağrılırsa çağrılsın AYNI paylaşılan tablo üzerinden,
@@ -259,6 +261,7 @@ db.exec(`
     yontem TEXT, -- 'havale','eft','nakit','cek','senet','kredi','takas'
     referans_no TEXT,
     iptal INTEGER NOT NULL DEFAULT 0,
+    istemci_kayit_id TEXT, -- tekrar gönderimde çift tahsilat oluşmasın (idempotency)
     notes TEXT,
     olusturan INTEGER, olusturma_zamani TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
   );
@@ -291,6 +294,8 @@ for (const alter of [
 ]) {
   try { db.exec(alter); } catch { /* sütun zaten var — sorun değil */ }
 }
+try { db.exec('ALTER TABLE tahsilat ADD COLUMN istemci_kayit_id TEXT'); } catch { /* sütun zaten var */ }
+try { db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_tahsilat_istemci ON tahsilat (istemci_kayit_id) WHERE istemci_kayit_id IS NOT NULL'); } catch { /* geliştirme verisinde çakışma yok */ }
 try {
   db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_puantaj_kisi_tarih_tekil ON puantaj_kaydi (kisi_id, tarih) WHERE row_status = 1');
 } catch { /* eski veride mükerrer (kisi_id,tarih) satırı varsa index oluşmaz — geliştirme ortamında veri yok, göz ardı edilir */ }

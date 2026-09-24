@@ -103,10 +103,12 @@ export function maliyetRaporu(projeId, secenek = {}) {
     ? { maliyet_kodu_id: null, kod: '(maliyet kodsuz)', kaynak_tipi: null, wbs_gorev_id: null, para_birimi: 'TRY', ...metrik({ taahhut: kodsuz.taahhut, gerceklesen: kodsuz.gerceklesen }) } : null;
 
   // WBS düğümleri
+  const wbsOnbellek = new Map();
+  const wbsB = (id) => { if (!wbsOnbellek.has(id)) wbsOnbellek.set(id, wbsBilgi(id)); return wbsOnbellek.get(id); }; // P11: satır başına tekrar tekrar getRecord (O(K²)) yerine bir kez
   const dugumler = new Map(); // wbs_code → { kod, ad, kodlar:[], ozet }
   const wbsAdlari = new Map(listRecords('tb_wbs_gorevler').map((w) => [String(w.wbs_code), w.name]));
   for (const ks of kodSatirlari) {
-    const { kod, ad } = wbsBilgi(ks.wbs_gorev_id);
+    const { kod, ad } = wbsB(ks.wbs_gorev_id);
     const d = dugumler.get(kod) || { wbs_kod: kod, ad, kodlar: [] };
     d.kodlar.push(ks);
     dugumler.set(kod, d);
@@ -121,7 +123,7 @@ export function maliyetRaporu(projeId, secenek = {}) {
   }
   const sirali = [...dugumler.values()].sort((a, b) => dogalSirala(a.wbs_kod, b.wbs_kod));
   const satirlar = sirali.map((d) => {
-    const alt = kodSatirlari.filter((ks) => { const kk = wbsBilgi(ks.wbs_gorev_id).kod; return kk === d.wbs_kod || kk.startsWith(`${d.wbs_kod}.`); });
+    const alt = kodSatirlari.filter((ks) => { const kk = wbsB(ks.wbs_gorev_id).kod; return kk === d.wbs_kod || kk.startsWith(`${d.wbs_kod}.`); });
     return { wbs_kod: d.wbs_kod, ad: d.ad, derinlik: d.wbs_kod.split('.').length - 1, kodlar: d.kodlar, ozet: toplamMetrik(topla(alt)) };
   });
 
