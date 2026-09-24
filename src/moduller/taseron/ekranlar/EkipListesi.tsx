@@ -7,6 +7,7 @@ import type { Sozlesme } from '../../sozlesme/types';
 import type { CariFirma } from '../../_cekirdek/types';
 import type { TaseronEkip, OdemeTipi } from '../types';
 import { ODEME_TIPI_ETIKET } from './format';
+import YukleniciEkle from '../../sozlesme/ekranlar/YukleniciEkle';
 
 interface Props {
   projeId: string;
@@ -62,8 +63,10 @@ export default function EkipListesi({ projeId, onEkipSec }: Props) {
 
       {hata && <div className="mb-4 p-3 rounded-lg bg-red-600/10 border border-red-500/30 text-red-400 text-xs">{hata}</div>}
 
+      <YukleniciEkle projeId={projeId} tip="taseron" etiket="Taşeron" onOlustu={yenile} />
+
       {satirlar.length === 0 ? (
-        <div className="text-xs text-[var(--text-secondary)] py-8 text-center">Bu projede taşeron tipi sözleşme yok.</div>
+        <div className="text-xs text-[var(--text-secondary)] py-8 text-center">Bu projede taşeron yok. Yukarıdaki "Yeni Taşeron Sözleşmesi" ile ekleyin, sonra "Ekip Kur" deyin.</div>
       ) : (
         <div className="flex flex-col gap-2">
           {satirlar.map(({ sozlesme, firmaAdi, ekip, eksikEvrakSayisi }) => (

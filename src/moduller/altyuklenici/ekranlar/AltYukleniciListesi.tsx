@@ -6,6 +6,7 @@ import * as api from '../api';
 import type { Sozlesme } from '../../sozlesme/types';
 import type { CariFirma } from '../../_cekirdek/types';
 import type { Hakedis, PerformansKarti } from '../types';
+import YukleniciEkle from '../../sozlesme/ekranlar/YukleniciEkle';
 
 interface Props {
   projeId: string;
@@ -21,6 +22,7 @@ interface Satir {
 
 export default function AltYukleniciListesi({ projeId, onSozlesmeSec }: Props) {
   const [satirlar, setSatirlar] = useState<Satir[] | null>(null);
+  const [yenileSayac, setYenileSayac] = useState(0);
 
   useEffect(() => {
     (async () => {
@@ -33,7 +35,7 @@ export default function AltYukleniciListesi({ projeId, onSozlesmeSec }: Props) {
       }));
       setSatirlar(veriler);
     })();
-  }, [projeId]);
+  }, [projeId, yenileSayac]);
 
   if (!satirlar) return <div className="p-6 text-xs text-[var(--text-secondary)]">Yükleniyor…</div>;
 
@@ -43,8 +45,10 @@ export default function AltYukleniciListesi({ projeId, onSozlesmeSec }: Props) {
         <HardHat className="w-5 h-5 text-indigo-400" /> Alt Yükleniciler
       </h2>
 
+      <YukleniciEkle projeId={projeId} tip="alt_yuklenici" etiket="Alt Yüklenici" onOlustu={() => setYenileSayac((n) => n + 1)} />
+
       {satirlar.length === 0 ? (
-        <div className="text-xs text-[var(--text-secondary)] py-8 text-center">Bu projede alt yüklenici tipi sözleşme yok.</div>
+        <div className="text-xs text-[var(--text-secondary)] py-8 text-center">Bu projede alt yüklenici yok. Yukarıdaki "Yeni Alt Yüklenici Sözleşmesi" ile ekleyin.</div>
       ) : (
         <div className="flex flex-col gap-2">
           {satirlar.map(({ sozlesme, firmaAdi, hakedisler, sonPerformans }) => {

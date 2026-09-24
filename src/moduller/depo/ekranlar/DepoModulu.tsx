@@ -1,13 +1,14 @@
 import { useState } from 'react';
-import { Boxes, Smartphone, PackageCheck, ArrowRightLeft, ClipboardList, ClipboardCheck } from 'lucide-react';
+import { Settings2, Boxes, Smartphone, PackageCheck, ArrowRightLeft, ClipboardList, ClipboardCheck } from 'lucide-react';
 import StokDurumu from './StokDurumu';
 import HizliCikisGiris from './HizliCikisGiris';
 import MalKabulEkrani from './MalKabulEkrani';
 import Transfer from './Transfer';
 import ZimmetListesi from './ZimmetListesi';
 import SayimFarkRaporu from './SayimFarkRaporu';
+import TanimlarEkrani from './TanimlarEkrani';
 
-type UstSekme = 'stok' | 'hizli' | 'mal-kabul' | 'transfer' | 'zimmet' | 'sayim';
+type UstSekme = 'tanimlar' | 'stok' | 'hizli' | 'mal-kabul' | 'transfer' | 'zimmet' | 'sayim';
 
 interface Props {
   projeId: string;
@@ -24,6 +25,7 @@ export default function DepoModulu({ projeId }: Props) {
   return (
     <div className="w-full flex flex-col gap-4">
       <div className="flex items-center gap-1 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl p-1 self-start overflow-x-auto">
+        <TabButon aktif={ustSekme === 'tanimlar'} onClick={() => setUstSekme('tanimlar')} icon={<Settings2 className="w-3.5 h-3.5" />} etiket="Tanımlar" />
         <TabButon aktif={ustSekme === 'stok'} onClick={() => setUstSekme('stok')} icon={<Boxes className="w-3.5 h-3.5" />} etiket="Stok Durumu" />
         <TabButon aktif={ustSekme === 'hizli'} onClick={() => setUstSekme('hizli')} icon={<Smartphone className="w-3.5 h-3.5" />} etiket="Hızlı Çıkış/Giriş" />
         <TabButon aktif={ustSekme === 'mal-kabul'} onClick={() => setUstSekme('mal-kabul')} icon={<PackageCheck className="w-3.5 h-3.5" />} etiket="Mal Kabul" />
@@ -32,6 +34,7 @@ export default function DepoModulu({ projeId }: Props) {
         <TabButon aktif={ustSekme === 'sayim'} onClick={() => setUstSekme('sayim')} icon={<ClipboardCheck className="w-3.5 h-3.5" />} etiket="Sayım" />
       </div>
 
+      {ustSekme === 'tanimlar' && <TanimlarEkrani projeId={projeId} />}
       {ustSekme === 'stok' && <StokDurumu projeId={projeId} />}
       {ustSekme === 'hizli' && <HizliCikisGiris projeId={projeId} />}
       {ustSekme === 'mal-kabul' && <MalKabulEkrani projeId={projeId} />}

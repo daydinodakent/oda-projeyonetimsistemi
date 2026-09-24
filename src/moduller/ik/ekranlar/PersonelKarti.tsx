@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft, IdCard, FileText, CalendarCheck, Palmtree, Wallet, ShieldAlert, Plus, Lock } from 'lucide-react';
+import HizliForm, { tlToKurus } from '../../_cekirdek/HizliForm';
 import * as api from '../api';
 import * as cekirdekApi from '../../_cekirdek/api';
 import type { Personel, PersonelUcret, IzinTalebi, Avans } from '../types';
@@ -98,11 +99,35 @@ export default function PersonelKarti({ personelId, gorunenRol = 'ik_yetkilisi',
               </div>
             )}
           </div>
+
+          <div className="flex flex-wrap gap-x-3">
+            {gorunenRol === 'ik_yetkilisi' && (
+              <HizliForm butonEtiket="Ücret tanımla" ipucu="Yeni ücret, geçerlilik tarihinden itibaren geçerli olur; eski ücret geçmişte kalır."
+                alanlar={[{ ad: 'maas', etiket: 'Brüt maaş (TL)', tip: 'number', zorunlu: true }, { ad: 'tarih', etiket: 'Geçerlilik başlangıcı', tip: 'date', zorunlu: true, varsayilan: new Date().toISOString().slice(0, 10) }]}
+                onKaydet={async (v) => { await api.ucretTanimla(personelId, tlToKurus(v.maas), v.tarih); await yenile(); }} />
+            )}
+            <HizliForm butonEtiket="Projeye ata"
+              alanlar={[{ ad: 'proje', etiket: 'Proje ID', zorunlu: true }, { ad: 'bas', etiket: 'Başlangıç', tip: 'date', zorunlu: true, varsayilan: new Date().toISOString().slice(0, 10) }, { ad: 'bit', etiket: 'Bitiş', tip: 'date' }]}
+              onKaydet={(v) => api.projeyeAta(personelId, { proje_id: v.proje, baslangic_tarihi: v.bas, bitis_tarihi: v.bit || undefined })} />
+            {!personel.cikis_tarihi && (
+              <HizliForm butonEtiket="İşten çıkış" ipucu="Çıkış tarihi işlenir; kalan izin/avans mahsubu sonuç olarak döner."
+                alanlar={[{ ad: 'tarih', etiket: 'Çıkış tarihi', tip: 'date', zorunlu: true, varsayilan: new Date().toISOString().slice(0, 10) }, { ad: 'neden', etiket: 'Neden' }]}
+                onKaydet={async (v) => { await api.personelCikisYap(personelId, v.tarih, v.neden || undefined); await yenile(); }} />
+            )}
+          </div>
         </div>
       )}
 
       {sekme === 'belgeler' && (
         <div className="flex flex-col gap-2">
+          <HizliForm butonEtiket="Belge ekle" ipucu="Belge kaydı (tür, dosya adı, geçerlilik) Çekirdek Belge modülüne işlenir; süresi dolanlar uyarı listesine düşer."
+            alanlar={[
+              { ad: 'tur', etiket: 'Tür', tip: 'select', zorunlu: true, secenekler: BELGE_TURLERI.map((t) => ({ deger: t, etiket: BELGE_TUR_ETIKET[t] })) },
+              { ad: 'dosya', etiket: 'Dosya adı', zorunlu: true },
+              { ad: 'bas', etiket: 'Geçerlilik başlangıcı', tip: 'date' },
+              { ad: 'bit', etiket: 'Geçerlilik bitişi', tip: 'date' },
+            ]}
+            onKaydet={async (v) => { await cekirdekApi.belgeOlustur({ ilgili_tip: 'kisi', ilgili_id: personel.kisi_id, tur: v.tur as BelgeTuru, dosya_adi: v.dosya, gecerlilik_baslangic: v.bas || undefined, gecerlilik_bitis: v.bit || undefined }); await yenile(); }} />
           {BELGE_TURLERI.map((tur) => {
             const belge = belgeler.find((b) => b.tur === tur);
             const suresiGecmis = belge?.gecerlilik_bitis && belge.gecerlilik_bitis < new Date().toISOString().slice(0, 10);

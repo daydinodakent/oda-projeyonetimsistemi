@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { GanttChart, Upload, AlertTriangle } from 'lucide-react';
+import HizliForm from '../../_cekirdek/HizliForm';
 import * as api from '../api';
 import type { PlanGerceklesen } from '../types';
 import { KART, INPUT, BTN_MOR, BTN_YESIL, HATA_KUTU, formatTarih, bugun } from './format';
@@ -33,6 +34,10 @@ export default function GanttPlanGerceklesen({ projeId }: { projeId: string }) {
     <div className={KART}>
       <h2 className="text-lg font-black tracking-tight flex items-center gap-2 pb-4 border-b border-[var(--border)] mb-4"><GanttChart className="w-5 h-5 text-indigo-400" /> İş Programı — Plan vs Gerçekleşen</h2>
       {hata && <div className={HATA_KUTU}>{hata}</div>}
+
+      <HizliForm butonEtiket="Yeni Aktivite" ipucu="Tek aktivite ekler; toplu giriş için aşağıdaki CSV içe aktarımını kullanın."
+        alanlar={[{ ad: 'ad', etiket: 'Aktivite adı', zorunlu: true }, { ad: 'bas', etiket: 'Plan başlangıç', tip: 'date', zorunlu: true, varsayilan: bugun() }, { ad: 'bit', etiket: 'Plan bitiş', tip: 'date', zorunlu: true }, { ad: 'yuzde', etiket: 'Gerçekleşen %', tip: 'number', varsayilan: '0' }, { ad: 'wbs', etiket: 'WBS ID (ops.)' }]}
+        onKaydet={async (v) => { await api.aktiviteEkle({ proje_id: projeId, ad: v.ad, plan_baslangic: v.bas, plan_bitis: v.bit, gerceklesen_yuzde: Number(v.yuzde || 0), wbs_gorev_id: v.wbs || undefined }); await yenile(); }} />
 
       <details className="mb-4 p-3 bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg">
         <summary className="text-[10px] font-black uppercase cursor-pointer flex items-center gap-1 inline-flex"><Upload className="w-3 h-3" /> Excel / MS Project CSV İçe Aktar</summary>

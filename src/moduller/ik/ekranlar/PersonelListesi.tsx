@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Users, Plus, AlertTriangle } from 'lucide-react';
+import HizliForm from '../../_cekirdek/HizliForm';
 import * as api from '../api';
 import * as cekirdekApi from '../../_cekirdek/api';
 import type { Personel } from '../types';
@@ -54,6 +55,15 @@ export default function PersonelListesi({ onPersonelSec }: Props) {
         <button onClick={() => setFormAcik((v) => !v)} className="px-2.5 py-1 text-[10px] font-black uppercase bg-emerald-600/15 border border-emerald-500/30 text-emerald-400 rounded-lg cursor-pointer flex items-center gap-1">
           <Plus className="w-3 h-3" /> Yeni Personel
         </button>
+      </div>
+
+      <div className="flex flex-wrap gap-x-3">
+        <HizliForm butonEtiket="Vardiya tanımla"
+          alanlar={[{ ad: 'ad', etiket: 'Vardiya adı', zorunlu: true }, { ad: 'bas', etiket: 'Başlangıç saati', varsayilan: '08:00', zorunlu: true }, { ad: 'bit', etiket: 'Bitiş saati', varsayilan: '17:00', zorunlu: true }]}
+          onKaydet={(v) => api.vardiyaTanimla({ ad: v.ad, baslangic_saati: v.bas, bitis_saati: v.bit })} />
+        <HizliForm butonEtiket="Yıllık izin hakkı kuralı" ipucu="Kıdem aralığına göre yıllık izin günü (parametrik, geçerlilik tarihli)."
+          alanlar={[{ ad: 'min', etiket: 'Kıdem yıl (min)', tip: 'number', zorunlu: true }, { ad: 'max', etiket: 'Kıdem yıl (max)', tip: 'number' }, { ad: 'gun', etiket: 'Yıllık izin (gün)', tip: 'number', zorunlu: true }, { ad: 'tarih', etiket: 'Geçerlilik başlangıcı', tip: 'date', zorunlu: true, varsayilan: '2026-01-01' }]}
+          onKaydet={(v) => api.izinHakkiTanimla({ kidem_yil_min: Number(v.min), kidem_yil_max: v.max ? Number(v.max) : undefined, yillik_izin_gun: Number(v.gun), gecerli_baslangic: v.tarih })} />
       </div>
 
       {hata && <div className="mb-4 p-3 rounded-lg bg-red-600/10 border border-red-500/30 text-red-400 text-xs">{hata}</div>}
