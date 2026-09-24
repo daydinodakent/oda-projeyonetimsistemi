@@ -6,9 +6,9 @@ import Grid from '@mui/material/Grid';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import { alpha, useTheme } from '@mui/material/styles';
-import { DollarSign, FileText, Layers, TrendingUp, UserCheck, X } from 'lucide-react';
+import { Building2, Calculator, HardHat, Handshake, HardDrive, Package, ScrollText, ShoppingCart, Users, X } from 'lucide-react';
 
-export type ModuleId = 'dashboard' | 'report' | 'gis' | 'hakedis' | 'resources' | 'documents';
+export type ModuleId = 'altyuklenici' | 'taseron' | 'maliyet' | 'musteri' | 'satinalma' | 'santiye' | 'sozlesme' | 'depo' | 'ik';
 
 interface ModuleCard {
   id: ModuleId;
@@ -20,12 +20,15 @@ interface ModuleCard {
 }
 
 const CARDS: ModuleCard[] = [
-  { id: 'dashboard', color: '#3b82f6', icon: <TrendingUp className="w-4 h-4" />, title: 'Yönetici Analitiği', desc: 'Proje bütçeleri, fiziki imalat ilerlemeleri ve şantiye riskleri özet raporları.', cta: 'Dashboard Panelini Aç →' },
-  { id: 'report', color: '#10b981', icon: <FileText className="w-4 h-4" />, title: 'Rapor Al (Dışa Aktar)', desc: 'Tüm proje, yapı ve şantiye imalat verilerini PDF veya Excel formatlarında indirin.', cta: 'Rapor Oluşturucuyu Aç →' },
-  { id: 'gis', color: '#6366f1', icon: <Layers className="w-4 h-4" />, title: 'GIS / BIM / CAD Ortak Alanı', desc: 'SHP, KML, DWG ve IFC BIM modellerinin koordinat tabanlı entegrasyonu.', cta: 'Ortak Çalışma Konsolu Aç →' },
-  { id: 'hakedis', color: '#f59e0b', icon: <DollarSign className="w-4 h-4" />, title: 'Otomatik Hakediş Raporu', desc: 'Sahada tamamlanan imalat metrajlarına göre anlık hakediş hiyerarşisi oluşturun.', cta: 'Hakediş Oluşturucu Aç →' },
-  { id: 'resources', color: '#a855f7', icon: <UserCheck className="w-4 h-4" />, title: 'İnsan Kaynakları & Tedarik', desc: 'Şantiye mühendis ve taşeron atamaları, kapasite çakışma ve kaynak havuz dengeleme.', cta: 'Kaynak Panelini Aç →' },
-  { id: 'documents', color: '#6366f1', icon: <FileText className="w-4 h-4" />, title: 'Doküman Yönetimi', desc: 'Şartnameler, sözleşmeler ve as-built teknik çizimlerin versiyonlu onay akışları.', cta: 'Doküman Panelini Aç →' },
+  { id: 'altyuklenici', color: '#3b82f6', icon: <Building2 className="w-4 h-4" />, title: 'Alt Yüklenici Takibi', desc: 'Projeye dahil tüm alt yüklenici firmaların sözleşme şartlarını, iş ilerlemelerini ve performanslarını izler; işlerin istenen kalitede ve zamanda tamamlanmasını güvence altına alır.', cta: 'Alt Yüklenici Panelini Aç →' },
+  { id: 'taseron', color: '#f59e0b', icon: <HardHat className="w-4 h-4" />, title: 'Taşeron Takibi', desc: 'Şantiyede görev alan taşeron ekiplerin çalışmalarını, puantajlarını ve ödemelerini yönetir; iş gücü verimliliğini artırır.', cta: 'Taşeron Panelini Aç →' },
+  { id: 'maliyet', color: '#10b981', icon: <Calculator className="w-4 h-4" />, title: 'Maliyet Yönetimi', desc: 'Başlangıçtan sona tüm harcamaları detaylı takip eder; bütçe aşımını önler ve kârlılığı anlık kontrol etmenizi sağlar.', cta: 'Maliyet Panelini Aç →' },
+  { id: 'musteri', color: '#ec4899', icon: <Handshake className="w-4 h-4" />, title: 'Müşteri Yönetimi', desc: 'Potansiyel alıcılardan mülk sahiplerine tüm müşteri bilgilerini, taleplerini ve ödeme planlarını tek yerde toplar.', cta: 'Müşteri Panelini Aç →' },
+  { id: 'satinalma', color: '#a855f7', icon: <ShoppingCart className="w-4 h-4" />, title: 'Satın Alma Yönetimi', desc: 'Malzeme ve hizmetlerin talebinden tedarikine tüm süreci yönetir; doğru zamanda ve en uygun fiyata alım yapar.', cta: 'Satın Alma Panelini Aç →' },
+  { id: 'santiye', color: '#f97316', icon: <HardDrive className="w-4 h-4" />, title: 'Şantiye Yönetimi', desc: 'Saha içi günlük operasyonları, görev atamalarını ve iş güvenliği prosedürlerini koordine eder.', cta: 'Şantiye Panelini Aç →' },
+  { id: 'sozlesme', color: '#6366f1', icon: <ScrollText className="w-4 h-4" />, title: 'Sözleşme Yönetimi', desc: 'Müşteri, tedarikçi ve alt yüklenici sözleşmelerini dijital ortamda saklar; şart takibiyle yasal ve finansal riski azaltır.', cta: 'Sözleşme Panelini Aç →' },
+  { id: 'depo', color: '#14b8a6', icon: <Package className="w-4 h-4" />, title: 'Depo Yönetimi', desc: 'Şantiye deposuna giren ve çıkan malzemelerin stokunu anlık izler; israf ve kayıpları önler.', cta: 'Depo Panelini Aç →' },
+  { id: 'ik', color: '#3b82f6', icon: <Users className="w-4 h-4" />, title: 'İK Yönetimi', desc: 'PDKS kayıtlarını, maaş ve avans ödemelerini, izinleri ve özlük dosyalarını yönetir; idari yükü hafifletir.', cta: 'İK Panelini Aç →' },
 ];
 
 interface ModuleGridDialogProps {

@@ -5,7 +5,8 @@ import AddProjectDialog from './components/chrome/AddProjectDialog';
 import EditProjectStatusDialog from './components/chrome/EditProjectStatusDialog';
 import ProjectPicker from './components/chrome/ProjectPicker';
 import NotificationCenter from './components/chrome/NotificationCenter';
-import ModuleGridDialog from './components/chrome/ModuleGridDialog';
+import ModuleGridDialog, { type ModuleId } from './components/chrome/ModuleGridDialog';
+import YonetimModulPaneli from './components/chrome/YonetimModulPaneli';
 import { HeaderBar, ModuleTab, SegmentTab, SegmentGroup, ToolbarIconButton, AccentIconButton, SearchIconButton, ProfileMenu, ProfileButton, type ProfileMenuItem } from './components/chrome/HeaderControls';
 import { headerSurface } from './theme/tokens';
 import { FormField } from './components/chrome/FormDialog';
@@ -133,8 +134,9 @@ export default function App() {
   const [topPanelOpen, setTopPanelOpen] = useState<boolean>(false);
   const [leftPanelOpen, setLeftPanelOpen] = useState<boolean>(false);
   const [rightPanelOpen, setRightPanelOpen] = useState<boolean>(false);
-  const [centerTab, setCenterTab] = useState<'gantt' | 'kpis' | 'dashboard' | 'resources' | 'documents' | 'admin' | 'map'>('dashboard');
-  const isOverlayView = centerTab === 'gantt' || centerTab === 'dashboard' || centerTab === 'resources' || centerTab === 'documents' || centerTab === 'admin' || centerTab === 'map';
+  const [centerTab, setCenterTab] = useState<'gantt' | 'kpis' | 'dashboard' | 'resources' | 'documents' | 'admin' | 'map' | 'yonetim'>('dashboard');
+  const [yonetimModulId, setYonetimModulId] = useState<ModuleId>('maliyet');
+  const isOverlayView = centerTab === 'gantt' || centerTab === 'dashboard' || centerTab === 'resources' || centerTab === 'documents' || centerTab === 'admin' || centerTab === 'map' || centerTab === 'yonetim';
   const [headerExpanded, setHeaderExpanded] = useState<boolean>(true);
   const [kpiTrendCollapsed, setKpiTrendCollapsed] = useState<boolean>(true);
 
@@ -1126,6 +1128,12 @@ export default function App() {
                   </div>
                 )}
 
+                {centerTab === 'yonetim' && (
+                  <div className="w-full animate-fade-in relative">
+                    <YonetimModulPaneli modulId={yonetimModulId} projeId={selectedProjectId} onClose={() => setCenterTab('dashboard')} />
+                  </div>
+                )}
+
                 {centerTab === 'admin' && (
                   <div className="w-full h-full animate-fade-in relative min-h-[640px]">
                     <AdminPanel 
@@ -1821,11 +1829,8 @@ export default function App() {
         open={showModullerGrid}
         onClose={() => setShowModullerGrid(false)}
         onSelect={(id) => {
-          if (id === 'dashboard') setCenterTab('dashboard');
-          else if (id === 'report') alert('Analitik rapor PDF/Excel olarak dışa aktarılıyor...');
-          else if (id === 'gis' || id === 'hakedis') setActiveTab('insaat');
-          else if (id === 'resources') setCenterTab('resources');
-          else if (id === 'documents') setCenterTab('documents');
+          setYonetimModulId(id);
+          setCenterTab('yonetim');
         }}
       />
 
