@@ -101,6 +101,13 @@ export default function PersonelKarti({ personelId, gorunenRol = 'ik_yetkilisi',
           </div>
 
           <div className="flex flex-wrap gap-x-3">
+            <HizliForm butonEtiket="Özlük bilgisi güncelle"
+              alanlar={[
+                { ad: 'unvan', etiket: 'Unvan', varsayilan: personel.unvan ?? '' },
+                { ad: 'departman', etiket: 'Departman', varsayilan: personel.departman ?? '' },
+                { ad: 'riza', etiket: 'Biyometrik PDKS rızası verildi', tip: 'checkbox', varsayilan: personel.biyometrik_riza_verildi_mi ? '1' : '0' },
+              ]}
+              onKaydet={async (v) => { await api.personelGuncelle(personelId, { unvan: v.unvan, departman: v.departman, biyometrik_riza_verildi_mi: v.riza === '1' ? 1 : 0 } as Partial<Personel>); await yenile(); }} />
             {gorunenRol === 'ik_yetkilisi' && (
               <HizliForm butonEtiket="Ücret tanımla" ipucu="Yeni ücret, geçerlilik tarihinden itibaren geçerli olur; eski ücret geçmişte kalır."
                 alanlar={[{ ad: 'maas', etiket: 'Brüt maaş (TL)', tip: 'number', zorunlu: true }, { ad: 'tarih', etiket: 'Geçerlilik başlangıcı', tip: 'date', zorunlu: true, varsayilan: new Date().toISOString().slice(0, 10) }]}

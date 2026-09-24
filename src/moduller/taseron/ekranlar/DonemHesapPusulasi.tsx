@@ -115,6 +115,10 @@ export default function DonemHesapPusulasi({ ekipId }: Props) {
           </div>
 
           <div className="flex items-center gap-2 flex-wrap print:hidden">
+            {donem.durum === 'acik' && (
+              <button onClick={async () => { setHata(null); try { const e = await api.ekipGetir(ekipId); await api.donemMalzemeFireKesintisiEkle(donem.id, e.sozlesme_id); await ac(donem.id); } catch (err) { setHata(String((err as Error).message || err)); } }}
+                className="px-2.5 py-1 text-[10px] font-black uppercase bg-orange-600/15 border border-orange-500/30 text-orange-400 rounded-lg cursor-pointer">Malzeme Fire Kesintisi Getir</button>
+            )}
             <button onClick={hesapla} className="px-2.5 py-1 text-[10px] font-black uppercase bg-blue-600/15 border border-blue-500/30 text-blue-400 rounded-lg cursor-pointer">Yeniden Hesapla</button>
             {(AKIS[donem.durum] || []).map((hedef) => (
               <button key={hedef} onClick={() => durumIlerlet(hedef)} className="px-2.5 py-1 text-[10px] font-black uppercase bg-indigo-600/15 border border-indigo-500/30 text-indigo-400 rounded-lg cursor-pointer flex items-center gap-1"><ArrowRight className="w-3 h-3" /> {DONEM_DURUM_ETIKET[hedef]}</button>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Layers } from 'lucide-react';
+import HizliForm from '../../_cekirdek/HizliForm';
 import * as api from '../api';
 import type { Portfoy, KurBazi } from '../types';
 import { KART, INPUT, HATA_KUTU, tl, yuzde, sapmaRenk, KUR_BAZI_ETIKET } from './format';
@@ -17,6 +18,9 @@ export default function PortfoyGorunumu({ onProjeSec }: { onProjeSec?: (projeId:
         <select value={kurBazi} onChange={(e) => setKurBazi(e.target.value as KurBazi)} className={`${INPUT} w-auto`}>{Object.entries(KUR_BAZI_ETIKET).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
       </div>
       {hata && <div className={HATA_KUTU}>{hata}</div>}
+      <HizliForm butonEtiket="Genel gider dağıt" ipucu="Havuz projedeki (genel gider) harcamayı seçilen dönemde projelere anahtarla dağıtır (ciro/maliyet/süre). Deftere satır yazmaz; kârlılıkta ayrı gösterilir. Aynı dönem yeniden dağıtılırsa öncekinin yerine geçer."
+        alanlar={[{ ad: 'havuz', etiket: 'Havuz proje ID', zorunlu: true }, { ad: 'bas', etiket: 'Dönem başlangıç', tip: 'date', zorunlu: true }, { ad: 'bit', etiket: 'Dönem bitiş', tip: 'date', zorunlu: true }]}
+        onKaydet={async (v) => { await api.genelGiderDagit(v.havuz, v.bas, v.bit); setP(await api.portfoy(kurBazi)); }} />
       {!p ? <div className="text-xs text-[var(--text-secondary)]">Yükleniyor…</div> : (
         <div className="overflow-x-auto">
           <table className="w-full text-xs">

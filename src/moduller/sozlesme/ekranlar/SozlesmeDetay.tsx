@@ -188,7 +188,13 @@ function KalemlerSekmesi({ sozlesmeId, sozlesme, kalemler, paraBirimi, onDegisti
             <div className="text-xs font-bold">{k.aciklama}</div>
             <div className="text-[10px] text-[var(--text-secondary)]">{k.miktar} {k.birim} × {formatKurus(k.birim_fiyat_kurus, paraBirimi)}{k.wbs_gorev_id ? ` • WBS: ${k.wbs_gorev_id}` : ''}</div>
           </div>
-          <span className="text-xs font-black">{formatKurus(k.miktar * k.birim_fiyat_kurus, paraBirimi)}</span>
+          <span className="flex items-center gap-3">
+            <span className="text-xs font-black">{formatKurus(k.miktar * k.birim_fiyat_kurus, paraBirimi)}</span>
+            {!kilitli && (
+              <button title="Kalemi sil" onClick={async () => { if (!window.confirm(`"${k.aciklama}" kalemi silinsin mi?`)) return; setHata(null); try { await sozlesmeApi.kalemSil(k.id); onDegisti(); } catch (err) { setHata(String((err as Error).message || err)); } }}
+                className="px-2 py-1 text-[10px] font-black uppercase text-red-400 hover:bg-red-600/15 rounded cursor-pointer">Sil</button>
+            )}
+          </span>
         </div>
       ))}
     </div>

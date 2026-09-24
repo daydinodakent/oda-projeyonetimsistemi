@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Truck, FileInput, PackageSearch } from 'lucide-react';
+import HizliForm, { tlToKurus } from '../../_cekirdek/HizliForm';
 import * as api from '../api';
 import type { SatinalmaSiparis, SatinalmaSiparisKalem } from '../types';
 import { formatKurus, formatTarih, SIPARIS_DURUM_ETIKET, SIPARIS_DURUM_RENK } from './format';
@@ -98,6 +99,11 @@ export default function SiparisTakip({ projeId, onFaturaOlusturuldu }: Props) {
                 <div className="p-3 border-t border-[var(--border)] flex flex-col gap-3">
                   {s.durum === 'taslak' && (
                     <button onClick={() => onayla(s.id)} className="self-start px-3 py-1.5 text-[10px] font-black uppercase bg-blue-600/15 border border-blue-500/30 text-blue-400 rounded-lg cursor-pointer">Siparişi Onayla (TAAHHÜT yazılır)</button>
+                  )}
+                  {s.durum === 'taslak' && (
+                    <HizliForm butonEtiket="Kalem ekle" ipucu="Yalnızca taslak siparişe eklenir; toplam otomatik yeniden hesaplanır."
+                      alanlar={[{ ad: 'aciklama', etiket: 'Açıklama', zorunlu: true }, { ad: 'birim', etiket: 'Birim', zorunlu: true, varsayilan: 'adet' }, { ad: 'miktar', etiket: 'Miktar', tip: 'number', zorunlu: true }, { ad: 'fiyat', etiket: 'Birim fiyat (TL, KDV hariç)', tip: 'number', zorunlu: true }, { ad: 'kdv', etiket: 'KDV %', tip: 'number', varsayilan: '20' }]}
+                      onKaydet={async (v) => { await api.siparisKalemEkle(s.id, { aciklama: v.aciklama, birim: v.birim, miktar: Number(v.miktar), birim_fiyat_kurus: tlToKurus(v.fiyat), kdv_orani: Number(v.kdv || 20) }); setKalemler(await api.siparisKalemleriGetir(s.id)); await yenile(); }} />
                   )}
                   {kalemler.map((k) => (
                     <div key={k.id} className="p-2.5 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg">

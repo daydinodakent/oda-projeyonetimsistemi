@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Users, LogIn, Wifi, WifiOff } from 'lucide-react';
+import HizliForm from '../../_cekirdek/HizliForm';
 import * as api from '../api';
 import { createOfflineQueue } from '../../_cekirdek/offlineQueue';
 import type { Personel, PdksYontemi, PdksMeta } from '../types';
@@ -97,9 +98,21 @@ export default function PdksGunlukDurum({ projeId: baslangicProjeId }: { projeId
         <div className="flex flex-col gap-1.5">
           {icindekiler.length === 0 && <div className="text-[10px] text-[var(--text-secondary)]">Kimse içeride görünmüyor (ya da proje/tarih girilmedi).</div>}
           {icindekiler.map((k) => (
-            <div key={k.id} className="p-2 bg-[var(--bg-primary)] border border-[var(--border)] rounded flex items-center justify-between text-xs">
-              <span>Kişi #{k.kisi_id} — giriş {k.giris_saati}</span>
-              {k.pdks && <span className="text-[9px] text-[var(--text-secondary)] uppercase">{PDKS_YONTEM_ETIKET[k.pdks.yontem]}</span>}
+            <div key={k.id} className="p-2 bg-[var(--bg-primary)] border border-[var(--border)] rounded text-xs">
+              <div className="flex items-center justify-between">
+                <span>Kişi #{k.kisi_id} — giriş {k.giris_saati} • gün {k.gun_degeri}</span>
+                {k.pdks && <span className="text-[9px] text-[var(--text-secondary)] uppercase">{PDKS_YONTEM_ETIKET[k.pdks.yontem]}</span>}
+              </div>
+              {personeller.find((p) => p.kisi_id === k.kisi_id) && (
+                <div className="mt-1.5">
+                  <HizliForm butonEtiket="Kaydı düzelt" ipucu="Eski kayıt silinmez; düzeltme, onaylayan adıyla yeni kayıt olarak işlenir (denetim izi)."
+                    alanlar={[
+                      { ad: 'gun', etiket: 'Doğru gün değeri', tip: 'select', zorunlu: true, secenekler: [{ deger: '1', etiket: 'Tam gün (1)' }, { deger: '0.5', etiket: 'Yarım gün (0.5)' }, { deger: '0', etiket: 'Yok (0)' }] },
+                      { ad: 'onaylayan', etiket: 'Onaylayan (ad soyad)', zorunlu: true },
+                    ]}
+                    onKaydet={async (v) => { await api.pdksDuzelt(k.id, { personel_id: personeller.find((p) => p.kisi_id === k.kisi_id)!.id, proje_id: projeId, tarih, yontem: 'manuel_sef', gun_degeri: Number(v.gun) as 0 | 0.5 | 1 }, v.onaylayan); await icindekileriYenile(); }} />
+                </div>
+              )}
             </div>
           ))}
         </div>

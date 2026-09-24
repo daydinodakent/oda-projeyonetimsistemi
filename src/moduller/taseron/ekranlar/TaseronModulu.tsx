@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Users, UserPlus, CalendarCheck, Table2, Wallet, Printer, Gauge, ShieldAlert } from 'lucide-react';
+import { Users, UserPlus, Ruler, CalendarCheck, Table2, Wallet, Printer, Gauge, ShieldAlert } from 'lucide-react';
 import EkipListesi from './EkipListesi';
 import EkipUyeleri from './EkipUyeleri';
+import EkipMetraj from './EkipMetraj';
 import MobilGunlukPuantaj from './MobilGunlukPuantaj';
 import HaftalikPuantajMatrisi from './HaftalikPuantajMatrisi';
 import AvansGirisi from './AvansGirisi';
@@ -9,7 +10,7 @@ import DonemHesapPusulasi from './DonemHesapPusulasi';
 import VerimlilikRaporu from './VerimlilikRaporu';
 import EksikEvrakliIsciUyarilari from './EksikEvrakliIsciUyarilari';
 
-type UstSekme = 'ekipler' | 'uyeler' | 'gunluk' | 'haftalik' | 'avans' | 'hesap-pusulasi' | 'verimlilik' | 'eksik-evrak';
+type UstSekme = 'ekipler' | 'uyeler' | 'metraj' | 'gunluk' | 'haftalik' | 'avans' | 'hesap-pusulasi' | 'verimlilik' | 'eksik-evrak';
 
 interface Props {
   projeId: string;
@@ -34,6 +35,7 @@ export default function TaseronModulu({ projeId }: Props) {
       <div className="flex items-center gap-1 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl p-1 self-start overflow-x-auto">
         <TabButon aktif={ustSekme === 'ekipler'} onClick={() => setUstSekme('ekipler')} icon={<Users className="w-3.5 h-3.5" />} etiket="Ekipler" />
         <TabButon aktif={ustSekme === 'uyeler'} onClick={() => setUstSekme('uyeler')} icon={<UserPlus className="w-3.5 h-3.5" />} etiket="Üyeler" />
+        <TabButon aktif={ustSekme === 'metraj'} onClick={() => setUstSekme('metraj')} icon={<Ruler className="w-3.5 h-3.5" />} etiket="Metraj" />
         <TabButon aktif={ustSekme === 'gunluk'} onClick={() => setUstSekme('gunluk')} icon={<CalendarCheck className="w-3.5 h-3.5" />} etiket="Günlük Puantaj" />
         <TabButon aktif={ustSekme === 'haftalik'} onClick={() => setUstSekme('haftalik')} icon={<Table2 className="w-3.5 h-3.5" />} etiket="Haftalık Matris" />
         <TabButon aktif={ustSekme === 'avans'} onClick={() => setUstSekme('avans')} icon={<Wallet className="w-3.5 h-3.5" />} etiket="Avans" />
@@ -45,6 +47,7 @@ export default function TaseronModulu({ projeId }: Props) {
       {ustSekme === 'ekipler' && <EkipListesi projeId={projeId} onEkipSec={ekipSec} />}
       {ustSekme !== 'ekipler' && !aktifEkipId && <div className="p-6 text-xs text-[var(--text-secondary)]">Önce Ekipler listesinden bir ekip seçin.</div>}
       {ustSekme === 'uyeler' && aktifEkipId && <EkipUyeleri ekipId={aktifEkipId} />}
+      {ustSekme === 'metraj' && aktifEkipId && <EkipMetraj ekipId={aktifEkipId} />}
       {ustSekme === 'gunluk' && aktifEkipId && <MobilGunlukPuantaj ekipId={aktifEkipId} />}
       {ustSekme === 'haftalik' && aktifEkipId && <HaftalikPuantajMatrisi ekipId={aktifEkipId} />}
       {ustSekme === 'avans' && aktifEkipId && <AvansGirisi ekipId={aktifEkipId} />}

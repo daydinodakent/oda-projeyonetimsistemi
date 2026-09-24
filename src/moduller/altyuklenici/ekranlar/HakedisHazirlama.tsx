@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import { FileSpreadsheet, Plus, ArrowRight, ShieldAlert, Banknote } from 'lucide-react';
 import * as sozlesmeApi from '../../sozlesme/api';
+import HizliForm, { tlToKurus } from '../../_cekirdek/HizliForm';
+import * as cekirdekApi from '../../_cekirdek/api';
+import type { Parametre } from '../../_cekirdek/types';
 import * as api from '../api';
 import type { SozlesmeKalem } from '../../sozlesme/types';
 import type { Hakedis, HakedisDurumu, HakedisKalem, HakedisKesinti, KesintiTuru } from '../types';
@@ -14,6 +17,26 @@ const KESINTI_TURLERI: KesintiTuru[] = ['avans_mahsubu', 'ceza', 'sgk_bekletme',
 
 interface Props {
   sozlesmeId: number;
+}
+
+/** Teminat/stopaj/KDV tevkifatı: oran, Parametre tablosundan (yürürlük tarihli) okunur; parametre yoksa satır oluşmaz. */
+function ParametrikKesintiFormu({ hakedisId, onEklendi }: { hakedisId: number; onEklendi: () => Promise<void> }) {
+  const [parametreler, setParametreler] = useState<Parametre[]>([]);
+  useEffect(() => { cekirdekApi.parametreleriListele().then(setParametreler).catch(() => setParametreler([])); }, []);
+  const turler: KesintiTuru[] = ['teminat_kesintisi', 'stopaj', 'kdv_tevkifati', 'sgk_bekletme', 'diger'];
+  return (
+    <HizliForm
+      butonEtiket="Oranla kesinti (parametrik)"
+      ipucu="Brüt tutar üzerinden, seçilen parametrenin tarihe göre geçerli oranıyla hesaplanır. O tarihte geçerli parametre yoksa satır eklenmez."
+      alanlar={[
+        { ad: 'tur', etiket: 'Kesinti türü', tip: 'select', zorunlu: true, secenekler: turler.map((t) => ({ deger: t, etiket: KESINTI_TUR_ETIKET[t] })) },
+        { ad: 'kod', etiket: 'Oran parametresi', tip: 'select', zorunlu: true, secenekler: parametreler.map((p) => ({ deger: p.kod, etiket: `${p.ad} (${p.deger})` })) },
+        { ad: 'brut', etiket: 'Brüt tutar (TL)', tip: 'number', zorunlu: true },
+        { ad: 'tarih', etiket: 'Tarih', tip: 'date', zorunlu: true, varsayilan: new Date().toISOString().slice(0, 10) },
+      ]}
+      onKaydet={async (v) => { await api.parametrikKesintiEkle(hakedisId, v.tur as KesintiTuru, v.kod, tlToKurus(v.brut), v.tarih); await onEklendi(); }}
+    />
+  );
 }
 
 export default function HakedisHazirlama({ sozlesmeId }: Props) {
@@ -245,6 +268,11 @@ export default function HakedisHazirlama({ sozlesmeId }: Props) {
                       <input type="number" value={kesintiTutar} onChange={(e) => setKesintiTutar(Number(e.target.value))} placeholder="Tutar (TL)" className="w-24 bg-[var(--bg-primary)] border border-[var(--border)] rounded px-1.5 py-1 text-[10px]" />
                       <button onClick={kesintiEkle} className="px-2 py-1 text-[10px] font-black uppercase bg-indigo-600/15 border border-indigo-500/30 text-indigo-400 rounded cursor-pointer">Ekle</button>
                       <button onClick={malzemeKesintisiEkle} className="px-2 py-1 text-[10px] font-black uppercase bg-orange-600/15 border border-orange-500/30 text-orange-400 rounded cursor-pointer">Malzeme Kesintisi Getir (P4)</button>
+                    </div>
+                  )}
+                  {h.durum !== 'onayli' && (
+                    <div className="mt-2">
+                      <ParametrikKesintiFormu hakedisId={acikHakedisId!} onEklendi={async () => { setKesintiler(await api.kesintileriGetir(acikHakedisId!)); await yenile(); }} />
                     </div>
                   )}
                   <div className="flex items-center justify-between text-xs font-black pt-2 mt-1 border-t border-[var(--border)]">

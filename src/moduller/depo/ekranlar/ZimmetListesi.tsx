@@ -104,7 +104,11 @@ export default function ZimmetListesi() {
                   {gecikmis && <span className="text-[10px] font-black text-red-400 uppercase">Geç Kaldı</span>}
                   <span className={`text-[10px] font-black px-2 py-0.5 rounded border uppercase ${ZIMMET_DURUM_RENK[z.durum]}`}>{ZIMMET_DURUM_ETIKET[z.durum]}</span>
                   {z.durum === 'zimmette' && (
-                    <button onClick={() => iadeEt(z.id)} className="px-2.5 py-1 text-[10px] font-black uppercase text-emerald-400 hover:bg-emerald-600/15 rounded-lg transition cursor-pointer">İade Al</button>
+                    <>
+                      <button onClick={() => iadeEt(z.id)} className="px-2.5 py-1 text-[10px] font-black uppercase text-emerald-400 hover:bg-emerald-600/15 rounded-lg transition cursor-pointer">İade Al</button>
+                      <button onClick={async () => { if (!window.confirm('Zimmet KAYIP olarak işaretlensin mi? (Zimmet alan taşeron/alt yüklenici ise hak edişte kesinti adayı olur.)')) return; try { await api.zimmetKayipIsaretle(z.id); await yenile(); } catch (err) { setHata(String((err as Error).message || err)); } }}
+                        className="px-2.5 py-1 text-[10px] font-black uppercase text-red-400 hover:bg-red-600/15 rounded-lg transition cursor-pointer">Kayıp</button>
+                    </>
                   )}
                 </div>
               </div>

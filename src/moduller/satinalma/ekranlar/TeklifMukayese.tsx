@@ -77,8 +77,11 @@ export default function TeklifMukayese({ talepId, projeId, onSiparisOlusturuldu 
       {hata && <div className="mb-4 p-3 rounded-lg bg-red-600/10 border border-red-500/30 text-red-400 text-xs">{hata}</div>}
 
       <div className="flex items-center gap-2 mb-4">
-        <input value={yeniFirmaId} onChange={(e) => setYeniFirmaId(e.target.value)} type="number" placeholder="Çekirdek Firma ID"
-          className="bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-xs" />
+        <select value={yeniFirmaId} onChange={(e) => setYeniFirmaId(e.target.value)}
+          className="bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-xs">
+          <option value="">Tedarikçi firma seçin…</option>
+          {firmalar.map((f) => <option key={f.id} value={f.id}>{f.unvan}</option>)}
+        </select>
         <button disabled={!yeniFirmaId} onClick={teklifIste} className="px-3 py-1.5 text-[10px] font-black uppercase bg-indigo-600/15 border border-indigo-500/30 text-indigo-400 rounded-lg cursor-pointer disabled:opacity-40 flex items-center gap-1.5">
           <Plus className="w-3.5 h-3.5" /> Tedarikçiye Teklif İste
         </button>
@@ -102,6 +105,10 @@ export default function TeklifMukayese({ talepId, projeId, onSiparisOlusturuldu 
                       ) : (
                         <button onClick={() => setFiyatGirimTeklifId(t.id)} className="px-2 py-1 bg-[var(--bg-primary)] border border-[var(--border)] rounded cursor-pointer normal-case">Fiyat Gir</button>
                       )
+                    )}
+                    {(t.durum === 'istendi' || t.durum === 'geldi') && (
+                      <button onClick={async () => { if (!window.confirm(`${firmaAdi(t.firma_id)} teklifi elensin mi?`)) return; setHata(null); try { await api.teklifEle(t.id); await yenile(); } catch (err) { setHata(String((err as Error).message || err)); } }}
+                        className="px-2 py-1 bg-[var(--bg-primary)] border border-red-500/30 text-red-400 rounded cursor-pointer normal-case">Ele</button>
                     )}
                     {t.durum === 'geldi' && (
                       <button onClick={() => siparisOlustur(t.id, t.firma_id)} className="px-2 py-1 bg-indigo-600 text-white rounded cursor-pointer normal-case flex items-center gap-1"><ShoppingCart className="w-3 h-3" /> Sipariş Aç</button>

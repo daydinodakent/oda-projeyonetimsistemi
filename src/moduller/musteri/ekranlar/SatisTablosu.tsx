@@ -14,6 +14,7 @@ export default function SatisTablosu({ projeId, onSatisSec }: { projeId: string;
   const [fiyatTl, setFiyatTl] = useState('');
   const [rez, setRez] = useState({ bitis: '', kaparoTl: '' });
   const [musteriId, setMusteriId] = useState('');
+  const [arsaSozlesmeId, setArsaSozlesmeId] = useState('');
 
   const yenile = () => api.satisTablosu(projeId).then(setIzgara).catch((e) => setHata(String(e.message)));
   useEffect(() => { yenile(); }, [projeId]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -39,6 +40,12 @@ export default function SatisTablosu({ projeId, onSatisSec }: { projeId: string;
           <button onClick={sar(async () => { await api.bolumOlustur({ proje_id: projeId, blok: yeni.blok, kat: yeni.kat, kapi_no: yeni.kapi_no, tip: yeni.tip, net_m2: yeni.net_m2 ? Number(yeni.net_m2) : undefined }); setFormAcik(false); })} className={BTN_YESIL}>Kaydet</button>
         </div>
       )}
+
+      <div className="mb-4 p-3 bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg flex gap-2 items-end flex-wrap">
+        <input type="number" value={arsaSozlesmeId} onChange={(e) => setArsaSozlesmeId(e.target.value)} placeholder="Arsa sahibi sözleşme ID" className={`${INPUT} max-w-[200px]`} />
+        <button disabled={!arsaSozlesmeId} onClick={sar(async () => { const r = await api.paylasimUygula(Number(arsaSozlesmeId)); setMesaj(`Paylaşım uygulandı — arsa sahibine ayrılan: ${r.ayrilan.length}, bulunamayan: ${r.bulunamayan.length}, atlanan: ${r.atlanan.length}.`); })} className={`${BTN_MOR} disabled:opacity-40`}>Kat karşılığı paylaşımı uygula</button>
+        <span className="text-[10px] text-[var(--text-secondary)]">Arsa sahibi sözleşmesindeki bölüm listesini bağımsız bölümlere işler (satışa kapatır).</span>
+      </div>
 
       <div className="flex gap-3 flex-wrap mb-4">
         {Object.entries(DURUM_ETIKET).map(([k, v]) => <span key={k} className={`text-[9px] font-black px-2 py-1 rounded border uppercase ${DURUM_RENK[k]}`}>{v}</span>)}
@@ -101,6 +108,21 @@ export default function SatisTablosu({ projeId, onSatisSec }: { projeId: string;
               <div className="flex gap-2 items-end sm:col-span-2">
                 <input type="number" value={musteriId} onChange={(e) => setMusteriId(e.target.value)} placeholder="Müşteri Kişi ID (rol: müşteri)" className={INPUT} />
                 <button onClick={sar(async () => { const s = await api.satisOlustur({ bolum_id: secili.id, musteriler: [{ kisi_id: Number(musteriId) }], satis_tarihi: bugun() }); setMesaj(`Satış #${s.id} taslak açıldı — ödeme planı oluşturup onaylayın.`); onSatisSec?.(secili.id); })} className={BTN_YESIL}>Satış Aç</button>
+              </div>
+            )}
+            {secili.sahiplik === 'firma' && secili.durum === 'musait' && arsaSozlesmeId && (
+              <div className="sm:col-span-2">
+                <button onClick={sar(async () => { if (!window.confirm(`Bu bölüm #${arsaSozlesmeId} nolu arsa sahibi sözleşmesine ayrılsın ve satışa kapatılsın mı?`)) return; await api.arsaSahibineAyir(secili.id, Number(arsaSozlesmeId)); setMesaj('Bölüm arsa sahibine ayrıldı.'); })} className={BTN_MOR}>Arsa sahibine ayır (#{arsaSozlesmeId})</button>
+              </div>
+            )}
+            {secili.sahiplik === 'firma' && secili.durum === 'opsiyonlu' && (
+              <div className="sm:col-span-2">
+                <button onClick={sar(async () => { const r = (await api.rezervasyonlariListele(projeId)).find((x) => x.bolum_id === secili.id && x.durum === 'aktif'); if (!r) throw new Error('Aktif opsiyon bulunamadı.'); if (!window.confirm('Opsiyon iptal edilsin mi?')) return; await api.rezervasyonIptal(r.id); setMesaj('Opsiyon iptal edildi.'); })} className="px-2.5 py-1 text-[10px] font-black uppercase bg-red-600/15 border border-red-500/30 text-red-400 rounded-lg cursor-pointer">Opsiyonu iptal et</button>
+              </div>
+            )}
+            {secili.sahiplik === 'firma' && !['musait', 'opsiyonlu'].includes(secili.durum) && (
+              <div className="sm:col-span-2">
+                <button onClick={sar(async () => { const s = (await api.satislariListele(projeId)).find((x) => x.bolum_id === secili.id && x.durum !== 'iptal'); if (!s) throw new Error('Bu bölümde iptal edilebilir satış bulunamadı.'); if (!window.confirm(`Satış #${s.id} iptal edilsin mi? Tahsilat/plan durumu kontrol edilir.`)) return; await api.satisIptal(s.id); setMesaj(`Satış #${s.id} iptal edildi.`); })} className="px-2.5 py-1 text-[10px] font-black uppercase bg-red-600/15 border border-red-500/30 text-red-400 rounded-lg cursor-pointer">Satışı iptal et</button>
               </div>
             )}
             {secili.sahiplik === 'arsa_sahibi' && <div className="sm:col-span-2 p-2.5 rounded-lg bg-slate-600/20 border border-slate-500/30 text-[10px] text-slate-300">Bu bölüm kat karşılığı arsa sahibine aittir (sözleşme #{secili.arsa_sozlesme_id}); satılamaz ve opsiyonlanamaz.</div>}

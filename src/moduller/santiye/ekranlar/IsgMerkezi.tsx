@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ShieldAlert, DoorOpen, GraduationCap, FileCheck2, Siren, Wrench, ClipboardCheck } from 'lucide-react';
 import * as api from '../api';
-import type { GirisKontrol, IsIzni, IsIzniTuru, RamakKala, IsgOlay, DuzelticiFaaliyet, DenetimSablon, IsgEgitim } from '../types';
+import type { IsgUyari, GirisKontrol, IsIzni, IsIzniTuru, RamakKala, IsgOlay, DuzelticiFaaliyet, DenetimSablon, IsgEgitim } from '../types';
 import { KART, INPUT, BTN_YESIL, BTN_MOR, HATA_KUTU, IS_IZNI_ETIKET, OLAY_ETIKET, formatTarih, bugun } from './format';
 
 type Sekme = 'giris' | 'egitim' | 'izin' | 'ramak' | 'olay' | 'duzeltici' | 'denetim';
@@ -11,6 +11,7 @@ export default function IsgMerkezi({ projeId }: { projeId: string }) {
   const [hata, setHata] = useState<string | null>(null);
   const sar = (fn: () => Promise<unknown>) => async () => { setHata(null); try { await fn(); } catch (e) { setHata(String((e as Error).message)); } };
 
+  const [uyarilar, setUyarilar] = useState<IsgUyari[]>([]);
   // giriş kontrolü
   const [kisiId, setKisiId] = useState('');
   const [kontrol, setKontrol] = useState<GirisKontrol | null>(null);
@@ -31,6 +32,7 @@ export default function IsgMerkezi({ projeId }: { projeId: string }) {
   const [sablonAd, setSablonAd] = useState(''); const [sablonMaddeler, setSablonMaddeler] = useState('');
 
   async function yukle() {
+    setUyarilar(await api.isgUyarilari(projeId));
     if (sekme === 'egitim') setDolanlar(await api.suresiDolanEgitimler(30));
     if (sekme === 'izin') setIzinler(await api.isIzinleriGetir(projeId));
     if (sekme === 'ramak') setRamaklar(await api.ramakKalalariGetir(projeId));
@@ -47,6 +49,12 @@ export default function IsgMerkezi({ projeId }: { projeId: string }) {
   return (
     <div className={KART}>
       <h2 className="text-lg font-black tracking-tight flex items-center gap-2 pb-4 border-b border-[var(--border)] mb-4"><ShieldAlert className="w-5 h-5 text-red-400" /> İSG Merkezi (6331)</h2>
+      {uyarilar.length > 0 && (
+        <div className="mb-4 p-3 rounded-lg bg-red-600/10 border border-red-500/30 text-xs text-red-300 flex flex-col gap-0.5">
+          <div className="text-[10px] font-black uppercase text-red-400">İSG uyarıları ({uyarilar.length})</div>
+          {uyarilar.map((u, i) => <div key={i}>• {u.mesaj}{u.son_tarih ? ` (son: ${formatTarih(u.son_tarih)})` : ''}{u.gecikti ? ' — GECİKTİ' : ''}</div>)}
+        </div>
+      )}
       <div className="flex gap-1 bg-[var(--bg-primary)] border border-[var(--border)] rounded-xl p-1 mb-4 overflow-x-auto">
         <T k="giris" ikon={<DoorOpen className="w-3.5 h-3.5" />} ad="Giriş Kontrolü" />
         <T k="egitim" ikon={<GraduationCap className="w-3.5 h-3.5" />} ad="Eğitim" />

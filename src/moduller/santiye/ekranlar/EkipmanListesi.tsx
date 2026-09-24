@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Truck, Plus, Clock } from 'lucide-react';
 import * as api from '../api';
 import { createOfflineQueue } from '../../_cekirdek/offlineQueue';
-import type { Ekipman } from '../types';
+import type { Ekipman, EkipmanCalisma } from '../types';
 import { KART, INPUT, BTN_YESIL, BTN_MOR, HATA_KUTU, bugun } from './format';
 
 type CalismaVeri = { ekipman_id: number; tarih: string; calisma_saat: number; yakit_litre?: number; maliyet_kodu_id?: number };
@@ -15,6 +15,7 @@ export default function EkipmanListesi({ projeId }: { projeId: string }) {
   const [f, setF] = useState({ ad: '', sahiplik: 'kiralik' as 'kiralik' | 'oz_mal', kira_sozlesme_id: '', ozmal_tl: '' });
   const [saat, setSaat] = useState<Record<number, string>>({});
   const [mk, setMk] = useState('');
+  const [gecmis, setGecmis] = useState<{ id: number; satirlar: EkipmanCalisma[] } | null>(null);
   const [mesaj, setMesaj] = useState<string | null>(null);
   const [hata, setHata] = useState<string | null>(null);
 
@@ -64,7 +65,14 @@ export default function EkipmanListesi({ projeId }: { projeId: string }) {
             <div><div className="font-bold">{e.ad} <span className="text-[10px] text-[var(--text-secondary)] font-normal">{e.sahiplik === 'kiralik' ? `kiralık (söz. #${e.kira_sozlesme_id})` : 'öz mal'}</span></div>
               <div className="text-[10px] text-[var(--text-secondary)] flex items-center gap-1"><Clock className="w-3 h-3" /> sayaç {e.sayac_saat} saat • <span className={e.durum === 'arizali' ? 'text-red-400 font-bold' : ''}>{e.durum}</span></div></div>
             <div className="flex gap-1"><input type="number" value={saat[e.id] ?? ''} onChange={(ev) => setSaat({ ...saat, [e.id]: ev.target.value })} placeholder="Bugün saat" className="w-24 bg-[var(--bg-secondary)] border border-[var(--border)] rounded px-2 py-1.5 text-xs" />
-              <button disabled={!saat[e.id]} onClick={() => calisma(e)} className={`${BTN_MOR} disabled:opacity-30`}>Çalışma Kaydet</button></div>
+              <button disabled={!saat[e.id]} onClick={() => calisma(e)} className={`${BTN_MOR} disabled:opacity-30`}>Çalışma Kaydet</button>
+              <button onClick={async () => { if (gecmis?.id === e.id) { setGecmis(null); return; } try { setGecmis({ id: e.id, satirlar: await api.ekipmanCalismalari(e.id) }); } catch (err) { setHata(String((err as Error).message)); } }} className="px-2 py-1 text-[10px] font-black uppercase text-indigo-400 cursor-pointer">Geçmiş</button></div>
+            {gecmis?.id === e.id && (
+              <div className="w-full mt-1 border-t border-[var(--border)] pt-2 text-[10px] flex flex-col gap-0.5">
+                {gecmis.satirlar.length === 0 && <div className="text-[var(--text-secondary)]">Çalışma kaydı yok.</div>}
+                {gecmis.satirlar.map((c) => <div key={c.id} className="flex justify-between"><span>{c.tarih} • {c.calisma_saat} saat{c.yakit_litre ? ` • ${c.yakit_litre} lt yakıt` : ''}</span><span>{c.tutar_kurus != null ? `${(c.tutar_kurus / 100).toLocaleString('tr-TR')} TL` : '—'}</span></div>)}
+              </div>
+            )}
           </div>
         ))}
       </div>

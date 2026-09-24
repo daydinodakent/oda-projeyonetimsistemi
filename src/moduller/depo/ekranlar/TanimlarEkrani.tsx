@@ -37,7 +37,8 @@ export default function TanimlarEkrani({ projeId }: { projeId: string }) {
         {depolar.length === 0 && <div className="text-xs text-[var(--text-secondary)] py-2">Henüz depo yok.</div>}
         {depolar.map((d) => (
           <div key={d.id} className="p-2 bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg text-xs flex justify-between">
-            <span className="font-bold">{d.ad}</span><span className="text-[var(--text-secondary)]">{d.tur}{d.proje_id ? '' : ' • merkez'}</span>
+            <span className="font-bold">{d.ad}</span><span className="flex items-center gap-3"><span className="text-[var(--text-secondary)]">{d.tur}{d.proje_id ? '' : ' • merkez'}</span>
+              <button onClick={async () => { if (!window.confirm(`"${d.ad}" deposu pasife alınsın mı? Geçmiş hareketler korunur.`)) return; try { await api.depoPasifEt(d.id); await yenile(); } catch (err) { window.alert(String((err as Error).message || err)); } }} className="text-[10px] font-black uppercase text-red-400 cursor-pointer">Pasife al</button></span>
           </div>
         ))}
       </div>
@@ -71,6 +72,7 @@ export default function TanimlarEkrani({ projeId }: { projeId: string }) {
             <span><span className="font-mono text-[10px] text-[var(--text-secondary)] mr-2">{m.kod}</span><span className="font-bold">{m.ad}</span> <span className="text-[var(--text-secondary)]">({m.birim})</span></span>
             <span className="flex items-center gap-3">
               <span className="text-[10px] text-[var(--text-secondary)]">{m.stoklu_mu ? 'Stoklu' : 'Stoksuz'}{m.demirbas_mi ? ' • Demirbaş' : ''}</span>
+              <button onClick={async () => { if (!window.confirm(`"${m.ad}" malzeme kartı pasife alınsın mı?`)) return; try { await api.malzemePasifEt(m.id); await yenile(); } catch (err) { window.alert(String((err as Error).message || err)); } }} className="text-[10px] font-black uppercase text-red-400 cursor-pointer">Pasife al</button>
               <HizliForm
                 butonEtiket="Birim dönüşümü"
                 alanlar={[{ ad: 'birim', etiket: `Yeni birim (1 birim = ? ${m.birim})`, zorunlu: true }, { ad: 'katsayi', etiket: 'Katsayı', tip: 'number', zorunlu: true }]}
