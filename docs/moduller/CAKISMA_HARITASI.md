@@ -498,3 +498,39 @@ Taşeron modülü kuruldu — `server/moduller/taseron/` (backend) + `src/modull
 - P5 performans kartı puanı `performans_olay`'dan otomatik hesaplanmıyor (olay listesi hazır).
 - Günlük rapor çalışan kırılımı `kisi.rol`+firma bazlıdır; taşeron ekibi/alt yüklenici sözleşmesi bazında ayrım yok.
 - `santiye_giris`/rol bazlı yetki yok (gerçek oturum sistemi yok).
+
+## P9 Uygulama Durumu (Müşteri Yönetimi)
+
+Müşteri modülü kuruldu — `server/moduller/musteri/` + `src/moduller/musteri/`. Bağımsız Bölüm, Fiyat Listesi, Aday/Etkileşim, Rezervasyon, Satış, Ödeme Planı (+versiyon), Teslim, Satış Sonrası Talep ve KVKK Rıza'nın sahibi burasıdır (§4.1). Müşteri = Çekirdek Kişi (rol `musteri`) / Firma (`musteri` rolü) — kopyalanmaz.
+
+### Çekirdek'te yapılan TEK değişiklik
+- **`tahsilat` tablosu + `odeme.js#tahsilatKaydet/tahsilatlariKaynagaGore`** (yön: gelen). Mevcut `odeme_talimati/odeme` GİDEN yöndür (firma_id zorunlu, talimat onayı şart) — müşteriden gelen para için ayrı ince tablo; belge referansı `kaynak_modul/kaynak_id` (Müşteri: `musteri_satis`). Silme yok.
+
+### Maliyet Defteri kuralı (çift sayımı önler)
+- Defterde tek `GELIR` türü var (taahhüt/gerçekleşen ayrı tür DEĞİL). Ayrım `kaynak_modul` ile: **satış onayı → P2'nin `sozlesme` GELİR taahhüdü** (sözleşme onayda→imzali→yururlukte'ye taşınır; Müşteri İKİNCİ taahhüt YAZMAZ), **tahsilat → `musteri_tahsilat` GELİR** (satış para biriminde + tahsilat kuru). **Döviz kur farkı** (`:kur_farki`) ve **endeks farkı** (`:endeks_farki`) AYRI TRY satırlarıdır.
+
+### Uygulandı
+| Kavram | Dosya | Not |
+|---|---|---|
+| Bölüm / fiyat | `bolum.js` | Tarihli insert-only fiyat listesi; **arsa sahibi payı**: paylaşım listesi P2 `arsa_sahibi` sözleşmesinin kalem açıklamalarından (`A-3-12, A-3-13`) okunur, eşleşen bölümler `arsa_sahibi`ye ayrılır → stokta görünür, satışa/opsiyona KAPALI (KABUL). Satış tablosu ızgarası blok×kat. |
+| Opsiyon | `rezervasyon.js` | Kilit DB'de (partial UNIQUE INDEX) + bölüm durumu; **süre dolunca otomatik serbest** (her rezervasyon/satış/ızgara okumasında; zamanlayıcı yok). |
+| Satış | `satis.js` | P2'de `musteri_satis` sözleşmesi açar; hisseli müşteri (%100 toplam); opsiyonlu bölüm yalnız kendi rezervasyonuyla satılır; onay için aktif plan şart; rezervasyon kaparosu onayda ilk tahsilat. Bölüm başına tek canlı satış (DB). |
+| Ödeme planı | `odemePlani.js` | Peşinat/taksit/ara ödeme/senet/**banka kredisi (onaya bağlı dilim)**/takas; toplam = satış tutarı. **Revizyon:** eski plan `eski` (tarihçe), Çekirdek tahsilat satırları DEĞİŞMEZ, tahsilatlar yeni plana yeniden dağıtılır → eski tahsilatlar korunur (KABUL, testle + canlı HTTP). |
+| Tahsilat | `tahsilat.js` | Kapama sırası parametrik (`musteri_tahsilat_kapama_sirasi`: 1 en eski vade — varsayılan, 2 en yeni) veya belirli taksit; kredi onayı bekleyen dilime para girmez. |
+| Vade / hatırlatma | `vade.js` | Vadesi geçenler + gecikme faizi (sözleşme `ceza` maddesindeki `gecikme_gunluk_yuzde_parametre_kodu` → parametre; yoksa NULL); hatırlatma KUYRUĞU (ofsetler parametrik, varsayılan -3/+1/+7; gönderim entegrasyonu kapsam dışı). |
+| Teslim | `teslim.js` | Ödeme tamamlanma şartı parametrik (`musteri_teslim_odeme_tamamlanma_yuzde`, varsayılan 100), altında yetkili istisna + gerekçe; **eksik listesi → P8 Görev** (blok/kat/daire konumuyla, mükerrer açmaz — KABUL). |
+| Satış sonrası | `satisSonrasi.js` | Garanti parametrik (`musteri_garanti_ay`; yoksa bilinmiyor); WBS'ten sorumlu alt yüklenici (P2/P5) bulunup P8 görevi ona açılır, bulunamazsa sorumlu verilir. |
+| Aday / KVKK | `aday.js`, `kvkk.js` | Huni + etkileşim; aydınlatma ve pazarlama rızası AYRI, geri çekme tarihçeyi silmez. |
+| Ekranlar | `src/moduller/musteri/ekranlar/` | Satış tablosu (blok×kat renkli ızgara + bölüm kartı), aday hunisi, ödeme planı oluşturucu (eşit taksit sihirbazı, revizyon, tahsilat), müşteri kartı, vadesi geçenler, teslim & satış sonrası. |
+
+**Doğrulama:** 209/209 test (18 yeni); build temiz; lint yalnızca 7 eski hata. KABUL: arsa sahibi bölümü satılamıyor (test + canlı HTTP 400), plan revizyonunda eski tahsilatlar korunuyor (canlı: v2, ödenen 1.200.000 korunarak yeni plana geçti, defter satırı çoğalmadı), eksik listesi şantiye görevine dönüşüyor (test). İzole tarayıcıda satış tablosu, arsa sahibi bölümü ve revize edilmiş plan doğrulandı.
+
+### Bilinçli Olarak Ertelendi
+- Ekranlar App.tsx'e ve ODA harita katmanına bağlanmadı (`geometri_ref` yalnız referans alanı).
+- **Tahsilat iptali/iadesi YOK** (Çekirdek `tahsilat.iptal` alanı hazır ama servis + defter ters kaydı yazılmadı). Onaylı satışın iptali (sözleşme feshi) da kapsam dışı; yalnız taslak satış iptal edilir.
+- Endeksli taksit: endeks farkı tahsilatta elle girilir (`endeks_farki_kurus`); endeks/kur tablosu ve otomatik hesap yok. Döviz planlarında taksit tutarları satışın para biriminde tutulur.
+- Takas dilimi yalnız planda tanımlanır (açıklama); takas nesnesinin değerlemesi/tahsilata dönüşümü yok.
+- Hatırlatma SMS/e-posta gönderimi yok (kuyruk); pazarlama gönderimi öncesi `kvkk.pazarlamaIzniVarMi` çağrısı gönderim katmanının sorumluluğunda.
+- Tapu devri / iskân adımları (huni sonrası) modellenmedi; müşteri belgeleri Çekirdek Belge'den okunur (yalnız kişi).
+- Plan revizyonunda yeniden dağıtım varsayılan sırayı kullanır (kullanıcının önceki taksit seçimi tekrarlanmaz).
+- Rol bazlı yetki yok (gerçek oturum sistemi yok).

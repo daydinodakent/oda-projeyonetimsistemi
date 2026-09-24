@@ -238,6 +238,32 @@ db.exec(`
   );
   CREATE INDEX IF NOT EXISTS idx_belge_ilgili ON belge (ilgili_tip, ilgili_id);
 
+  -- ========== TAHSİLAT (ödeme katmanının GELEN yönü) ==========
+  -- odeme/odeme_talimati GİDEN yöndür (firma_id NOT NULL, talimat onayı şart);
+  -- müşteriden gelen para için AYRI, ince bir tablo. Hangi belgeye (ör.
+  -- musteri_satis) ait olduğu kaynak_modul/kaynak_id ile tutulur — o belgeyi
+  -- KOPYALAMAZ. Tutar HER ZAMAN kaynak belgenin para biriminde (kuruş), kur =
+  -- TRY karşılık katsayısı. Silme yok; iptal ters kayıt mantığıyla (iptal=1).
+  CREATE TABLE IF NOT EXISTS tahsilat (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    proje_id TEXT NOT NULL,
+    kaynak_modul TEXT NOT NULL,
+    kaynak_id TEXT NOT NULL,
+    kisi_id INTEGER REFERENCES kisi(id),
+    firma_id INTEGER REFERENCES cari_firma(id),
+    tutar_kurus INTEGER NOT NULL CHECK (tutar_kurus > 0),
+    para_birimi TEXT NOT NULL DEFAULT 'TRY',
+    kur REAL NOT NULL DEFAULT 1,
+    kur_tarihi TEXT NOT NULL,
+    tarih TEXT NOT NULL,
+    yontem TEXT, -- 'havale','eft','nakit','cek','senet','kredi','takas'
+    referans_no TEXT,
+    iptal INTEGER NOT NULL DEFAULT 0,
+    notes TEXT,
+    olusturan INTEGER, olusturma_zamani TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+  );
+  CREATE INDEX IF NOT EXISTS idx_tahsilat_kaynak ON tahsilat (kaynak_modul, kaynak_id);
+
   -- ========== AUDIT LOG ==========
   -- CAKISMA_HARITASI.md'de eksik olarak işaretlenen gerçek denetim izi.
   -- Her çekirdek servis create/update/iptal işleminde audit.js#kaydet()

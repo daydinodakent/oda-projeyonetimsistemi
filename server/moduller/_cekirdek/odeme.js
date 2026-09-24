@@ -95,3 +95,26 @@ export function disaAktarimNoktasi() {
 export function disaAktarildiIsaretle(odemeId) {
   stmtDisaAktarildiIsaretle.run(odemeId);
 }
+
+// ---------- Tahsilat (GELEN yön) ----------
+const stmtInsertTahsilat = db.prepare(
+  `INSERT INTO tahsilat (proje_id, kaynak_modul, kaynak_id, kisi_id, firma_id, tutar_kurus, para_birimi, kur, kur_tarihi, tarih, yontem, referans_no, notes, olusturan)
+   VALUES (@proje_id, @kaynak_modul, @kaynak_id, @kisi_id, @firma_id, @tutar_kurus, @para_birimi, @kur, @kur_tarihi, @tarih, @yontem, @referans_no, @notes, @olusturan)`
+);
+const stmtGetTahsilat = db.prepare('SELECT * FROM tahsilat WHERE id = ?');
+const stmtListTahsilatKaynak = db.prepare('SELECT * FROM tahsilat WHERE kaynak_modul = ? AND kaynak_id = ? AND iptal = 0 ORDER BY tarih, id');
+
+/** @param {{proje_id, kaynak_modul, kaynak_id, kisi_id?, firma_id?, tutar_kurus, para_birimi?, kur?, kur_tarihi?, tarih, yontem?, referans_no?, notes?}} item */
+export function tahsilatKaydet(item, aktor) {
+  if (!Number.isInteger(item.tutar_kurus) || item.tutar_kurus <= 0) throw new Error('tutar_kurus pozitif tam sayı (kuruş) olmalıdır.');
+  const row = {
+    proje_id: item.proje_id, kaynak_modul: item.kaynak_modul, kaynak_id: String(item.kaynak_id), kisi_id: item.kisi_id ?? null, firma_id: item.firma_id ?? null,
+    tutar_kurus: item.tutar_kurus, para_birimi: item.para_birimi || 'TRY', kur: item.kur ?? 1, kur_tarihi: item.kur_tarihi || item.tarih, tarih: item.tarih,
+    yontem: item.yontem ?? null, referans_no: item.referans_no ?? null, notes: item.notes ?? null, olusturan: aktor ?? null,
+  };
+  const info = stmtInsertTahsilat.run(row);
+  audit.kaydet('tahsilat', info.lastInsertRowid, 'OLUSTUR', aktor, { yeni: row });
+  return stmtGetTahsilat.get(info.lastInsertRowid);
+}
+export function tahsilatGetir(id) { return stmtGetTahsilat.get(id); }
+export function tahsilatlariKaynagaGore(kaynakModul, kaynakId) { return stmtListTahsilatKaynak.all(kaynakModul, String(kaynakId)); }
