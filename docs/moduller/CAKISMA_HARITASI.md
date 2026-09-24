@@ -534,3 +534,42 @@ Müşteri modülü kuruldu — `server/moduller/musteri/` + `src/moduller/muster
 - Tapu devri / iskân adımları (huni sonrası) modellenmedi; müşteri belgeleri Çekirdek Belge'den okunur (yalnız kişi).
 - Plan revizyonunda yeniden dağıtım varsayılan sırayı kullanır (kullanıcının önceki taksit seçimi tekrarlanmaz).
 - Rol bazlı yetki yok (gerçek oturum sistemi yok).
+
+## P10 Uygulama Durumu (Maliyet Yönetimi — Panolar ve Analiz)
+
+Maliyet modülü kuruldu — `server/moduller/maliyet/` + `src/moduller/maliyet/`. **Kaynak veri ÜRETMEZ (bütçe hariç):** taahhüt/gerçekleşen/gelir yalnızca Maliyet Defteri'nden (Çekirdek `maliyetDefteri`) okunur. Kendi tabloları yalnızca `butce_versiyon/butce_satir` ve `genel_gider_dagitim/pay`.
+
+### Çekirdek'te yapılan değişiklik
+- `maliyetDefteri.js`'e iki SALT OKUNUR fonksiyon: `projeleriListele()` (portföy) ve `hareketGetir(id)` (drill-down). Yazma mantığı değişmedi.
+
+### Tanımlar (hepsi TL; `rapor.js` başında)
+`kalan_taahhut = max(0, taahhüt − gerçekleşen)`; `tahmin_kalan = elle girilen kalan tahmin ?? max(0, bütçe − max(taahhüt, gerçekleşen))` (taahhüt edilmemiş kalan); **EAC = gerçekleşen + kalan_taahhut + tahmin_kalan**; `sapma = bütçe − EAC` (negatif = aşım); `kalan = bütçe − gerçekleşen`. Defterde taahhüt↔gerçekleşen bağı olmadığından kalan taahhüt KOD düzeyinde yaklaşıktır.
+
+### Uygulandı
+| Konu | Dosya | Not |
+|---|---|---|
+| Bütçe | `butce.js`, `tabloOku.js` | Versiyonlu (İlk Bütçe, Revize-1…), tek açık taslak, onaylı versiyon donar; her rapor versiyonu gösterir/seçtirir. Onayda deftere **BUTCE yalnız önceki onaylı versiyona göre FARK** yazılır (defter BUTCE toplamı = güncel bütçe). Excel (.xlsx, jszip ile — yeni bağımlılık yok) ve CSV içe aktarım: `kod` veya `wbs`+`kaynak_tipi`, Türkçe sayı biçimi, hatalı satır listesi. |
+| Maliyet raporu | `rapor.js` | WBS ağacı (nokta ayrımlı kodlar üste toplanır) × {bütçe, taahhüt, gerçekleşen, kalan, EAC, sapma, sapma %}; **kur bazı**: nominal / sabit (bütçe kuru) / güncel (`kur_<PB>` parametresi); maliyet kodsuz hareketler ayrı satır. |
+| Drill-down | `kaynak.js` | Hücre → defter hareketleri → **kaynak belge** (sipariş, fatura, depo hareketi, hakediş, taşeron ödeme dönemi→puantaj/metraj, bordro, ekipman çalışma, sözleşme, tahsilat) + zincir (çıkış ← giriş ← mal kabul ← sipariş). |
+| EVM | `evm.js` | PV = P8 iş programı doğrusal beklenen %, EV = şantiye onaylı ilerleme %, ağırlık = bağlı WBS'in bütçesi; AC = o WBS'lerin defter gerçekleşeni; CPI/SPI; WBS'siz/bütçesiz aktiviteler hesaba girmez ve raporlanır. |
+| Kârlılık | `karlilik.js` | Gelir (P9 satış sözleşmeleri) vs EAC (+ dağıtılmış genel gider); marj; m² maliyeti ve bölüm başına tahsis (brüt m² oranı; arsa sahibi payı da maliyet taşır). |
+| Nakit akışı | `nakit.js` | Giden: Çekirdek ödeme talimatı vadeleri; gelen: P9 kalan taksitler (kredi onayı bekleyen "belirsiz" işaretli); haftalık/aylık + vadesi geçmiş kovası + kümülatif. |
+| Genel gider | `genelGider.js` | Havuz proje → projelere anahtarla dağıtım (`maliyet_genel_gider_anahtari`: 1 ciro, 2 maliyet, 3 süre; tanımsızsa maliyet ve işaretlenir); küsurat son projede, toplam bozulmaz; aynı dönem yeniden hesap öncekini değiştirir. Dağıtım defterde SATIR YAZMAZ, kârlılıkta ayrı gösterilir. |
+| Uyarılar | `uyari.js` | Kod taahhüdü bütçenin %X'ini aştı (`maliyet_taahhut_uyari_yuzde`, varsayılan 90 — yanıtta `esik_varsayilan`), **taahhüt aşımı (kritik) gerçekleşende değil taahhütte yakalanır**, CPI/SPI eşiği (`maliyet_cpi_esik`/`maliyet_spi_esik`, varsayılan 1), kodsuz hareket, bütçesiz harcama. |
+| Mutabakat | `mutabakat.js` | `defterde_yok`, `kaynak_yok`, `kaynak_iptal` (ters kayıt yok), **`cift_sayim`** (stoklu malzemenin faturası GERÇEKLEŞEN yazmış), `tutar_uyumsuz`, `butce_uyumsuz`, `kodsuz`. Hiçbir şeyi düzeltmez, raporlar. |
+| Portföy | `portfoy.js` | Tüm projeler tek tabloda (bütçe/taahhüt/gerçekleşen/EAC/sapma/gelir/kâr/CPI/SPI). |
+| Ekranlar | `src/moduller/maliyet/ekranlar/` | Maliyet panosu (KPI + uyarılar + WBS tablosu + drill-down penceresi), bütçe yönetimi (dosya yükleme), EVM grafiği (SVG), nakit akışı, portföy, mutabakat. |
+
+**Sahiplik notu:** `kaynak.js`, diğer modüllerin tablolarını SALT OKUNUR sorgulayan TEK yerdir (mutabakat için "tüm onaylılar" gibi toplu sorgular sahip servislerinde yok); yazma/kural mantığı ilgili modülde kalır.
+
+**Doğrulama:** 222/222 test (13 yeni); build temiz; lint yalnızca 7 eski hata. KABUL: satınalma→mal kabul→stoklu fatura→depo çıkışı zincirinde gerçekleşen TEK kez (testte GERÇEKLEŞEN yalnız depo çıkışı satırları; rapor 5 ton × 5.000 TL = 25.000 TL bir kez); mutabakat kasıtlı bozulmuş 5 senaryoyu yakalıyor (çift sayım, silinmiş defter satırı, iptal edilmiş siparişin taahhüdü, var olmayan kaynak, bozulmuş tutar) ve temiz zincirde hata vermiyor; drill-down kaynak belge + zincire ulaşıyor. İzole tarayıcıda pano, WBS tablosu, hücre→hareket→depo/fatura kaynağı, EVM, portföy ve mutabakat (canlıda kasıtlı çift sayımı yakaladı) doğrulandı.
+
+### Bilinçli Olarak Ertelendi
+- Ekranlar App.tsx'e bağlanmadı (P1-P9 ile aynı).
+- **EV geçmişi yok:** iş programı ilerlemesinin tarihçesi tutulmadığından EV eğrisi tek güncel noktadır (PV ve AC eğrileri var).
+- Kalan taahhüt kod düzeyinde yaklaşık (taahhüt−gerçekleşen); sipariş taahhüdü KDV dahil, depo çıkışı KDV hariç ortalama maliyet olduğundan KDV farkı EAC'ye yansır — kalem bazlı eşleme gerektirir.
+- Nakit akışı: ödeme talimatı TRY varsayılır; bordro ve talimatsız ödemeler görünmez; müşteri taksitleri güncel kur (`kur_<PB>`) yoksa satış kuruyla çevrilir.
+- Genel gider dağıtımı otomatik tetiklenmez (uç nokta); "ciro" anahtarı yalnız P2 GELİR taahhüdünü, "süre" P8 iş programı aralığını kullanır.
+- Mutabakat toplu Alt Yüklenici/Taşeron kontrollerinin bir kısmı dönem düzeyindedir (kalem bazlı eksik tespiti yok); İK bordro yalnız global taramada kontrol edilir.
+- XLSX okuyucu yalnız ilk sayfa ve değer hücreleri (formül önbellek değeri); stil/tarih serileri çözülmez.
+- Rol bazlı yetki yok; bütçe onaylayan serbest metindir.

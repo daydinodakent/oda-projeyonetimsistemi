@@ -89,3 +89,9 @@ export function ozet(maliyetKoduId) {
   for (const k of kayitlar) toplam[k.tur] += k.tutar_kurus;
   return toplam;
 }
+
+const stmtProjeler = db.prepare('SELECT DISTINCT proje_id FROM maliyet_hareketi ORDER BY proje_id');
+/** Maliyet Yönetimi (P10) portföy görünümü için — defterde hareketi olan proje id'leri (SALT OKUNUR). */
+export function projeleriListele() { return stmtProjeler.all().map((r) => r.proje_id); }
+/** Drill-down için tek hareket (SALT OKUNUR). */
+export function hareketGetir(id) { return stmtGet.get(id); }

@@ -40,6 +40,7 @@ import { router as taseronRouter } from './moduller/taseron/routes.js';
 import { router as ikRouter } from './moduller/ik/routes.js';
 import { router as santiyeRouter } from './moduller/santiye/routes.js';
 import { router as musteriRouter } from './moduller/musteri/routes.js';
+import { router as maliyetRouter } from './moduller/maliyet/routes.js';
 import path from 'node:path';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -101,6 +102,10 @@ app.use('/api/santiye', santiyeRouter);
 // --- Müşteri (Bağımsız Bölüm, Satış, Ödeme Planı, Teslim'in TEK sahibi) —
 // aynı nedenle generic "/api/:table" deseninden ÖNCE mount edilir.
 app.use('/api/musteri', musteriRouter);
+
+// --- Maliyet Yönetimi (bütçe + izleme/analiz; kaynak veri ÜRETMEZ) — aynı
+// nedenle generic "/api/:table" deseninden ÖNCE mount edilir.
+app.use('/api/maliyet', maliyetRouter);
 
 // --- CBS/PostGIS katmanlarını gerçek bir .gpkg dosyası olarak dışa aktarır ---
 // NOT: bu sabit rota, aşağıdaki generic "/api/:table" deseninden ÖNCE
