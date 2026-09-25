@@ -1836,7 +1836,7 @@ export default function App() {
       />
 
       {/* 4. STATIC FOOTER */}
-      <footer className="bg-[var(--bg-secondary)] border-t border-[var(--border)] py-2 px-5 text-center text-[10px] text-[var(--text-secondary)] font-bold transition-colors duration-300">
+      <footer className="border-t py-2 px-5 text-center text-[10px] font-bold transition-colors duration-300" style={{ backgroundColor: headerSurface.sub, borderColor: headerSurface.border, color: '#94a3b8' }}>
         ODA+PYS Platformu © 2026
       </footer>
 
