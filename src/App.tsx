@@ -314,7 +314,8 @@ export default function App() {
 
   // Initial check for permission modal on startup
   useEffect(() => {
-    const dontAskChoice = localStorage.getItem('dont_ask_permissions_choice');
+    let dontAskChoice: string | null = null;
+    try { dontAskChoice = localStorage.getItem('dont_ask_permissions_choice'); } catch { /* depolama kapalı → her seferinde sor */ }
     if (dontAskChoice !== 'true') {
       const timer = setTimeout(() => {
         setShowPermissionModal(true);
@@ -1878,11 +1879,13 @@ export default function App() {
         microphone={permMicrophone}
         setMicrophone={setPermMicrophone}
         dontAsk={permDontAsk}
-        setDontAsk={setPermDontAsk}
+        setDontAsk={(v) => {
+          setPermDontAsk(v);
+          // İşaretlenir işaretlenmez kalıcı: X ile kapatılsa bile bir daha gösterilmez (işaret kaldırılırsa geri alınır).
+          try { if (v) localStorage.setItem('dont_ask_permissions_choice', 'true'); else localStorage.removeItem('dont_ask_permissions_choice'); } catch { /* yoksay */ }
+        }}
         onApply={() => {
-          if (permDontAsk) {
-            localStorage.setItem('dont_ask_permissions_choice', 'true');
-          }
+          try { if (permDontAsk) localStorage.setItem('dont_ask_permissions_choice', 'true'); } catch { /* yoksay */ }
           setShowPermissionModal(false);
         }}
       />
