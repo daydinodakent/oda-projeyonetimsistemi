@@ -685,7 +685,8 @@ export default function App() {
   };
 
   return (
-    <div className="h-screen max-h-screen overflow-hidden bg-[var(--bg-primary)] text-[var(--text-primary)] transition-colors duration-300 flex flex-col font-sans">
+    <div className="h-screen max-h-screen overflow-hidden bg-[var(--bg-primary)] text-[var(--text-primary)] transition-colors duration-300 flex flex-col font-sans"
+      style={theme === 'dark' ? { backgroundImage: 'radial-gradient(1100px 420px at 50% -8%, rgba(79,110,200,0.16), transparent 65%)' } : undefined}>
       
       {/* 1. MASTER HEADER NAVIGATION */}
       {headerExpanded ? (

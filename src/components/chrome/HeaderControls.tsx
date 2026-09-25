@@ -28,6 +28,8 @@ export function HeaderBar({ children }: { children: ReactNode }) {
         color: '#fff',
         borderBottom: 1,
         borderColor: headerSurface.border,
+        // Üst panelin içerikten ayrışması: alt gölge + üst kenarda ince ışık çizgisi.
+        boxShadow: '0 10px 28px -10px rgba(0,0,0,0.75), inset 0 1px 0 rgba(255,255,255,0.05)',
         flexDirection: 'column',
         transition: 'all 300ms',
       }}
@@ -313,10 +315,10 @@ export function ProfileMenu({ anchorEl, open, onClose, name, role, items, compac
           sx: {
             mt: 2,
             width: compact ? 224 : 256,
-            bgcolor: '#141416',
+            bgcolor: headerSurface.group,
             backgroundImage: 'none',
             border: 1,
-            borderColor: '#2c2c2e',
+            borderColor: headerSurface.groupBorder,
             borderRadius: compact ? 3 : 4,
             p: compact ? 2.5 : 3,
             color: 'grey.200',
@@ -325,7 +327,7 @@ export function ProfileMenu({ anchorEl, open, onClose, name, role, items, compac
         list: { sx: { p: 0 } },
       }}
     >
-      <Box sx={{ px: 1, py: compact ? 1 : 1.5, mb: 2, borderBottom: 1, borderColor: alpha('#2c2c2e', 0.6) }}>
+      <Box sx={{ px: 1, py: compact ? 1 : 1.5, mb: 2, borderBottom: 1, borderColor: alpha(headerSurface.groupBorder, 0.6) }}>
         <Typography sx={{ fontSize: compact ? 11 : 12, fontWeight: 900, color: '#fff' }}>{name}</Typography>
         <Typography sx={{ fontSize: 10, fontWeight: 700, mt: 0.5, color: alpha('#f59e0b', 0.8) }}>{role}</Typography>
       </Box>
@@ -397,7 +399,7 @@ export function ProfileButton({ onClick, unread, compact }: ProfileButtonProps) 
       badgeContent={unread}
       invisible={unread === 0}
       color="error"
-      sx={{ '& .MuiBadge-badge': { fontSize: 10, fontWeight: 900, minWidth: compact ? 12 : 18, height: compact ? 12 : 18, p: 0, border: 2, borderColor: '#1c1c1e', pointerEvents: 'none' } }}
+      sx={{ '& .MuiBadge-badge': { fontSize: 10, fontWeight: 900, minWidth: compact ? 12 : 18, height: compact ? 12 : 18, p: 0, border: 2, borderColor: headerSurface.sub, pointerEvents: 'none' } }}
     >
       {compact ? (
         <IconButton title="Kullanıcı Menüsü" onClick={(e) => onClick(e.currentTarget)} sx={{ p: 0 }}>

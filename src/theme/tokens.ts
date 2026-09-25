@@ -53,7 +53,7 @@ export const schemes: Record<SchemeName, SchemeTokens> = {
     bgApp: '#0B0F19',
     bgSurface: '#1B2436',
     bgSurfaceSubtle: '#25314B',
-    borderUi: 'rgba(255, 255, 255, 0.08)',
+    borderUi: 'rgba(148, 170, 220, 0.14)', // lacivert-mavi ince kenarlık: paneller/kartlar birbirinden net ayrışır
     textMain: '#f8fafc',
     textMuted: '#94a3b8',
     accent: '#6366f1',
@@ -85,7 +85,7 @@ export const status = {
 
 /** Header/marka çubuğu: koyu bar + cyan→blue→indigo rozet gradyanı. */
 export const brand = {
-  headerBg: '#222224',
+  headerBg: '#141c30',
   badgeGradient: 'linear-gradient(135deg, #06b6d4, #3b82f6, #6366f1)',
 } as const;
 
@@ -107,12 +107,14 @@ export type ToolbarTone = keyof typeof toolbarTones;
 
 /** Header yüzeyleri (koyu bar, alt satır, gruplar) ve altın/kahve vurgu düğmeleri. */
 export const headerSurface = {
-  bar: '#222224',
-  border: '#313135',
-  sub: '#1c1c1e',
-  group: '#141416',
-  groupBorder: '#2c2c2e',
-  pill: '#161820',
+  // Katmanlı lacivert tonlar: içerik alanı (#0B0F19, en koyu) < alt satır < ÜST BAR (en açık, yükseltilmiş) ;
+  // gruplar/hapler bar içinde "gömülü" (daha koyu + ince açık kenarlık) görünür.
+  bar: '#141c30',
+  border: '#27334f',
+  sub: '#0f1626',
+  group: '#0a101d',
+  groupBorder: '#26324d',
+  pill: '#0d1424',
   gold: { bg: '#332c1e', bgHover: '#3d3422', fg: '#f1c40f' },
   orange: { bg: '#383321', bgHover: '#433b25', fg: '#f39c12' },
 } as const;
