@@ -891,9 +891,10 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
         </div>
 
         {/* Main Content Workspace Split */}
-        <div className="flex-1 flex overflow-hidden min-h-0">
+        {/* Dar ekranda (<lg) sütunlar alt alta dizilir ve çalışma alanı kaydırılır; geniş ekranda yan yana. */}
+        <div className="flex-1 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden min-h-0">
           {/* LEFT TREEVIEW COLUMN: KLASÖR HİYERARŞİSİ */}
-          <aside className={`panel-transition flex flex-col min-h-0 select-none border-slate-800 bg-[var(--bg-primary)] overflow-hidden shrink-0 ${isLeftPanelOpen ? 'w-64 border-r opacity-100' : 'w-0 border-r-0 opacity-0'}`}>
+          <aside className={`panel-transition flex flex-col min-h-0 select-none border-slate-800 bg-[var(--bg-primary)] overflow-hidden shrink-0 ${isLeftPanelOpen ? 'w-full lg:w-64 max-h-72 lg:max-h-none border-b lg:border-b-0 lg:border-r opacity-100' : 'w-0 max-h-0 lg:max-h-none border-r-0 opacity-0'}`}>
             <div className="w-64 shrink-0 flex flex-col h-full min-h-0">
               <div className="p-4 border-b border-[var(--border)] flex justify-between items-center shrink-0">
                 <span className="text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-widest">
@@ -1056,7 +1057,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
           </aside>
 
           {/* MIDDLE COLUMN: BREADCRUMBS & FILE ARCHIVE TABLE */}
-          <div className="flex-1 flex flex-col min-h-0 bg-[#070b13]">
+          <div className="flex-1 flex flex-col min-h-[360px] lg:min-h-0 min-w-0 bg-[#070b13]">
             <div className="p-4 border-b border-slate-800 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-3">
                 <button
@@ -1237,7 +1238,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
           </div>
 
           {/* RIGHT COLUMN: DOCUMENT DETAILS & PREVIEW */}
-          <aside className="w-80 border-l border-slate-800 bg-[#090d16] p-4 flex flex-col justify-between shrink-0 select-none overflow-y-auto" style={{ scrollbarWidth: 'none' }}>
+          <aside className="w-full lg:w-80 border-t lg:border-t-0 lg:border-l border-slate-800 bg-[#090d16] p-4 flex flex-col justify-between shrink-0 select-none lg:overflow-y-auto" style={{ scrollbarWidth: 'none' }}>
             {/* Top Details container */}
             <div className="space-y-4">
               <div className="flex justify-between items-center border-b border-slate-800 pb-2">
