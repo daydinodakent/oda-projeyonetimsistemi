@@ -1,3 +1,4 @@
+import './DocumentArchiveLight.css';
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { 
   FileText, Folder, FolderOpen, Plus, Search, Trash2, Eye, Download, X,
@@ -807,8 +808,8 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
 
   return (
     <div className={isFullScreen 
-      ? "w-full h-[calc(100vh-250px)] min-h-[550px] flex flex-col overflow-hidden text-[var(--text-primary)] bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl select-none animate-fade-in"
-      : "fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fade-in text-white select-none"
+      ? "doc-archive w-full h-[calc(100vh-250px)] min-h-[550px] flex flex-col overflow-hidden text-[var(--text-primary)] bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl select-none animate-fade-in"
+      : "doc-archive fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fade-in text-white select-none"
     }>
       
       {/* If not full screen, render modal wrapper card layout, otherwise take full space */}
@@ -1706,7 +1707,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
 
       {/* FULL SCREEN DOCUMENT PREVIEW LIGHTBOX */}
       {fullScreenPreviewDoc && (
-        <div className="fixed inset-0 bg-black/95 z-60 flex flex-col justify-between p-4 animate-fade-in select-none">
+        <div className="doc-keep-dark fixed inset-0 bg-black/95 z-60 flex flex-col justify-between p-4 animate-fade-in select-none">
           {/* Preview Lightbox header */}
           <div className="flex justify-between items-center bg-[#090d16] border border-slate-800 p-4 rounded-xl">
             <div className="flex items-center gap-2">
