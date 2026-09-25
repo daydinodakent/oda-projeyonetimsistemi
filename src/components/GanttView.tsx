@@ -738,7 +738,7 @@ export default function GanttView({ project, tasks, onUpdateTasks, theme, onClos
             </span>
           </div>
 
-          <div className="flex-1 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
+          <div className="flex-1 overflow-x-auto" style={{ scrollbarWidth: 'thin' }}>
             <div className="min-w-[550px] space-y-2 h-full">
               
               {/* Timeline Days Header */}

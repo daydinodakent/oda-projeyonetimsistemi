@@ -48,14 +48,14 @@ export default function ModuleGridDialog({ open, onClose, onSelect }: ModuleGrid
       maxWidth="md"
       slotProps={{
         backdrop: { sx: { bgcolor: alpha(theme.palette.common.black, 0.75), backdropFilter: 'blur(12px)' } },
-        paper: { sx: { p: 6, borderRadius: 6, border: 1, borderColor: 'divider', bgcolor: 'background.paper', backgroundImage: 'none', position: 'relative' } },
+        paper: { sx: { p: { xs: 2.5, sm: 6 }, m: { xs: 1.5, sm: 4 }, maxHeight: { xs: 'calc(100dvh - 24px)', sm: 'calc(100% - 64px)' }, borderRadius: 6, border: 1, borderColor: 'divider', bgcolor: 'background.paper', backgroundImage: 'none', position: 'relative' } },
       }}
     >
-      <IconButton id="grid-btn-close" title="Kapat" onClick={onClose} sx={{ '&&': { position: 'absolute' }, top: 24, right: 24, color: 'text.secondary' }}>
+      <IconButton id="grid-btn-close" title="Kapat" onClick={onClose} sx={{ '&&': { position: 'absolute' }, top: { xs: 10, sm: 24 }, right: { xs: 10, sm: 24 }, color: 'text.secondary' }}>
         <X className="w-5 h-5" />
       </IconButton>
 
-      <Box sx={{ mb: 6, pb: 2, borderBottom: 1, borderColor: 'divider' }}>
+      <Box sx={{ mb: { xs: 3, sm: 6 }, pb: 2, pr: { xs: 5, sm: 0 }, borderBottom: 1, borderColor: 'divider' }}>
         <Box component="span" sx={{ display: 'block', width: 'max-content', mb: 1.5, px: 2, py: 0.5, borderRadius: 1, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'primary.main', bgcolor: alpha(theme.palette.primary.main, 0.2) }}>
           ODA+PYS
         </Box>
@@ -63,13 +63,13 @@ export default function ModuleGridDialog({ open, onClose, onSelect }: ModuleGrid
         <Typography variant="body2" sx={{ color: 'text.secondary' }}>Tek veri omurgasına bağlı alt uygulamalara hızlıca erişin.</Typography>
       </Box>
 
-      <Grid container spacing={4}>
+      <Grid container spacing={{ xs: 2, sm: 4 }}>
         {CARDS.map((c) => (
           <Grid key={c.id} size={{ xs: 12, md: 6, lg: 4 }}>
             <Box
               sx={{
                 height: '100%',
-                p: 4,
+                p: { xs: 2.5, sm: 4 },
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between',
@@ -83,15 +83,15 @@ export default function ModuleGridDialog({ open, onClose, onSelect }: ModuleGrid
             >
               <Box>
                 <Box sx={{ width: 32, height: 32, mb: 2, borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', color: c.color, bgcolor: alpha(c.color, 0.1) }}>{c.icon}</Box>
-                <Typography variant="h4" component="h4" sx={{ fontSize: 12, fontWeight: 900, mb: 1 }}>{c.title}</Typography>
-                <Typography sx={{ fontSize: 10, lineHeight: 1.6, color: 'text.secondary' }}>{c.desc}</Typography>
+                <Typography variant="h4" component="h4" sx={{ fontSize: { xs: 14, sm: 12 }, fontWeight: 900, mb: 1 }}>{c.title}</Typography>
+                <Typography sx={{ fontSize: { xs: 12.5, sm: 10 }, lineHeight: 1.6, color: 'text.secondary' }}>{c.desc}</Typography>
               </Box>
               <Button
                 onClick={() => {
                   onSelect(c.id);
                   onClose();
                 }}
-                sx={{ mt: 4, p: 0, minWidth: 0, justifyContent: 'flex-start', fontSize: 12, fontWeight: 900, color: c.color, '&:hover': { bgcolor: 'transparent', textDecoration: 'underline' } }}
+                sx={{ mt: { xs: 2, sm: 4 }, p: 0, minWidth: 0, minHeight: 36, justifyContent: 'flex-start', fontSize: { xs: 13.5, sm: 12 }, fontWeight: 900, color: c.color, '&:hover': { bgcolor: 'transparent', textDecoration: 'underline' } }}
               >
                 {c.cta}
               </Button>

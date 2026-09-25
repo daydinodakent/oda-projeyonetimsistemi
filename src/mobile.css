@@ -1,0 +1,21 @@
+/* Mobil (<768px) okunurluk ve dokunma katmani: dar ekranda 8-11px yazilar buyutulur, kart ic bosluklari daraltilir. */
+@media (max-width: 767px) {
+  [class~="text-[8px]"], [class~="text-[9px]"] { font-size: 11px !important; line-height: 1.35 !important; }
+  [class~="text-[10px]"] { font-size: 12px !important; line-height: 1.4 !important; }
+  [class~="text-[11px]"] { font-size: 12.5px !important; line-height: 1.45 !important; }
+  .text-xs { font-size: 13px !important; line-height: 1.45 !important; }
+  [class~="p-6"], [class~="p-8"] { padding: 14px !important; }
+  [class~="p-5"] { padding: 12px !important; }
+  [class~="px-6"] { padding-left: 14px !important; padding-right: 14px !important; }
+  [class~="px-5"] { padding-left: 12px !important; padding-right: 12px !important; }
+  input, select, textarea { font-size: 16px !important; } /* iOS odak yakinlastirmasini onler */
+  button { -webkit-tap-highlight-color: transparent; }
+  main button, [role="dialog"] button { min-height: 34px; }
+  .MuiDialog-paper { margin: 12px !important; max-width: calc(100vw - 24px) !important; max-height: calc(100dvh - 24px) !important; }
+  /* Sekme seritleri: sekmeler kirpilmasin, seritte yatay kayilsin */
+  .overflow-x-auto { max-width: 100%; }
+  .overflow-x-auto > button, .overflow-x-auto > a { flex-shrink: 0; white-space: nowrap; }
+  .overflow-x-auto.self-start { align-self: stretch; }
+  /* Izgara/tablolar: tasan tablolar kendi icinde kayar */
+  table { max-width: 100%; }
+}

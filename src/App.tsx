@@ -1,3 +1,4 @@
+import './mobile.css';
 import React, { useState, useEffect } from 'react';
 import { useColorScheme } from '@mui/material/styles';
 import PermissionDialog from './components/chrome/PermissionDialog';
@@ -126,6 +127,8 @@ export default function App() {
   const [ceoPocketMode, setCeoPocketMode] = useState<boolean>(false);
   const [showNotificationList, setShowNotificationList] = useState<boolean>(false);
   const [showProfileDropdown, setShowProfileDropdown] = useState<boolean>(false);
+  const [mobileProfileAnchor, setMobileProfileAnchor] = useState<HTMLElement | null>(null);
+  const [showMobileProfileDropdown, setShowMobileProfileDropdown] = useState(false);
   const [showCompactProfileDropdown, setShowCompactProfileDropdown] = useState<boolean>(false);
   const [showProjectComboDropdown, setShowProjectComboDropdown] = useState<boolean>(false);
   const [notifFilter, setNotifFilter] = useState<'all' | 'unread' | 'files' | 'ncr'>('all');
@@ -690,7 +693,69 @@ export default function App() {
     <div className="h-screen max-h-screen overflow-hidden bg-[var(--bg-primary)] text-[var(--text-primary)] transition-colors duration-300 flex flex-col font-sans"
       style={theme === 'dark' ? { backgroundImage: 'radial-gradient(1100px 420px at 50% -8%, rgba(79,110,200,0.16), transparent 65%)' } : undefined}>
       
-      {/* 1. MASTER HEADER NAVIGATION */}
+      {/* 1a. MOBİL/TABLET ÜST PANEL (<lg): tek sütun, dokunmatik hedefler ≥40px, kaydırılabilir kısayol şeridi */}
+      <div className="lg:hidden shrink-0">
+        <HeaderBar>
+          <div className="flex items-center justify-between gap-2 px-3 pt-2.5 pb-2 select-none">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-9 h-9 rounded-lg bg-gradient-to-tr from-cyan-500 via-blue-500 to-indigo-600 p-0.5 shrink-0">
+                <div className="w-full h-full rounded-[6px] bg-[#1a1b1e] flex items-center justify-center"><Layers className="w-5 h-5 text-cyan-400" /></div>
+              </div>
+              <div className="min-w-0">
+                <div className="app-header-brand tracking-wider leading-none truncate">ODA+PYS</div>
+                <div className="text-[10px] font-semibold leading-none mt-1 truncate" style={{ color: '#94a3b8' }}>Proje Yönetim Sistemi</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-1 shrink-0">
+              <SearchIconButton id="hdr-btn-search-m" onClick={() => setShowSearchModal(true)} icon={searchSvg(4)} />
+              <ThemeIconButton id="hdr-btn-theme-m" onClick={toggleTheme} title={theme === 'dark' ? 'Açık temaya geç' : 'Koyu temaya geç'} icon={themeIcon('w-4 h-4')} />
+              <AccentIconButton kind="gold" id="hdr-btn-modules-m" title="Yönetim Modülleri" icon={<LayoutGrid className="w-4 h-4" />} onClick={() => setShowModullerGrid(prev => !prev)} />
+              <div className="relative flex items-center pl-0.5">
+                <ProfileButton compact unread={unreadNotifications.length} onClick={(el) => { setMobileProfileAnchor(el); setShowMobileProfileDropdown(prev => !prev); }} />
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-1.5 px-3 pb-2">
+            {([
+              { k: 'plan', l: 'PLAN', i: <Briefcase className="w-4 h-4" />, c: 'from-blue-600 to-indigo-600' },
+              { k: 'insaat', l: 'İNŞAAT', i: <HardHat className="w-4 h-4" />, c: 'from-amber-600 to-orange-600' },
+              { k: 'isletme', l: 'İŞLETME', i: <Wrench className="w-4 h-4" />, c: 'from-emerald-600 to-green-600' },
+            ] as const).map((m) => {
+              const aktif = activeTab === m.k && !ceoPocketMode;
+              return (
+                <button key={m.k} onClick={() => selectModule(m.k)}
+                  className={`h-10 rounded-xl flex items-center justify-center gap-1.5 text-[11px] font-black tracking-wide cursor-pointer border transition ${aktif ? `bg-gradient-to-r ${m.c} text-white border-white/25 shadow-lg` : 'text-slate-300 border-white/10 bg-white/5'}`}>
+                  {m.i}{m.l}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="px-3 pb-2" style={{ backgroundColor: headerSurface.sub, paddingTop: 8 }}>
+            <div className="w-full">{renderProjectDropdown(false)}</div>
+            <div className="flex gap-1.5 overflow-x-auto pt-2 pb-0.5 -mx-3 px-3" style={{ scrollbarWidth: 'none' }}>
+              {([
+                { id: 'kpis', l: 'Dinamik KPI', i: <Activity className="w-3.5 h-3.5 text-amber-400" />, on: centerTab === 'kpis', go: () => setCenterTab('kpis') },
+                { id: 'map', l: 'Harita', i: <Map className="w-3.5 h-3.5 text-sky-400" />, on: centerTab === 'map', go: () => setCenterTab(prev => prev === 'map' ? 'kpis' : 'map') },
+                { id: 'dashboard', l: 'Dashboard', i: <BarChart3 className="w-3.5 h-3.5 text-indigo-300" />, on: centerTab === 'dashboard', go: () => setCenterTab(prev => prev === 'dashboard' ? 'kpis' : 'dashboard') },
+                { id: 'gantt', l: 'Zaman Çizelgesi', i: <Clock className="w-3.5 h-3.5 text-emerald-300" />, on: centerTab === 'gantt', go: () => setCenterTab(prev => prev === 'gantt' ? 'kpis' : 'gantt') },
+                { id: 'resources', l: 'İş Gücü', i: <Users className="w-3.5 h-3.5 text-purple-300" />, on: centerTab === 'resources', go: () => setCenterTab(prev => prev === 'resources' ? 'kpis' : 'resources') },
+                { id: 'documents', l: 'Doküman', i: <FileText className="w-3.5 h-3.5 text-indigo-300" />, on: centerTab === 'documents', go: () => setCenterTab(prev => prev === 'documents' ? 'kpis' : 'documents') },
+              ]).map((c) => (
+                <button key={c.id} id={`m-tab-${c.id}`} onClick={() => { setCeoPocketMode(false); c.go(); }}
+                  className={`shrink-0 h-9 px-3 rounded-full flex items-center gap-1.5 text-[11px] font-bold whitespace-nowrap border cursor-pointer transition ${c.on ? 'bg-indigo-600/30 border-indigo-400/60 text-white' : 'border-white/10 bg-white/5 text-slate-300'}`}>
+                  {c.i}{c.l}
+                </button>
+              ))}
+            </div>
+          </div>
+        </HeaderBar>
+        <ProfileMenu compact anchorEl={mobileProfileAnchor} open={showMobileProfileDropdown} onClose={() => setShowMobileProfileDropdown(false)} name="Ayhan Yılmaz" role="Süper Kullanıcı" items={buildProfileItems(() => setShowMobileProfileDropdown(false), true)} />
+      </div>
+
+      {/* 1b. MASAÜSTÜ ÜST PANEL (≥lg) */}
+      <div className="hidden lg:block shrink-0">
       {headerExpanded ? (
         <HeaderBar>
 
@@ -704,7 +769,7 @@ export default function App() {
                   <Layers className="w-5 h-5 text-cyan-400" />
                 </div>
               </div>
-              <div className="hidden sm:block">
+              <div className="hidden xl:block">
                 <div className="flex items-center gap-1.5">
                   <span className="app-header-brand tracking-wider leading-none">ODA+PROJE YS</span>
                   <span className="px-1.5 py-0.5 bg-[#008f9c]/20 border border-[#00f5d4]/30 text-[#00f5d4] text-[10px] font-black rounded tracking-widest uppercase">PLATFORM</span>
@@ -831,6 +896,7 @@ export default function App() {
           </div>
         </HeaderBar>
       )}
+      </div>
 
       {/* 2. MAIN SPLIT CONTENT AREA */}
       {ceoPocketMode ? (

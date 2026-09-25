@@ -809,7 +809,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
 
   return (
     <div className={isFullScreen 
-      ? "doc-archive w-full h-[calc(100vh-250px)] min-h-[550px] flex flex-col overflow-hidden text-[var(--text-primary)] bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl select-none animate-fade-in"
+      ? "doc-archive w-full lg:h-[calc(100vh-250px)] min-h-[550px] flex flex-col overflow-hidden text-[var(--text-primary)] bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl select-none animate-fade-in"
       : "doc-archive fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fade-in text-white select-none"
     }>
       
@@ -893,7 +893,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
 
         {/* Main Content Workspace Split */}
         {/* Dar ekranda (<lg) sütunlar alt alta dizilir ve çalışma alanı kaydırılır; geniş ekranda yan yana. */}
-        <div className="flex-1 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden min-h-0">
+        <div className="flex-1 flex flex-col lg:flex-row lg:overflow-hidden min-h-0">
           {/* LEFT TREEVIEW COLUMN: KLASÖR HİYERARŞİSİ */}
           <aside className={`panel-transition flex flex-col min-h-0 select-none border-slate-800 bg-[var(--bg-primary)] overflow-hidden shrink-0 ${isLeftPanelOpen ? 'w-full lg:w-64 max-h-72 lg:max-h-none border-b lg:border-b-0 lg:border-r opacity-100' : 'w-0 max-h-0 lg:max-h-none border-r-0 opacity-0'}`}>
             <div className="w-64 shrink-0 flex flex-col h-full min-h-0">
@@ -1059,7 +1059,7 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
 
           {/* MIDDLE COLUMN: BREADCRUMBS & FILE ARCHIVE TABLE */}
           <div className="flex-1 flex flex-col min-h-[360px] lg:min-h-0 min-w-0 bg-[#070b13]">
-            <div className="p-4 border-b border-slate-800 flex items-center justify-between shrink-0">
+            <div className="p-4 border-b border-slate-800 flex flex-wrap gap-2 items-center justify-between shrink-0">
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => setIsLeftPanelOpen(prev => !prev)}
