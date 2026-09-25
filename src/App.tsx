@@ -7,7 +7,7 @@ import ProjectPicker from './components/chrome/ProjectPicker';
 import NotificationCenter from './components/chrome/NotificationCenter';
 import ModuleGridDialog, { type ModuleId } from './components/chrome/ModuleGridDialog';
 import YonetimModulPaneli from './components/chrome/YonetimModulPaneli';
-import { HeaderBar, ModuleTab, SegmentTab, SegmentGroup, ToolbarIconButton, AccentIconButton, SearchIconButton, ProfileMenu, ProfileButton, type ProfileMenuItem } from './components/chrome/HeaderControls';
+import { HeaderBar, ModuleTab, SegmentTab, SegmentGroup, ToolbarIconButton, AccentIconButton, SearchIconButton, ThemeIconButton, ProfileMenu, ProfileButton, type ProfileMenuItem } from './components/chrome/HeaderControls';
 import { headerSurface } from './theme/tokens';
 import { FormField } from './components/chrome/FormDialog';
 import FilterSelect from './components/ui/FilterSelect';
@@ -645,6 +645,8 @@ export default function App() {
     <svg style={{ width: `${size * 0.25}rem`, height: `${size * 0.25}rem` }} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
   );
 
+  const themeIcon = (cls: string) => (theme === 'dark' ? <Sun className={`${cls} text-amber-400`} /> : <Moon className={`${cls} text-indigo-400`} />);
+
   const buildProfileItems = (close: () => void, compact: boolean): ProfileMenuItem[] => {
     const ic = compact ? 'w-3 h-3' : 'w-3.5 h-3.5';
     return [
@@ -661,13 +663,6 @@ export default function App() {
         },
       },
       { key: 'help', icon: <HelpCircle className={ic} />, primary: 'Destek ve Yardım', secondary: 'Kılavuz ve SSS', onClick: close },
-      {
-        key: 'theme',
-        icon: theme === 'dark' ? <Sun className={`${ic} text-amber-400`} /> : <Moon className={`${ic} text-indigo-400`} />,
-        primary: 'Tema Değiştir',
-        secondary: theme === 'dark' ? 'Açık Temaya Geç' : 'Koyu Temaya Geç',
-        onClick: () => toggleTheme(),
-      },
       {
         key: 'notif',
         icon: <Bell className={ic} />,
@@ -726,6 +721,7 @@ export default function App() {
             <div className="flex items-center gap-1.5 sm:gap-2 order-3 shrink-0 justify-end">
               <AccentIconButton kind="gold" id="hdr-btn-modules" title="Analiz ve Modül Araçları" icon={<LayoutGrid className="w-4 h-4" />} onClick={() => setShowModullerGrid(prev => !prev)} />
               <SearchIconButton id="hdr-btn-search" onClick={() => setShowSearchModal(true)} icon={searchSvg(4)} />
+              <ThemeIconButton id="hdr-btn-theme" onClick={toggleTheme} title={theme === 'dark' ? 'Açık temaya geç' : 'Koyu temaya geç'} icon={themeIcon('w-4 h-4')} />
 
               {/* Profile Pill AY & SpU with dropdown menu (Admin, Help, Theme, Notifications) */}
               <div className="relative flex items-center">
@@ -809,6 +805,7 @@ export default function App() {
               </div>
 
               <SearchIconButton compact id="hdr-btn-search-compact" onClick={() => setShowSearchModal(true)} icon={searchSvg(3.5)} />
+              <ThemeIconButton compact id="hdr-btn-theme-compact" onClick={toggleTheme} title={theme === 'dark' ? 'Açık temaya geç' : 'Koyu temaya geç'} icon={themeIcon('w-3.5 h-3.5')} />
               <AccentIconButton compact kind="gold" title="Modüller" icon={<LayoutGrid className="w-3.5 h-3.5" />} onClick={() => setShowModullerGrid(prev => !prev)} />
 
               {/* Profile avatar with dropdown menu */}

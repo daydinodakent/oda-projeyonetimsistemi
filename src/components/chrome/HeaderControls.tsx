@@ -265,6 +265,21 @@ export function SearchIconButton({ onClick, id, compact, icon }: { onClick: () =
   );
 }
 
+/** Tema (açık/koyu) düğmesi — üst panelde arama ile profil arasında. Simge mevcut temayı değil, geçilecek temayı gösterir (güneş → açığa geç). */
+export function ThemeIconButton({ onClick, id, compact, icon, title }: { onClick: () => void; id: string; compact?: boolean; icon: ReactNode; title: string }) {
+  return (
+    <IconButton
+      id={id}
+      title={title}
+      aria-label={title}
+      onClick={onClick}
+      sx={{ p: compact ? 1.5 : 2, borderRadius: compact ? 2 : 3, '&:hover': { bgcolor: alpha('#f59e0b', 0.1) } }}
+    >
+      {icon}
+    </IconButton>
+  );
+}
+
 export interface ProfileMenuItem {
   key: string;
   icon: ReactNode;
