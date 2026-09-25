@@ -548,15 +548,15 @@
   #sahaFilmstrip{
     position:absolute;left:50%;transform:translateX(-50%);bottom:26px;z-index:5;height:88px;
     max-width:min(78vw,900px);width:max-content;
-    background:rgba(10,22,32,.95);border:1px solid var(--line);border-radius:10px;
-    display:flex;align-items:center;gap:4px;padding:0 6px;box-shadow:0 4px 18px rgba(0,0,0,.4);
+    background:#f4f2ed;border:1px solid #d9d5cb;border-radius:10px; /* kırık beyaz */
+    display:flex;align-items:center;gap:4px;padding:0 6px;box-shadow:0 4px 18px rgba(0,0,0,.28);
   }
   #sahaFilmstrip.hidden{display:none;}
   .saha-filmstrip-nav{
-    flex:0 0 auto;width:24px;height:60px;background:var(--bg-panel-raise);border:1px solid var(--line);
-    color:var(--text-dim);border-radius:2px;cursor:pointer;font-size:18px;line-height:1;
+    flex:0 0 auto;width:24px;height:60px;background:#e9e6df;border:1px solid #d3cfc4;
+    color:#5b6470;border-radius:2px;cursor:pointer;font-size:18px;line-height:1;
   }
-  .saha-filmstrip-nav:hover{color:var(--text);border-color:var(--teal);}
+  .saha-filmstrip-nav:hover{color:#1f2937;border-color:var(--teal);background:#dfdcd3;}
   #sahaFilmstripTrack{
     flex:1 1 auto;display:flex;gap:8px;overflow-x:auto;scroll-behavior:smooth;height:100%;
     align-items:center;justify-content:center;padding:8px 2px;
@@ -567,12 +567,12 @@
     flex:0 0 auto;width:64px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;
   }
   .saha-filmstrip-thumb-wrap{
-    width:56px;height:56px;border-radius:2px;overflow:hidden;border:2px solid transparent;background:var(--bg-deep);
+    width:56px;height:56px;border-radius:2px;overflow:hidden;border:2px solid transparent;background:#e2dfd7;
   }
   .saha-filmstrip-item:hover .saha-filmstrip-thumb-wrap{border-color:var(--teal)!important;}
   .saha-filmstrip-item.active .saha-filmstrip-thumb-wrap{border-color:var(--amber)!important;box-shadow:0 0 0 1px var(--amber);}
   .saha-filmstrip-thumb-wrap img{width:100%;height:100%;object-fit:cover;display:block;}
-  .saha-filmstrip-name{font-size:9.5px;color:var(--text-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:64px;}
+  .saha-filmstrip-name{font-size:9.5px;color:#4b5563;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:64px;}
   /* Kullanıcı isteğiyle akışın (flex) bir parçası olmaktan çıkarılıp
      kartın sağ üst köşesine, dışarı taşan bir rozet gibi sabitlendi
      (position:absolute — #sahaFilmstrip zaten position:absolute olduğundan
@@ -581,12 +581,12 @@
      ortada kaldığından çakışma olmaz. */
   .saha-filmstrip-close{
     position:absolute;top:-9px;right:-9px;width:20px;height:20px;
-    background:var(--bg-panel-raise);border:1px solid var(--line);color:var(--text-dim);
+    background:#f4f2ed;border:1px solid #cfcabe;color:#4b5563;
     cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:50%;
     box-shadow:0 2px 6px rgba(0,0,0,.4);z-index:1;
   }
   .saha-filmstrip-close svg{width:12px;height:12px;}
-  .saha-filmstrip-close:hover{color:var(--text);border-color:var(--teal);}
+  .saha-filmstrip-close:hover{color:#111827;border-color:var(--teal);}
 
   /* ---------- Saha fotoğrafı tam ekran görüntüleyici ---------- */
   #sahaLightbox{
