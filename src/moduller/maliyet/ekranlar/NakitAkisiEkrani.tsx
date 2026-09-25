@@ -13,7 +13,7 @@ export default function NakitAkisiEkrani({ projeId }: { projeId: string }) {
 
   return (
     <div className={KART}>
-      <div className="flex items-center justify-between pb-4 border-b border-[var(--border)] mb-4">
+      <div className="flex flex-wrap gap-2 items-center justify-between pb-4 border-b border-[var(--border)] mb-4">
         <h2 className="text-lg font-black tracking-tight flex items-center gap-2"><Banknote className="w-5 h-5 text-indigo-400" /> Nakit Akışı Projeksiyonu — {projeId}</h2>
         <select value={periyot} onChange={(e) => setPeriyot(e.target.value as 'haftalik' | 'aylik')} className={`${INPUT} w-auto`}><option value="aylik">Aylık</option><option value="haftalik">Haftalık</option></select>
       </div>

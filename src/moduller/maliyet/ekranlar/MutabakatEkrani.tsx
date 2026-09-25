@@ -15,7 +15,7 @@ export default function MutabakatEkrani({ projeId }: { projeId?: string }) {
   const liste = m?.bulgular.filter((b) => !filtre || b.tur === filtre) ?? [];
   return (
     <div className={KART}>
-      <div className="flex items-center justify-between pb-4 border-b border-[var(--border)] mb-4">
+      <div className="flex flex-wrap gap-2 items-center justify-between pb-4 border-b border-[var(--border)] mb-4">
         <h2 className="text-lg font-black tracking-tight flex items-center gap-2"><ScanSearch className="w-5 h-5 text-indigo-400" /> Mutabakat Raporu {projeId ? `— ${projeId}` : '(tüm portföy)'}</h2>
         <button onClick={yukle} className={BTN_MOR}>Yeniden Tara</button>
       </div>

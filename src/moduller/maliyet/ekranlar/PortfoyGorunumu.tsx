@@ -13,7 +13,7 @@ export default function PortfoyGorunumu({ onProjeSec }: { onProjeSec?: (projeId:
 
   return (
     <div className={KART}>
-      <div className="flex items-center justify-between pb-4 border-b border-[var(--border)] mb-4">
+      <div className="flex flex-wrap gap-2 items-center justify-between pb-4 border-b border-[var(--border)] mb-4">
         <h2 className="text-lg font-black tracking-tight flex items-center gap-2"><Layers className="w-5 h-5 text-indigo-400" /> Portföy Görünümü</h2>
         <select value={kurBazi} onChange={(e) => setKurBazi(e.target.value as KurBazi)} className={`${INPUT} w-auto`}>{Object.entries(KUR_BAZI_ETIKET).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
       </div>

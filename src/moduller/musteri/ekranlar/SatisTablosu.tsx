@@ -1,8 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Building2, Lock, Plus, X } from 'lucide-react';
 import * as api from '../api';
+import * as cekirdekApi from '../../_cekirdek/api';
+import type { Kisi } from '../../_cekirdek/types';
 import type { Izgara, IzgaraBolum, BolumDetay } from '../types';
 import { KART, INPUT, BTN_YESIL, BTN_MOR, HATA_KUTU, DURUM_ETIKET, DURUM_RENK, formatKurus, formatTarih, bugun } from './format';
+
+// flex-wrap satırlarında w-full her girdiyi ayrı satıra iterdi; genişlik flex-1 ile paylaştırılır.
+const INPUT_OTO = INPUT.replace('w-full', 'w-auto');
 
 export default function SatisTablosu({ projeId, onSatisSec }: { projeId: string; onSatisSec?: (bolumId: number) => void }) {
   const [izgara, setIzgara] = useState<Izgara | null>(null);
@@ -14,6 +19,8 @@ export default function SatisTablosu({ projeId, onSatisSec }: { projeId: string;
   const [fiyatTl, setFiyatTl] = useState('');
   const [rez, setRez] = useState({ bitis: '', kaparoTl: '' });
   const [musteriId, setMusteriId] = useState('');
+  const [musteriler, setMusteriler] = useState<Kisi[]>([]);
+  useEffect(() => { cekirdekApi.kisileriListele('musteri').then(setMusteriler).catch(() => setMusteriler([])); }, []);
   const [arsaSozlesmeId, setArsaSozlesmeId] = useState('');
 
   const yenile = () => api.satisTablosu(projeId).then(setIzgara).catch((e) => setHata(String(e.message)));
@@ -27,7 +34,7 @@ export default function SatisTablosu({ projeId, onSatisSec }: { projeId: string;
 
   return (
     <div className={KART}>
-      <div className="flex items-center justify-between pb-4 border-b border-[var(--border)] mb-4">
+      <div className="flex flex-wrap gap-2 items-center justify-between pb-4 border-b border-[var(--border)] mb-4">
         <h2 className="text-lg font-black tracking-tight flex items-center gap-2"><Building2 className="w-5 h-5 text-indigo-400" /> Satış Tablosu</h2>
         <button onClick={() => setFormAcik((v) => !v)} className={`${BTN_YESIL} flex items-center gap-1`}><Plus className="w-3 h-3" /> Bölüm Ekle</button>
       </div>
@@ -93,20 +100,23 @@ export default function SatisTablosu({ projeId, onSatisSec }: { projeId: string;
           {secili.fiyat_gecmisi.length > 1 && <div className="text-[10px] text-[var(--text-secondary)] mb-3">Fiyat geçmişi: {secili.fiyat_gecmisi.map((f) => `${formatTarih(f.gecerli_baslangic)}: ${formatKurus(f.fiyat_kurus, f.para_birimi)}`).join(' • ')}</div>}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="flex gap-2 items-end">
+            <div className="flex flex-wrap gap-2 items-end">
               <input type="number" value={fiyatTl} onChange={(e) => setFiyatTl(e.target.value)} placeholder="Yeni liste fiyatı (TL)" className={INPUT} />
               <button onClick={sar(async () => { await api.fiyatTanimla(secili.id, Math.round(Number(fiyatTl) * 100), bugun()); setFiyatTl(''); })} className={BTN_MOR}>Fiyat Ekle</button>
             </div>
             {secili.sahiplik === 'firma' && secili.durum === 'musait' && (
-              <div className="flex gap-2 items-end">
-                <input type="date" value={rez.bitis} onChange={(e) => setRez({ ...rez, bitis: e.target.value })} className={INPUT} title="Opsiyon bitişi" />
-                <input type="number" value={rez.kaparoTl} onChange={(e) => setRez({ ...rez, kaparoTl: e.target.value })} placeholder="Kaparo TL" className={INPUT} />
+              <div className="flex flex-wrap gap-2 items-end">
+                <input type="date" value={rez.bitis} onChange={(e) => setRez({ ...rez, bitis: e.target.value })} className={`${INPUT_OTO} min-w-[130px] flex-1`} title="Opsiyon bitişi" />
+                <input type="number" value={rez.kaparoTl} onChange={(e) => setRez({ ...rez, kaparoTl: e.target.value })} placeholder="Kaparo TL" className={`${INPUT_OTO} min-w-[90px] flex-1`} />
                 <button onClick={sar(async () => { await api.rezervasyonOlustur({ bolum_id: secili.id, baslangic_tarihi: bugun(), bitis_tarihi: rez.bitis, kaparo_kurus: rez.kaparoTl ? Math.round(Number(rez.kaparoTl) * 100) : 0 }); setMesaj('Opsiyon verildi.'); })} className={BTN_MOR}>Opsiyonla</button>
               </div>
             )}
             {secili.sahiplik === 'firma' && ['musait', 'opsiyonlu'].includes(secili.durum) && (
-              <div className="flex gap-2 items-end sm:col-span-2">
-                <input type="number" value={musteriId} onChange={(e) => setMusteriId(e.target.value)} placeholder="Müşteri Kişi ID (rol: müşteri)" className={INPUT} />
+              <div className="flex flex-wrap gap-2 items-end sm:col-span-2">
+                <select value={musteriId} onChange={(e) => setMusteriId(e.target.value)} className={`${INPUT_OTO} min-w-[160px] flex-1`}>
+                  <option value="">Müşteri seçin…</option>
+                  {musteriler.map((k) => <option key={k.id} value={k.id}>{k.ad_soyad}</option>)}
+                </select>
                 <button onClick={sar(async () => { const s = await api.satisOlustur({ bolum_id: secili.id, musteriler: [{ kisi_id: Number(musteriId) }], satis_tarihi: bugun() }); setMesaj(`Satış #${s.id} taslak açıldı — ödeme planı oluşturup onaylayın.`); onSatisSec?.(secili.id); })} className={BTN_YESIL}>Satış Aç</button>
               </div>
             )}

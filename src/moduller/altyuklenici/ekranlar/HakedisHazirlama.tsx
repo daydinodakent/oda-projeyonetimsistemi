@@ -183,7 +183,7 @@ export default function HakedisHazirlama({ sozlesmeId }: Props) {
 
   return (
     <div className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl p-6 text-[var(--text-primary)]">
-      <div className="flex items-center justify-between pb-4 border-b border-[var(--border)] mb-4">
+      <div className="flex flex-wrap gap-2 items-center justify-between pb-4 border-b border-[var(--border)] mb-4">
         <h2 className="text-lg font-black tracking-tight flex items-center gap-2"><FileSpreadsheet className="w-5 h-5 text-indigo-400" /> Hakediş Hazırlama</h2>
         <button onClick={() => setYeniFormAcik((v) => !v)} className="px-3 py-1.5 text-[10px] font-black uppercase bg-indigo-600/15 border border-indigo-500/30 text-indigo-400 rounded-lg cursor-pointer flex items-center gap-1.5"><Plus className="w-3.5 h-3.5" /> Yeni Hakediş</button>
       </div>

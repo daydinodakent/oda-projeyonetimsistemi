@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ShieldAlert } from 'lucide-react';
+import { useKisiAdlari } from '../../_cekirdek/useKisiAdlari';
 import * as api from '../api';
 import type { EksikEvrakliUye } from '../types';
 import { ROL_SAHA_ETIKET } from './format';
@@ -10,6 +11,7 @@ interface Props {
 
 /** Görev metni: "eksik evraklı işçi uyarıları" — KAYIT DIŞI İŞÇİ RİSKİ. */
 export default function EksikEvrakliIsciUyarilari({ ekipId }: Props) {
+  const kisiAdi = useKisiAdlari();
   const [liste, setListe] = useState<EksikEvrakliUye[] | null>(null);
 
   useEffect(() => { api.eksikEvrakliUyeleriGetir(ekipId).then(setListe); }, [ekipId]);
@@ -26,7 +28,7 @@ export default function EksikEvrakliIsciUyarilari({ ekipId }: Props) {
         <div className="flex flex-col gap-2">
           {liste.map(({ uye, kontrol }) => (
             <div key={uye.id} className="p-3 bg-red-600/10 border border-red-500/30 rounded-lg">
-              <div className="text-xs font-bold">Kişi #{uye.kisi_id} <span className="font-normal text-[var(--text-secondary)]">({ROL_SAHA_ETIKET[uye.rol_saha]})</span></div>
+              <div className="text-xs font-bold">{kisiAdi(uye.kisi_id)} <span className="font-normal text-[var(--text-secondary)]">({ROL_SAHA_ETIKET[uye.rol_saha]})</span></div>
               <ul className="text-[10px] text-red-400 mt-1 list-disc list-inside">
                 {kontrol.nedenler.map((n) => <li key={n}>{n}</li>)}
               </ul>

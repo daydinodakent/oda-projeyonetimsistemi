@@ -44,9 +44,9 @@ export default function StokDurumu({ projeId }: Props) {
 
   return (
     <div className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl p-6 text-[var(--text-primary)]">
-      <div className="flex items-center justify-between pb-4 border-b border-[var(--border)] mb-4">
+      <div className="flex flex-wrap gap-2 items-center justify-between pb-4 border-b border-[var(--border)] mb-4">
         <h2 className="text-lg font-black tracking-tight flex items-center gap-2"><Boxes className="w-5 h-5 text-indigo-400" /> Stok Durumu</h2>
-        <select value={secilenDepoId ?? ''} onChange={(e) => setSecilenDepoId(Number(e.target.value))} className="bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-xs">
+        <select value={secilenDepoId ?? ''} onChange={(e) => setSecilenDepoId(Number(e.target.value))} className="bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-xs max-w-full">
           {depolar.map((d) => <option key={d.id} value={d.id}>{d.ad} ({d.tur})</option>)}
         </select>
       </div>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { CalendarCheck, Zap } from 'lucide-react';
+import { useKisiAdlari } from '../../_cekirdek/useKisiAdlari';
 import * as api from '../api';
 import type { EkipUye, GunTipi } from '../types';
 
@@ -16,6 +17,7 @@ const GUN_TIPLERI: { deger: GunTipi; etiket: string; gunDegeri: 0 | 0.5 | 1 }[] 
 
 /** Görev metni: "Günlük puantaj girişi mobil, çevrimdışı, ekip listesinden tek dokunuşla 'hepsi tam gün' + istisnaları düzenleme." */
 export default function MobilGunlukPuantaj({ ekipId }: Props) {
+  const kisiAdi = useKisiAdlari();
   const [uyeler, setUyeler] = useState<EkipUye[]>([]);
   const [tarih, setTarih] = useState(new Date().toISOString().slice(0, 10));
   const [maliyetKoduId, setMaliyetKoduId] = useState('');
@@ -77,7 +79,7 @@ export default function MobilGunlukPuantaj({ ekipId }: Props) {
         {uyeler.map((u) => (
           <div key={u.id} className="p-3 bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg">
             <button onClick={() => setDuzenlenenUyeId(duzenlenenUyeId === u.id ? null : u.id)} className="w-full text-left text-xs font-bold cursor-pointer">
-              Kişi #{u.kisi_id} — {u.rol_saha}
+              {kisiAdi(u.kisi_id)} — {u.rol_saha}
               {sonuc?.basarisiz.some((b) => b.ekip_uye_id === u.id) && <span className="text-red-400 ml-2">İSTİSNA</span>}
             </button>
             {duzenlenenUyeId === u.id && (

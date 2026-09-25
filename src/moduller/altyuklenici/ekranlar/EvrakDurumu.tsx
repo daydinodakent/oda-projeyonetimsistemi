@@ -34,7 +34,7 @@ export default function EvrakDurumu({ sozlesmeId }: Props) {
 
   return (
     <div className="w-full bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl p-6 text-[var(--text-primary)]">
-      <div className="flex items-center justify-between pb-4 border-b border-[var(--border)] mb-4">
+      <div className="flex flex-wrap gap-2 items-center justify-between pb-4 border-b border-[var(--border)] mb-4">
         <h2 className="text-lg font-black tracking-tight flex items-center gap-2"><FileCheck2 className="w-5 h-5 text-indigo-400" /> Evrak Durumu</h2>
         <label className="flex items-center gap-1.5 text-[10px] font-black uppercase text-[var(--text-secondary)] cursor-pointer">
           <input type="checkbox" checked={sonHakedisMi} onChange={(e) => setSonHakedisMi(e.target.checked)} /> Son hakediş (ilişiksizlik dahil)

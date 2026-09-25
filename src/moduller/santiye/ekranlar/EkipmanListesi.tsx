@@ -41,7 +41,7 @@ export default function EkipmanListesi({ projeId }: { projeId: string }) {
 
   return (
     <div className={KART}>
-      <div className="flex items-center justify-between pb-4 border-b border-[var(--border)] mb-4">
+      <div className="flex flex-wrap gap-2 items-center justify-between pb-4 border-b border-[var(--border)] mb-4">
         <h2 className="text-lg font-black tracking-tight flex items-center gap-2"><Truck className="w-5 h-5 text-indigo-400" /> Ekipman / Makine</h2>
         <button onClick={() => setFormAcik((v) => !v)} className={`${BTN_YESIL} flex items-center gap-1`}><Plus className="w-3 h-3" /> Ekipman Ekle</button>
       </div>

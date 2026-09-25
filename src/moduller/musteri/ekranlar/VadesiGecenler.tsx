@@ -15,7 +15,7 @@ export default function VadesiGecenler({ projeId }: { projeId: string }) {
 
   return (
     <div className={KART}>
-      <div className="flex items-center justify-between pb-4 border-b border-[var(--border)] mb-4">
+      <div className="flex flex-wrap gap-2 items-center justify-between pb-4 border-b border-[var(--border)] mb-4">
         <h2 className="text-lg font-black tracking-tight flex items-center gap-2"><AlarmClock className="w-5 h-5 text-red-400" /> Vadesi Geçenler</h2>
         <button onClick={async () => { setHata(null); try { const r = await api.hatirlatmaUret(projeId, bugun()); setMesaj(`${r.eklenen} yeni hatırlatma kuyruğa eklendi (gönderim entegrasyonu kapsam dışı).`); await yenile(); } catch (e) { setHata(String((e as Error).message)); } }} className={`${BTN_MOR} flex items-center gap-1`}><Send className="w-3 h-3" /> Hatırlatma Kuyruğu Üret</button>
       </div>
