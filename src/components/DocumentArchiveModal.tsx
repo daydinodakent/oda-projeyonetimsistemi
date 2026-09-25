@@ -341,7 +341,8 @@ export default function DocumentArchiveModal({ isOpen, onClose, isFullScreen = f
   const [activeCategoryFilter, setActiveCategoryFilter] = useState<string>('Tüm Tipler');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
-  const [isLeftPanelOpen, setIsLeftPanelOpen] = useState<boolean>(true);
+  // Dar ekranda (<1024px, sütunlar alt alta) klasör ağacı kapalı başlar; kullanıcı ok düğmesiyle açabilir.
+  const [isLeftPanelOpen, setIsLeftPanelOpen] = useState<boolean>(() => (typeof window === 'undefined' || !window.matchMedia ? true : window.matchMedia('(min-width: 1024px)').matches));
 
   // Modal open states for sub-flows
   const [showAddDocModal, setShowAddDocModal] = useState<boolean>(false);
