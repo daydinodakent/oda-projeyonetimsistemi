@@ -106,7 +106,7 @@ export const toolbarTones = {
 export type ToolbarTone = keyof typeof toolbarTones;
 
 /** Header yüzeyleri (koyu bar, alt satır, gruplar) ve altın/kahve vurgu düğmeleri. */
-export const headerSurface = {
+export const headerSurfaceDark = {
   // Katmanlı lacivert tonlar: içerik alanı (#0B0F19, en koyu) < alt satır < ÜST BAR (en açık, yükseltilmiş) ;
   // gruplar/hapler bar içinde "gömülü" (daha koyu + ince açık kenarlık) görünür.
   bar: '#27386a',
@@ -118,6 +118,23 @@ export const headerSurface = {
   gold: { bg: '#332c1e', bgHover: '#3d3422', fg: '#f1c40f' },
   orange: { bg: '#383321', bgHover: '#433b25', fg: '#f39c12' },
 } as const;
+
+/** Açık tema: bar/alt satır/gruplar KOYU kalır (açık zeminde çerçeve gibi), tonlar dark'a göre daha sönük ve derin. */
+export const headerSurfaceLight = {
+  bar: '#141c30',
+  border: '#2a3858',
+  sub: '#0d1426',
+  group: '#070b16',
+  groupBorder: '#2a3858',
+  pill: '#0a101f',
+  gold: { bg: '#332c1e', bgHover: '#3d3422', fg: '#f1c40f' },
+  orange: { bg: '#383321', bgHover: '#433b25', fg: '#f39c12' },
+} as const;
+
+export type HeaderSurface = typeof headerSurfaceDark | typeof headerSurfaceLight;
+export const headerSurfaceFor = (mode: 'light' | 'dark'): HeaderSurface => (mode === 'light' ? headerSurfaceLight : headerSurfaceDark);
+/** Geriye dönük uyum: koyu tema değerleri. */
+export const headerSurface = headerSurfaceDark;
 
 export const fontSans =
   '"Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';

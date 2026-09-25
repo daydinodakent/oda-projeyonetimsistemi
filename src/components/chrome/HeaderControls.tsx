@@ -8,12 +8,19 @@ import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
-import { alpha } from '@mui/material/styles';
+import { alpha, useColorScheme } from '@mui/material/styles';
 import Typography from '@mui/material/Typography';
-import { headerSurface, moduleTones, toolbarTones, type ModuleTone, type ToolbarTone } from '../../theme/tokens';
+import { headerSurfaceFor, moduleTones, toolbarTones, type ModuleTone, type ToolbarTone } from '../../theme/tokens';
 
 /** Sticky üst çubuk — koyu marka rengi + alt çizgi; içerik (grid satırları) çağıran taraftan gelir. */
+/** Tema moduna göre (açık/koyu) üst bar yüzey renkleri. */
+export function useHeaderSurface() {
+  const { colorScheme } = useColorScheme();
+  return headerSurfaceFor(colorScheme === 'light' ? 'light' : 'dark');
+}
+
 export function HeaderBar({ children }: { children: ReactNode }) {
+  const headerSurface = useHeaderSurface();
   return (
     <AppBar
       component="header"
@@ -52,6 +59,7 @@ interface ModuleTabProps {
 
 /** PLAN / İNŞAAT / İŞLETME pill sekmesi. */
 export function ModuleTab({ tone, active, label, title, icon, onClick, compact }: ModuleTabProps) {
+  const headerSurface = useHeaderSurface();
   const t = moduleTones[tone];
   const gradient = `linear-gradient(90deg, ${t.from}, ${t.to})`;
   const glow = `0 0 12px ${alpha(t.from, compact ? 0.4 : 0.35)}`;
@@ -167,6 +175,7 @@ export function SegmentTab({ kind, active, label, icon, onClick, compact, id }: 
 
 /** Segment düğmelerini saran koyu grup kutusu. */
 export function SegmentGroup({ children, compact }: { children: ReactNode; compact?: boolean }) {
+  const headerSurface = useHeaderSurface();
   return (
     <Box
       sx={{
@@ -232,6 +241,7 @@ interface AccentIconButtonProps {
 
 /** Altın (modüller) / turuncu (daralt-genişlet) vurgu düğmesi. */
 export function AccentIconButton({ kind, title, onClick, icon, id, compact }: AccentIconButtonProps) {
+  const headerSurface = useHeaderSurface();
   const t = headerSurface[kind];
   return (
     <IconButton
@@ -303,6 +313,7 @@ interface ProfileMenuProps {
 
 /** Kullanıcı menüsü (Admin / Yardım / Tema / Bildirimler) — MUI Menu. */
 export function ProfileMenu({ anchorEl, open, onClose, name, role, items, compact }: ProfileMenuProps) {
+  const headerSurface = useHeaderSurface();
   return (
     <Menu
       anchorEl={anchorEl}
@@ -375,6 +386,7 @@ interface ProfileButtonProps {
 
 /** AY / SpU profil hapı + okunmamış bildirim rozeti. */
 export function ProfileButton({ onClick, unread, compact }: ProfileButtonProps) {
+  const headerSurface = useHeaderSurface();
   const avatar = (
     <Box
       component="span"

@@ -8,7 +8,7 @@ import NotificationCenter from './components/chrome/NotificationCenter';
 import ModuleGridDialog, { type ModuleId } from './components/chrome/ModuleGridDialog';
 import YonetimModulPaneli from './components/chrome/YonetimModulPaneli';
 import { HeaderBar, ModuleTab, SegmentTab, SegmentGroup, ToolbarIconButton, AccentIconButton, SearchIconButton, ThemeIconButton, ProfileMenu, ProfileButton, type ProfileMenuItem } from './components/chrome/HeaderControls';
-import { headerSurface } from './theme/tokens';
+import { headerSurfaceFor } from './theme/tokens';
 import { FormField } from './components/chrome/FormDialog';
 import FilterSelect from './components/ui/FilterSelect';
 import { 
@@ -645,6 +645,7 @@ export default function App() {
     <svg style={{ width: `${size * 0.25}rem`, height: `${size * 0.25}rem` }} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
   );
 
+  const headerSurface = headerSurfaceFor(theme);
   const themeIcon = (cls: string) => (theme === 'dark' ? <Sun className={`${cls} text-amber-400`} /> : <Moon className={`${cls} text-indigo-400`} />);
 
   const buildProfileItems = (close: () => void, compact: boolean): ProfileMenuItem[] => {
