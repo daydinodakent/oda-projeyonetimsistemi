@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { createContext, useContext, type ReactNode } from 'react';
 import AppBar from '@mui/material/AppBar';
 import Badge from '@mui/material/Badge';
 import Box from '@mui/material/Box';
@@ -8,15 +8,16 @@ import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
-import { alpha, useColorScheme } from '@mui/material/styles';
+import { alpha } from '@mui/material/styles';
 import Typography from '@mui/material/Typography';
 import { headerSurfaceFor, moduleTones, toolbarTones, type ModuleTone, type ToolbarTone } from '../../theme/tokens';
 
 /** Sticky üst çubuk — koyu marka rengi + alt çizgi; içerik (grid satırları) çağıran taraftan gelir. */
 /** Tema moduna göre (açık/koyu) üst bar yüzey renkleri. */
+export const HeaderModeContext = createContext<'light' | 'dark'>('dark');
 export function useHeaderSurface() {
-  const { colorScheme } = useColorScheme();
-  return headerSurfaceFor(colorScheme === 'light' ? 'light' : 'dark');
+  // MUI colorScheme güncellemesi gecikebildiği için mod, uygulamanın tema durumundan bağlam ile gelir.
+  return headerSurfaceFor(useContext(HeaderModeContext));
 }
 
 export function HeaderBar({ children }: { children: ReactNode }) {
@@ -24,6 +25,7 @@ export function HeaderBar({ children }: { children: ReactNode }) {
   return (
     <AppBar
       component="header"
+      enableColorOnDark
       position="sticky"
       elevation={0}
       color="default"

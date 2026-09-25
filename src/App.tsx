@@ -7,7 +7,7 @@ import ProjectPicker from './components/chrome/ProjectPicker';
 import NotificationCenter from './components/chrome/NotificationCenter';
 import ModuleGridDialog, { type ModuleId } from './components/chrome/ModuleGridDialog';
 import YonetimModulPaneli from './components/chrome/YonetimModulPaneli';
-import { HeaderBar, ModuleTab, SegmentTab, SegmentGroup, ToolbarIconButton, AccentIconButton, SearchIconButton, ThemeIconButton, ProfileMenu, ProfileButton, type ProfileMenuItem } from './components/chrome/HeaderControls';
+import { HeaderBar, ModuleTab, SegmentTab, SegmentGroup, ToolbarIconButton, AccentIconButton, SearchIconButton, ThemeIconButton, HeaderModeContext, ProfileMenu, ProfileButton, type ProfileMenuItem } from './components/chrome/HeaderControls';
 import { headerSurfaceFor } from './theme/tokens';
 import { FormField } from './components/chrome/FormDialog';
 import FilterSelect from './components/ui/FilterSelect';
@@ -686,6 +686,7 @@ export default function App() {
   };
 
   return (
+    <HeaderModeContext.Provider value={theme}>
     <div className="h-screen max-h-screen overflow-hidden bg-[var(--bg-primary)] text-[var(--text-primary)] transition-colors duration-300 flex flex-col font-sans"
       style={theme === 'dark' ? { backgroundImage: 'radial-gradient(1100px 420px at 50% -8%, rgba(79,110,200,0.16), transparent 65%)' } : undefined}>
       
@@ -1922,5 +1923,6 @@ export default function App() {
       />
 
     </div>
+    </HeaderModeContext.Provider>
   );
 }
