@@ -758,7 +758,7 @@ export default function AdminPanel({ theme, onClose }: AdminPanelProps) {
   });
 
   return (
-    <div className="w-full h-full flex flex-col bg-[var(--bg-primary)] text-[var(--text-primary)] rounded-2xl border border-[var(--border)] shadow-2xl overflow-hidden transition-all duration-300">
+    <div className="w-full md:h-full flex flex-col bg-[var(--bg-primary)] text-[var(--text-primary)] rounded-2xl border border-[var(--border)] shadow-2xl md:overflow-hidden transition-all duration-300">
       
       {/* TOAST POPUP */}
       {toastMessage && (
@@ -815,10 +815,10 @@ export default function AdminPanel({ theme, onClose }: AdminPanelProps) {
       </div>
 
       {/* MAIN CONTAINER (LEFT ICON TAB RAIL + CONTENT) */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex flex-col md:flex-row overflow-y-auto md:overflow-hidden">
         
-        {/* LEFT ICON-ONLY TAB RAIL */}
-        <div className="w-16 shrink-0 bg-[var(--bg-secondary)] border-r border-[var(--border)] flex flex-col items-center py-4 gap-4 select-none">
+        {/* LEFT ICON-ONLY TAB RAIL (mobilde üstte yatay şerit) */}
+        <div className="w-full md:w-16 shrink-0 bg-[var(--bg-secondary)] border-b md:border-b-0 md:border-r border-[var(--border)] flex flex-row md:flex-col items-center justify-center md:justify-start py-2 md:py-4 gap-4 select-none">
           
           {/* Tab 1: Veriler */}
           <button
@@ -856,7 +856,7 @@ export default function AdminPanel({ theme, onClose }: AdminPanelProps) {
             </div>
           </button>
 
-          <div className="mt-auto flex flex-col items-center gap-2">
+          <div className="hidden md:flex mt-auto flex-col items-center gap-2">
             <div className="w-8 h-[1px] bg-[var(--border)]"></div>
             <div className="w-7 h-7 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/20 flex items-center justify-center text-[10px] font-bold" title="Standart 7 Kolon Uyumlu">
               7K
@@ -865,16 +865,16 @@ export default function AdminPanel({ theme, onClose }: AdminPanelProps) {
         </div>
 
         {/* RIGHT CONTENT WORKSPACE */}
-        <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 flex md:overflow-hidden min-w-0">
           
           {/* ========================================================
               TAB 1: VERİLER (KATMANLAR VE TABLOLAR)
              ======================================================== */}
           {activeMainTab === 'veriler' && (
-            <div className="flex-1 flex overflow-hidden">
+            <div className="flex-1 flex flex-col md:flex-row md:overflow-hidden min-w-0">
               
               {/* Left Sub-list: Tables & Layers Sidebar */}
-              <div className="w-72 shrink-0 bg-[var(--bg-secondary)] border-r border-[var(--border)] flex flex-col overflow-hidden">
+              <div className="w-full md:w-72 max-h-56 md:max-h-none shrink-0 bg-[var(--bg-secondary)] border-b md:border-b-0 md:border-r border-[var(--border)] flex flex-col overflow-hidden">
                 <div className="p-3.5 border-b border-[var(--border)] flex items-center justify-between">
                   <span className="text-xs font-black uppercase tracking-wider text-[var(--text-secondary)] flex items-center gap-1.5">
                     <Database className="w-3.5 h-3.5 text-sky-400" />
@@ -917,7 +917,7 @@ export default function AdminPanel({ theme, onClose }: AdminPanelProps) {
               </div>
 
               {/* Right Content Area: alt-sekmeler (Tablo/Katman Verileri & Sütunlar) */}
-              <div className="flex-1 flex flex-col bg-[var(--bg-primary)] overflow-hidden">
+              <div className="flex-1 flex flex-col bg-[var(--bg-primary)] md:overflow-hidden min-w-0 min-h-[420px] md:min-h-0">
 
                 {/* Sub-tab bar */}
                 <div className="flex items-center gap-2 px-4 pt-3 bg-[var(--bg-secondary)] border-b border-[var(--border)]">
@@ -1234,10 +1234,10 @@ CREATE TABLE ${selectedTableKey} (
               TAB 2: KULLANICILAR & YETKİLENDİRME
              ======================================================== */}
           {activeMainTab === 'kullanicilar' && (
-            <div className="flex-1 flex overflow-hidden">
+            <div className="flex-1 flex flex-col md:flex-row md:overflow-hidden min-w-0">
               
               {/* Left Column: Personnel List */}
-              <div className="w-80 shrink-0 bg-[var(--bg-secondary)] border-r border-[var(--border)] flex flex-col overflow-hidden">
+              <div className="w-full md:w-80 max-h-64 md:max-h-none shrink-0 bg-[var(--bg-secondary)] border-b md:border-b-0 md:border-r border-[var(--border)] flex flex-col overflow-hidden">
                 <div className="p-3.5 border-b border-[var(--border)] flex items-center justify-between">
                   <span className="text-xs font-black uppercase tracking-wider text-[var(--text-secondary)] flex items-center gap-1.5">
                     <Users className="w-3.5 h-3.5 text-amber-400" />

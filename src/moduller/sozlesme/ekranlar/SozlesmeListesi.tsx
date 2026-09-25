@@ -102,9 +102,12 @@ export default function SozlesmeListesi({ projeId, onSecSozlesme }: Props) {
             </select>
           </label>
           <label className="text-[10px] font-black uppercase tracking-wider text-[var(--text-secondary)] flex flex-col gap-1">
-            Taraf Firma ID
-            <input type="number" value={form.taraf_firma_id ?? ''} onChange={(e) => setForm((f) => ({ ...f, taraf_firma_id: e.target.value ? Number(e.target.value) : undefined }))}
-              className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg px-2 py-1.5 text-xs text-[var(--text-primary)]" placeholder="Çekirdek Firma ID" />
+            Taraf Firma
+            <select value={form.taraf_firma_id ?? ''} onChange={(e) => setForm((f) => ({ ...f, taraf_firma_id: e.target.value ? Number(e.target.value) : undefined }))}
+              className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-lg px-2 py-1.5 text-xs text-[var(--text-primary)]">
+              <option value="">Firma seçin…</option>
+              {firmalar.map((f) => <option key={f.id} value={f.id}>{f.unvan}</option>)}
+            </select>
           </label>
           <label className="text-[10px] font-black uppercase tracking-wider text-[var(--text-secondary)] flex flex-col gap-1 sm:col-span-2">
             Konu

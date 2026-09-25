@@ -71,7 +71,7 @@ export default function SiparisTakip({ projeId, onFaturaOlusturuldu }: Props) {
 
       {hata && <div className="mb-4 p-3 rounded-lg bg-red-600/10 border border-red-500/30 text-red-400 text-xs">{hata}</div>}
 
-      <div className="flex items-center gap-1 mb-4 bg-[var(--bg-primary)] border border-[var(--border)] rounded-xl p-1 self-start w-fit">
+      <div className="flex items-center gap-1 mb-4 bg-[var(--bg-primary)] border border-[var(--border)] rounded-xl p-1 self-start w-fit max-w-full overflow-x-auto">
         {(Object.keys(SEKME_ETIKET) as Sekme[]).map((s) => (
           <button key={s} onClick={() => setSekme(s)} className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-lg transition cursor-pointer ${sekme === s ? 'bg-indigo-600/20 text-indigo-400' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}>
             {SEKME_ETIKET[s]} ({siparisler.filter((x) => x.durum === SEKME_DURUM[s]).length})

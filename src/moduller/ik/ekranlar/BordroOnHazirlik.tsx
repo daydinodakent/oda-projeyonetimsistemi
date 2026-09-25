@@ -80,7 +80,7 @@ export default function BordroOnHazirlik() {
 
       {hata && <div className="mb-4 p-3 rounded-lg bg-red-600/10 border border-red-500/30 text-red-400 text-xs">{hata}</div>}
 
-      <div className="grid grid-cols-3 gap-2 mb-4 items-end">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4 items-end">
         <input type="number" value={yil} onChange={(e) => setYil(Number(e.target.value))} className="bg-[var(--bg-primary)] border border-[var(--border)] rounded px-2 py-1.5 text-xs" />
         <select value={ay} onChange={(e) => setAy(Number(e.target.value))} className="bg-[var(--bg-primary)] border border-[var(--border)] rounded px-2 py-1.5 text-xs">
           {AYLAR.map((a, i) => <option key={a} value={i + 1}>{a}</option>)}

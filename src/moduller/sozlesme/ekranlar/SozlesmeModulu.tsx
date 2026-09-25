@@ -29,7 +29,7 @@ export default function SozlesmeModulu({ projeId }: Props) {
 
   return (
     <div className="w-full flex flex-col gap-4">
-      <div className="flex items-center gap-1 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl p-1 self-start">
+      <div className="flex items-center gap-1 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl p-1 self-start max-w-full overflow-x-auto">
         <TabButon aktif={ustSekme === 'sozlesmeler'} onClick={() => sekmeSec('sozlesmeler')} icon={<FileSignature className="w-3.5 h-3.5" />} etiket="Sözleşmeler" />
         <TabButon aktif={ustSekme === 'kritik-tarihler'} onClick={() => sekmeSec('kritik-tarihler')} icon={<AlarmClock className="w-3.5 h-3.5" />} etiket="Kritik Tarihler" />
         <TabButon aktif={ustSekme === 'sablonlar'} onClick={() => sekmeSec('sablonlar')} icon={<FileText className="w-3.5 h-3.5" />} etiket="Şablonlar" />

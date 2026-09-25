@@ -299,6 +299,11 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  // Görünüm/modül değişince içerik kaydırmasını başa al (mobilde eski kaydırma konumunda açılmasın)
+  useEffect(() => {
+    document.querySelector('main')?.scrollTo?.({ top: 0 });
+  }, [centerTab, yonetimModulId, activeTab]);
+
   // Sync state with DOM attribute + MUI color scheme
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -1202,7 +1207,7 @@ export default function App() {
                 )}
 
                 {centerTab === 'admin' && (
-                  <div className="w-full h-full animate-fade-in relative min-h-[640px]">
+                  <div className="w-full md:h-full animate-fade-in relative md:min-h-[640px]">
                     <AdminPanel 
                       theme={theme}
                       onClose={() => setCenterTab('dashboard')}
