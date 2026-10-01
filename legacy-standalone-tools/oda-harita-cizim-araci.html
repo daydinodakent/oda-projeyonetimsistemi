@@ -460,9 +460,9 @@
   .add-content-item-text{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1;}
   .add-content-item-label{font-size:12.5px;color:var(--text);}
   .add-content-item-hint{font-size:10px;color:var(--text-dim);line-height:1.35;white-space:normal;}
-  /* Satırın sağındaki küçük "göz" ikonu — örnek dosyayı içe aktarmadan
-     ÖNCE görüntüleme/indirme (bkz. showSampleFileModal). stopPropagation
-     ile satırın kendi tıklama (içe aktarma) davranışını TETİKLEMEZ. */
+  /* Satırın sağındaki küçük "göz" ikonu — örnek dosyayı ÖNİZLEMEDEN,
+     DOĞRUDAN haritaya ekler (bkz. importSampleDirectly). stopPropagation
+     ile satırın kendi tıklama (dosya seçici açma) davranışını TETİKLEMEZ. */
   .add-content-sample-btn{
     flex:0 0 auto;width:22px;height:22px;margin-top:-1px;border-radius:4px;
     background:transparent;border:1px solid transparent;color:var(--text-dim);cursor:pointer;
@@ -886,13 +886,6 @@
   .btn.primary:hover{color:#fff;}
   .btn.primary.danger{background:rgba(224,104,90,.15);border-color:var(--danger);color:var(--danger);}
   .btn.primary.danger:hover{background:var(--danger);color:#fff;}
-  /* Örnek Dosya modali — metin/özet önizleme kutusu (bkz. showSampleFileModal). */
-  .sample-file-pre{
-    max-height:280px;overflow:auto;background:var(--bg-panel-raise);border:1px solid var(--line);
-    border-radius:2px;padding:10px;font-family:var(--font-mono);font-size:11px;color:var(--text);
-    white-space:pre-wrap;word-break:break-all;margin:0;
-  }
-
   /* ---------- Taslak çizim kontrolleri (mobil için) ---------- */
   #draftControls{
     position:absolute;left:50%;bottom:40px;transform:translate(-50%,8px);z-index:6;
@@ -2286,23 +2279,6 @@
     <b style="color:var(--text);">Dokümanlar</b>
     <div id="infoDocsList"></div>
     <div id="infoDocsPreview"></div>
-  </div>
-</div>
-
-<!-- Örnek Dosya modali — Veri Ekle listesindeki her formatın yanındaki
-     "göz" ikonuyla açılır (bkz. showSampleFileModal). Metin tabanlı
-     formatlar (GeoJSON/KML/GML/DXF/IFC/PGW) doğrudan önizlenir; zip/las gibi
-     ikili formatlar için kısa bir açıklama + indirme sunulur; XYZ/3D Tiles
-     gibi URL tabanlı olanlar için kopyalanabilir bir örnek adres gösterilir. -->
-<div class="modal-overlay" id="sampleFileModal">
-  <div class="modal-box tall" style="width:520px;max-width:calc(100vw - 40px);">
-    <div class="modal-header">
-      <div class="modal-title" id="sampleFileModalTitle">Örnek Dosya</div>
-      <button type="button" class="modal-close-x" id="btnSampleFileClose" title="Kapat">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 6l12 12M18 6L6 18"/></svg>
-      </button>
-    </div>
-    <div class="modal-body" id="sampleFileModalBody"></div>
   </div>
 </div>
 
@@ -9014,10 +8990,10 @@
   // geri döndürülür — tarayıcı accept'i dialog AÇILIRKENki değeriyle
   // okuduğundan bu, sonradan başka bir satırın .accept'ini etkilemez.
   var IMPORT_INPUT_FULL_ACCEPT = '.json,.geojson,.kml,.kmz,.zip,.shp,.gml,.dxf,.gltf,.glb,.bin,.ifc,.jpg,.jpeg,.png,.jgw,.pgw,.jpw,.wld';
-  // Her formatın yanındaki küçük "göz" ikonu (bkz. showSampleFileModal),
-  // kullanıcının o formatın nasıl bir dosya olduğunu İÇE AKTARMADAN önce
-  // görebilmesi/indirebilmesi için — bkz. public/samples/ altındaki
-  // ornek.* dosyaları.
+  // Her formatın yanındaki küçük "göz" ikonu (bkz. importSampleDirectly),
+  // kullanıcının o formatın nasıl bir şey olduğunu anlaması için örnek
+  // dosyayı ÖNİZLEME olmadan DOĞRUDAN haritaya ekler/gösterir — bkz.
+  // public/samples/ altındaki ornek.* dosyaları.
   var ADD_CONTENT_GROUPS = [
     { title:'CAD Dosyaları', items:[
       { label:'DXF', hint:'AutoCAD çizim dosyası — birim/ölçek dönüşümü ile', icon:'vector', inputId:'importInput', accept:'.dxf',
@@ -9098,11 +9074,12 @@
           var sampleBtn = document.createElement('button');
           sampleBtn.type = 'button';
           sampleBtn.className = 'add-content-sample-btn';
-          sampleBtn.title = 'Örnek dosyayı görüntüle';
+          sampleBtn.title = 'Örnek dosyayı haritada göster';
           sampleBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>';
           sampleBtn.addEventListener('click', function(e){
             e.stopPropagation();
-            showSampleFileModal(it.label, it.sample);
+            pop.classList.remove('show');
+            importSampleDirectly(it);
           });
           row.appendChild(sampleBtn);
         }
@@ -9138,106 +9115,69 @@
     }
   }
 
-  // ---- Örnek Dosya modali (bkz. sampleFileModal, ADD_CONTENT_GROUPS.sample) ----
-  function sampleDownloadRowHtml(path, name){
-    return '<div style="margin-top:8px;"><a class="btn" href="' + path + '" download="' + name + '" ' +
-      'style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;width:auto;padding:9px 12px;">' +
-      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:14px;height:14px;flex:0 0 auto;">' +
-      '<path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 21h16"/></svg>İndir</a></div>';
+  // ---- Örnek dosyayı DOĞRUDAN haritada göster (bkz. ADD_CONTENT_GROUPS.sample) ----
+  // "Göz" ikonuna tıklanınca, dosya seçici diyaloğu AÇILMADAN, örnek dosya
+  // (public/samples/ornek.*) sunucudan çekilip gerçek bir File nesnesine
+  // dönüştürülür ve İLGİLİ <input>'un .files'ına (DataTransfer ile)
+  // atanarak bir 'change' olayı tetiklenir — bu, kullanıcının o dosyayı
+  // kendisi seçmiş gibi davranır ve format başına AYRI import mantığı
+  // YAZMADAN mevcut tüm el yazısı/sunucu tabanlı importların (DXF, GeoJSON,
+  // KML, GML, Shapefile, Raster+Dünya Dosyası, GDAL/OGR, 3B Model, IFC,
+  // Nokta Bulutu) AYNEN kullanılmasını sağlar. URL tabanlı örnekler (XYZ
+  // katman, 3D Tiles) için karşılık gelen ekleme fonksiyonu (sorgu
+  // penceresi AÇILMADAN) doğrudan çağrılır — bkz. addXyzBasemapLayer,
+  // load3dTiles (ikisi de bu dosyada daha aşağıda tanımlı; fonksiyon
+  // bildirimleri hoist edildiğinden sıralama sorun değildir).
+  async function fetchSampleAsFile(path, name){
+    var resp = await fetch(path);
+    if (!resp.ok) throw new Error('Örnek dosya indirilemedi: ' + path);
+    var blob = await resp.blob();
+    return new File([blob], name, { type: blob.type || '' });
   }
-  // LAS ikili — ham baytları dökmek yerine, sabit baytlık LAS 1.x public
-  // header alanlarını (bkz. ornek.las üreticisi) okunaklı bir özete çevirir.
-  async function summarizeLasSample(path){
-    var buf = await (await fetch(path)).arrayBuffer();
-    var dv = new DataView(buf);
-    var sig = String.fromCharCode(dv.getUint8(0), dv.getUint8(1), dv.getUint8(2), dv.getUint8(3));
-    var versionMajor = dv.getUint8(24), versionMinor = dv.getUint8(25);
-    var pdrf = dv.getUint8(104);
-    var numPoints = dv.getUint32(107, true);
-    var scaleX = dv.getFloat64(131, true), scaleY = dv.getFloat64(139, true), scaleZ = dv.getFloat64(147, true);
-    var maxX = dv.getFloat64(179, true), minX = dv.getFloat64(187, true);
-    var maxY = dv.getFloat64(195, true), minY = dv.getFloat64(203, true);
-    var maxZ = dv.getFloat64(211, true), minZ = dv.getFloat64(219, true);
-    return 'İmza: ' + sig + '\n' +
-      'Sürüm: ' + versionMajor + '.' + versionMinor + '\n' +
-      'Nokta veri formatı: ' + pdrf + '\n' +
-      'Nokta sayısı: ' + numPoints + '\n' +
-      'Ölçek (x,y,z): ' + scaleX + ', ' + scaleY + ', ' + scaleZ + '\n' +
-      'X aralığı: ' + minX.toFixed(3) + '  —  ' + maxX.toFixed(3) + '\n' +
-      'Y aralığı: ' + minY.toFixed(3) + '  —  ' + maxY.toFixed(3) + '\n' +
-      'Z aralığı: ' + minZ.toFixed(3) + '  —  ' + maxZ.toFixed(3);
+  function setInputFilesAndFireChange(inputEl, fileArray){
+    var dt = new DataTransfer();
+    fileArray.forEach(function(f){ dt.items.add(f); });
+    inputEl.files = dt.files;
+    inputEl.dispatchEvent(new Event('change', { bubbles:true }));
   }
-  async function showSampleFileModal(label, sample){
-    var modal = document.getElementById('sampleFileModal');
-    var titleEl = document.getElementById('sampleFileModalTitle');
-    var body = document.getElementById('sampleFileModalBody');
-    titleEl.textContent = 'Örnek Dosya — ' + label;
-    body.innerHTML = '<div class="hint" style="border-top:none;padding-top:0;">Yükleniyor…</div>';
-    modal.classList.add('show');
+  async function importSampleDirectly(it){
+    var sample = it.sample;
     try{
       if (sample.kind === 'url'){
-        body.innerHTML =
-          (sample.desc ? '<div class="field-label" style="margin-top:0;">' + sample.desc.replace(/</g,'&lt;') + '</div>' : '') +
-          '<div style="display:flex;gap:6px;margin-top:8px;">' +
-            '<input type="text" readonly id="sampleFileUrlInput" value="' + sample.example.replace(/"/g,'&quot;') + '" style="flex:1;font-family:var(--font-mono);font-size:11.5px;">' +
-            '<button type="button" class="btn" id="sampleFileCopyBtn" style="flex:0 0 auto;width:auto;padding:9px 12px;">Kopyala</button>' +
-          '</div>';
-        document.getElementById('sampleFileCopyBtn').addEventListener('click', async function(){
-          try{ await navigator.clipboard.writeText(sample.example); showToast('Örnek adres panoya kopyalandı.'); }
-          catch(err){ document.getElementById('sampleFileUrlInput').select(); showToast('Kopyalamak için metni seçip Ctrl+C kullanın.'); }
-        });
-        return;
-      }
-      if (sample.kind === 'files'){
-        var parts = [];
-        for (var i=0;i<sample.files.length;i++){
-          var f = sample.files[i];
-          if (f.mime === 'image'){
-            parts.push('<div class="field-label" style="margin-top:10px;">' + f.name + '</div>' +
-              '<img src="' + f.path + '" style="max-width:100%;border:1px solid var(--line);border-radius:2px;image-rendering:pixelated;">' +
-              sampleDownloadRowHtml(f.path, f.name));
-          } else {
-            var t = await (await fetch(f.path)).text();
-            parts.push('<div class="field-label" style="margin-top:10px;">' + f.name + '</div>' +
-              '<pre class="sample-file-pre">' + t.replace(/</g,'&lt;') + '</pre>' +
-              sampleDownloadRowHtml(f.path, f.name));
-          }
+        if (it.triggerId === 'btnAddXyzLayer'){
+          var entry = addXyzBasemapLayer(it.label + ' (Örnek)', sample.example);
+          showToast('"' + entry.label + '" altlığı haritaya eklendi.');
+          return;
         }
-        body.innerHTML = parts.join('');
+        if (it.triggerId === 'btn3dTilesImport'){
+          var defaultName = '3D Tiles (Örnek)';
+          try{ defaultName = (new URL(sample.example).hostname || defaultName) + ' (Örnek)'; }catch(err){ /* yoksay */ }
+          await load3dTiles(sample.example, defaultName);
+          showToast('Örnek 3D Tiles kümesi haritaya eklendi.');
+          return;
+        }
         return;
       }
-      // kind === 'file'
-      if (sample.mime === 'text'){
-        var text = await (await fetch(sample.path)).text();
-        body.innerHTML =
-          (sample.desc ? '<div class="field-label" style="margin-top:0;">' + sample.desc.replace(/</g,'&lt;') + '</div>' : '') +
-          '<pre class="sample-file-pre">' + text.replace(/</g,'&lt;') + '</pre>' +
-          sampleDownloadRowHtml(sample.path, sample.name);
-        return;
+      var files;
+      if (sample.kind === 'files'){
+        files = [];
+        for (var i=0;i<sample.files.length;i++){
+          files.push(await fetchSampleAsFile(sample.files[i].path, sample.files[i].name));
+        }
+      } else {
+        // kind === 'file' — mime (text/las/zip) burada ÖNEMSİZ, hedef
+        // <input>'un kendi 'change' dinleyicisi dosya adının uzantısına
+        // bakarak doğru ayrıştırıcıyı (parseDXF/parseKML/importIFC/…) seçer.
+        files = [await fetchSampleAsFile(sample.path, sample.name)];
       }
-      if (sample.mime === 'las'){
-        var summary = await summarizeLasSample(sample.path);
-        body.innerHTML =
-          (sample.desc ? '<div class="field-label" style="margin-top:0;">' + sample.desc.replace(/</g,'&lt;') + '</div>' : '') +
-          '<pre class="sample-file-pre">' + summary + '</pre>' +
-          sampleDownloadRowHtml(sample.path, sample.name);
-        return;
-      }
-      // zip vb. diğer ikili formatlar — önizleme yerine kısa açıklama + indir
-      body.innerHTML =
-        (sample.desc ? '<div class="field-label" style="margin-top:0;">' + sample.desc.replace(/</g,'&lt;') + '</div>' : '') +
-        '<div class="hint" style="border-top:none;">İkili bir dosya olduğundan burada önizlenemiyor — indirip açabilirsiniz.</div>' +
-        sampleDownloadRowHtml(sample.path, sample.name);
+      var target = document.getElementById(it.inputId);
+      if (!target){ showToast('Örnek dosya için hedef bulunamadı.'); return; }
+      setInputFilesAndFireChange(target, files);
     }catch(err){
-      body.innerHTML = '<div class="hint" style="border-top:none;padding-top:0;color:var(--danger);">Örnek dosya yüklenemedi: ' + (err && err.message ? err.message : 'bilinmeyen hata') + '</div>';
+      console.error('Örnek dosya haritaya eklenemedi:', err);
+      showToast('Örnek dosya haritaya eklenemedi: ' + (err && err.message ? err.message : 'bilinmeyen hata'));
     }
   }
-  document.getElementById('btnSampleFileClose').addEventListener('click', function(){
-    document.getElementById('sampleFileModal').classList.remove('show');
-  });
-  document.getElementById('sampleFileModal').addEventListener('click', function(e){
-    if (e.target === this) this.classList.remove('show');
-  });
 
   // ---------------------------------------------------------------------
   // "CBS Haritası" yanındaki split buton: varsayılan tıklama "Kaydet",
@@ -9660,6 +9600,25 @@
   // GEREKTİRMEZ. Eklenen altlık yalnızca bu oturumda (sayfa yenilenene kadar)
   // kalıcıdır — Altlık Haritalar listesindeki diğerleri gibi kalıcı
   // saklanmaz (isteğe bağlı bir sonraki adım olabilir).
+  // Yeni bir özel XYZ raster altlığı ekler ve seçili yapar — hem manuel
+  // "+" akışından (prompt'larla) hem de örnek dosya "göz" ikonundan
+  // (importSampleDirectly, prompt'suz) ortak kullanılır.
+  function addXyzBasemapLayer(name, url){
+    var id = 'xyz-' + uid();
+    var entry = {
+      id: id, label: name,
+      style: {
+        version: 8,
+        sources: { 'xyz-custom-src': { type:'raster', tiles:[url], tileSize:256 } },
+        layers: [{ id:'xyz-custom-layer', type:'raster', source:'xyz-custom-src' }]
+      }
+    };
+    STYLES.push(entry);
+    var btn = createStyleButton(entry);
+    document.getElementById('basemapPopover').classList.remove('show');
+    btn.click();
+    return entry;
+  }
   document.getElementById('btnAddXyzLayer').addEventListener('click', async function(e){
     e.stopPropagation();
     var name = await customPrompt('Yeni altlık için bir ad girin:', 'Özel XYZ Katmanı');
@@ -9670,19 +9629,7 @@
       showToast('Geçersiz URL — {z}, {x} ve {y} yer tutucularını içermeli.');
       return;
     }
-    var id = 'xyz-' + uid();
-    var entry = {
-      id: id, label: name.trim(),
-      style: {
-        version: 8,
-        sources: { 'xyz-custom-src': { type:'raster', tiles:[url.trim()], tileSize:256 } },
-        layers: [{ id:'xyz-custom-layer', type:'raster', source:'xyz-custom-src' }]
-      }
-    };
-    STYLES.push(entry);
-    var btn = createStyleButton(entry);
-    document.getElementById('basemapPopover').classList.remove('show');
-    btn.click();
+    var entry = addXyzBasemapLayer(name.trim(), url.trim());
     showToast('"' + entry.label + '" altlığı eklendi.');
   });
 
