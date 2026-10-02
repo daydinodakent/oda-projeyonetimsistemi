@@ -544,6 +544,31 @@
   .saha-popup-notes{font-size:11px;color:#3c4c56;margin-top:3px;white-space:pre-wrap;}
   .saha-popup-coord{font-family:var(--font-mono);font-size:10px;color:#6b7684;margin-top:4px;}
 
+  /* ---------- Şantiye modülü (konumlu şantiye kayıtları) ---------- */
+  .san-layer-row{display:flex;align-items:center;gap:8px;padding:5px 2px;font-size:12px;color:var(--text);cursor:pointer;}
+  .san-layer-row .san-dot{width:11px;height:11px;border-radius:50%;flex:0 0 auto;border:1.5px solid #fff;}
+  .san-layer-row .san-count{margin-left:auto;font-family:var(--font-mono);font-size:11px;color:var(--text-dim);}
+  .san-layer-row.off{opacity:.45;}
+  .san-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .san-form{display:flex;flex-direction:column;gap:8px;border:1px solid var(--line);border-radius:2px;padding:10px;background:var(--bg-panel);}
+  .san-form .san-field{display:flex;flex-direction:column;gap:3px;}
+  .san-form .san-field.hidden{display:none;}
+  .san-input{width:100%;background:var(--bg-panel-raise);border:1px solid var(--line);color:var(--text);border-radius:2px;padding:7px 9px;font-family:var(--font-ui);font-size:12.5px;}
+  .san-input:focus{outline:none;border-color:var(--amber);}
+  textarea.san-input{resize:vertical;min-height:54px;}
+  .san-coord{font-family:var(--font-mono);font-size:11px;color:var(--text-dim);flex:1;align-self:center;}
+  .san-coord.set{color:var(--teal);}
+  .san-popup{max-width:230px;font-size:12px;color:#0f1e29;}
+  .san-popup-kind{display:inline-block;font-size:10px;font-weight:600;color:#fff;border-radius:2px;padding:1px 6px;margin-bottom:5px;}
+  .san-popup-title{font-weight:600;line-height:1.35;word-break:break-word;}
+  .san-popup-meta{font-size:11px;color:#3c4c56;margin-top:3px;}
+  .san-popup-desc{font-size:11px;color:#3c4c56;margin-top:4px;white-space:pre-wrap;}
+  .san-popup-actions{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;}
+  .san-popup-actions button{font-family:var(--font-ui);font-size:11px;padding:4px 8px;border-radius:2px;border:1px solid #c9c4b8;background:#f4f2ed;color:#0f1e29;cursor:pointer;}
+  .san-popup-actions button:hover{border-color:#3fc2ac;}
+  .san-popup-actions button.warn:hover{border-color:#e0685a;color:#b13a2c;}
+  .san-popup-note{width:100%;font-family:var(--font-ui);font-size:11px;padding:4px 6px;border:1px solid #c9c4b8;border-radius:2px;margin-top:6px;}
+
   /* ---------- Saha fotoğrafları şeridi (harita altı, yatay) ---------- */
   #sahaFilmstrip{
     position:absolute;left:50%;transform:translateX(-50%);bottom:26px;z-index:5;height:88px;
@@ -1547,6 +1572,10 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 8V6a2 2 0 0 1 2-2h2M4 16v2a2 2 0 0 0 2 2h2M20 8V6a2 2 0 0 0-2-2h-2M20 16v2a2 2 0 0 1-2 2h-2"/><circle cx="12" cy="12" r="3.2"/></svg>
     <span>Saha</span>
   </button>
+  <button class="mod-btn" data-module="santiye" data-tip="Şantiye">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s-7-6.5-7-11a7 7 0 0 1 14 0c0 4.5-7 11-7 11z"/><path d="M9.5 10.5h5M12 8v5"/></svg>
+    <span>Şantiye</span>
+  </button>
   <button class="mod-btn" data-module="cikti" data-tip="Çıktı" style="display:none;">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v12"/><path d="M7 9l5-6 5 6"/><path d="M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg>
     <span>Çıktı</span>
@@ -2063,6 +2092,91 @@
          dosyaların kendisi (fotoğraf/video/pdf/vb.) her zaman gerçek veritabanı
          kayıtları olarak kalır, yalnızca hangi klasörde göründükleri yerel bir tercihtir. -->
     <div id="sahaTree" class="layer-tree" style="min-height:24px;" ondragover="event.preventDefault();"></div>
+  </div>
+
+  <!-- ================= ŞANTİYE (konumlu şantiye kayıtları) =================
+       Görev / NCR / İSG olayı / ramak kala / rapor fotoğrafı / beton dökümü
+       kayıtları şantiye modülünden (üst pencere → /api/santiye/geojson) gelir,
+       salt-okunur bir katman olarak çizilir. Haritadan yeni kayıt açılabilir. -->
+  <div class="module-page" data-module-page="santiye" style="display:none;">
+    <span class="field-label" style="margin-bottom:0;">Şantiye Kayıtları <span style="font-weight:400;">— aktif projenin konumlu görev, NCR, İSG ve kalite kayıtları</span></span>
+    <div id="santiyeLayerList"></div>
+    <div class="san-grid">
+      <div>
+        <span class="field-label">Durum</span>
+        <select class="san-input" id="santiyeFilterDurum">
+          <option value="hepsi">Tümü</option>
+          <option value="acik">Yalnızca açık işler</option>
+        </select>
+      </div>
+      <div>
+        <span class="field-label">Kayıt tarihi</span>
+        <select class="san-input" id="santiyeFilterGun">
+          <option value="0">Tümü</option>
+          <option value="7">Son 7 gün</option>
+          <option value="30">Son 30 gün</option>
+          <option value="90">Son 90 gün</option>
+        </select>
+      </div>
+    </div>
+    <div class="btn-row">
+      <div class="btn" id="btnSantiyeFit" style="flex:1;">Kayıtlara yakınlaş</div>
+    </div>
+    <div class="hint" id="santiyeEmptyHint" style="border:1px dashed var(--line);border-radius:2px;padding:14px;margin-top:0;display:none;">
+      Bu projede konumlu şantiye kaydı yok. Aşağıdan haritada bir nokta seçerek ilk kaydı açabilirsiniz.
+    </div>
+
+    <span class="field-label" style="margin-bottom:0;margin-top:4px;">Haritadan Kayıt Aç</span>
+    <div class="san-form" id="santiyeForm">
+      <div class="san-field">
+        <span class="field-label" style="margin:0;">Kayıt türü</span>
+        <select class="san-input" id="santiyeTur">
+          <option value="gorev">Görev</option>
+          <option value="ncr">NCR (uygunsuzluk)</option>
+          <option value="ramak_kala">Ramak kala</option>
+          <option value="olay">İSG olayı / kaza</option>
+        </select>
+      </div>
+      <div class="san-field" data-san-for="gorev ncr">
+        <span class="field-label" style="margin:0;">Başlık</span>
+        <input type="text" class="san-input" id="santiyeBaslik" maxlength="160" placeholder="Örn. Kolon donatı pas payı eksik">
+      </div>
+      <div class="san-field" data-san-for="olay">
+        <span class="field-label" style="margin:0;">Olay türü</span>
+        <select class="san-input" id="santiyeOlayTuru">
+          <option value="yaralanmasiz_olay">Yaralanmasız olay</option>
+          <option value="is_kazasi">İş kazası</option>
+          <option value="meslek_hastaligi">Meslek hastalığı</option>
+        </select>
+      </div>
+      <div class="san-field" data-san-for="ncr ramak_kala olay">
+        <span class="field-label" style="margin:0;">Açıklama</span>
+        <textarea class="san-input" id="santiyeAciklama" maxlength="1000" placeholder="Ne gördünüz / ne oldu?"></textarea>
+      </div>
+      <div class="san-field" data-san-for="gorev ncr">
+        <span class="field-label" style="margin:0;">Sorumlu</span>
+        <select class="san-input" id="santiyeSorumlu"><option value="">Sorumlular yükleniyor…</option></select>
+      </div>
+      <div class="san-field" data-san-for="gorev">
+        <span class="field-label" style="margin:0;">Son tarih (isteğe bağlı)</span>
+        <input type="date" class="san-input" id="santiyeSonTarih">
+      </div>
+      <div class="san-field" data-san-for="ramak_kala olay">
+        <span class="field-label" style="margin:0;">Tarih</span>
+        <input type="date" class="san-input" id="santiyeTarih">
+      </div>
+      <label class="san-field" data-san-for="ramak_kala" style="flex-direction:row;align-items:center;gap:6px;font-size:11.5px;color:var(--text-dim);">
+        <input type="checkbox" id="santiyeAnonim"> Anonim bildir (bildiren kişi kaydedilmez)
+      </label>
+      <div class="btn-row">
+        <div class="btn" id="btnSantiyePick">📍 Haritada konumla</div>
+        <span class="san-coord" id="santiyeCoord">Konum seçilmedi</span>
+      </div>
+      <div class="btn-row">
+        <div class="btn" id="btnSantiyeReset" style="flex:1;">Temizle</div>
+        <div class="btn primary" id="btnSantiyeSave" style="flex:2;">Kaydı oluştur</div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -6493,9 +6607,313 @@
   });
 
   // ---------------------------------------------------------------------
+  // ŞANTİYE — konumlu şantiye kayıtları katmanı + haritadan kayıt açma.
+  // Veri: üst pencere ('oda:santiye-updated', şantiye modülünün
+  // /api/santiye/geojson çıktısı). Katman, çizim/düzenleme motorunun
+  // 'features' kaynağından AYRI, salt-okunur bir kaynaktır (localStorage'a
+  // yazılmaz). Yazma işlemleri ('oda:santiye-create' / 'oda:santiye-action')
+  // üst pencerede şantiye servislerine gider; sonuç 'oda:santiye-result' ile döner.
+  // ---------------------------------------------------------------------
+  var SANTIYE_SOURCE_ID = 'santiye-source';
+  var SANTIYE_LAYER_ID = 'santiye-circles';
+  var SANTIYE_KATMANLAR = [
+    { key:'gorev',      ad:'Görev',            renk:'#3fc2ac' },
+    { key:'ncr',        ad:'NCR (uygunsuzluk)', renk:'#e3a541' },
+    { key:'olay',       ad:'İSG olayı / kaza', renk:'#e0685a' },
+    { key:'ramak_kala', ad:'Ramak kala',       renk:'#f5d76e' },
+    { key:'fotograf',   ad:'Rapor fotoğrafı',  renk:'#7fb3ff' },
+    { key:'beton',      ad:'Beton dökümü',     renk:'#a58bff' }
+  ];
+  var SANTIYE_DURUM_AD = {
+    acik:'Açık', devam:'Devam ediyor', kapali:'Kapalı', iptal:'İptal', duzeltildi:'Düzeltildi',
+    is_kazasi:'İş kazası', meslek_hastaligi:'Meslek hastalığı', yaralanmasiz_olay:'Yaralanmasız olay',
+    ramak_kala:'Ramak kala', fotograf:'Fotoğraf', beton_dokum:'Döküm'
+  };
+  var SANTIYE_KAPALI = ['kapali','iptal'];
+  var santiyeAll = [];                 // üst pencereden gelen tüm Feature'lar
+  var santiyeKatmanAcik = {};          // katman key → görünür mü
+  SANTIYE_KATMANLAR.forEach(function(k){ santiyeKatmanAcik[k.key] = true; });
+  var santiyeSorumlular = [];
+  var santiyePlacementMode = false;
+  var santiyePickedLngLat = null;
+  var santiyePickMarker = null;
+  var santiyePopup = null;
+
+  function santiyeEsc(v){
+    return String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function santiyeKatman(key){
+    for (var i = 0; i < SANTIYE_KATMANLAR.length; i++) if (SANTIYE_KATMANLAR[i].key === key) return SANTIYE_KATMANLAR[i];
+    return { key:key, ad:key, renk:'#999' };
+  }
+  function santiyeTodayIso(){
+    var d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  }
+  function santiyeFilterPass(f){
+    var p = f.properties || {};
+    if (!santiyeKatmanAcik[p.katman]) return false;
+    if (document.getElementById('santiyeFilterDurum').value === 'acik' && SANTIYE_KAPALI.indexOf(p.durum) >= 0) return false;
+    var gun = Number(document.getElementById('santiyeFilterGun').value) || 0;
+    if (gun > 0 && p.kayit_tarihi){
+      var esik = new Date(); esik.setDate(esik.getDate() - gun);
+      var esikIso = esik.getFullYear() + '-' + String(esik.getMonth()+1).padStart(2,'0') + '-' + String(esik.getDate()).padStart(2,'0');
+      if (p.kayit_tarihi < esikIso) return false;
+    }
+    return true;
+  }
+  function santiyeVisibleFeatures(){ return santiyeAll.filter(santiyeFilterPass); }
+
+  function santiyeEnsureLayer(){
+    // Stil henüz yüklenmediyse (yavaş ağ / stil değişimi) addSource/addLayer
+    // "Style is not done loading" fırlatır — bu durumda stil hazır olunca yeniden denenir.
+    try{ return santiyeEnsureLayerUnsafe(); }
+    catch(err){ map.once('idle', santiyeRedraw); return false; }
+  }
+  function santiyeEnsureLayerUnsafe(){
+    if (!map.getStyle()) throw new Error('style yok');
+    if (!map.getSource(SANTIYE_SOURCE_ID)){
+      map.addSource(SANTIYE_SOURCE_ID, { type:'geojson', data:{ type:'FeatureCollection', features:[] } });
+    }
+    if (!map.getLayer(SANTIYE_LAYER_ID)){
+      var renkExpr = ['match', ['get','katman']];
+      SANTIYE_KATMANLAR.forEach(function(k){ renkExpr.push(k.key, k.renk); });
+      renkExpr.push('#999999');
+      map.addLayer({
+        id: SANTIYE_LAYER_ID, type:'circle', source: SANTIYE_SOURCE_ID,
+        paint: {
+          'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 5, 18, 9],
+          'circle-color': renkExpr,
+          'circle-stroke-color': '#ffffff',
+          'circle-stroke-width': 1.5,
+          // kapalı / iptal kayıtlar soluk görünür
+          'circle-opacity': ['case', ['in', ['get','durum'], ['literal', SANTIYE_KAPALI]], 0.4, 1],
+          'circle-stroke-opacity': ['case', ['in', ['get','durum'], ['literal', SANTIYE_KAPALI]], 0.4, 1]
+        }
+      });
+      map.on('mouseenter', SANTIYE_LAYER_ID, function(){
+        if (!infoMode && !attributeEditMode && !docAttachMode && !santiyePlacementMode) map.getCanvas().style.cursor = 'pointer';
+      });
+      map.on('mouseleave', SANTIYE_LAYER_ID, function(){ if (!santiyePlacementMode) updateCanvasCursor(); });
+      map.on('click', SANTIYE_LAYER_ID, function(e){
+        if (santiyePlacementMode || infoMode || attributeEditMode || docAttachMode) return;
+        if (!(mode === 'pan' || mode === 'select')) return; // çizim modlarında popup açılmasın
+        var f = e.features && e.features[0];
+        if (f) santiyeOpenPopup(f);
+      });
+    }
+    // Şantiye noktaları kullanıcı çizimlerinin üstünde, saha fotoğraf pinlerinin altında durur.
+    map.moveLayer(SANTIYE_LAYER_ID);
+    if (map.getLayer(SAHA_LAYER_ID)) map.moveLayer(SAHA_LAYER_ID);
+    return true;
+  }
+  function santiyeRedraw(){
+    if (!santiyeEnsureLayer()) return;
+    var src = map.getSource(SANTIYE_SOURCE_ID);
+    if (src) src.setData({ type:'FeatureCollection', features: santiyeVisibleFeatures() });
+    santiyeRenderLayerList();
+  }
+
+  function santiyeRenderLayerList(){
+    var box = document.getElementById('santiyeLayerList');
+    var counts = {};
+    santiyeAll.forEach(function(f){ var k = f.properties.katman; counts[k] = (counts[k] || 0) + 1; });
+    box.innerHTML = '';
+    SANTIYE_KATMANLAR.forEach(function(k){
+      var row = document.createElement('label');
+      row.className = 'san-layer-row' + (santiyeKatmanAcik[k.key] ? '' : ' off');
+      row.innerHTML = '<input type="checkbox"' + (santiyeKatmanAcik[k.key] ? ' checked' : '') + '>' +
+        '<span class="san-dot" style="background:' + k.renk + ';"></span><span>' + santiyeEsc(k.ad) + '</span>' +
+        '<span class="san-count">' + (counts[k.key] || 0) + '</span>';
+      row.querySelector('input').addEventListener('change', function(ev){
+        santiyeKatmanAcik[k.key] = ev.target.checked;
+        if (santiyePopup) santiyePopup.remove();
+        santiyeRedraw();
+      });
+      box.appendChild(row);
+    });
+    document.getElementById('santiyeEmptyHint').style.display = santiyeAll.length ? 'none' : '';
+  }
+
+  // Tıklanan kayıt için bilgi balonu + (görev/NCR için) durum işlemleri.
+  function santiyeOpenPopup(feature){
+    var p = feature.properties || {};
+    var kat = santiyeKatman(p.katman);
+    var coords = feature.geometry.coordinates;
+    if (santiyePopup) santiyePopup.remove();
+    var meta = [];
+    meta.push('Durum: ' + (SANTIYE_DURUM_AD[p.durum] || p.durum));
+    if (p.kayit_tarihi) meta.push('Kayıt: ' + p.kayit_tarihi);
+    if (p.katman === 'gorev' && p.tarih) meta.push('Son tarih: ' + p.tarih);
+    var html = '<div class="san-popup"><span class="san-popup-kind" style="background:' + kat.renk + ';">' + santiyeEsc(kat.ad) + ' #' + santiyeEsc(p.kayit_id) + '</span>' +
+      '<div class="san-popup-title">' + santiyeEsc(p.ad || '(başlıksız)') + '</div>' +
+      '<div class="san-popup-meta">' + santiyeEsc(meta.join(' • ')) + '</div>' +
+      (p.aciklama && p.aciklama !== p.ad ? '<div class="san-popup-desc">' + santiyeEsc(p.aciklama) + '</div>' : '') +
+      '<div id="santiyePopupBody"></div></div>';
+    santiyePopup = new maplibregl.Popup({ offset: 12, closeButton:true, maxWidth:'250px' }).setLngLat(coords).setHTML(html).addTo(map);
+    var popupRef = santiyePopup;
+    popupRef.on('close', function(){ if (santiyePopup === popupRef) santiyePopup = null; });
+    var body = popupRef.getElement().querySelector('#santiyePopupBody');
+    var actions = document.createElement('div'); actions.className = 'san-popup-actions';
+    function addBtn(label, islem, warn, needNote){
+      var b = document.createElement('button'); b.type = 'button'; b.textContent = label; if (warn) b.className = 'warn';
+      b.addEventListener('click', function(){
+        var notu = '';
+        if (needNote){
+          var inp = body.querySelector('.san-popup-note');
+          notu = inp ? inp.value.trim() : '';
+          if (!notu){ showToast('Düzeltme notu yazın.'); if (inp) inp.focus(); return; }
+        }
+        window.parent.postMessage({ type:'oda:santiye-action', katman:p.katman, id:p.kayit_id, islem:islem, notu:notu }, '*');
+      });
+      actions.appendChild(b);
+    }
+    if (p.katman === 'gorev'){
+      if (p.durum === 'acik'){ addBtn('Devam ediyor', 'devam'); addBtn('İptal et', 'iptal', true); }
+      else if (p.durum === 'devam'){ addBtn('Açığa al', 'acik'); addBtn('İptal et', 'iptal', true); }
+      else {
+        var note = document.createElement('div'); note.className = 'san-popup-meta';
+        note.textContent = 'Kapalı/iptal görev haritadan değiştirilemez.'; body.appendChild(note);
+      }
+      if (SANTIYE_KAPALI.indexOf(p.durum) < 0){
+        var h = document.createElement('div'); h.className = 'san-popup-meta';
+        h.textContent = 'Görevi kapatmak için fotoğraf gerekir — Şantiye > Görev Panosu.'; body.appendChild(h);
+      }
+    } else if (p.katman === 'ncr'){
+      if (p.durum === 'acik'){
+        var inp = document.createElement('input'); inp.type = 'text'; inp.className = 'san-popup-note'; inp.placeholder = 'Düzeltme notu (zorunlu)';
+        body.appendChild(inp); addBtn('Düzeltildi', 'duzelt', false, true);
+      } else if (p.durum === 'duzeltildi'){ addBtn('NCR\'ı kapat', 'kapat'); }
+    }
+    if (actions.childNodes.length) body.appendChild(actions);
+  }
+
+  // ----- Haritadan kayıt açma formu -----
+  function santiyeTur(){ return document.getElementById('santiyeTur').value; }
+  function santiyeApplyFormVisibility(){
+    var tur = santiyeTur();
+    document.querySelectorAll('#santiyeForm [data-san-for]').forEach(function(el){
+      var list = el.getAttribute('data-san-for').split(' ');
+      el.classList.toggle('hidden', list.indexOf(tur) < 0);
+      if (el.tagName === 'LABEL') el.style.display = list.indexOf(tur) < 0 ? 'none' : 'flex';
+    });
+  }
+  function santiyeRenderSorumlular(){
+    var sel = document.getElementById('santiyeSorumlu');
+    var prev = sel.value;
+    var gruplar = { kisi:'Kişi', taseron_ekibi:'Taşeron ekibi', alt_yuklenici:'Alt yüklenici' };
+    sel.innerHTML = '<option value="">Sorumlu seçin…</option>';
+    Object.keys(gruplar).forEach(function(tip){
+      var items = santiyeSorumlular.filter(function(x){ return x.tip === tip; });
+      if (!items.length) return;
+      var og = document.createElement('optgroup'); og.label = gruplar[tip];
+      items.forEach(function(x){
+        var o = document.createElement('option'); o.value = x.tip + ':' + x.id; o.textContent = x.ad; og.appendChild(o);
+      });
+      sel.appendChild(og);
+    });
+    if (prev) sel.value = prev;
+  }
+  function santiyeSetPicked(lngLat){
+    santiyePickedLngLat = lngLat;
+    var el = document.getElementById('santiyeCoord');
+    if (lngLat){
+      el.textContent = lngLat.lat.toFixed(6) + ', ' + lngLat.lng.toFixed(6);
+      el.classList.add('set');
+      if (!santiyePickMarker) santiyePickMarker = new maplibregl.Marker({ color:'#e3a541' });
+      santiyePickMarker.setLngLat([lngLat.lng, lngLat.lat]).addTo(map);
+    } else {
+      el.textContent = 'Konum seçilmedi';
+      el.classList.remove('set');
+      if (santiyePickMarker){ santiyePickMarker.remove(); santiyePickMarker = null; }
+    }
+  }
+  function santiyeCancelPlacement(){
+    if (!santiyePlacementMode) return;
+    santiyePlacementMode = false;
+    document.getElementById('btnSantiyePick').classList.remove('primary');
+    updateCanvasCursor();
+  }
+  function santiyeHandlePlacementClick(e){
+    santiyePlacementMode = false;
+    document.getElementById('btnSantiyePick').classList.remove('primary');
+    updateCanvasCursor();
+    santiyeSetPicked({ lng:e.lngLat.lng, lat:e.lngLat.lat });
+    showToast('Konum seçildi — formu doldurup kaydedin.');
+  }
+  function santiyeResetForm(){
+    ['santiyeBaslik','santiyeAciklama','santiyeSonTarih'].forEach(function(id){ document.getElementById(id).value = ''; });
+    document.getElementById('santiyeSorumlu').value = '';
+    document.getElementById('santiyeAnonim').checked = false;
+    document.getElementById('santiyeTarih').value = santiyeTodayIso();
+    santiyeCancelPlacement();
+    santiyeSetPicked(null);
+  }
+  document.getElementById('santiyeTur').addEventListener('change', santiyeApplyFormVisibility);
+  document.getElementById('santiyeFilterDurum').addEventListener('change', function(){ if (santiyePopup) santiyePopup.remove(); santiyeRedraw(); });
+  document.getElementById('santiyeFilterGun').addEventListener('change', function(){ if (santiyePopup) santiyePopup.remove(); santiyeRedraw(); });
+  document.getElementById('btnSantiyePick').addEventListener('click', function(){
+    if (santiyePlacementMode){ santiyeCancelPlacement(); return; }
+    santiyePlacementMode = true;
+    this.classList.add('primary');
+    map.getCanvas().style.cursor = 'crosshair';
+    showToast('Haritada kaydın konumuna tıklayın.');
+  });
+  document.getElementById('btnSantiyeReset').addEventListener('click', santiyeResetForm);
+  document.getElementById('btnSantiyeFit').addEventListener('click', function(){
+    var fs = santiyeVisibleFeatures();
+    if (!fs.length){ showToast('Gösterilecek şantiye kaydı yok.'); return; }
+    var b = new maplibregl.LngLatBounds();
+    fs.forEach(function(f){ b.extend(f.geometry.coordinates); });
+    // Sol panel haritanın üstünü örttüğünden, noktalar panelin altında kalmasın diye sol boşluk panel genişliği kadar artırılır.
+    var panelEl = document.getElementById('panel');
+    var solBosluk = panelEl && !panelEl.classList.contains('hidden') ? Math.min(panelEl.getBoundingClientRect().right + 60, window.innerWidth * 0.45) : 80;
+    map.fitBounds(b, { padding:{ top:80, bottom:80, right:80, left:Math.max(80, solBosluk) }, maxZoom:18, duration:600 });
+  });
+  document.getElementById('btnSantiyeSave').addEventListener('click', function(){
+    if (!santiyePickedLngLat){ showToast('Önce "Haritada konumla" ile bir nokta seçin.'); return; }
+    var tur = santiyeTur();
+    var msg = { type:'oda:santiye-create', tur:tur, lat:santiyePickedLngLat.lat, lon:santiyePickedLngLat.lng,
+      baslik: document.getElementById('santiyeBaslik').value, aciklama: document.getElementById('santiyeAciklama').value,
+      tarih: document.getElementById('santiyeTarih').value || santiyeTodayIso() };
+    if (tur === 'gorev' || tur === 'ncr'){
+      var sv = document.getElementById('santiyeSorumlu').value;
+      if (sv){ var parts = sv.split(':'); msg.sorumlu_tipi = parts[0]; msg.sorumlu_id = Number(parts[1]); }
+      if (tur === 'gorev') msg.son_tarih = document.getElementById('santiyeSonTarih').value;
+    }
+    if (tur === 'olay') msg.olay_turu = document.getElementById('santiyeOlayTuru').value;
+    if (tur === 'ramak_kala') msg.anonim = document.getElementById('santiyeAnonim').checked;
+    window.parent.postMessage(msg, '*');
+  });
+  santiyeApplyFormVisibility();
+  document.getElementById('santiyeTarih').value = santiyeTodayIso();
+  santiyeRenderLayerList();
+
+  window.addEventListener('message', function(e){
+    var msg = e.data;
+    if (!msg) return;
+    if (msg.type === 'oda:santiye-updated' && Array.isArray(msg.features)){
+      santiyeAll = msg.features;
+      if (santiyePopup) santiyePopup.remove();
+      santiyeRedraw();
+    } else if (msg.type === 'oda:santiye-options' && Array.isArray(msg.sorumlular)){
+      santiyeSorumlular = msg.sorumlular;
+      santiyeRenderSorumlular();
+    } else if (msg.type === 'oda:santiye-result'){
+      if (msg.ok){
+        showToast(msg.op === 'create' ? 'Şantiye kaydı oluşturuldu.' : 'Kayıt güncellendi.');
+        if (msg.op === 'create') santiyeResetForm();
+      } else {
+        showToast('İşlem yapılamadı: ' + (msg.error || 'bilinmeyen hata'));
+      }
+    }
+  });
+
+  // ---------------------------------------------------------------------
   // Nokta / çizgi / poligon / 3B poligon / dikdörtgen / çember çizimi
   // ---------------------------------------------------------------------
   map.on('click', function(e){
+    if (santiyePlacementMode){ santiyeHandlePlacementClick(e); return; }
     if (sahaPinPlacementMode){ handleSahaPinPlacementClick(e); return; }
     if (attributeEditMode){ handleAttributeEditClick(e); return; }
     if (bimAttachSourceLayerId){ handleBimAttachClick(e); return; }
@@ -7603,7 +8021,7 @@
   // Modül navigasyonu (Sorgu/Harita/Analiz/Editör/Rapor/Çıktı)
   // ---------------------------------------------------------------------
   var activeModule = 'harita';
-  var moduleTitles = { sorgu:'Sorgu', harita:'Harita', analiz:'Analiz', editor:'Editör', saha:'Saha', cikti:'Çıktı' };
+  var moduleTitles = { sorgu:'Sorgu', harita:'Harita', analiz:'Analiz', editor:'Editör', saha:'Saha', santiye:'Şantiye', cikti:'Çıktı' };
   var moduleButtons = Array.prototype.slice.call(document.querySelectorAll('.mod-btn[data-module]'));
   function setModule(key){
     activeModule = key;
@@ -7616,6 +8034,7 @@
       p.style.padding = '14px';
     });
     document.getElementById('panelTitle').textContent = moduleTitles[key] || key;
+    if (key !== 'santiye' && typeof santiyeCancelPlacement === 'function') santiyeCancelPlacement();
   }
   moduleButtons.forEach(function(b){
     b.addEventListener('click', function(){ setModule(b.getAttribute('data-module')); });
@@ -9984,6 +10403,7 @@
       renderVertices();
       if (typeof updatePipeSource === 'function') updatePipeSource();
       if (typeof renderPersistedMeasurements === 'function') renderPersistedMeasurements();
+      if (typeof santiyeRedraw === 'function') santiyeRedraw();
       rasterOverlays.forEach(function(r){ addRasterLayer(r.id, r.url, r.coords); });
     }
     // map.setStyle() hem bir stil URL'sini (OpenFreeMap) hem de doğrudan bir

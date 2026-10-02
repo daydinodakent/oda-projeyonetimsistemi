@@ -6,16 +6,16 @@
 import { db } from './db.js';
 
 const KATMANLAR = {
-  gorev: { sql: "SELECT id, baslik AS ad, durum, lat, lon, son_tarih AS tarih FROM gorev WHERE proje_id = ? AND row_status = 1 AND lat IS NOT NULL AND lon IS NOT NULL" },
-  ncr: { sql: "SELECT id, baslik AS ad, durum, lat, lon, acilis_tarihi AS tarih FROM ncr WHERE proje_id = ? AND row_status = 1 AND lat IS NOT NULL AND lon IS NOT NULL" },
-  olay: { sql: "SELECT id, tur || ': ' || aciklama AS ad, tur AS durum, lat, lon, tarih FROM isg_olay WHERE proje_id = ? AND row_status = 1 AND lat IS NOT NULL AND lon IS NOT NULL" },
-  ramak_kala: { sql: "SELECT id, aciklama AS ad, 'ramak_kala' AS durum, lat, lon, tarih FROM isg_ramak_kala WHERE proje_id = ? AND lat IS NOT NULL AND lon IS NOT NULL" },
+  gorev: { sql: "SELECT id, baslik AS ad, aciklama, durum, lat, lon, son_tarih AS tarih, substr(olusturma_zamani, 1, 10) AS kayit_tarihi FROM gorev WHERE proje_id = ? AND row_status = 1 AND lat IS NOT NULL AND lon IS NOT NULL" },
+  ncr: { sql: "SELECT id, baslik AS ad, aciklama, durum, lat, lon, acilis_tarihi AS tarih, acilis_tarihi AS kayit_tarihi FROM ncr WHERE proje_id = ? AND row_status = 1 AND lat IS NOT NULL AND lon IS NOT NULL" },
+  olay: { sql: "SELECT id, tur || ': ' || aciklama AS ad, aciklama, tur AS durum, lat, lon, tarih, tarih AS kayit_tarihi FROM isg_olay WHERE proje_id = ? AND row_status = 1 AND lat IS NOT NULL AND lon IS NOT NULL" },
+  ramak_kala: { sql: "SELECT id, aciklama AS ad, 'ramak_kala' AS durum, lat, lon, tarih, tarih AS kayit_tarihi FROM isg_ramak_kala WHERE proje_id = ? AND lat IS NOT NULL AND lon IS NOT NULL" },
   fotograf: {
-    sql: `SELECT b.id, COALESCE(b.notes, b.etiket) AS ad, 'fotograf' AS durum, b.lat, b.lon, r.tarih, b.dosya_url
+    sql: `SELECT b.id, COALESCE(b.notes, b.etiket) AS ad, 'fotograf' AS durum, b.lat, b.lon, r.tarih, r.tarih AS kayit_tarihi, b.dosya_url
           FROM gunluk_rapor_bolum b JOIN gunluk_rapor r ON r.id = b.rapor_id
           WHERE r.proje_id = ? AND b.tur = 'fotograf' AND b.lat IS NOT NULL AND b.lon IS NOT NULL`,
   },
-  beton: { sql: "SELECT id, eleman || ' ' || beton_sinifi AS ad, 'beton_dokum' AS durum, lat, lon, tarih FROM beton_dokum WHERE proje_id = ? AND row_status = 1 AND lat IS NOT NULL AND lon IS NOT NULL" },
+  beton: { sql: "SELECT id, eleman || ' ' || beton_sinifi AS ad, 'beton_dokum' AS durum, lat, lon, tarih, tarih AS kayit_tarihi FROM beton_dokum WHERE proje_id = ? AND row_status = 1 AND lat IS NOT NULL AND lon IS NOT NULL" },
 };
 
 /** @param {string[]} [katmanlar] verilmezse hepsi. */
@@ -28,7 +28,7 @@ export function featureCollection(projeId, katmanlar) {
       features.push({
         type: 'Feature',
         geometry: { type: 'Point', coordinates: [r.lon, r.lat] },
-        properties: { katman, kayit_id: r.id, ad: r.ad, durum: r.durum, tarih: r.tarih ?? null, dosya_url: r.dosya_url ?? null, proje_id: projeId },
+        properties: { katman, kayit_id: r.id, ad: r.ad, durum: r.durum, aciklama: r.aciklama ?? null, tarih: r.tarih ?? null, kayit_tarihi: r.kayit_tarihi ?? null, dosya_url: r.dosya_url ?? null, proje_id: projeId },
       });
     }
   }

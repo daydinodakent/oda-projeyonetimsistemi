@@ -105,6 +105,10 @@ test('geojson: konumlu görev/NCR/olay/ramak kala/beton GeoJSON [lon,lat] olarak
   const gf = fc.features.find((f) => f.properties.katman === 'gorev');
   assert.deepEqual(gf.geometry.coordinates, [28.97, 41.01]);
   assert.equal(geojson.featureCollection('GEO-P', ['ncr']).features.length, 1);
+  // Harita filtreleri/popup için: her kayıtta kayit_tarihi (YYYY-MM-DD) bulunur, görev/NCR/olayda aciklama taşınır.
+  for (const f of fc.features) assert.match(f.properties.kayit_tarihi, /^\d{4}-\d{2}-\d{2}$/, `${f.properties.katman} kayit_tarihi`);
+  assert.equal(fc.features.find((f) => f.properties.katman === 'olay').properties.aciklama, 'Ramak');
+  assert.equal(gf.properties.aciklama, null);
 });
 
 test('pano: bugünün özeti — açık görev/NCR sayıları', () => {

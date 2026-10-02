@@ -11,6 +11,10 @@ import React, { useEffect, useRef, useState } from 'react';
 // @ts-ignore - .html?url için tip tanımı gerekmiyor, Vite bunu string olarak çözer.
 import odaHtmlUrl from '../../../legacy-standalone-tools/oda-harita-cizim-araci.html?url';
 import * as api from '../../services/api';
+import * as santiye from '../../moduller/santiye/api';
+import { kisileriListele } from '../../moduller/_cekirdek/api';
+import { ekipleriListele } from '../../moduller/taseron/api';
+import { sozlesmeleriListele } from '../../moduller/sozlesme/api';
 
 /**
  * ODA+ Proje Yönetim Sistemi'nin "harita" sekmesindeki placeholder'ın yerini alır.
@@ -78,6 +82,38 @@ async function sendSahaPhotosToIframe(iframeWindow: Window, projectId?: string) 
   } catch (err) {
     console.error('Saha fotoğrafları haritaya gönderilemedi:', err);
   }
+}
+
+// Harita > Şantiye sekmesi: şantiye modülündeki konumlu kayıtlar (görev, NCR,
+// İSG olayı, ramak kala, günlük rapor fotoğrafı, beton dökümü) GeoJSON olarak
+// /api/santiye/geojson'dan okunup iframe'e gönderilir. Kayıtlar harita
+// motorunun çizim/düzenleme katmanlarına GİRMEZ (localStorage'a yazılmaz) —
+// ayrı, salt-okunur bir kaynak olarak çizilir; tek doğruluk kaynağı şantiye modülüdür.
+async function sendSantiyeToIframe(iframeWindow: Window, projectId?: string) {
+  if (!projectId) return;
+  try {
+    const fc = await santiye.geojsonGetir(projectId);
+    iframeWindow.postMessage({ type: 'oda:santiye-updated', projectId, features: fc.features }, '*');
+  } catch (err) {
+    console.error('Şantiye kayıtları haritaya gönderilemedi:', err);
+  }
+}
+
+// Görev/NCR için "sorumlu" seçenekleri (kişi / taşeron ekibi / alt yüklenici).
+// KVKK: iframe'e yalnızca id + görünen ad gider (TCKN/telefon gibi alanlar gitmez).
+async function sendSantiyeOptionsToIframe(iframeWindow: Window, projectId?: string) {
+  if (!projectId) return;
+  const [kisiler, ekipler, sozlesmeler] = await Promise.all([
+    kisileriListele().catch(() => []),
+    ekipleriListele(projectId).catch(() => []),
+    sozlesmeleriListele(projectId).catch(() => []),
+  ]);
+  const sorumlular = [
+    ...kisiler.map((k) => ({ tip: 'kisi', id: k.id, ad: k.ad_soyad })),
+    ...ekipler.map((e) => ({ tip: 'taseron_ekibi', id: e.id, ad: `Ekip #${e.id}${e.is_kolu ? ` — ${e.is_kolu}` : ''}` })),
+    ...sozlesmeler.filter((c) => c.tip === 'alt_yuklenici').map((c) => ({ tip: 'alt_yuklenici', id: c.id, ad: `${c.numara} — ${c.konu}` })),
+  ];
+  iframeWindow.postMessage({ type: 'oda:santiye-options', sorumlular }, '*');
 }
 
 // Harita üzerindeki PostGIS katmanlarını (db-layer-*) kendi veritabanı
@@ -443,12 +479,84 @@ const OdaMapModule: React.FC<OdaMapModuleProps> = ({ activeProjectId }) => {
       }
     };
 
+    // Harita > Şantiye: haritada seçilen konuma görev / NCR / ramak kala / İSG
+    // olayı kaydı açar. Kayıt şantiye modülünün KENDİ servisi üzerinden yazılır
+    // (doğrulama + audit orada); sonuç iframe'e 'oda:santiye-result' ile döner.
+    const handleSantiyeCreate = async (event: MessageEvent) => {
+      const iframeWindow = iframeRef.current?.contentWindow;
+      if (!iframeWindow || event.source !== iframeWindow) return;
+      const msg = event.data;
+      if (!msg || msg.type !== 'oda:santiye-create') return;
+      const reply = (ok: boolean, error?: string) => iframeWindow.postMessage({ type: 'oda:santiye-result', op: 'create', ok, error }, '*');
+      const projeId = activeProjectIdRef.current;
+      try {
+        if (!projeId) throw new Error('Önce üst panelden bir proje seçin.');
+        const lat = Number(msg.lat); const lon = Number(msg.lon);
+        if (!Number.isFinite(lat) || !Number.isFinite(lon)) throw new Error('Haritada bir konum seçin.');
+        const baslik = String(msg.baslik || '').trim();
+        const aciklama = String(msg.aciklama || '').trim();
+        const tarih = String(msg.tarih || new Date().toISOString().slice(0, 10));
+        switch (msg.tur) {
+          case 'gorev':
+          case 'ncr': {
+            if (!baslik) throw new Error('Başlık zorunludur.');
+            if (!msg.sorumlu_tipi || !Number.isFinite(Number(msg.sorumlu_id))) throw new Error('Sorumlu seçin.');
+            const ortak = { proje_id: projeId, baslik, sorumlu_tipi: msg.sorumlu_tipi, sorumlu_id: Number(msg.sorumlu_id), lat, lon };
+            if (msg.tur === 'gorev') await santiye.gorevOlustur({ ...ortak, son_tarih: msg.son_tarih || undefined });
+            else await santiye.ncrAc({ ...ortak, aciklama: aciklama || undefined });
+            break;
+          }
+          case 'ramak_kala':
+            if (!aciklama) throw new Error('Açıklama zorunludur.');
+            await santiye.ramakKalaBildir({ proje_id: projeId, tarih, aciklama, anonim: !!msg.anonim, lat, lon });
+            break;
+          case 'olay':
+            if (!aciklama) throw new Error('Açıklama zorunludur.');
+            if (!['is_kazasi', 'meslek_hastaligi', 'yaralanmasiz_olay'].includes(msg.olay_turu)) throw new Error('Olay türünü seçin.');
+            await santiye.olayKaydet({ proje_id: projeId, tur: msg.olay_turu, tarih, aciklama, lat, lon });
+            break;
+          default:
+            throw new Error('Bilinmeyen kayıt türü.');
+        }
+        reply(true);
+        await sendSantiyeToIframe(iframeWindow, projeId);
+      } catch (err) {
+        reply(false, err instanceof Error ? err.message : String(err));
+      }
+    };
+
+    // Harita popup'ındaki durum değiştirme düğmeleri (yalnızca beyaz listedeki geçişler).
+    const handleSantiyeAction = async (event: MessageEvent) => {
+      const iframeWindow = iframeRef.current?.contentWindow;
+      if (!iframeWindow || event.source !== iframeWindow) return;
+      const msg = event.data;
+      if (!msg || msg.type !== 'oda:santiye-action') return;
+      const reply = (ok: boolean, error?: string) => iframeWindow.postMessage({ type: 'oda:santiye-result', op: 'action', ok, error }, '*');
+      try {
+        const id = Number(msg.id);
+        if (!Number.isFinite(id)) throw new Error('Geçersiz kayıt.');
+        if (msg.katman === 'gorev' && ['acik', 'devam', 'iptal'].includes(msg.islem)) await santiye.gorevDurum(id, msg.islem);
+        else if (msg.katman === 'ncr' && msg.islem === 'duzelt') {
+          const not = String(msg.notu || '').trim();
+          if (!not) throw new Error('Düzeltme notu zorunludur.');
+          await santiye.ncrDuzelt(id, not);
+        } else if (msg.katman === 'ncr' && msg.islem === 'kapat') await santiye.ncrKapat(id);
+        else throw new Error('Bu işlem haritadan yapılamaz.');
+        reply(true);
+        await sendSantiyeToIframe(iframeWindow, activeProjectIdRef.current);
+      } catch (err) {
+        reply(false, err instanceof Error ? err.message : String(err));
+      }
+    };
+
     window.addEventListener('message', handleReady);
     window.addEventListener('message', handleAddDocuments);
     window.addEventListener('message', handleUpdateDbFeature);
     window.addEventListener('message', handleAddSahaPhotos);
     window.addEventListener('message', handleDeleteSahaPhoto);
     window.addEventListener('message', handleRenameSahaPhoto);
+    window.addEventListener('message', handleSantiyeCreate);
+    window.addEventListener('message', handleSantiyeAction);
     return () => {
       window.removeEventListener('message', handleReady);
       window.removeEventListener('message', handleAddDocuments);
@@ -456,6 +564,8 @@ const OdaMapModule: React.FC<OdaMapModuleProps> = ({ activeProjectId }) => {
       window.removeEventListener('message', handleAddSahaPhotos);
       window.removeEventListener('message', handleDeleteSahaPhoto);
       window.removeEventListener('message', handleRenameSahaPhoto);
+      window.removeEventListener('message', handleSantiyeCreate);
+      window.removeEventListener('message', handleSantiyeAction);
     };
   }, []);
 
@@ -467,6 +577,8 @@ const OdaMapModule: React.FC<OdaMapModuleProps> = ({ activeProjectId }) => {
     const iframeWindow = iframeRef.current?.contentWindow;
     if (!iframeWindow) return;
     sendSahaPhotosToIframe(iframeWindow, activeProjectId);
+    sendSantiyeToIframe(iframeWindow, activeProjectId);
+    sendSantiyeOptionsToIframe(iframeWindow, activeProjectId);
   }, [activeProjectId, iframeReady]);
 
   useEffect(() => {
