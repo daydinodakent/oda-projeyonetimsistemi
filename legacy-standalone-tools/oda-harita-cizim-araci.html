@@ -1683,6 +1683,10 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h12v18l-6-4.5L6 21z"/></svg>
     <span>Yer İmi</span>
   </button>
+  <button class="mod-btn" data-module="fourd" data-tip="4D iş programı">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v16M12 13l2 2 4-4"/></svg>
+    <span>4D</span>
+  </button>
   <button class="mod-btn" data-module="gecmis" data-tip="Değişiklik geçmişi">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 7v5l3 2"/></svg>
     <span>Geçmiş</span>
@@ -2329,6 +2333,47 @@
       Bu proje için yer imi yok. Haritayı istediğiniz konuma/katman durumuna getirip yukarıdan kaydedin.
     </div>
     <div class="bm-list" id="bmList"></div>
+  </div>
+
+  <!-- ================= 4D İŞ PROGRAMI =================
+       Alt çubuktaki 4D zaman kaydırıcısı artık gerçek iş programından beslenebilir:
+       aktiviteler binalara bağlanır; tarih ilerledikçe bina plana göre (veya
+       gerçekleşen ilerlemeye göre) katlarını tamamlar. -->
+  <div class="module-page" data-module-page="fourd" style="display:none;">
+    <span class="field-label" style="margin-bottom:0;">4D — İş Programı <span style="font-weight:400;">— zaman çubuğu haritanın altındadır</span></span>
+    <div class="san-grid">
+      <div><span class="field-label">Kaynak</span>
+        <select class="san-input" id="fdSource">
+          <option value="program">İş programı (gerçek)</option>
+          <option value="sim">Varsayımsal simülasyon</option>
+        </select></div>
+      <div><span class="field-label">Görünüm</span>
+        <select class="san-input" id="fdView">
+          <option value="plan">Plan</option>
+          <option value="gercek">Plan ↔ Gerçekleşen</option>
+        </select></div>
+    </div>
+    <div class="mj-info" id="fdSourceHint" style="margin-top:0;"></div>
+    <div class="pf-kpis" id="fdStats"></div>
+    <div class="btn-row">
+      <div class="btn" id="btnFdToolbar" style="flex:1;">⏱ Zaman çubuğunu aç</div>
+      <div class="btn" id="btnFdReset" style="flex:1;">Gerçek veriye dön</div>
+    </div>
+
+    <span class="field-label" style="margin:6px 0 0;">Aktivite ↔ Bina eşleme</span>
+    <div class="san-form">
+      <div class="san-field">
+        <span class="field-label" style="margin:0;">Aktivite</span>
+        <select class="san-input" id="fdActivity"></select>
+      </div>
+      <div class="mj-info" id="fdActivityInfo" style="margin:0;"></div>
+      <label style="display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--text-dim);"><input type="checkbox" id="fdSameType"> Aynı bina tipindeki tüm binaları birlikte bağla/çöz</label>
+      <div class="btn" id="btnFdPick">🏢 Haritadan bina seç</div>
+      <div class="mj-info" style="margin:0;">Seçim açıkken bir binaya tıklayın: bağlı değilse bu aktiviteye bağlanır, bağlıysa çözülür. Bağlı binalar eflatun görünür.</div>
+    </div>
+    <div class="hint" id="fdEmptyHint" style="border:1px dashed var(--line);border-radius:2px;padding:14px;margin-top:0;display:none;">
+      Bu projede iş programı aktivitesi yok. Şantiye modülünde <b>İş Programı</b> bölümünden CSV içe aktarın, sonra burada binalara bağlayın.
+    </div>
   </div>
 
   <!-- ================= DEĞİŞİKLİK GEÇMİŞİ =================
@@ -4785,6 +4830,20 @@
       var floors = Math.max(1, parseInt(f.properties.floors, 10) || 1);
       if (floors <= 1) return; // tek kat: mevcut poly-extrusion katmanı zaten gösteriyor
       var floorH = f.properties.floorHeight || ((f.properties.height || 30) / floors);
+      // İş programı kaynağı + bağlı bina: kat kat (kısmi kat dahil) büyür; geride ise eksik kısım hayalet renkte
+      if (FOURD_ACTIVE && fdProgramOn() && fdStates[String(f.id)]){
+        fdFloorFeatures(f, floors, floorH).forEach(function(x){ floorFeats.push(x); });
+        return;
+      }
+      // İş programı kaynağında eşlenmemiş bina: zamanla değişmez, soluk gri bağlam olarak tam yükseklikte çizilir
+      if (FOURD_ACTIVE && fdProgramOn()){
+        var isPickG = fdPickMode && fdPickIds[String(f.id)];
+        for (var gi = 0; gi < floors; gi++){
+          floorFeats.push({ type:'Feature', id: f.id + '_floor' + gi, geometry: f.geometry,
+            properties:{ parentId: f.id, floorIndex: gi, base: gi * floorH, top: (gi + 1) * floorH, bandParity: gi % 2, fillColor: isPickG ? FD_PICK_COLOR : floorShadeColor('grey', gi, floors) } });
+        }
+        return;
+      }
       // İnşaat İlerlemesi (%) alt kattan itibaren doldurulur — o katın üst
       // sınırına kadar olan yüzde ilerlemeye ulaşıldıysa kat "tamamlanmış"
       // (yeşil aile) sayılır, aksi halde Veri Durumu'nun kendi renk ailesinden
@@ -4800,7 +4859,7 @@
           type:'Feature',
           id: f.id + '_floor' + i,
           geometry: f.geometry,
-          properties:{ parentId: f.id, floorIndex: i, base: i * floorH, top: (i + 1) * floorH, bandParity: i % 2, fillColor: isSelected ? SELECTION_COLOR : shade }
+          properties:{ parentId: f.id, floorIndex: i, base: i * floorH, top: (i + 1) * floorH, bandParity: i % 2, fillColor: isSelected ? SELECTION_COLOR : ((fdPickMode && fdPickIds[String(f.id)]) ? FD_PICK_COLOR : shade) }
         });
       }
     });
@@ -7843,6 +7902,256 @@
   }
   document.getElementById('pfMetric').addEventListener('change', pfRender);
   document.getElementById('btnPfFit').addEventListener('click', pfFit);
+
+  // ---------------------------------------------------------------------
+  // 4D İŞ PROGRAMI — alt çubuktaki mevcut 4D kaydırıcısına GERÇEK kaynak.
+  // Eski "Varsayımsal simülasyon" (her bina 1 yıl sürer varsayımı) korunur;
+  // "İş programı" kaynağında bağlı binalar, bağlı aktivitelerin planına
+  // (süre ağırlıklı ortalama) veya audit kaydından kurulan gerçekleşen
+  // ilerleme geçmişine göre katlarını tamamlar. Formüller sunucudaki
+  // zaman4d.js ile AYNIDIR (sunucu testleri ve istemci doğrulaması buna dayanır).
+  // Eşlenmemiş binalar bu kaynakta zamanla DEĞİŞMEZ (kayıtlı ilerlemesiyle sabit).
+  // ---------------------------------------------------------------------
+  var FD_PICK_COLOR = '#e879f9';
+  var FD_FAMILY_COLOR = { blue:'#3b82f6', green:'#059669', amber:'#f59e0b', red:'#dc2626', grey:'#64748b' };
+  var fdSource = 'sim';            // 'sim' | 'program'
+  var fdSourceChosen = false;      // kullanıcı elle seçtiyse veri gelince varsayılana dönülmez
+  var fdView = 'plan';             // 'plan' | 'gercek'
+  var fdData = null;               // sunucudan: zamanCizelgesi(projeId)
+  var fdActsByBina = {};           // binaId → [aktivite]
+  var fdStates = {};               // binaId → seçili tarihteki durum
+  var fdPickMode = false;
+  var fdPickIds = {};              // seçili aktiviteye bağlı binalar (eşleme modunda vurgulanır)
+  var fdReapply = null, fdSetSliderRange = null;
+
+  function fdLocalIso(d){ return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+  function fdDayDiff(a, b){ return (Date.parse(b) - Date.parse(a)) / 86400000; }
+  function fdProgramOn(){ return fdSource === 'program' && !!fdData && Object.keys(fdActsByBina).length > 0; }
+  function fdExpected(a, t){
+    if (t <= a.plan_baslangic) return 0;
+    if (t >= a.plan_bitis) return 100;
+    return fdDayDiff(a.plan_baslangic, t) / (fdDayDiff(a.plan_baslangic, a.plan_bitis) || 1) * 100;
+  }
+  function fdActual(a, t, bugun){
+    if (t > bugun || !a.gecmis.length || t < a.gecmis[0].tarih) return null;   // ilk kayıttan önce / gelecek: bilinmez
+    var y = a.gecmis[0].yuzde;
+    for (var i = 0; i < a.gecmis.length; i++){ if (a.gecmis[i].tarih <= t) y = a.gecmis[i].yuzde; else break; }
+    return y;
+  }
+  function fdBina(acts, t, bugun){
+    var w = acts.map(function(a){ return Math.max(1, fdDayDiff(a.plan_baslangic, a.plan_bitis) + 1); });
+    var wt = w.reduce(function(s, x){ return s + x; }, 0);
+    var bek = 0, gercek = 0, bilinmiyor = false, bas = acts[0].plan_baslangic, bit = acts[0].plan_bitis;
+    acts.forEach(function(a, i){
+      bek += w[i] * fdExpected(a, t);
+      var g = fdActual(a, t, bugun);
+      if (g === null) bilinmiyor = true; else gercek += w[i] * g;
+      if (a.plan_baslangic < bas) bas = a.plan_baslangic;
+      if (a.plan_bitis > bit) bit = a.plan_bitis;
+    });
+    bek /= wt;
+    var g2 = bilinmiyor ? null : gercek / wt;
+    var sapma = g2 === null ? null : g2 - bek;
+    return { durum: t < bas ? 'baslamadi' : bek >= 100 ? 'tamam' : 'devam', bek:bek, gercek:g2, sapma:sapma, geride:(sapma !== null && sapma < -10), bas:bas, bit:bit };
+  }
+  function fdComputeStates(){
+    fdStates = {};
+    if (!fdProgramOn()) return;
+    var t = fdLocalIso(FOURD_SIM_DATE);
+    var bugun = fdData.bugun > fdLocalIso(new Date()) ? fdData.bugun : fdLocalIso(new Date());
+    Object.keys(fdActsByBina).forEach(function(id){ fdStates[id] = fdBina(fdActsByBina[id], t, bugun); });
+  }
+  function fdShownProgress(st){ return (fdView === 'gercek' && st.gercek !== null) ? st.gercek : st.bek; }
+  function fdFamily(st){
+    if (fdView === 'gercek' && st.gercek !== null){
+      if (st.gercek >= 100) return 'green';
+      return st.sapma < -10 ? 'red' : st.sapma < -2 ? 'amber' : 'green';
+    }
+    return st.durum === 'tamam' ? 'green' : 'blue';
+  }
+  // Bağlı binalar için bina-bazında ilerleme; eşlenmemişler kayıtlı (gerçek) değerinde sabit kalır.
+  function fdProgressFor(f){
+    if (!fdProgramOn()) return undefined;
+    var st = fdStates[String(f.id)];
+    if (st) return fdShownProgress(st);
+    var raw = parseFloat(f.properties && f.properties.construction_progress);
+    return isNaN(raw) ? 0 : raw;
+  }
+  // Kat kat büyüme: kısmi kat dahil; gerçekleşen görünümde plan ile gerçekleşen arasındaki eksik kısım "hayalet".
+  function fdFloorFeatures(f, floors, floorH){
+    var st = fdStates[String(f.id)];
+    var prog = fdShownProgress(st), fam = fdFamily(st);
+    var ghostTo = (fdView === 'gercek' && st.gercek !== null && st.bek > st.gercek) ? st.bek : null;
+    var pick = fdPickMode && fdPickIds[String(f.id)];
+    var out = [];
+    for (var i = 0; i < floors; i++){
+      var bFrac = i / floors * 100, tFrac = (i + 1) / floors * 100, span = tFrac - bFrac;
+      var frac = Math.max(0, Math.min(1, (prog - bFrac) / span));
+      if (frac > 0){
+        out.push({ type:'Feature', id:f.id + '_floor' + i, geometry:f.geometry, properties:{ parentId:f.id, floorIndex:i, base:i * floorH, top:i * floorH + floorH * frac, bandParity:i % 2, fillColor: pick ? FD_PICK_COLOR : floorShadeColor(fam, i, floors) } });
+      }
+      if (ghostTo !== null){
+        var gFrom = Math.max(bFrac, prog), gTo = Math.min(tFrac, ghostTo);
+        if (gTo > gFrom + 0.01){
+          out.push({ type:'Feature', id:f.id + '_ghost' + i, geometry:f.geometry, properties:{ parentId:f.id, floorIndex:i, base:i * floorH + floorH * (gFrom - bFrac) / span, top:i * floorH + floorH * (gTo - bFrac) / span, bandParity:i % 2, fillColor: pick ? FD_PICK_COLOR : floorShadeColor('ghost', i, floors) } });
+        }
+      }
+    }
+    return out;
+  }
+
+  // ----- arayüz -----
+  function fdBuildingFeatures(){ return features.filter(function(f){ return f.properties && f.properties.layerId === 'db-layer-binalar' && f.geometry && f.geometry.type === 'Polygon'; }); }
+  function fdUpdateUi(){
+    var on = fdProgramOn();
+    var hint = document.getElementById('fdSourceHint');
+    if (!fdData) hint.textContent = 'Veri yükleniyor…';
+    else if (!on && fdSource === 'program') hint.textContent = 'Henüz hiçbir aktivite bir binaya bağlı değil — aşağıdan eşleme yapın. Şimdilik varsayımsal simülasyon gösteriliyor.';
+    else if (on) hint.textContent = 'Plan: aktivite tarihlerinden doğrusal. Gerçekleşen: ilerlemenin sisteme girildiği tarihlere göre (sahadaki gerçek tarih değil); gelecek tarihlerde ve geçmişi kayıtlı olmayan aktivitelerde bilinmez, plan gösterilir.';
+    else hint.textContent = 'Her bina 1 yıllık inşaat varsayımıyla simüle edilir (iş programıyla ilgisi yoktur).';
+    var kpis = '';
+    if (on && FOURD_ACTIVE){
+      var c = { tamam:0, devam:0, baslamadi:0, geride:0 }, ids = Object.keys(fdStates);
+      ids.forEach(function(id){ var s = fdStates[id]; c[s.durum]++; if (fdView === 'gercek' && s.geride) c.geride++; });
+      var eslesmemis = fdBuildingFeatures().filter(function(f){ return String(f.properties.project_id) === String(fdData.proje_id) && !fdStates[String(f.id)]; }).length;   // yalnız aktif proje
+      kpis = '<div class="pf-kpi"><small>Tamamlandı</small><b style="color:#2fb36d;">' + c.tamam + '</b></div>' +
+        '<div class="pf-kpi"><small>Devam</small><b>' + c.devam + '</b></div>' +
+        '<div class="pf-kpi"><small>Başlamadı</small><b>' + c.baslamadi + '</b></div>' +
+        '<div class="pf-kpi"><small>' + (fdView === 'gercek' ? 'Geride (>10 puan)' : 'Eşlenmemiş (sabit)') + '</small><b style="color:' + (fdView === 'gercek' && c.geride ? '#e0685a' : 'inherit') + ';">' + (fdView === 'gercek' ? c.geride : eslesmemis) + '</b></div>';
+      if (fdView === 'gercek'){
+        var bilinmeyen = ids.filter(function(id){ return fdStates[id].gercek === null; }).length;
+        if (bilinmeyen) kpis += '<div class="mj-info warn" style="grid-column:1/-1;margin:0;">' + bilinmeyen + ' binada bu tarih için gerçekleşen bilgisi yok — onlarda plan gösteriliyor.</div>';
+      }
+      setMapLegendEntry('fourd', '4D İş Programı' + (fdView === 'gercek' ? ' — plan ↔ gerçekleşen' : ' — plan'), fdLegendHtml());
+    } else {
+      clearMapLegendEntry('fourd');
+    }
+    document.getElementById('fdStats').innerHTML = kpis;
+    document.getElementById('fdEmptyHint').style.display = (fdData && !fdData.aktiviteler.length) ? '' : 'none';
+  }
+  function fdLegendHtml(){
+    if (fdView === 'gercek'){
+      return legendSwatchRow(FD_FAMILY_COLOR.green, 'Zamanında / ileride') + legendSwatchRow(FD_FAMILY_COLOR.amber, 'Hafif geride (2–10 puan)') +
+        legendSwatchRow(FD_FAMILY_COLOR.red, 'Geride (>10 puan)') + legendSwatchRow('#fca5a5', 'Planlanan ama yapılmamış kısım') + legendSwatchRow(FD_FAMILY_COLOR.grey, 'İş programına bağlı değil (sabit)');
+    }
+    return legendSwatchRow(FD_FAMILY_COLOR.blue, 'Devam ediyor') + legendSwatchRow(FD_FAMILY_COLOR.green, 'Plana göre tamamlandı') + legendSwatchRow('#cbd5e1', 'Başlamadı (yalnız taban çizgisi)') + legendSwatchRow(FD_FAMILY_COLOR.grey, 'İş programına bağlı değil (sabit)');
+  }
+  function fdDaysFromToday(iso){
+    var t = new Date(); t.setHours(0, 0, 0, 0);
+    return Math.round((Date.parse(iso) - Date.parse(fdLocalIso(t))) / 86400000);
+  }
+  function fdApplySliderRange(){
+    if (!fdSetSliderRange) return;
+    if (fdProgramOn() && fdData.aralik){
+      var mn = Math.min(0, fdDaysFromToday(fdData.aralik.baslangic) - 7), mx = Math.max(0, fdDaysFromToday(fdData.aralik.bitis) + 7);
+      fdSetSliderRange(mn, mx);
+    } else fdSetSliderRange(-365, 365);
+  }
+  function fdRefresh(){
+    fdApplySliderRange();
+    if (fdReapply) fdReapply(); else fdUpdateUi();
+  }
+  function fdRenderActivities(){
+    var sel = document.getElementById('fdActivity');
+    var prev = sel.value;
+    sel.innerHTML = '';
+    (fdData ? fdData.aktiviteler : []).forEach(function(a){
+      var o = document.createElement('option'); o.value = a.id;
+      o.textContent = a.ad + ' (' + a.plan_baslangic + ' → ' + a.plan_bitis + ') · ' + a.bina_idler.length + ' bina';
+      sel.appendChild(o);
+    });
+    if (prev) sel.value = prev;
+    fdActivityChanged();
+  }
+  function fdCurrentActivity(){
+    if (!fdData) return null;
+    var id = Number(document.getElementById('fdActivity').value);
+    return fdData.aktiviteler.filter(function(a){ return a.id === id; })[0] || null;
+  }
+  function fdActivityChanged(){
+    var a = fdCurrentActivity();
+    fdPickIds = {};
+    if (a) a.bina_idler.forEach(function(id){ fdPickIds[String(id)] = true; });
+    document.getElementById('fdActivityInfo').textContent = a
+      ? 'Bağlı bina: ' + a.bina_idler.length + ' · güncel ilerleme %' + a.guncel_yuzde + (a.gecmis.length ? ' · ' + a.gecmis.length + ' ilerleme kaydı' : ' · ilerleme geçmişi yok')
+      : '';
+    if (fdPickMode) renderFeatures();
+  }
+  function fdSetPickMode(on){
+    fdPickMode = !!on;
+    var btn = document.getElementById('btnFdPick');
+    btn.classList.toggle('primary', fdPickMode);
+    btn.textContent = fdPickMode ? '✋ Seçimi bitir' : '🏢 Haritadan bina seç';
+    updateCanvasCursor();
+    if (fdPickMode) map.getCanvas().style.cursor = 'crosshair';
+    renderFeatures();
+  }
+  function fdHandlePickClick(e){
+    var a = fdCurrentActivity();
+    if (!a){ showToast('Önce bir aktivite seçin.'); return; }
+    var layersToQuery = ['floor-extrusion', 'poly-extrusion'].filter(function(l){ return !!map.getLayer(l); });
+    var bina = null;
+    map.queryRenderedFeatures(e.point, { layers:layersToQuery }).some(function(h){
+      var cand = (h.properties || {}).parentId || (h.properties || {}).featureId;
+      var f = features.filter(function(x){ return String(x.id) === String(cand); })[0];
+      if (f && f.properties && f.properties.layerId === 'db-layer-binalar'){ bina = f; return true; }
+      return false;
+    });
+    if (!bina){ showToast('Bir bina seçin (Binalar 3D katmanı).'); return; }
+    var bagli = a.bina_idler.map(String).indexOf(String(bina.id)) >= 0;
+    var ids = [bina.id];
+    if (document.getElementById('fdSameType').checked && bina.properties.building_type){
+      // yalnızca tıklanan binanın PROJESİNDEKİ aynı tipler (haritada birden çok projenin binaları yüklü olabilir)
+      ids = fdBuildingFeatures().filter(function(f){
+        return f.properties.building_type === bina.properties.building_type && String(f.properties.project_id) === String(bina.properties.project_id);
+      }).map(function(f){ return f.id; });
+      if (ids.length > 20 && !window.confirm('"' + bina.properties.building_type + '" tipindeki ' + ids.length + ' bina ' + (bagli ? 'bu aktiviteden çözülecek' : 'bu aktiviteye bağlanacak') + '. Devam edilsin mi?')) return;
+    }
+    window.parent.postMessage({ type:'oda:4d-link', aktivite_id:a.id, bina_idler:ids.map(String), islem: bagli ? 'sil' : 'ekle' }, '*');
+  }
+  function fdOpenTab(){
+    window.parent.postMessage({ type:'oda:4d-request' }, '*');
+    if (document.getElementById('analizToolbar').classList.contains('hidden') || analizActiveKind !== 'fourd') openAnalizToolbar('fourd');
+    fdUpdateUi();
+  }
+
+  document.getElementById('fdSource').addEventListener('change', function(){
+    fdSource = this.value; fdSourceChosen = true;
+    fdComputeStates(); fdRefresh();
+  });
+  document.getElementById('fdView').addEventListener('change', function(){ fdView = this.value; fdComputeStates(); fdRefresh(); });
+  document.getElementById('fdActivity').addEventListener('change', fdActivityChanged);
+  document.getElementById('btnFdPick').addEventListener('click', function(){ fdSetPickMode(!fdPickMode); });
+  document.getElementById('btnFdToolbar').addEventListener('click', function(){ openAnalizToolbar('fourd'); });
+  document.getElementById('btnFdReset').addEventListener('click', function(){
+    // Gerçek veriye dön: kaynak simülasyona alınır, kaydırıcı bugüne gelir → binalar kayıtlı construction_progress ile çizilir.
+    fdSource = 'sim'; fdSourceChosen = true;
+    document.getElementById('fdSource').value = 'sim';
+    var rb = document.getElementById('btnFourDReset'); if (rb) rb.click();
+    fdComputeStates(); fdRefresh();
+    showToast('Binalar kayıtlı (gerçek) ilerlemeleriyle gösteriliyor.');
+  });
+  window.addEventListener('message', function(e){
+    var msg = e.data;
+    if (!msg) return;
+    if (msg.type === 'oda:4d-updated'){
+      fdData = msg.data || null;
+      fdActsByBina = {};
+      if (fdData) fdData.aktiviteler.forEach(function(a){ a.bina_idler.forEach(function(id){ (fdActsByBina[String(id)] = fdActsByBina[String(id)] || []).push(a); }); });
+      if (!fdSourceChosen){
+        fdSource = Object.keys(fdActsByBina).length ? 'program' : 'sim';
+        document.getElementById('fdSource').value = fdSource;
+      }
+      fdRenderActivities();
+      fdComputeStates();
+      fdRefresh();
+    } else if (msg.type === 'oda:4d-result' && !msg.ok){
+      showToast('4D eşleme yapılamadı: ' + (msg.error || 'bilinmeyen hata'));
+    } else if (msg.type === 'oda:4d-link-done' && msg.sonuc){
+      var r = msg.sonuc;
+      showToast(msg.islem === 'ekle' ? (r.eklenen || 0) + ' bina bağlandı' + (r.zaten_bagli ? ' (' + r.zaten_bagli + ' zaten bağlıydı)' : '') + '.' : (r.silinen || 0) + ' bina çözüldü.');
+    }
+  });
   window.addEventListener('message', function(e){
     var msg = e.data;
     if (!msg || msg.type !== 'oda:portfolio-updated' || !Array.isArray(msg.projects)) return;
@@ -7877,6 +8186,7 @@
   // Nokta / çizgi / poligon / 3B poligon / dikdörtgen / çember çizimi
   // ---------------------------------------------------------------------
   map.on('click', function(e){
+    if (fdPickMode){ fdHandlePickClick(e); return; }
     if (santiyePlacementMode){ santiyeHandlePlacementClick(e); return; }
     if (sahaPinPlacementMode){ handleSahaPinPlacementClick(e); return; }
     if (attributeEditMode){ handleAttributeEditClick(e); return; }
@@ -8992,7 +9302,7 @@
   // Modül navigasyonu (Sorgu/Harita/Analiz/Editör/Rapor/Çıktı)
   // ---------------------------------------------------------------------
   var activeModule = 'harita';
-  var moduleTitles = { sorgu:'Sorgu', harita:'Harita', analiz:'Analiz', editor:'Editör', saha:'Saha', santiye:'Şantiye', yerimi:'Yer İmleri', gecmis:'Değişiklik Geçmişi', portfoy:'Portföy Haritası', cikti:'Çıktı' };
+  var moduleTitles = { sorgu:'Sorgu', harita:'Harita', analiz:'Analiz', editor:'Editör', saha:'Saha', santiye:'Şantiye', yerimi:'Yer İmleri', gecmis:'Değişiklik Geçmişi', portfoy:'Portföy Haritası', fourd:'4D İş Programı', cikti:'Çıktı' };
   var moduleButtons = Array.prototype.slice.call(document.querySelectorAll('.mod-btn[data-module]'));
   function setModule(key){
     activeModule = key;
@@ -9007,6 +9317,8 @@
     document.getElementById('panelTitle').textContent = moduleTitles[key] || key;
     if (key !== 'santiye' && typeof santiyeCancelPlacement === 'function') santiyeCancelPlacement();
     if (typeof portfoyToggle === 'function') portfoyToggle(key === 'portfoy');
+    if (key === 'fourd' && typeof fdOpenTab === 'function') fdOpenTab();
+    else if (typeof fdPickMode !== 'undefined' && fdPickMode && typeof fdSetPickMode === 'function') fdSetPickMode(false);
     if (key === 'gecmis' && typeof historyRequest === 'function') historyRequest();
   }
   moduleButtons.forEach(function(b){
@@ -9147,7 +9459,12 @@
   var FLOOR_SHADE_FAMILIES = {
     blue:   ['#1e3a8a', '#3b82f6', '#93c5fd'],
     orange: ['#7c2d12', '#f97316', '#fdba74'],
-    green:  ['#065f46', '#059669', '#6ee7b7']
+    green:  ['#065f46', '#059669', '#6ee7b7'],
+    // 4D iş programı görünümü
+    red:    ['#7f1d1d', '#dc2626', '#fca5a5'],
+    amber:  ['#78350f', '#f59e0b', '#fcd34d'],
+    ghost:  ['#fecaca', '#fca5a5', '#fee2e2'],     // planlanan ama henüz yapılmamış kısım
+    grey:   ['#475569', '#64748b', '#94a3b8']      // iş programına bağlı olmayan bina (bağlam)
   };
   function floorShadeFamily(veriDurumu){
     if (veriDurumu === 'Planlanan') return 'blue';
@@ -9202,6 +9519,8 @@
   // açıksa simüle değeri, kapalıysa gerçek (kaydedilmiş) değeri kullanır.
   function getEffectiveProgress(f){
     if (FOURD_ACTIVE){
+      var fdp = fdProgressFor(f);                 // iş programı kaynağı (undefined: kapalı → eski simülasyon)
+      if (fdp !== undefined) return fdp;
       var sim = fourDSimulatedProgress(f);
       return sim === null ? 0 : sim;
     }
@@ -9249,6 +9568,14 @@
       if (f2.geometry.type === 'Polygon' && f2.properties && f2.properties.extrude){
         var progress = getEffectiveProgress(f2);
         f2.properties.__extrusionColor = (progress >= 100) ? EXTRUSION_PROGRESS_COLOR : extrusionStatusColor(f2.properties.veri_durumu);
+        // İş programı kaynağı: bağlı tek katlı binalar renk ve yükseklikle büyür (çok katlılar updateFloorSource'ta)
+        if (FOURD_ACTIVE && fdProgramOn() && fdStates[String(f.id)] && !(Number(f2.properties.floors) > 1)){
+          var fdSt = fdStates[String(f.id)], fdShown = fdShownProgress(fdSt);
+          f2.properties.__extrusionColor = FD_FAMILY_COLOR[fdFamily(fdSt)];
+          f2.properties.height = Math.max(0.3, (Number(f2.properties.height) || 3) * fdShown / 100);
+        }
+        else if (FOURD_ACTIVE && fdProgramOn() && !(Number(f2.properties.floors) > 1)) f2.properties.__extrusionColor = FD_FAMILY_COLOR.grey;   // eşlenmemiş tek katlı: gri bağlam
+        if (fdPickMode && fdPickIds[String(f.id)]) f2.properties.__extrusionColor = FD_PICK_COLOR;
       }
       if (infoHighlightId != null && String(f.id) === String(infoHighlightId)){
         f2.properties.__layerColor = INFO_HIGHLIGHT_COLOR;
@@ -12851,7 +13178,8 @@
     function applyFourDDate(offsetDays){
       var today = new Date(); today.setHours(0,0,0,0);
       FOURD_SIM_DATE = new Date(today.getTime() + offsetDays * 86400000);
-      FOURD_ACTIVE = (offsetDays !== 0);
+      FOURD_ACTIVE = (offsetDays !== 0) || fdProgramOn();   // iş programı kaynağında "bugün" de takvimden hesaplanır
+      fdComputeStates();
       label.textContent = (offsetDays === 0) ? 'bugün' : formatFourDDate(FOURD_SIM_DATE);
       label.style.color = FOURD_ACTIVE ? 'var(--amber)' : '';
       // Simülasyona göre kaç bina "tamamlandı / devam ediyor / henüz başlamadı" — bilgi satırı.
@@ -12859,18 +13187,26 @@
       features.forEach(function(f){
         if (f.geometry.type !== 'Polygon' || !f.properties || !f.properties.extrude) return;
         if (isNaN(parseFloat(f.properties.construction_progress))) return;
-        var p = FOURD_ACTIVE ? fourDSimulatedProgress(f) : parseFloat(f.properties.construction_progress);
+        var p = FOURD_ACTIVE ? (fdProgramOn() ? getEffectiveProgress(f) : fourDSimulatedProgress(f)) : parseFloat(f.properties.construction_progress);
         if (p >= 100) done++; else if (p <= 0) notStarted++; else progressing++;
       });
       info.textContent = FOURD_ACTIVE
-        ? ('Simülasyon: ' + done + ' tamamlandı · ' + progressing + ' devam ediyor · ' + notStarted + ' başlamadı')
+        ? ((fdProgramOn() ? 'İş programı: ' : 'Simülasyon: ') + done + ' tamamlandı · ' + progressing + ' devam ediyor · ' + notStarted + ' başlamadı')
         : '';
+      fdUpdateUi();
       renderFeatures();
     }
 
     slider.addEventListener('input', function(){
       applyFourDDate(parseInt(slider.value, 10) || 0);
     });
+    // 4D sekmesi (iş programı kaynağı) buradaki kapalı fonksiyonlara bu iki kancayla erişir.
+    fdReapply = function(){ applyFourDDate(parseInt(slider.value, 10) || 0); };
+    fdSetSliderRange = function(min, max){
+      slider.min = min; slider.max = max;
+      var v = parseInt(slider.value, 10) || 0;
+      if (v < min) slider.value = min; else if (v > max) slider.value = max;
+    };
 
     document.getElementById('btnFourDReset').addEventListener('click', function(){
       if (playTimer){ clearInterval(playTimer); playTimer = null; setPlaying(false); }
@@ -12888,14 +13224,15 @@
         return;
       }
       setPlaying(true);
-      if (parseInt(slider.value, 10) >= 365) slider.value = -365;
+      var smin = parseInt(slider.min, 10), smax = parseInt(slider.max, 10);
+      if (parseInt(slider.value, 10) >= smax) slider.value = smin;
       playTimer = setInterval(function(){
         var next = (parseInt(slider.value, 10) || 0) + 5;
-        if (next > 365){
+        if (next > smax){
           clearInterval(playTimer);
           playTimer = null;
           setPlaying(false);
-          next = 365;
+          next = smax;
         }
         slider.value = next;
         applyFourDDate(next);

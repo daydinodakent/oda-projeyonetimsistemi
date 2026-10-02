@@ -143,6 +143,18 @@ async function sendHistoryToIframe(iframeWindow: Window, projectId?: string) {
   }
 }
 
+// Harita > 4D: iş programı aktiviteleri + aktivite↔bina eşlemeleri + gerçekleşen ilerleme
+// geçmişi, tek istekte iframe'e gönderilir; tarihte gezinme (slider) iframe'de hesaplanır.
+async function sendFourDToIframe(iframeWindow: Window, projectId?: string) {
+  if (!projectId) { iframeWindow.postMessage({ type: 'oda:4d-updated', data: null }, '*'); return; }
+  try {
+    const data = await santiye.zaman4dGetir(projectId);
+    iframeWindow.postMessage({ type: 'oda:4d-updated', data }, '*');
+  } catch (err) {
+    console.error('4D verisi alınamadı:', err);
+  }
+}
+
 // Harita > Portföy: tüm projeler tek haritada. CPI/SPI öncelikle Maliyet Defteri'nden
 // (gerçek EVM) alınır; o projede maliyet verisi yoksa proje kartındaki EVM alanlarından
 // (earned_value / spent / planned_spent — Dashboard'daki formülle aynı) türetilir ve
@@ -768,6 +780,31 @@ const OdaMapModule: React.FC<OdaMapModuleProps> = ({ activeProjectId, onSelectPr
       }
     };
 
+    // Harita > 4D: veri isteği ve haritadan bina↔aktivite eşleme (ekle/çöz).
+    const handleFourD = async (event: MessageEvent) => {
+      const iframeWindow = iframeRef.current?.contentWindow;
+      if (!iframeWindow || event.source !== iframeWindow) return;
+      const msg = event.data;
+      if (!msg || typeof msg.type !== 'string') return;
+      if (msg.type === 'oda:4d-request') {
+        await sendFourDToIframe(iframeWindow, activeProjectIdRef.current);
+      } else if (msg.type === 'oda:4d-link') {
+        const reply = (ok: boolean, error?: string) => iframeWindow.postMessage({ type: 'oda:4d-result', ok, error }, '*');
+        try {
+          const aktiviteId = Number(msg.aktivite_id);
+          const idler = Array.isArray(msg.bina_idler) ? msg.bina_idler.map(String) : [];
+          if (!Number.isInteger(aktiviteId) || !idler.length) throw new Error('Aktivite ve en az bir bina seçin.');
+          if (msg.islem !== 'ekle' && msg.islem !== 'sil') throw new Error('Geçersiz işlem.');
+          const r = await santiye.esleme4d(aktiviteId, idler, msg.islem);
+          reply(true);
+          iframeWindow.postMessage({ type: 'oda:4d-link-done', islem: msg.islem, sonuc: r }, '*');
+          await sendFourDToIframe(iframeWindow, activeProjectIdRef.current);
+        } catch (err) {
+          reply(false, err instanceof Error ? err.message : String(err));
+        }
+      }
+    };
+
     // Harita > Portföy: veri isteği ve "Bu projeye geç".
     const handlePortfolio = async (event: MessageEvent) => {
       const iframeWindow = iframeRef.current?.contentWindow;
@@ -791,6 +828,7 @@ const OdaMapModule: React.FC<OdaMapModuleProps> = ({ activeProjectId, onSelectPr
     window.addEventListener('message', handleBookmarkOp);
     window.addEventListener('message', handleHistory);
     window.addEventListener('message', handlePortfolio);
+    window.addEventListener('message', handleFourD);
     return () => {
       window.removeEventListener('message', handleReady);
       window.removeEventListener('message', handleAddDocuments);
@@ -805,6 +843,7 @@ const OdaMapModule: React.FC<OdaMapModuleProps> = ({ activeProjectId, onSelectPr
       window.removeEventListener('message', handleBookmarkOp);
       window.removeEventListener('message', handleHistory);
       window.removeEventListener('message', handlePortfolio);
+      window.removeEventListener('message', handleFourD);
     };
   }, []);
 
