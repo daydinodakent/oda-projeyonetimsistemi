@@ -13,8 +13,9 @@ import odaHtmlUrl from '../../../legacy-standalone-tools/oda-harita-cizim-araci.
 import * as api from '../../services/api';
 import * as santiye from '../../moduller/santiye/api';
 import { kisileriListele } from '../../moduller/_cekirdek/api';
-import { ekipleriListele } from '../../moduller/taseron/api';
-import { sozlesmeleriListele } from '../../moduller/sozlesme/api';
+import { ekipleriListele, metrajKaydet } from '../../moduller/taseron/api';
+import { sozlesmeleriListele, kalemleriGetir } from '../../moduller/sozlesme/api';
+import type { Sozlesme, SozlesmeKalem } from '../../moduller/sozlesme/types';
 
 /**
  * ODA+ Proje Yönetim Sistemi'nin "harita" sekmesindeki placeholder'ın yerini alır.
@@ -114,6 +115,29 @@ async function sendSantiyeOptionsToIframe(iframeWindow: Window, projectId?: stri
     ...sozlesmeler.filter((c) => c.tip === 'alt_yuklenici').map((c) => ({ tip: 'alt_yuklenici', id: c.id, ad: `${c.numara} — ${c.konu}` })),
   ];
   iframeWindow.postMessage({ type: 'oda:santiye-options', sorumlular }, '*');
+}
+
+// Harita > Ölçüm > "Metraja aktar": aktif projedeki taşeron ekipleri ve her
+// ekibin sözleşme kalemleri (birim + sözleşme miktarı) iframe'e gönderilir.
+// Liste, pencere her açıldığında yeniden istenir (güncel kalsın diye).
+async function sendMetrajOptionsToIframe(iframeWindow: Window, projectId?: string) {
+  if (!projectId) { iframeWindow.postMessage({ type: 'oda:metraj-options', ekipler: [] }, '*'); return; }
+  const [ekipler, sozlesmeler] = await Promise.all([
+    ekipleriListele(projectId).catch(() => []),
+    sozlesmeleriListele(projectId).catch((): Sozlesme[] => []),
+  ]);
+  const sozlesmeById = new Map(sozlesmeler.map((c) => [c.id, c]));
+  const out = await Promise.all(ekipler.map(async (e) => {
+    const soz = sozlesmeById.get(e.sozlesme_id);
+    const kalemler = await kalemleriGetir(e.sozlesme_id).catch((): SozlesmeKalem[] => []);
+    return {
+      id: e.id,
+      ad: `Ekip #${e.id}${e.is_kolu ? ` — ${e.is_kolu}` : ''}${soz ? ` (${soz.numara})` : ''}`,
+      odeme_tipi: e.odeme_tipi,
+      kalemler: kalemler.map((k) => ({ id: k.id, aciklama: k.aciklama, birim: k.birim, miktar: k.miktar })),
+    };
+  }));
+  iframeWindow.postMessage({ type: 'oda:metraj-options', ekipler: out }, '*');
 }
 
 // Harita üzerindeki PostGIS katmanlarını (db-layer-*) kendi veritabanı
@@ -549,6 +573,37 @@ const OdaMapModule: React.FC<OdaMapModuleProps> = ({ activeProjectId }) => {
       }
     };
 
+    // Harita > Ölçüm: ölçülen alan/mesafeyi taşeron metrajına (beyan edilen
+    // miktar) yazar. Yazma taşeron modülünün KENDİ servisinden geçer
+    // (ekip + sözleşme kalemi doğrulaması, audit); şef onayı orada yapılır.
+    const handleMetrajOptionsRequest = async (event: MessageEvent) => {
+      const iframeWindow = iframeRef.current?.contentWindow;
+      if (!iframeWindow || event.source !== iframeWindow) return;
+      if (!event.data || event.data.type !== 'oda:metraj-options-request') return;
+      await sendMetrajOptionsToIframe(iframeWindow, activeProjectIdRef.current);
+    };
+    const handleMetrajCreate = async (event: MessageEvent) => {
+      const iframeWindow = iframeRef.current?.contentWindow;
+      if (!iframeWindow || event.source !== iframeWindow) return;
+      const msg = event.data;
+      if (!msg || msg.type !== 'oda:metraj-create') return;
+      const reply = (ok: boolean, error?: string) => iframeWindow.postMessage({ type: 'oda:metraj-result', ok, error }, '*');
+      try {
+        const ekipId = Number(msg.ekip_id);
+        const kalemId = Number(msg.sozlesme_kalem_id);
+        const miktar = Number(msg.miktar);
+        const tarih = String(msg.tarih || '');
+        if (!Number.isInteger(ekipId) || !Number.isInteger(kalemId)) throw new Error('Ekip ve sözleşme kalemi seçin.');
+        if (!Number.isFinite(miktar) || miktar <= 0) throw new Error('Miktar sıfırdan büyük olmalıdır.');
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(tarih)) throw new Error('Geçerli bir tarih girin.');
+        const not = String(msg.notes || '').trim().slice(0, 500);
+        await metrajKaydet(ekipId, { sozlesme_kalem_id: kalemId, tarih, miktar: Math.round(miktar * 100) / 100, notes: not || undefined });
+        reply(true);
+      } catch (err) {
+        reply(false, err instanceof Error ? err.message : String(err));
+      }
+    };
+
     window.addEventListener('message', handleReady);
     window.addEventListener('message', handleAddDocuments);
     window.addEventListener('message', handleUpdateDbFeature);
@@ -557,6 +612,8 @@ const OdaMapModule: React.FC<OdaMapModuleProps> = ({ activeProjectId }) => {
     window.addEventListener('message', handleRenameSahaPhoto);
     window.addEventListener('message', handleSantiyeCreate);
     window.addEventListener('message', handleSantiyeAction);
+    window.addEventListener('message', handleMetrajOptionsRequest);
+    window.addEventListener('message', handleMetrajCreate);
     return () => {
       window.removeEventListener('message', handleReady);
       window.removeEventListener('message', handleAddDocuments);
@@ -566,6 +623,8 @@ const OdaMapModule: React.FC<OdaMapModuleProps> = ({ activeProjectId }) => {
       window.removeEventListener('message', handleRenameSahaPhoto);
       window.removeEventListener('message', handleSantiyeCreate);
       window.removeEventListener('message', handleSantiyeAction);
+      window.removeEventListener('message', handleMetrajOptionsRequest);
+      window.removeEventListener('message', handleMetrajCreate);
     };
   }, []);
 
@@ -622,6 +681,7 @@ const OdaMapModule: React.FC<OdaMapModuleProps> = ({ activeProjectId }) => {
       src={odaHtmlUrl}
       title="ODA — Harita Çizim Aracı"
       style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
+      allow="geolocation"
       sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals allow-downloads"
     />
   );

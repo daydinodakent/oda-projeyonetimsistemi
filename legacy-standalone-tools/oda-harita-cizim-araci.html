@@ -558,6 +558,22 @@
   textarea.san-input{resize:vertical;min-height:54px;}
   .san-coord{font-family:var(--font-mono);font-size:11px;color:var(--text-dim);flex:1;align-self:center;}
   .san-coord.set{color:var(--teal);}
+  .san-coord.warn{color:var(--amber);}
+  .btn.busy{opacity:.6;pointer-events:none;}
+  /* Ölçüm sonrası "Metraja aktar" çubuğu (ölçüm özetinin hemen üstünde) */
+  #measureMetrajBar{
+    position:absolute;left:50%;bottom:132px;transform:translateX(-50%);z-index:6;display:none;
+    background:rgba(15,30,41,.96);border:1px solid var(--amber);border-radius:2px;padding:4px;
+  }
+  #measureMetrajBar.show{display:flex;}
+  #measureMetrajBar button{
+    background:transparent;border:none;color:var(--amber);font-family:var(--font-ui);font-size:12.5px;font-weight:600;
+    padding:6px 14px;cursor:pointer;white-space:nowrap;
+  }
+  #measureMetrajBar button:disabled{color:var(--teal);cursor:default;}
+  .mj-info{font-size:11.5px;color:var(--text-dim);line-height:1.5;margin-top:6px;}
+  .mj-info.warn{color:var(--amber);}
+  .mj-value{font-family:var(--font-mono);color:var(--teal);font-size:13px;font-weight:600;}
   .san-popup{max-width:230px;font-size:12px;color:#0f1e29;}
   .san-popup-kind{display:inline-block;font-size:10px;font-weight:600;color:#fff;border-radius:2px;padding:1px 6px;margin-bottom:5px;}
   .san-popup-title{font-weight:600;line-height:1.35;word-break:break-word;}
@@ -2169,9 +2185,10 @@
         <input type="checkbox" id="santiyeAnonim"> Anonim bildir (bildiren kişi kaydedilmez)
       </label>
       <div class="btn-row">
-        <div class="btn" id="btnSantiyePick">📍 Haritada konumla</div>
-        <span class="san-coord" id="santiyeCoord">Konum seçilmedi</span>
+        <div class="btn" id="btnSantiyePick" style="flex:1;">📍 Haritada konumla</div>
+        <div class="btn" id="btnSantiyeGps" style="flex:1;" title="Cihazın GPS konumunu kullanır (telefonda şantiyedeyken)">🎯 Konumumu kullan</div>
       </div>
+      <span class="san-coord" id="santiyeCoord">Konum seçilmedi</span>
       <div class="btn-row">
         <div class="btn" id="btnSantiyeReset" style="flex:1;">Temizle</div>
         <div class="btn primary" id="btnSantiyeSave" style="flex:2;">Kaydı oluştur</div>
@@ -2448,6 +2465,33 @@
      ile açılır (bkz. openGeoPdfModal / exportGeoPdf). Seçilen altlıklar
      raster, aktif haritanın katmanları vektör olarak, her biri PDF'te ayrı
      açılıp kapanabilen bir katman (OCG) halinde tek bir coğrafi PDF'e yazılır. -->
+<!-- Ölçümü taşeron metrajına aktarma (bkz. METRAJ bölümü) -->
+<div class="modal-overlay" id="metrajModal">
+  <div class="modal-box">
+    <div class="modal-title">Ölçümü Taşeron Metrajına Aktar</div>
+    <div class="mj-info" style="margin:0 0 10px;">Ölçüm: <span class="mj-value" id="mjMeasureText"></span></div>
+    <label class="field-label">Taşeron ekibi</label>
+    <select class="san-input" id="mjEkip"><option value="">Yükleniyor…</option></select>
+    <label class="field-label" style="margin-top:10px;">Sözleşme kalemi</label>
+    <select class="san-input" id="mjKalem"></select>
+    <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-dim);padding:6px 0 0;">
+      <input type="checkbox" id="mjTumKalemler"> Birimi uyumsuz kalemleri de göster
+    </label>
+    <div class="mj-info" id="mjKalemInfo"></div>
+    <div class="san-grid" style="margin-top:10px;">
+      <div><label class="field-label">Miktar</label><input type="number" class="san-input" id="mjMiktar" step="0.01" min="0"></div>
+      <div><label class="field-label">Tarih</label><input type="date" class="san-input" id="mjTarih"></div>
+    </div>
+    <label class="field-label" style="margin-top:10px;">Not</label>
+    <textarea class="san-input" id="mjNot" maxlength="500"></textarea>
+    <div class="mj-info">Kayıt <b>beyan edilen miktar</b> olarak girer; şef onayı sonrası hakedişe yansır.</div>
+    <div class="modal-actions">
+      <div class="btn" id="btnMjCancel">Vazgeç</div>
+      <div class="btn primary" id="btnMjSave">Metraja aktar</div>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="geoPdfModal">
   <div class="modal-box tall" style="width:460px;max-width:calc(100vw - 40px);max-height:85vh;">
     <div class="modal-header">
@@ -2692,6 +2736,7 @@
 </div>
 
 <div id="measureSummary"></div>
+<div id="measureMetrajBar"><button type="button" id="btnMeasureToMetraj">📐 Metraja aktar</button></div>
 
 <!-- Kesit (Profil) Analizi sonucu — bir hat boyunca yükseklik değişimini
      gösteren küçük SVG grafik paneli (bkz. Analiz modülü > Kesit Analizi,
@@ -3628,6 +3673,7 @@
   var hoveredMidpoint = null; // Seç modunda, fare tek seçili objenin bir kenar orta noktasına yakınsa (bkz. findNearestMidpoint)
   var draftCoords = null;   // linestring / polygon çizerken tıklanan noktalar
   var measureFrozen = false; // Bitir sonrası ölçüm sonucu dondurulduğunda true
+  var lastMeasurement = null; // son tamamlanan ölçüm — metraja aktarılabilir ({ isArea, value, geometry, aktarildi })
   var distFrozen = false;      // kullanıcı mesafe kutusuna yazdıysa true
   var angleFrozen = false;     // kullanıcı açı kutusuna yazdıysa true
   var inputMode = 'polar';     // 'polar' (mesafe/açı) | 'xy' (boylam/enlem)
@@ -6814,20 +6860,73 @@
     });
     if (prev) sel.value = prev;
   }
-  function santiyeSetPicked(lngLat){
+  // accuracy (m) yalnızca GPS ile alınan konumlarda verilir; 50 m'den kötüyse uyarı rengiyle gösterilir.
+  function santiyeShowCoord(lngLat, accuracy){
+    var el = document.getElementById('santiyeCoord');
+    el.textContent = lngLat.lat.toFixed(6) + ', ' + lngLat.lng.toFixed(6) + (accuracy != null ? '  (±' + Math.round(accuracy) + ' m)' : '');
+    el.classList.add('set');
+    el.classList.toggle('warn', accuracy != null && accuracy > 50);
+  }
+  function santiyeSetPicked(lngLat, accuracy){
     santiyePickedLngLat = lngLat;
     var el = document.getElementById('santiyeCoord');
     if (lngLat){
-      el.textContent = lngLat.lat.toFixed(6) + ', ' + lngLat.lng.toFixed(6);
-      el.classList.add('set');
-      if (!santiyePickMarker) santiyePickMarker = new maplibregl.Marker({ color:'#e3a541' });
+      santiyeShowCoord(lngLat, accuracy);
+      if (!santiyePickMarker){
+        // İşaretçi sürüklenerek ince ayar yapılabilir (GPS sapması / yanlış tıklama için).
+        santiyePickMarker = new maplibregl.Marker({ color:'#e3a541', draggable:true });
+        santiyePickMarker.on('dragend', function(){
+          var ll = santiyePickMarker.getLngLat();
+          santiyePickedLngLat = { lng:ll.lng, lat:ll.lat };
+          santiyeShowCoord(santiyePickedLngLat, null);
+        });
+      }
       santiyePickMarker.setLngLat([lngLat.lng, lngLat.lat]).addTo(map);
     } else {
       el.textContent = 'Konum seçilmedi';
-      el.classList.remove('set');
+      el.classList.remove('set'); el.classList.remove('warn');
       if (santiyePickMarker){ santiyePickMarker.remove(); santiyePickMarker = null; }
     }
   }
+  // Cihaz konumu (telefonda şantiyedeyken): doğruluk gösterilir, şantiye kayıtlarından çok uzaksa uyarılır.
+  document.getElementById('btnSantiyeGps').addEventListener('click', function(){
+    var btn = this;
+    if (!navigator.geolocation){ showToast('Bu tarayıcı konum servisini desteklemiyor.'); return; }
+    if (btn.classList.contains('busy')) return;
+    btn.classList.add('busy');
+    showToast('Konum alınıyor…');
+    // getCurrentPosition'ın timeout'u izin penceresinde bekleme süresini saymaz — yanıtsız kalırsa düğme takılı kalmasın.
+    var gpsGuard = setTimeout(function(){
+      if (!btn.classList.contains('busy')) return;
+      btn.classList.remove('busy');
+      showToast('Konum yanıtı alınamadı — izin penceresini onaylayıp tekrar deneyin.');
+    }, 20000);
+    navigator.geolocation.getCurrentPosition(function(pos){
+      clearTimeout(gpsGuard);
+      btn.classList.remove('busy');
+      santiyeCancelPlacement();
+      var ll = { lng:pos.coords.longitude, lat:pos.coords.latitude };
+      santiyeSetPicked(ll, pos.coords.accuracy);
+      map.flyTo({ center:[ll.lng, ll.lat], zoom:Math.max(map.getZoom(), 17), duration:600 });
+      var uyari = '';
+      if (pos.coords.accuracy > 50) uyari = ' Doğruluk düşük (±' + Math.round(pos.coords.accuracy) + ' m) — işaretçiyi sürükleyerek düzeltin.';
+      if (santiyeAll.length){
+        try{
+          var merkez = turf.center({ type:'FeatureCollection', features:santiyeAll }).geometry.coordinates;
+          var km = turf.distance([ll.lng, ll.lat], merkez, { units:'kilometers' });
+          if (km > 5) uyari += ' Konum şantiye kayıtlarından ' + km.toFixed(1) + ' km uzakta görünüyor.';
+        }catch(e){ /* turf yoksa uzaklık kontrolü atlanır */ }
+      }
+      showToast('Konumunuz alındı.' + uyari);
+    }, function(err){
+      clearTimeout(gpsGuard);
+      btn.classList.remove('busy');
+      var mesaj = err && err.code === 1 ? 'Konum izni reddedildi — tarayıcı/telefon ayarlarından izin verin.'
+        : err && err.code === 3 ? 'Konum zaman aşımına uğradı — açık alanda tekrar deneyin.'
+        : 'Konum alınamadı (konum servisi kapalı veya bağlantı güvenli değil).';
+      showToast(mesaj);
+    }, { enableHighAccuracy:true, timeout:12000, maximumAge:0 });
+  });
   function santiyeCancelPlacement(){
     if (!santiyePlacementMode) return;
     santiyePlacementMode = false;
@@ -6888,6 +6987,143 @@
   santiyeApplyFormVisibility();
   document.getElementById('santiyeTarih').value = santiyeTodayIso();
   santiyeRenderLayerList();
+
+  // ---------------------------------------------------------------------
+  // METRAJ — Mesafe/Alan ölçümünü taşeron metrajına aktarma.
+  // Ölçüm bitince çıkan "Metraja aktar" düğmesi bir pencere açar: ekip →
+  // sözleşme kalemi (birimi ölçümle uyumlu olanlar öne alınır) → miktar
+  // (ölçümden gelir, düzenlenebilir). Ekip/kalem listesi ve yazma işlemi üst
+  // pencerede taşeron servislerine gider ('oda:metraj-*' mesajları); kayıt
+  // "beyan edilen miktar" olarak girer, şef onayı taşeron modülündedir.
+  // ---------------------------------------------------------------------
+  var metrajEkipler = [];
+  function metrajBirimTuru(birim){
+    var x = String(birim || '').toLowerCase().replace(/²/g,'2').replace(/³/g,'3').replace(/[\s.]/g,'');
+    if (['m2','mkare','metrekare','mtkare'].indexOf(x) >= 0) return 'alan';
+    if (['m','mt','metre','ml','mtul'].indexOf(x) >= 0) return 'uzunluk';
+    if (['m3','mküp','metreküp','metrekup'].indexOf(x) >= 0) return 'hacim';
+    return 'diger';
+  }
+  function metrajOlcumMetni(){
+    if (!lastMeasurement) return '';
+    return lastMeasurement.value.toLocaleString('tr-TR', { maximumFractionDigits:2 }) + (lastMeasurement.isArea ? ' m²' : ' m');
+  }
+  function syncMeasureMetrajBar(){
+    var bar = document.getElementById('measureMetrajBar');
+    var btn = document.getElementById('btnMeasureToMetraj');
+    var goster = !!lastMeasurement && measureFrozen;
+    bar.classList.toggle('show', goster);
+    if (!goster) return;
+    btn.disabled = !!lastMeasurement.aktarildi;
+    btn.textContent = lastMeasurement.aktarildi ? '✓ Metraja aktarıldı' : '📐 Metraja aktar (' + metrajOlcumMetni() + ')';
+  }
+  function metrajGetSelectedEkip(){
+    var id = Number(document.getElementById('mjEkip').value);
+    return metrajEkipler.filter(function(e){ return e.id === id; })[0] || null;
+  }
+  function metrajRenderEkipler(){
+    var sel = document.getElementById('mjEkip');
+    sel.innerHTML = '';
+    if (!metrajEkipler.length){
+      sel.innerHTML = '<option value="">Bu projede taşeron ekibi yok</option>';
+    } else {
+      metrajEkipler.forEach(function(e){
+        var o = document.createElement('option');
+        var metrajli = e.odeme_tipi !== 'yevmiye';
+        o.value = e.id;
+        o.textContent = e.ad + (metrajli ? '' : ' — yevmiye (metraj uygulanmaz)');
+        o.disabled = !metrajli;
+        sel.appendChild(o);
+      });
+      var ilk = metrajEkipler.filter(function(e){ return e.odeme_tipi !== 'yevmiye'; })[0];
+      if (ilk) sel.value = ilk.id;
+    }
+    metrajRenderKalemler();
+  }
+  function metrajRenderKalemler(){
+    var sel = document.getElementById('mjKalem');
+    var info = document.getElementById('mjKalemInfo');
+    var ekip = metrajGetSelectedEkip();
+    sel.innerHTML = '';
+    info.className = 'mj-info'; info.textContent = '';
+    if (!ekip){ return; }
+    var hedef = lastMeasurement && lastMeasurement.isArea ? 'alan' : 'uzunluk';
+    var tumu = document.getElementById('mjTumKalemler').checked;
+    var kalemler = ekip.kalemler.filter(function(k){ return tumu || metrajBirimTuru(k.birim) === hedef; });
+    kalemler.forEach(function(k){
+      var o = document.createElement('option');
+      o.value = k.id;
+      o.textContent = k.aciklama + ' (' + k.birim + ')';
+      sel.appendChild(o);
+    });
+    if (!kalemler.length){
+      info.className = 'mj-info warn';
+      info.textContent = 'Bu ekibin sözleşmesinde ' + (hedef === 'alan' ? 'm²' : 'm') + ' birimli kalem yok. "Birimi uyumsuz kalemleri de göster" ile başka bir kalem seçebilirsiniz.';
+    } else {
+      metrajKalemInfo();
+    }
+  }
+  function metrajKalemInfo(){
+    var ekip = metrajGetSelectedEkip();
+    var info = document.getElementById('mjKalemInfo');
+    var id = Number(document.getElementById('mjKalem').value);
+    var k = ekip && ekip.kalemler.filter(function(x){ return x.id === id; })[0];
+    if (!k){ info.className = 'mj-info'; info.textContent = ''; return; }
+    var uyumlu = metrajBirimTuru(k.birim) === (lastMeasurement && lastMeasurement.isArea ? 'alan' : 'uzunluk');
+    info.className = 'mj-info' + (uyumlu ? '' : ' warn');
+    info.textContent = 'Sözleşme miktarı: ' + Number(k.miktar).toLocaleString('tr-TR') + ' ' + k.birim +
+      (uyumlu ? '' : ' — kalem birimi ölçümle (' + (lastMeasurement.isArea ? 'm²' : 'm') + ') uyumsuz, miktarı kontrol edin.');
+  }
+  function metrajOpenModal(){
+    if (!lastMeasurement || lastMeasurement.aktarildi) return;
+    var c = lastMeasurement.isArea ? turf.centroid({ type:'Feature', geometry:lastMeasurement.geometry, properties:{} }).geometry.coordinates
+                                   : turf.along({ type:'Feature', geometry:lastMeasurement.geometry, properties:{} }, 0, { units:'kilometers' }).geometry.coordinates;
+    document.getElementById('mjMeasureText').textContent = (lastMeasurement.isArea ? 'Alan ' : 'Mesafe ') + metrajOlcumMetni();
+    document.getElementById('mjMiktar').value = lastMeasurement.value;
+    document.getElementById('mjTarih').value = santiyeTodayIso();
+    document.getElementById('mjNot').value = 'Haritadan ölçüm (' + (lastMeasurement.isArea ? 'alan' : 'mesafe') + ', ' + metrajOlcumMetni() + ') — konum ' + c[1].toFixed(5) + ', ' + c[0].toFixed(5);
+    document.getElementById('mjTumKalemler').checked = false;
+    metrajEkipler = [];
+    document.getElementById('mjEkip').innerHTML = '<option value="">Yükleniyor…</option>';
+    document.getElementById('mjKalem').innerHTML = '';
+    document.getElementById('mjKalemInfo').textContent = '';
+    document.getElementById('metrajModal').classList.add('show');
+    window.parent.postMessage({ type:'oda:metraj-options-request' }, '*');
+  }
+  function metrajCloseModal(){ document.getElementById('metrajModal').classList.remove('show'); }
+  document.getElementById('btnMeasureToMetraj').addEventListener('click', metrajOpenModal);
+  document.getElementById('btnMjCancel').addEventListener('click', metrajCloseModal);
+  document.getElementById('metrajModal').addEventListener('click', function(e){ if (e.target.id === 'metrajModal') metrajCloseModal(); });
+  document.getElementById('mjEkip').addEventListener('change', metrajRenderKalemler);
+  document.getElementById('mjKalem').addEventListener('change', metrajKalemInfo);
+  document.getElementById('mjTumKalemler').addEventListener('change', metrajRenderKalemler);
+  document.getElementById('btnMjSave').addEventListener('click', function(){
+    var ekip = metrajGetSelectedEkip();
+    var kalemId = Number(document.getElementById('mjKalem').value);
+    var miktar = Number(document.getElementById('mjMiktar').value);
+    if (!ekip){ showToast('Bir taşeron ekibi seçin.'); return; }
+    if (!Number.isFinite(kalemId) || !kalemId){ showToast('Bir sözleşme kalemi seçin.'); return; }
+    if (!Number.isFinite(miktar) || miktar <= 0){ showToast('Geçerli bir miktar girin.'); return; }
+    window.parent.postMessage({ type:'oda:metraj-create', ekip_id:ekip.id, sozlesme_kalem_id:kalemId, miktar:miktar,
+      tarih:document.getElementById('mjTarih').value || santiyeTodayIso(), notes:document.getElementById('mjNot').value }, '*');
+  });
+  window.addEventListener('message', function(e){
+    var msg = e.data;
+    if (!msg) return;
+    if (msg.type === 'oda:metraj-options' && Array.isArray(msg.ekipler)){
+      metrajEkipler = msg.ekipler;
+      metrajRenderEkipler();
+    } else if (msg.type === 'oda:metraj-result'){
+      if (msg.ok){
+        if (lastMeasurement) lastMeasurement.aktarildi = true;
+        syncMeasureMetrajBar();
+        metrajCloseModal();
+        showToast('Metraj kaydı oluşturuldu — şef onayı bekliyor.');
+      } else {
+        showToast('Metraja aktarılamadı: ' + (msg.error || 'bilinmeyen hata'));
+      }
+    }
+  });
 
   window.addEventListener('message', function(e){
     var msg = e.data;
@@ -7158,6 +7394,11 @@
         : { type:'LineString', coordinates:draftCoords.slice() };
       persistedMeasurements.push({ id: uid(), geometry: geomM, isArea: isAreaM });
       renderPersistedMeasurements();
+      // Metraja aktarılabilir son ölçüm: alan → m², mesafe → m (jeodezik, 2B)
+      var ml = isAreaM ? turf.area({ type:'Feature', geometry:geomM, properties:{} })
+                       : turf.length({ type:'Feature', geometry:geomM, properties:{} }, { units:'kilometers' }) * 1000;
+      lastMeasurement = { isArea:isAreaM, value:Math.round(ml * 100) / 100, geometry:geomM, aktarildi:false };
+      syncMeasureMetrajBar();
       return;
     }
     if (mode === 'linestring' && draftCoords.length >= 2){
@@ -7236,6 +7477,8 @@
   function clearMeasureSummary(){
     var el = document.getElementById('measureSummary');
     if (el) el.classList.remove('show');
+    lastMeasurement = null;
+    syncMeasureMetrajBar();
   }
 
   function updateMeasureSummary(coords){
