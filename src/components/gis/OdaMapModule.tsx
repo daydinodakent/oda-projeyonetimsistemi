@@ -13,6 +13,8 @@ import odaHtmlUrl from '../../../legacy-standalone-tools/oda-harita-cizim-araci.
 import * as api from '../../services/api';
 import * as santiye from '../../moduller/santiye/api';
 import { kisileriListele } from '../../moduller/_cekirdek/api';
+import { portfoy as maliyetPortfoy } from '../../moduller/maliyet/api';
+import type { PortfoyProje } from '../../moduller/maliyet/types';
 import { ekipleriListele, metrajKaydet } from '../../moduller/taseron/api';
 import { sozlesmeleriListele, kalemleriGetir } from '../../moduller/sozlesme/api';
 import type { Sozlesme, SozlesmeKalem } from '../../moduller/sozlesme/types';
@@ -41,6 +43,8 @@ import type { Sozlesme, SozlesmeKalem } from '../../moduller/sozlesme/types';
  */
 interface OdaMapModuleProps {
   activeProjectId?: string;
+  /** Portföy haritasında "Bu projeye geç" — üst uygulamanın aktif projesini değiştirir. */
+  onSelectProject?: (projectId: string) => void;
 }
 
 // Haritadaki bir objeye ("obje") bağlı dokümanları (feature_id dolu olan
@@ -128,6 +132,57 @@ async function sendBookmarksToIframe(iframeWindow: Window, projectId?: string) {
   }
 }
 
+// Harita > Geçmiş: aktif projenin son harita katmanı değişiklikleri (kim/ne zaman/ne değişti).
+async function sendHistoryToIframe(iframeWindow: Window, projectId?: string) {
+  if (!projectId) { iframeWindow.postMessage({ type: 'oda:history-updated', items: [] }, '*'); return; }
+  try {
+    const items = await api.getHaritaGecmisi(projectId, 60);
+    iframeWindow.postMessage({ type: 'oda:history-updated', items }, '*');
+  } catch (err) {
+    console.error('Harita geçmişi alınamadı:', err);
+  }
+}
+
+// Harita > Portföy: tüm projeler tek haritada. CPI/SPI öncelikle Maliyet Defteri'nden
+// (gerçek EVM) alınır; o projede maliyet verisi yoksa proje kartındaki EVM alanlarından
+// (earned_value / spent / planned_spent — Dashboard'daki formülle aynı) türetilir ve
+// 'kaynak' alanı bunu açıkça belirtir. Tutarlar milyon TL.
+async function sendPortfolioToIframe(iframeWindow: Window) {
+  try {
+    const [projeler, ledger] = await Promise.all([
+      api.getProjeler(),
+      maliyetPortfoy().catch(() => null),
+    ]);
+    const ledgerById = new Map<string, PortfoyProje>((ledger?.projeler || []).map((r): [string, PortfoyProje] => [r.proje_id, r]));
+    const mTL = (kurus: number) => kurus / 100 / 1e6;
+    const projects = projeler
+      .filter((p) => p.row_status !== 0 && Number.isFinite(Number(p.center_lng)) && Number.isFinite(Number(p.center_lat)))
+      .map((p) => {
+        const led = ledgerById.get(String(p.id));
+        let cpi: number | null = p.spent > 0 ? p.earned_value / p.spent : null;
+        let spi: number | null = p.planned_spent > 0 ? p.earned_value / p.planned_spent : null;
+        let sapma: number | null = cpi && cpi > 0 ? (1 - 1 / cpi) * 100 : null;   // EAC = BAC/CPI → (BAC−EAC)/BAC
+        let kaynak = 'proje_karti';
+        let butce = p.budget, harcanan = p.spent;
+        if (led && (led.cpi != null || led.spi != null)) {
+          kaynak = 'maliyet_defteri';
+          cpi = led.cpi ?? cpi; spi = led.spi ?? spi; sapma = led.sapma_yuzde ?? sapma;
+          butce = mTL(led.butce); harcanan = mTL(led.gerceklesen);
+        }
+        const r1 = (v: number | null, n = 3) => (v == null || !Number.isFinite(v) ? null : Number(v.toFixed(n)));
+        return {
+          id: String(p.id), kod: p.code, ad: p.name, konum: p.location, durum: p.status, risk: p.risk_level,
+          ilerleme: p.overall_progress, lng: Number(p.center_lng), lat: Number(p.center_lat),
+          butce_m: r1(butce, 1), harcanan_m: r1(harcanan, 1),
+          cpi: r1(cpi), spi: r1(spi), sapma_yuzde: r1(sapma, 1), kaynak,
+        };
+      });
+    iframeWindow.postMessage({ type: 'oda:portfolio-updated', projects }, '*');
+  } catch (err) {
+    console.error('Portföy haritaya gönderilemedi:', err);
+  }
+}
+
 // Harita > Ölçüm > "Metraja aktar": aktif projedeki taşeron ekipleri ve her
 // ekibin sözleşme kalemleri (birim + sözleşme miktarı) iframe'e gönderilir.
 // Liste, pencere her açıldığında yeniden istenir (güncel kalsın diye).
@@ -159,6 +214,83 @@ const LAYER_TABLE_MAP: Record<string, string> = {
   'db-layer-binalar': 'tb_binalar_3d',
   'db-layer-altyapi': 'tb_altyapi_hatlari',
 };
+
+// Tablo adı ↔ haritadaki db-layer id'si (geçmişten geri alınan kaydı iframe'e bildirmek için).
+const TABLE_LAYER_MAP: Record<string, string> = Object.fromEntries(Object.entries(LAYER_TABLE_MAP).map(([layerId, table]) => [table, layerId]));
+
+// Veritabanı kaydı → haritadaki (ODA) feature. İlk yükleme ve "geri al" aynı
+// eşleyicileri kullanır; böylece geri alınan kayıt ilk yüklemeyle birebir aynı
+// biçimde görünür. Özellik anahtarları KASITLI OLARAK gerçek sütun adlarıdır
+// (Editör > Öznitelik formu bu adlarla önceden doldurulur).
+const geomOf = (r: { the_geom?: { tip?: string; coordinates?: unknown } }) => ({ type: r.the_geom?.tip, coordinates: r.the_geom?.coordinates });
+
+const toSinirFeature = (r: any) => ({
+  id: r.id,
+  type: 'Feature',
+  geometry: geomOf(r),
+  properties: {
+    layerId: 'db-layer-sinirlar',
+    tablo: LAYER_TABLE_MAP['db-layer-sinirlar'],
+    name: r.project_name,
+    project_id: r.project_id,
+    project_name: r.project_name,
+    ada_parsel: r.ada_parsel,
+    area_sqm: r.area_sqm,
+    veri_durumu: r.veri_durumu,
+  },
+});
+
+// Kat adedi/yükseklik bilgisi dolu olan bir bina, haritada otomatik olarak
+// 3B (ekstrüzyonlu) çizilir.
+const toBinaFeature = (r: any) => {
+  const floors = r.floors_count || 1;
+  const floorHeight = r.height_meters && floors ? r.height_meters / floors : 3;
+  return {
+    id: r.id,
+    type: 'Feature',
+    geometry: geomOf(r),
+    properties: {
+      layerId: 'db-layer-binalar',
+      tablo: LAYER_TABLE_MAP['db-layer-binalar'],
+      name: r.block_name,
+      project_id: r.project_id,
+      block_name: r.block_name,
+      building_type: r.building_type,
+      height_meters: r.height_meters,
+      floors_count: r.floors_count,
+      construction_progress: r.construction_progress,
+      structural_status: r.structural_status,
+      footprint_area_sqm: r.footprint_area_sqm,
+      veri_durumu: r.veri_durumu,
+      extrude: true,
+      floors,
+      floorHeight,
+      height: r.height_meters || floors * floorHeight,
+      base: 0,
+    },
+  };
+};
+
+const toAltyapiFeature = (r: any, colorByType: Record<string, string>) => ({
+  id: r.id,
+  type: 'Feature',
+  geometry: geomOf(r),
+  properties: {
+    layerId: 'db-layer-altyapi',
+    tablo: LAYER_TABLE_MAP['db-layer-altyapi'],
+    name: r.network_name,
+    project_id: r.project_id,
+    line_type: r.line_type,
+    network_name: r.network_name,
+    pipe_or_cable_spec: r.pipe_or_cable_spec,
+    depth_meters: r.depth_meters,
+    voltage_or_pressure: r.voltage_or_pressure,
+    status: r.status,
+    total_length_meters: r.total_length_meters,
+    veri_durumu: r.veri_durumu,
+    line_color: colorByType[String(r.line_type)] || '#10b981',
+  },
+});
 
 // Her db-layer için, sistem (STANDART 7) sütunları hariç tutulmuş gerçek
 // sütun şemasını iframe'e gönderir — 'Veri Girişi' ve 'Öznitelik Düzenle'
@@ -206,7 +338,7 @@ async function sendSchemasToIframe(iframeWindow: Window) {
   }
 }
 
-const OdaMapModule: React.FC<OdaMapModuleProps> = ({ activeProjectId }) => {
+const OdaMapModule: React.FC<OdaMapModuleProps> = ({ activeProjectId, onSelectProject }) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [iframeReady, setIframeReady] = useState(false);
   // handleReady/handleAddSahaPhotos, ([] bağımlılıklı) mount effect'i
@@ -214,6 +346,8 @@ const OdaMapModule: React.FC<OdaMapModuleProps> = ({ activeProjectId }) => {
   // değerini closure'da tutar — güncel değeri her zaman bu ref üzerinden okur.
   const activeProjectIdRef = useRef(activeProjectId);
   useEffect(() => { activeProjectIdRef.current = activeProjectId; }, [activeProjectId]);
+  const onSelectProjectRef = useRef(onSelectProject);
+  useEffect(() => { onSelectProjectRef.current = onSelectProject; }, [onSelectProject]);
 
   useEffect(() => {
     const handleReady = async (event: MessageEvent) => {
@@ -302,72 +436,9 @@ const OdaMapModule: React.FC<OdaMapModuleProps> = ({ activeProjectId }) => {
       // doldurur; anahtarlar sütun adlarından farklı olsaydı mevcut objeler
       // için form boş görünürdü.
       const dbFeatures = [
-        ...sinirlar.map((r) => ({
-          id: r.id,
-          type: 'Feature',
-          geometry: { type: r.the_geom?.tip, coordinates: r.the_geom?.coordinates },
-          properties: {
-            layerId: 'db-layer-sinirlar',
-            tablo: LAYER_TABLE_MAP['db-layer-sinirlar'],
-            name: r.project_name,
-            project_id: r.project_id,
-            project_name: r.project_name,
-            ada_parsel: r.ada_parsel,
-            area_sqm: r.area_sqm,
-            veri_durumu: r.veri_durumu,
-          },
-        })),
-        ...binalar.map((r) => {
-          // Kat adedi/yükseklik bilgisi dolu olan bir bina, haritada
-          // otomatik olarak 3B (ekstrüzyonlu) çizilir — kullanıcının her
-          // birini tek tek "3B'ye çevir" ile dönüştürmesine gerek kalmaz.
-          const floors = r.floors_count || 1;
-          const floorHeight = r.height_meters && floors ? r.height_meters / floors : 3;
-          return {
-            id: r.id,
-            type: 'Feature',
-            geometry: { type: r.the_geom?.tip, coordinates: r.the_geom?.coordinates },
-            properties: {
-              layerId: 'db-layer-binalar',
-              tablo: LAYER_TABLE_MAP['db-layer-binalar'],
-              name: r.block_name,
-              project_id: r.project_id,
-              block_name: r.block_name,
-              building_type: r.building_type,
-              height_meters: r.height_meters,
-              floors_count: r.floors_count,
-              construction_progress: r.construction_progress,
-              structural_status: r.structural_status,
-              footprint_area_sqm: r.footprint_area_sqm,
-              veri_durumu: r.veri_durumu,
-              extrude: true,
-              floors,
-              floorHeight,
-              height: r.height_meters || floors * floorHeight,
-              base: 0,
-            },
-          };
-        }),
-        ...altyapi.map((r) => ({
-          id: r.id,
-          type: 'Feature',
-          geometry: { type: r.the_geom?.tip, coordinates: r.the_geom?.coordinates },
-          properties: {
-            layerId: 'db-layer-altyapi',
-            tablo: LAYER_TABLE_MAP['db-layer-altyapi'],
-            name: r.network_name,
-            project_id: r.project_id,
-            line_type: r.line_type,
-            network_name: r.network_name,
-            pipe_or_cable_spec: r.pipe_or_cable_spec,
-            depth_meters: r.depth_meters,
-            voltage_or_pressure: r.voltage_or_pressure,
-            status: r.status,
-            total_length_meters: r.total_length_meters,
-            veri_durumu: r.veri_durumu,
-            line_color: altyapiColorByType[String(r.line_type)] || '#10b981',
-          },
-        })),
+        ...sinirlar.map(toSinirFeature),
+        ...binalar.map(toBinaFeature),
+        ...altyapi.map((r) => toAltyapiFeature(r, altyapiColorByType)),
       ];
 
       iframeWindow.postMessage(
@@ -449,6 +520,8 @@ const OdaMapModule: React.FC<OdaMapModuleProps> = ({ activeProjectId }) => {
           default:
             break;
         }
+        // Sunucu bu değişikliği harita geçmişine yazdı — listeyi tazele.
+        sendHistoryToIframe(iframeWindow, activeProjectIdRef.current);
       } catch (err) {
         console.error('Obje veritabanına kaydedilemedi:', err);
       }
@@ -655,6 +728,56 @@ const OdaMapModule: React.FC<OdaMapModuleProps> = ({ activeProjectId }) => {
       }
     };
 
+    // Harita > Geçmiş: liste isteği ve "Geri al". Geri alma sunucuda yapılır
+    // (kayıt önceki haline döner, GERI_AL olarak kaydedilir); ardından haritadaki
+    // feature de güncel kayıttan yeniden kurulup iframe'e bildirilir — iframe
+    // kendi oturum kopyasında (localStorage) eski konumu tutuyor olabilir.
+    const handleHistory = async (event: MessageEvent) => {
+      const iframeWindow = iframeRef.current?.contentWindow;
+      if (!iframeWindow || event.source !== iframeWindow) return;
+      const msg = event.data;
+      if (!msg || typeof msg.type !== 'string') return;
+      if (msg.type === 'oda:history-request') {
+        await sendHistoryToIframe(iframeWindow, activeProjectIdRef.current);
+      } else if (msg.type === 'oda:history-undo') {
+        const reply = (ok: boolean, error?: string) => iframeWindow.postMessage({ type: 'oda:history-result', ok, error }, '*');
+        try {
+          const id = Number(msg.id);
+          if (!Number.isInteger(id)) throw new Error('Geçersiz geçmiş kaydı.');
+          const r = await api.geriAlHaritaDegisikligi(id);
+          const layerId = TABLE_LAYER_MAP[r.tablo];
+          let feature: unknown = null;
+          if (layerId && !r.silindi) {
+            if (layerId === 'db-layer-sinirlar') feature = toSinirFeature(r.kayit);
+            else if (layerId === 'db-layer-binalar') feature = toBinaFeature(r.kayit);
+            else {
+              const tipler = await api.getAltyapiTipleri();
+              const renkler: Record<string, string> = {};
+              tipler.forEach((t) => { renkler[String(t.id)] = t.color; });
+              feature = toAltyapiFeature(r.kayit, renkler);
+            }
+          }
+          iframeWindow.postMessage({ type: 'oda:db-feature-restored', layerId, featureId: r.kayit_id, feature }, '*');
+          reply(true);
+          await sendHistoryToIframe(iframeWindow, activeProjectIdRef.current);
+        } catch (err) {
+          let m = err instanceof Error ? err.message : String(err);
+          try { const j = JSON.parse(m.slice(m.indexOf('{'))); if (j.error) m = j.error; } catch { /* düz metin */ }
+          reply(false, m);
+        }
+      }
+    };
+
+    // Harita > Portföy: veri isteği ve "Bu projeye geç".
+    const handlePortfolio = async (event: MessageEvent) => {
+      const iframeWindow = iframeRef.current?.contentWindow;
+      if (!iframeWindow || event.source !== iframeWindow) return;
+      const msg = event.data;
+      if (!msg) return;
+      if (msg.type === 'oda:portfolio-request') await sendPortfolioToIframe(iframeWindow);
+      else if (msg.type === 'oda:select-project' && typeof msg.id === 'string' && onSelectProjectRef.current) onSelectProjectRef.current(msg.id);
+    };
+
     window.addEventListener('message', handleReady);
     window.addEventListener('message', handleAddDocuments);
     window.addEventListener('message', handleUpdateDbFeature);
@@ -666,6 +789,8 @@ const OdaMapModule: React.FC<OdaMapModuleProps> = ({ activeProjectId }) => {
     window.addEventListener('message', handleMetrajOptionsRequest);
     window.addEventListener('message', handleMetrajCreate);
     window.addEventListener('message', handleBookmarkOp);
+    window.addEventListener('message', handleHistory);
+    window.addEventListener('message', handlePortfolio);
     return () => {
       window.removeEventListener('message', handleReady);
       window.removeEventListener('message', handleAddDocuments);
@@ -678,6 +803,8 @@ const OdaMapModule: React.FC<OdaMapModuleProps> = ({ activeProjectId }) => {
       window.removeEventListener('message', handleMetrajOptionsRequest);
       window.removeEventListener('message', handleMetrajCreate);
       window.removeEventListener('message', handleBookmarkOp);
+      window.removeEventListener('message', handleHistory);
+      window.removeEventListener('message', handlePortfolio);
     };
   }, []);
 
@@ -692,6 +819,7 @@ const OdaMapModule: React.FC<OdaMapModuleProps> = ({ activeProjectId }) => {
     sendSantiyeToIframe(iframeWindow, activeProjectId);
     sendSantiyeOptionsToIframe(iframeWindow, activeProjectId);
     sendBookmarksToIframe(iframeWindow, activeProjectId);
+    sendHistoryToIframe(iframeWindow, activeProjectId);
     // Pafta/yazdırma başlık bloğu için proje adı
     api.getProjeler().then((rows) => {
       const pr = rows.find((r) => r.id === activeProjectId);

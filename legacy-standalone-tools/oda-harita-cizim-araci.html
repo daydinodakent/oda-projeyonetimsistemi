@@ -123,7 +123,7 @@
     position:absolute;top:0;left:0;bottom:0;width:76px;z-index:6;
     background:var(--bg-panel);border-right:1px solid var(--line);
     display:flex;flex-direction:column;align-items:stretch;
-    padding:10px 0;transition:transform .18s ease;
+    padding:10px 0;transition:transform .18s ease;overflow-y:auto;overflow-x:hidden;
   }
   #moduleNav.hidden{transform:translateX(-100%);}
   #moduleNav .brand-chip{
@@ -574,6 +574,45 @@
   .mj-info{font-size:11.5px;color:var(--text-dim);line-height:1.5;margin-top:6px;}
   .mj-info.warn{color:var(--amber);}
   .mj-value{font-family:var(--font-mono);color:var(--teal);font-size:13px;font-weight:600;}
+  /* ---------- Değişiklik geçmişi ---------- */
+  .hs-list{display:flex;flex-direction:column;gap:6px;}
+  .hs-row{border:1px solid var(--line);border-radius:2px;background:var(--bg-panel);padding:8px 9px;display:flex;flex-direction:column;gap:5px;}
+  .hs-top{display:flex;align-items:flex-start;gap:6px;}
+  .hs-badge{flex:0 0 auto;font-size:10px;font-weight:700;border-radius:2px;padding:2px 6px;color:#0f1e29;}
+  .hs-badge.OLUSTUR{background:var(--teal);} .hs-badge.GUNCELLE{background:var(--amber);}
+  .hs-badge.SIL{background:var(--danger);color:#fff;} .hs-badge.GERI_AL{background:#9fb3c1;}
+  .hs-name{flex:1;min-width:0;font-size:12.5px;font-weight:600;color:var(--text);word-break:break-word;}
+  .hs-desc{font-size:11px;color:var(--text);line-height:1.4;}
+  .hs-meta{font-size:10.5px;color:var(--text-dim);font-family:var(--font-mono);line-height:1.5;}
+  .hs-actions{display:flex;gap:6px;}
+  .hs-actions button{background:transparent;border:1px solid var(--line);color:var(--text);font-family:var(--font-ui);font-size:11px;padding:3px 9px;border-radius:2px;cursor:pointer;}
+  .hs-actions button:hover{border-color:var(--amber);color:var(--amber);}
+  .hs-actions button.undo:hover{border-color:var(--danger);color:var(--danger);}
+  /* ---------- Portföy haritası ---------- */
+  .pf-marker{position:relative;display:flex;flex-direction:column;align-items:center;cursor:pointer;}
+  .pf-dot{border-radius:50%;border:2px solid #fff;box-shadow:0 1px 6px rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;
+    color:#0f1e29;font-weight:800;font-family:var(--font-ui);}
+  .pf-label{margin-top:2px;font-size:10.5px;font-weight:700;color:#fff;text-shadow:0 0 3px #000,0 0 3px #000;white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis;}
+  .pf-kpis{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .pf-kpi{border:1px solid var(--line);border-radius:2px;padding:7px 9px;background:var(--bg-panel);}
+  .pf-kpi small{display:block;color:var(--text-dim);font-size:10px;margin-bottom:2px;}
+  .pf-kpi b{font-family:var(--font-mono);font-size:14px;color:var(--text);}
+  .pf-legend{display:flex;flex-wrap:wrap;gap:10px;font-size:11.5px;color:var(--text);}
+  .pf-legend span{display:flex;align-items:center;gap:5px;}
+  .pf-legend i{width:11px;height:11px;border-radius:50%;display:inline-block;border:1.5px solid #fff;}
+  .pf-row{display:flex;align-items:center;gap:8px;padding:7px 8px;border:1px solid var(--line);border-radius:2px;background:var(--bg-panel);cursor:pointer;}
+  .pf-row:hover{border-color:var(--amber);}
+  .pf-row .pf-rdot{width:12px;height:12px;border-radius:50%;flex:0 0 auto;border:1.5px solid #fff;}
+  .pf-row .pf-rname{flex:1;min-width:0;font-size:12px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .pf-row .pf-rval{font-family:var(--font-mono);font-size:12px;color:var(--text);}
+  .pf-popup{max-width:260px;font-size:12px;color:#0f1e29;}
+  .pf-popup .pf-pt{font-weight:700;line-height:1.3;}
+  .pf-popup .pf-ps{font-size:11px;color:#3c4c56;margin:2px 0 6px;}
+  .pf-popup table{border-collapse:collapse;width:100%;font-size:11.5px;}
+  .pf-popup td{padding:1.5px 0;} .pf-popup td:last-child{text-align:right;font-family:var(--font-mono);font-weight:600;}
+  .pf-popup .pf-src{font-size:10px;color:#6b7684;margin-top:5px;}
+  .pf-popup button{margin-top:7px;font-family:var(--font-ui);font-size:11px;padding:4px 10px;border-radius:2px;border:1px solid #c9c4b8;background:#f4f2ed;color:#0f1e29;cursor:pointer;}
+  .pf-popup button:hover{border-color:#3fc2ac;}
   /* ---------- Yer imleri ---------- */
   .bm-row{display:flex;align-items:center;gap:6px;padding:8px 8px;border:1px solid var(--line);border-radius:2px;background:var(--bg-panel);cursor:pointer;}
   .bm-row:hover{border-color:var(--amber);}
@@ -1644,6 +1683,14 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h12v18l-6-4.5L6 21z"/></svg>
     <span>Yer İmi</span>
   </button>
+  <button class="mod-btn" data-module="gecmis" data-tip="Değişiklik geçmişi">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 7v5l3 2"/></svg>
+    <span>Geçmiş</span>
+  </button>
+  <button class="mod-btn" data-module="portfoy" data-tip="Portföy haritası">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="7" cy="8" r="3"/><circle cx="17" cy="9" r="4.5"/><circle cx="10" cy="17.5" r="2.5"/></svg>
+    <span>Portföy</span>
+  </button>
   <button class="mod-btn" data-module="cikti" data-tip="Çıktı" style="display:none;">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v12"/><path d="M7 9l5-6 5 6"/><path d="M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg>
     <span>Çıktı</span>
@@ -2282,6 +2329,44 @@
       Bu proje için yer imi yok. Haritayı istediğiniz konuma/katman durumuna getirip yukarıdan kaydedin.
     </div>
     <div class="bm-list" id="bmList"></div>
+  </div>
+
+  <!-- ================= DEĞİŞİKLİK GEÇMİŞİ =================
+       CBS veritabanı katmanlarında (proje sınırı, bina, altyapı) yapılan her
+       ekleme/düzenleme/silme; sunucu ÖNCE/SONRA görüntüsünü saklar, buradan
+       geri alınabilir (geri alma da geçmişe yazılır). -->
+  <div class="module-page" data-module-page="gecmis" style="display:none;">
+    <span class="field-label" style="margin-bottom:0;">Değişiklik Geçmişi <span style="font-weight:400;">— aktif projenin CBS katmanlarında kim neyi ne zaman değiştirdi</span></span>
+    <select class="san-input" id="hsFilter">
+      <option value="hepsi">Tüm değişiklikler</option>
+      <option value="geometri">Yalnızca konum/şekil değişiklikleri</option>
+    </select>
+    <div class="hint" id="hsEmptyHint" style="border:1px dashed var(--line);border-radius:2px;padding:14px;margin-top:0;display:none;">
+      Henüz kayıtlı bir değişiklik yok. Bir bina veya sınırı taşıdığınızda ya da özniteliğini düzenlediğinizde burada görünür.
+    </div>
+    <div class="hs-list" id="hsList"></div>
+    <div class="hint" style="margin-top:0;">"Kim" bilgisi uygulamada oturum açma olmadığı için şu an boş görünebilir.</div>
+  </div>
+
+  <!-- ================= PORTFÖY HARİTASI =================
+       Tüm projeler tek haritada: renk = seçilen performans göstergesi, boyut = bütçe. -->
+  <div class="module-page" data-module-page="portfoy" style="display:none;">
+    <span class="field-label" style="margin-bottom:0;">Portföy Haritası <span style="font-weight:400;">— renk: performans, boyut: bütçe</span></span>
+    <div class="san-field" style="display:flex;flex-direction:column;gap:3px;">
+      <span class="field-label" style="margin:0;">Gösterge</span>
+      <select class="san-input" id="pfMetric">
+        <option value="cpi">Maliyet performansı (CPI)</option>
+        <option value="spi">Süre performansı (SPI)</option>
+        <option value="sapma_yuzde">Bütçe sapması (%, tahmini bitiş)</option>
+      </select>
+    </div>
+    <div class="pf-kpis" id="pfKpis"></div>
+    <div class="pf-legend" id="pfLegend"></div>
+    <div class="hint" id="pfThresholdHint" style="margin-top:0;border-top:none;padding-top:0;"></div>
+    <div class="hint" id="pfEmptyHint" style="border:1px dashed var(--line);border-radius:2px;padding:14px;margin-top:0;display:none;">Konumu tanımlı proje bulunamadı.</div>
+    <span class="field-label" style="margin:4px 0 0;">Projeler <span style="font-weight:400;">(en kritik üstte)</span></span>
+    <div class="bm-list" id="pfList"></div>
+    <div class="btn-row"><div class="btn" id="btnPfFit" style="flex:1;">Tüm projelere yakınlaş</div></div>
   </div>
 </div>
 
@@ -7566,6 +7651,208 @@
   document.getElementById('printModal').addEventListener('click', function(e){ if (e.target.id === 'printModal') this.classList.remove('show'); });
   document.getElementById('btnPrBuild').addEventListener('click', printBuild);
 
+  // ---------------------------------------------------------------------
+  // DEĞİŞİKLİK GEÇMİŞİ — liste sunucudan (üst pencere → /api/gecmis) gelir.
+  // "Geri al" sunucuda yapılır; ardından 'oda:db-feature-restored' ile haritadaki
+  // (ve localStorage oturum kopyasındaki) feature güncel kayıttan yenilenir.
+  // ---------------------------------------------------------------------
+  var historyItems = [];
+  var HS_TABLO_AD = { tb_proje_sinirlari:'Proje sınırı', tb_binalar_3d:'Bina', tb_altyapi_hatlari:'Altyapı hattı' };
+  var HS_EYLEM_AD = { OLUSTUR:'Oluşturuldu', GUNCELLE:'Güncellendi', SIL:'Silindi', GERI_AL:'Geri alındı' };
+  function historyRequest(){ window.parent.postMessage({ type:'oda:history-request' }, '*'); }
+  function hsWhen(iso){
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return String(iso || '');
+    var p = function(n){ return String(n).padStart(2, '0'); };
+    var abs = p(d.getDate()) + '.' + p(d.getMonth() + 1) + '.' + d.getFullYear() + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+    var dk = Math.round((Date.now() - d.getTime()) / 60000);
+    var rel = dk < 1 ? 'az önce' : dk < 60 ? dk + ' dk önce' : dk < 1440 ? Math.floor(dk / 60) + ' sa önce' : Math.floor(dk / 1440) + ' gün önce';
+    return abs + ' (' + rel + ')';
+  }
+  function hsDescribe(it){
+    if (it.eylem === 'OLUSTUR') return 'Kayıt oluşturuldu.';
+    if (it.eylem === 'SIL') return 'Kayıt silindi.';
+    var parts = [];
+    if (it.tasima_m != null) parts.push('Taşındı ≈ ' + it.tasima_m.toLocaleString('tr-TR') + ' m');
+    else if (it.sekil_degisti) parts.push('Şekli değişti');
+    else if (it.geometri_degisti) parts.push('Geometri değişti');
+    if (it.degisen_alanlar && it.degisen_alanlar.length){
+      parts.push('Alan: ' + it.degisen_alanlar.slice(0, 3).join(', ') + (it.degisen_alanlar.length > 3 ? ' +' + (it.degisen_alanlar.length - 3) : ''));
+    }
+    if (it.eylem === 'GERI_AL') parts.unshift('Önceki duruma döndürüldü');
+    return parts.join(' · ') || 'Değişiklik';
+  }
+  function hsRender(){
+    var box = document.getElementById('hsList');
+    var onlyGeom = document.getElementById('hsFilter').value === 'geometri';
+    var items = historyItems.filter(function(it){ return !onlyGeom || it.geometri_degisti; });
+    box.innerHTML = '';
+    document.getElementById('hsEmptyHint').style.display = items.length ? 'none' : '';
+    items.forEach(function(it){
+      var row = document.createElement('div'); row.className = 'hs-row';
+      row.innerHTML = '<div class="hs-top"><span class="hs-badge ' + it.eylem + '">' + santiyeEsc(HS_EYLEM_AD[it.eylem] || it.eylem) + '</span>' +
+        '<span class="hs-name">' + santiyeEsc(it.ad || ('#' + it.kayit_id)) + '</span></div>' +
+        '<div class="hs-desc">' + santiyeEsc(hsDescribe(it)) + '</div>' +
+        '<div class="hs-meta">' + santiyeEsc(HS_TABLO_AD[it.tablo] || it.tablo) + ' · v' + it.versiyon + '<br>' + santiyeEsc(hsWhen(it.zaman)) +
+        ' · ' + (it.aktor ? santiyeEsc(it.aktor) : 'kullanıcı bilinmiyor') + '</div>' +
+        '<div class="hs-actions">' + (it.merkez ? '<button type="button" data-act="goto">🎯 Göster</button>' : '') +
+        '<button type="button" class="undo" data-act="undo">↩ Geri al</button></div>';
+      row.addEventListener('click', function(e){
+        var b = e.target.closest('[data-act]'); if (!b) return;
+        if (b.getAttribute('data-act') === 'goto'){
+          map.flyTo({ center:it.merkez, zoom:Math.max(map.getZoom(), 18), duration:700 });
+        } else if (window.confirm('"' + (it.ad || it.kayit_id) + '" kaydı bu değişiklikten ÖNCEKİ haline döndürülsün mü?\n\nBu değişiklikten sonraki düzenlemeler de geri alınır. İşlem geçmişe yazılır ve istenirse tekrar geri alınabilir.')){
+          window.parent.postMessage({ type:'oda:history-undo', id:it.id }, '*');
+        }
+      });
+      box.appendChild(row);
+    });
+  }
+  document.getElementById('hsFilter').addEventListener('change', hsRender);
+  window.addEventListener('message', function(e){
+    var msg = e.data;
+    if (!msg) return;
+    if (msg.type === 'oda:history-updated' && Array.isArray(msg.items)){
+      historyItems = msg.items; hsRender();
+    } else if (msg.type === 'oda:history-result'){
+      showToast(msg.ok ? 'Değişiklik geri alındı.' : 'Geri alınamadı: ' + (msg.error || 'bilinmeyen hata'));
+    } else if (msg.type === 'oda:db-feature-restored'){
+      var idx = -1;
+      for (var i = 0; i < features.length; i++) if (String(features[i].id) === String(msg.featureId)) { idx = i; break; }
+      if (!msg.feature){ if (idx >= 0) features.splice(idx, 1); }
+      else if (idx >= 0){ features[idx] = msg.feature; }
+      else features.push(msg.feature);
+      if (typeof deselect === 'function') deselect();
+      renderFeatures();
+      renderVertices();
+      saveSessionToLocalStorage();
+    }
+  });
+  hsRender();
+
+  // ---------------------------------------------------------------------
+  // PORTFÖY HARİTASI — tüm projeler DOM işaretçisi olarak (stil değişiminden
+  // etkilenmez): renk = seçili gösterge (CPI / SPI / bütçe sapması), boyut = bütçe,
+  // içindeki simge de durumu belirtir (✓ / ! / ✕ / ?) — yalnızca renge bağımlı değil.
+  // Veri üst pencereden ('oda:portfolio-updated'); proje değiştirme isteği
+  // 'oda:select-project' ile gider.
+  // ---------------------------------------------------------------------
+  var PF_RENK = { iyi:'#2fb36d', izle:'#e3a541', kritik:'#e0685a', yok:'#8a99a5' };
+  var PF_SIMGE = { iyi:'✓', izle:'!', kritik:'✕', yok:'?' };
+  var PF_AD = { iyi:'Hedefte', izle:'İzlenmeli', kritik:'Kritik', yok:'Veri yok' };
+  var PF_ESIK = {
+    cpi:{ ad:'CPI', izle:0.9, iyi:1, ipucu:'CPI ≥ 1,00 hedefte · 0,90–1,00 izlenmeli · < 0,90 kritik' },
+    spi:{ ad:'SPI', izle:0.9, iyi:1, ipucu:'SPI ≥ 1,00 hedefte · 0,90–1,00 izlenmeli · < 0,90 kritik' },
+    sapma_yuzde:{ ad:'Bütçe sapması', izle:-5, iyi:0, ipucu:'Sapma ≥ 0 hedefte · 0 ile −5 arası izlenmeli · < −5 kritik (+ bütçe altı, − aşım; EAC = BAC/CPI)' }
+  };
+  var pfProjects = [];
+  var pfMarkers = [];
+  var pfActive = false;
+  var pfPopup = null;
+  function pfMetric(){ return document.getElementById('pfMetric').value; }
+  function pfClass(p){
+    var m = pfMetric(), v = p[m], e = PF_ESIK[m];
+    if (v === null || v === undefined || !isFinite(v)) return 'yok';
+    return v >= e.iyi ? 'iyi' : v >= e.izle ? 'izle' : 'kritik';
+  }
+  function pfFmt(m, v){
+    if (v === null || v === undefined || !isFinite(v)) return '—';
+    return m === 'sapma_yuzde' ? (v > 0 ? '+' : '') + v.toLocaleString('tr-TR', { maximumFractionDigits:1 }) + '%' : v.toLocaleString('tr-TR', { minimumFractionDigits:2, maximumFractionDigits:2 });
+  }
+  function pfMoney(mTL){
+    if (mTL === null || mTL === undefined) return '—';
+    return mTL >= 1000 ? (mTL / 1000).toLocaleString('tr-TR', { maximumFractionDigits:2 }) + ' Mr ₺' : mTL.toLocaleString('tr-TR', { maximumFractionDigits:0 }) + ' M₺';
+  }
+  function pfClearMarkers(){ pfMarkers.forEach(function(m){ m.remove(); }); pfMarkers = []; if (pfPopup){ pfPopup.remove(); pfPopup = null; } }
+  function pfOpenPopup(p){
+    if (pfPopup) pfPopup.remove();
+    var rows = [['CPI', pfFmt('cpi', p.cpi)], ['SPI', pfFmt('spi', p.spi)], ['Bütçe sapması', pfFmt('sapma_yuzde', p.sapma_yuzde)],
+      ['Bütçe', pfMoney(p.butce_m)], ['Harcanan', pfMoney(p.harcanan_m)], ['İlerleme', p.ilerleme != null ? '%' + p.ilerleme : '—']];
+    var html = '<div class="pf-popup"><div class="pf-pt">' + santiyeEsc(p.ad) + '</div><div class="pf-ps">' + santiyeEsc([p.konum, p.durum, p.risk ? 'Risk: ' + p.risk : ''].filter(Boolean).join(' · ')) + '</div>' +
+      '<table>' + rows.map(function(r){ return '<tr><td>' + r[0] + '</td><td>' + santiyeEsc(r[1]) + '</td></tr>'; }).join('') + '</table>' +
+      '<div class="pf-src">Veri kaynağı: ' + (p.kaynak === 'maliyet_defteri' ? 'Maliyet Defteri (gerçek EVM)' : 'Proje kartı (EVM alanları)') + '</div>' +
+      '<button type="button" id="pfGoProject">Bu projeye geç</button></div>';
+    pfPopup = new maplibregl.Popup({ offset:24, closeButton:true, maxWidth:'280px' }).setLngLat([p.lng, p.lat]).setHTML(html).addTo(map);
+    var ref = pfPopup;
+    ref.on('close', function(){ if (pfPopup === ref) pfPopup = null; });
+    var btn = ref.getElement().querySelector('#pfGoProject');
+    if (btn) btn.addEventListener('click', function(){ window.parent.postMessage({ type:'oda:select-project', id:p.id }, '*'); ref.remove(); showToast('"' + p.ad + '" projesine geçiliyor…'); });
+  }
+  function pfRender(){
+    pfClearMarkers();
+    var m = pfMetric();
+    document.getElementById('pfThresholdHint').textContent = PF_ESIK[m].ipucu;
+    var maxB = pfProjects.reduce(function(a, p){ return Math.max(a, p.butce_m || 0); }, 0) || 1;
+    var counts = { iyi:0, izle:0, kritik:0, yok:0 }, toplamB = 0, toplamH = 0;
+    pfProjects.forEach(function(p){
+      var c = pfClass(p); counts[c]++; toplamB += p.butce_m || 0; toplamH += p.harcanan_m || 0;
+      if (!pfActive) return;
+      var d = Math.round(16 + 28 * Math.sqrt((p.butce_m || 0) / maxB));
+      var el = document.createElement('div'); el.className = 'pf-marker';
+      el.innerHTML = '<div class="pf-dot" style="width:' + d + 'px;height:' + d + 'px;background:' + PF_RENK[c] + ';font-size:' + Math.max(10, Math.round(d * .5)) + 'px;" title="' + santiyeEsc(p.ad) + '">' + PF_SIMGE[c] + '</div>' +
+        '<div class="pf-label">' + santiyeEsc(p.kod || p.ad) + '</div>';
+      el.addEventListener('click', function(ev){ ev.stopPropagation(); pfOpenPopup(p); });
+      pfMarkers.push(new maplibregl.Marker({ element:el }).setLngLat([p.lng, p.lat]).addTo(map));
+    });
+    document.getElementById('pfKpis').innerHTML =
+      '<div class="pf-kpi"><small>Proje</small><b>' + pfProjects.length + '</b></div>' +
+      '<div class="pf-kpi"><small>Kritik</small><b style="color:' + PF_RENK.kritik + ';">' + counts.kritik + '</b></div>' +
+      '<div class="pf-kpi"><small>Toplam bütçe</small><b>' + pfMoney(toplamB) + '</b></div>' +
+      '<div class="pf-kpi"><small>Harcanan</small><b>' + pfMoney(toplamH) + '</b></div>';
+    document.getElementById('pfLegend').innerHTML = ['iyi', 'izle', 'kritik', 'yok'].map(function(k){
+      return '<span><i style="background:' + PF_RENK[k] + ';"></i>' + PF_AD[k] + ' (' + counts[k] + ')</span>';
+    }).join('');
+    document.getElementById('pfEmptyHint').style.display = pfProjects.length ? 'none' : '';
+    // liste: en kritik üstte (değeri küçük olan), veri yoklar en altta
+    var sirali = pfProjects.slice().sort(function(a, b){
+      var va = a[m], vb = b[m], na = (va === null || va === undefined), nb = (vb === null || vb === undefined);
+      if (na !== nb) return na ? 1 : -1;
+      return (va || 0) - (vb || 0);
+    });
+    var box = document.getElementById('pfList'); box.innerHTML = '';
+    sirali.forEach(function(p){
+      var c = pfClass(p);
+      var row = document.createElement('div'); row.className = 'pf-row';
+      row.innerHTML = '<span class="pf-rdot" style="background:' + PF_RENK[c] + ';"></span><span class="pf-rname">' + santiyeEsc(p.ad) + '</span><span class="pf-rval">' + pfFmt(m, p[m]) + '</span>';
+      row.addEventListener('click', function(){
+        map.flyTo({ center:[p.lng, p.lat], zoom:Math.max(map.getZoom(), 14), duration:700 });
+        setTimeout(function(){ pfOpenPopup(p); }, 750);
+      });
+      box.appendChild(row);
+    });
+  }
+  function pfFit(){
+    if (!pfProjects.length) return;
+    var b = new maplibregl.LngLatBounds();
+    pfProjects.forEach(function(p){ b.extend([p.lng, p.lat]); });
+    var panelEl = document.getElementById('panel');
+    var sol = panelEl && !panelEl.classList.contains('hidden') ? Math.min(panelEl.getBoundingClientRect().right + 60, window.innerWidth * 0.45) : 80;
+    map.fitBounds(b, { padding:{ top:90, bottom:90, right:90, left:Math.max(90, sol) }, maxZoom:14, duration:700 });
+  }
+  function portfoyToggle(on){
+    if (!pfMarkers) return;   // setModule('harita') bu bölümün değişkenleri atanmadan önce, başlangıçta çağrılır
+    var degisti = pfActive !== on;
+    pfActive = on;
+    if (on){
+      window.parent.postMessage({ type:'oda:portfolio-request' }, '*');   // her açılışta güncel veri
+      pfRender();
+      if (degisti && pfProjects.length) pfFit();
+    } else {
+      pfClearMarkers();
+    }
+  }
+  document.getElementById('pfMetric').addEventListener('change', pfRender);
+  document.getElementById('btnPfFit').addEventListener('click', pfFit);
+  window.addEventListener('message', function(e){
+    var msg = e.data;
+    if (!msg || msg.type !== 'oda:portfolio-updated' || !Array.isArray(msg.projects)) return;
+    var ilk = pfProjects.length === 0;
+    pfProjects = msg.projects;
+    pfRender();
+    if (pfActive && ilk && pfProjects.length) pfFit();
+  });
+  pfRender();
+
   window.addEventListener('message', function(e){
     var msg = e.data;
     if (!msg) return;
@@ -8705,7 +8992,7 @@
   // Modül navigasyonu (Sorgu/Harita/Analiz/Editör/Rapor/Çıktı)
   // ---------------------------------------------------------------------
   var activeModule = 'harita';
-  var moduleTitles = { sorgu:'Sorgu', harita:'Harita', analiz:'Analiz', editor:'Editör', saha:'Saha', santiye:'Şantiye', yerimi:'Yer İmleri', cikti:'Çıktı' };
+  var moduleTitles = { sorgu:'Sorgu', harita:'Harita', analiz:'Analiz', editor:'Editör', saha:'Saha', santiye:'Şantiye', yerimi:'Yer İmleri', gecmis:'Değişiklik Geçmişi', portfoy:'Portföy Haritası', cikti:'Çıktı' };
   var moduleButtons = Array.prototype.slice.call(document.querySelectorAll('.mod-btn[data-module]'));
   function setModule(key){
     activeModule = key;
@@ -8719,6 +9006,8 @@
     });
     document.getElementById('panelTitle').textContent = moduleTitles[key] || key;
     if (key !== 'santiye' && typeof santiyeCancelPlacement === 'function') santiyeCancelPlacement();
+    if (typeof portfoyToggle === 'function') portfoyToggle(key === 'portfoy');
+    if (key === 'gecmis' && typeof historyRequest === 'function') historyRequest();
   }
   moduleButtons.forEach(function(b){
     b.addEventListener('click', function(){ setModule(b.getAttribute('data-module')); });
