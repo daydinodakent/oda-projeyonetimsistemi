@@ -1175,7 +1175,7 @@ export default function App() {
                   // varsayımı DEĞİL, böylece üst panel küçültülünce/büyütülünce
                   // altta boşluk kalmaz.
                   <div className="w-full h-full min-h-[500px] bg-[var(--bg-secondary)] border border-[var(--border)] rounded-[1.6px] overflow-hidden shadow-2xl relative animate-fade-in">
-                    <OdaMapModule activeProjectId={selectedProjectId} />
+                    <OdaMapModule activeProjectId={selectedProjectId} onSelectProject={(id) => { setSelectedProjectId(id); setSelectedBlockId(null); }} />
                   </div>
                 )}
 

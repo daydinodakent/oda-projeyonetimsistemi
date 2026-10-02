@@ -13,6 +13,7 @@ import {
   WbsGorevRecord,
   DokumanRecord,
   SahaFotografRecord,
+  HaritaYerImiRecord,
   VarlikRecord,
   BakimKaydiRecord,
   BildirimRecord,
@@ -56,10 +57,22 @@ import {
 // bu dosyanın HİÇ değişmeden kalmasını sağlar.
 const API_BASE = '/api';
 
+// "Kim değiştirdi?" için: uygulamada henüz oturum/kimlik yok. Bir ad
+// localStorage 'oda_aktor' anahtarına yazılırsa her istekle 'X-Oda-Aktor'
+// başlığı olarak gider (sunucu harita katmanı geçmişine yazar); yoksa boş kalır.
+function aktorBasligi(): Record<string, string> {
+  try {
+    const a = localStorage.getItem('oda_aktor');
+    return a ? { 'X-Oda-Aktor': encodeURIComponent(a.slice(0, 60)) } : {};
+  } catch {
+    return {};
+  }
+}
+
 async function apiRequest<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
-    ...options
+    ...options,
+    headers: { 'Content-Type': 'application/json', ...aktorBasligi(), ...(options?.headers as Record<string, string> | undefined) }
   });
   if (!res.ok) {
     const body = await res.text().catch(() => '');
@@ -1082,6 +1095,72 @@ export async function deleteSahaFotografi(id: number | string): Promise<boolean>
 export async function updateSahaFotografi(id: number | string, patch: Partial<SahaFotografRecord>): Promise<SahaFotografRecord> {
   await ensureSeeded('tb_saha_fotograflari', []);
   return apiUpdate<SahaFotografRecord>('tb_saha_fotograflari', id, patch);
+}
+
+// 11d. TABLO ADI (tb_harita_yer_imleri) — bkz. HaritaYerImiRecord. Geometrisiz,
+// proje bazlı paylaşılan harita görünümleri.
+export async function getHaritaYerImleri(projectId?: string): Promise<HaritaYerImiRecord[]> {
+  await ensureSeeded('tb_harita_yer_imleri', []);
+  const all = await apiList<HaritaYerImiRecord>('tb_harita_yer_imleri');
+  return all
+    .filter((r) => r.row_status !== 0 && (!projectId || r.project_id === projectId))
+    .sort((a, b) => String(b.create_date || '').localeCompare(String(a.create_date || '')));
+}
+export async function createHaritaYerImi(item: Partial<HaritaYerImiRecord>): Promise<HaritaYerImiRecord> {
+  await ensureSeeded('tb_harita_yer_imleri', []);
+  const now = new Date().toISOString();
+  const newItem: HaritaYerImiRecord = {
+    id: item.id || `yerimi-${Date.now()}`,
+    notes: item.notes || null,
+    row_status: 1,
+    create_uid: 1,
+    create_date: now,
+    write_uid: 1,
+    write_date: now,
+    project_id: item.project_id || 'IGA-ETAP-1',
+    name: item.name || 'Yer imi',
+    center: item.center as [number, number],
+    zoom: item.zoom ?? 15,
+    bearing: item.bearing ?? 0,
+    pitch: item.pitch ?? 0,
+    style_id: item.style_id ?? null,
+    layer_state: item.layer_state ?? null,
+    santiye: item.santiye ?? null
+  };
+  return apiCreate('tb_harita_yer_imleri', newItem);
+}
+export async function updateHaritaYerImi(id: number | string, patch: Partial<HaritaYerImiRecord>): Promise<HaritaYerImiRecord> {
+  await ensureSeeded('tb_harita_yer_imleri', []);
+  return apiUpdate<HaritaYerImiRecord>('tb_harita_yer_imleri', id, { ...patch, write_date: new Date().toISOString() });
+}
+export async function deleteHaritaYerImi(id: number | string): Promise<boolean> {
+  await ensureSeeded('tb_harita_yer_imleri', []);
+  return apiSoftDelete('tb_harita_yer_imleri', id);
+}
+
+// Harita katmanı değişiklik geçmişi (sunucu: /api/gecmis — server/moduller/gecmis)
+export interface HaritaGecmisKaydi {
+  id: number;
+  tablo: string;
+  kayit_id: string;
+  proje_id: string | null;
+  eylem: 'OLUSTUR' | 'GUNCELLE' | 'SIL' | 'GERI_AL';
+  aktor: string | null;
+  zaman: string;
+  geri_alinan_id: number | null;
+  versiyon: number;
+  ad: string | null;
+  merkez: [number, number] | null;
+  degisen_alanlar: string[];
+  geometri_degisti: boolean;
+  tasima_m: number | null;
+  sekil_degisti: boolean;
+}
+export function getHaritaGecmisi(projectId: string, limit = 60): Promise<HaritaGecmisKaydi[]> {
+  return apiRequest<HaritaGecmisKaydi[]>(`/gecmis?proje_id=${encodeURIComponent(projectId)}&limit=${limit}`);
+}
+export function geriAlHaritaDegisikligi(id: number): Promise<{ tablo: string; kayit_id: string; kayit: any; silindi: boolean }> {
+  return apiRequest(`/gecmis/${id}/geri-al`, { method: 'POST', body: '{}' });
 }
 
 // 12. TABLO ADI (tb_varliklar)

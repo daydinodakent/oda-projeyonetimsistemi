@@ -11,6 +11,7 @@ import * as isg from './isg.js';
 import * as kalite from './kalite.js';
 import * as ekipman from './ekipman.js';
 import * as geojson from './geojson.js';
+import * as zaman4d from './zaman4d.js';
 
 export const router = express.Router();
 
@@ -99,4 +100,15 @@ router.get('/ekipmanlar/:id/calismalar', g((req) => ekipman.calismalariGetir(req
 router.post('/ekipman-calismalari', p((req) => ekipman.calismaKaydet(req.body, req.body.aktor)));
 
 // --- GeoJSON (harita katmanı için veri servisi) ---
+// --- 4D zaman çizelgesi (aktivite ↔ bina eşleme + tarihe göre durum) ---
+router.get('/4d/zaman-cizelgesi', g((req) => { gerek(req, 'proje_id'); return zaman4d.zamanCizelgesi(req.query.proje_id); }));
+router.get('/4d/durum', g((req) => { gerek(req, 'proje_id'); return zaman4d.durum(req.query.proje_id, req.query.tarih); }));
+router.get('/4d/eslemeler', g((req) => { gerek(req, 'proje_id'); return zaman4d.eslemeListele(req.query.proje_id); }));
+router.post('/4d/eslemeler', g((req) => {
+  const { aktivite_id: aktiviteId, bina_idler: binaIdler, islem } = req.body || {};
+  if (islem === 'sil') return zaman4d.eslemeSil(Number(aktiviteId), binaIdler, req.body.aktor);
+  if (islem === 'ekle') return zaman4d.eslemeEkle(Number(aktiviteId), binaIdler, req.body.aktor);
+  throw new Error('islem "ekle" veya "sil" olmalıdır');
+}));
+
 router.get('/geojson', g((req) => { gerek(req, 'proje_id'); return geojson.featureCollection(req.query.proje_id, req.query.katmanlar ? String(req.query.katmanlar).split(',') : undefined); }));

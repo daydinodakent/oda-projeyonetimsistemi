@@ -19,6 +19,7 @@ export function aktiviteEkle(item, aktor) {
   return stmtGet.get(info.lastInsertRowid);
 }
 export function listele(projeId) { return stmtListe.all(projeId); }
+export function getir(id) { return stmtGet.get(id); }
 export function yuzdeGuncelle(id, yuzde, aktor) {
   if (!stmtGet.get(id)) throw new Error('Aktivite bulunamadı');
   if (yuzde < 0 || yuzde > 100) throw new Error('Yüzde 0-100 arasında olmalıdır.');

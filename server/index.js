@@ -41,6 +41,8 @@ import { router as ikRouter } from './moduller/ik/routes.js';
 import { router as santiyeRouter } from './moduller/santiye/routes.js';
 import { router as musteriRouter } from './moduller/musteri/routes.js';
 import { router as maliyetRouter } from './moduller/maliyet/routes.js';
+import { router as gecmisRouter, aktorBul } from './moduller/gecmis/routes.js';
+import * as gecmis from './moduller/gecmis/gecmis.js';
 import path from 'node:path';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -60,7 +62,7 @@ app.use(express.json({ limit: '25mb' })); // doküman önizlemeleri (base64) iç
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Oda-Aktor');
   if (req.method === 'OPTIONS') return res.sendStatus(204);
   next();
 });
@@ -106,6 +108,10 @@ app.use('/api/musteri', musteriRouter);
 // --- Maliyet Yönetimi (bütçe + izleme/analiz; kaynak veri ÜRETMEZ) — aynı
 // nedenle generic "/api/:table" deseninden ÖNCE mount edilir.
 app.use('/api/maliyet', maliyetRouter);
+
+// --- Harita katmanı değişiklik geçmişi (bkz. server/moduller/gecmis/). Aynı nedenle
+// generic "/api/:table" deseninden ÖNCE mount edilir.
+app.use('/api/gecmis', gecmisRouter);
 
 // --- CBS/PostGIS katmanlarını gerçek bir .gpkg dosyası olarak dışa aktarır ---
 // NOT: bu sabit rota, aşağıdaki generic "/api/:table" deseninden ÖNCE
@@ -234,7 +240,10 @@ app.get('/api/:table/:id', (req, res) => {
 app.post('/api/:table', (req, res) => {
   const item = req.body;
   if (item.id === undefined || item.id === null) return res.status(400).json({ error: 'id gereklidir' });
+  // Aynı id ile üzerine yazma da bir GÜNCELLEME'dir — önceki hal geçmişe alınır.
+  const onceki = gecmis.IZLENEN_TABLOLAR.includes(req.params.table) ? getRecord(req.params.table, item.id) : null;
   putRecord(req.params.table, item);
+  gecmis.degisiklikKaydet(req.params.table, item.id, onceki, item, aktorBul(req));
   res.status(201).json(item);
 });
 
@@ -242,7 +251,10 @@ app.post('/api/:table', (req, res) => {
 app.put('/api/:table/:id', (req, res) => {
   const existing = getRecord(req.params.table, req.params.id) || { id: req.params.id, row_status: 1 };
   const updated = { ...existing, ...req.body, id: existing.id };
+  const izleniyor = gecmis.IZLENEN_TABLOLAR.includes(req.params.table);
+  const onceki = izleniyor && getRecord(req.params.table, req.params.id);   // kayıt yoksa null → OLUSTUR
   putRecord(req.params.table, updated);
+  if (izleniyor) gecmis.degisiklikKaydet(req.params.table, updated.id, onceki || null, updated, aktorBul(req));
   res.json(updated);
 });
 
@@ -250,7 +262,9 @@ app.put('/api/:table/:id', (req, res) => {
 app.delete('/api/:table/:id', (req, res) => {
   const existing = getRecord(req.params.table, req.params.id);
   if (!existing) return res.status(404).json({ error: 'Kayıt bulunamadı' });
-  putRecord(req.params.table, { ...existing, row_status: 0 });
+  const silinmis = { ...existing, row_status: 0 };
+  putRecord(req.params.table, silinmis);
+  gecmis.degisiklikKaydet(req.params.table, existing.id, existing, silinmis, aktorBul(req));
   res.json({ ok: true });
 });
 

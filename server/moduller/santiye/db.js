@@ -240,6 +240,19 @@ db.exec(`
     yetkili_onayi_mi INTEGER NOT NULL DEFAULT 0, gerekce TEXT,
     olusturan INTEGER, olusturma_zamani TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
   );
+
+  -- ========== 4D EŞLEME: iş programı aktivitesi ↔ harita binası ==========
+  -- Bir bina birden çok aktiviteye (kaba yapı, cephe, ince yapı...) bağlanabilir.
+  -- bina_id, tb_binalar_3d kaydının id'sine REFERANS (kopyalanmaz; varlığı yazarken doğrulanır).
+  CREATE TABLE IF NOT EXISTS aktivite_bina (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    proje_id TEXT NOT NULL,
+    aktivite_id INTEGER NOT NULL REFERENCES is_programi_aktivite(id),
+    bina_id TEXT NOT NULL,
+    olusturan INTEGER, olusturma_zamani TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+    UNIQUE (aktivite_id, bina_id)
+  );
+  CREATE INDEX IF NOT EXISTS idx_aktivite_bina_proje ON aktivite_bina (proje_id);
 `);
 
 export { db };

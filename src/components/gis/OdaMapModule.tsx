@@ -11,6 +11,13 @@ import React, { useEffect, useRef, useState } from 'react';
 // @ts-ignore - .html?url için tip tanımı gerekmiyor, Vite bunu string olarak çözer.
 import odaHtmlUrl from '../../../legacy-standalone-tools/oda-harita-cizim-araci.html?url';
 import * as api from '../../services/api';
+import * as santiye from '../../moduller/santiye/api';
+import { kisileriListele } from '../../moduller/_cekirdek/api';
+import { portfoy as maliyetPortfoy } from '../../moduller/maliyet/api';
+import type { PortfoyProje } from '../../moduller/maliyet/types';
+import { ekipleriListele, metrajKaydet } from '../../moduller/taseron/api';
+import { sozlesmeleriListele, kalemleriGetir } from '../../moduller/sozlesme/api';
+import type { Sozlesme, SozlesmeKalem } from '../../moduller/sozlesme/types';
 
 /**
  * ODA+ Proje Yönetim Sistemi'nin "harita" sekmesindeki placeholder'ın yerini alır.
@@ -36,6 +43,8 @@ import * as api from '../../services/api';
  */
 interface OdaMapModuleProps {
   activeProjectId?: string;
+  /** Portföy haritasında "Bu projeye geç" — üst uygulamanın aktif projesini değiştirir. */
+  onSelectProject?: (projectId: string) => void;
 }
 
 // Haritadaki bir objeye ("obje") bağlı dokümanları (feature_id dolu olan
@@ -80,6 +89,135 @@ async function sendSahaPhotosToIframe(iframeWindow: Window, projectId?: string) 
   }
 }
 
+// Harita > Şantiye sekmesi: şantiye modülündeki konumlu kayıtlar (görev, NCR,
+// İSG olayı, ramak kala, günlük rapor fotoğrafı, beton dökümü) GeoJSON olarak
+// /api/santiye/geojson'dan okunup iframe'e gönderilir. Kayıtlar harita
+// motorunun çizim/düzenleme katmanlarına GİRMEZ (localStorage'a yazılmaz) —
+// ayrı, salt-okunur bir kaynak olarak çizilir; tek doğruluk kaynağı şantiye modülüdür.
+async function sendSantiyeToIframe(iframeWindow: Window, projectId?: string) {
+  if (!projectId) return;
+  try {
+    const fc = await santiye.geojsonGetir(projectId);
+    iframeWindow.postMessage({ type: 'oda:santiye-updated', projectId, features: fc.features }, '*');
+  } catch (err) {
+    console.error('Şantiye kayıtları haritaya gönderilemedi:', err);
+  }
+}
+
+// Görev/NCR için "sorumlu" seçenekleri (kişi / taşeron ekibi / alt yüklenici).
+// KVKK: iframe'e yalnızca id + görünen ad gider (TCKN/telefon gibi alanlar gitmez).
+async function sendSantiyeOptionsToIframe(iframeWindow: Window, projectId?: string) {
+  if (!projectId) return;
+  const [kisiler, ekipler, sozlesmeler] = await Promise.all([
+    kisileriListele().catch(() => []),
+    ekipleriListele(projectId).catch(() => []),
+    sozlesmeleriListele(projectId).catch(() => []),
+  ]);
+  const sorumlular = [
+    ...kisiler.map((k) => ({ tip: 'kisi', id: k.id, ad: k.ad_soyad })),
+    ...ekipler.map((e) => ({ tip: 'taseron_ekibi', id: e.id, ad: `Ekip #${e.id}${e.is_kolu ? ` — ${e.is_kolu}` : ''}` })),
+    ...sozlesmeler.filter((c) => c.tip === 'alt_yuklenici').map((c) => ({ tip: 'alt_yuklenici', id: c.id, ad: `${c.numara} — ${c.konu}` })),
+  ];
+  iframeWindow.postMessage({ type: 'oda:santiye-options', sorumlular }, '*');
+}
+
+// Harita > Yer İmi: aktif projenin kayıtlı görünümlerini iframe'e gönderir.
+async function sendBookmarksToIframe(iframeWindow: Window, projectId?: string) {
+  if (!projectId) { iframeWindow.postMessage({ type: 'oda:bookmarks-updated', bookmarks: [] }, '*'); return; }
+  try {
+    const bookmarks = await api.getHaritaYerImleri(projectId);
+    iframeWindow.postMessage({ type: 'oda:bookmarks-updated', bookmarks }, '*');
+  } catch (err) {
+    console.error('Yer imleri haritaya gönderilemedi:', err);
+  }
+}
+
+// Harita > Geçmiş: aktif projenin son harita katmanı değişiklikleri (kim/ne zaman/ne değişti).
+async function sendHistoryToIframe(iframeWindow: Window, projectId?: string) {
+  if (!projectId) { iframeWindow.postMessage({ type: 'oda:history-updated', items: [] }, '*'); return; }
+  try {
+    const items = await api.getHaritaGecmisi(projectId, 60);
+    iframeWindow.postMessage({ type: 'oda:history-updated', items }, '*');
+  } catch (err) {
+    console.error('Harita geçmişi alınamadı:', err);
+  }
+}
+
+// Harita > 4D: iş programı aktiviteleri + aktivite↔bina eşlemeleri + gerçekleşen ilerleme
+// geçmişi, tek istekte iframe'e gönderilir; tarihte gezinme (slider) iframe'de hesaplanır.
+async function sendFourDToIframe(iframeWindow: Window, projectId?: string) {
+  if (!projectId) { iframeWindow.postMessage({ type: 'oda:4d-updated', data: null }, '*'); return; }
+  try {
+    const data = await santiye.zaman4dGetir(projectId);
+    iframeWindow.postMessage({ type: 'oda:4d-updated', data }, '*');
+  } catch (err) {
+    console.error('4D verisi alınamadı:', err);
+  }
+}
+
+// Harita > Portföy: tüm projeler tek haritada. CPI/SPI öncelikle Maliyet Defteri'nden
+// (gerçek EVM) alınır; o projede maliyet verisi yoksa proje kartındaki EVM alanlarından
+// (earned_value / spent / planned_spent — Dashboard'daki formülle aynı) türetilir ve
+// 'kaynak' alanı bunu açıkça belirtir. Tutarlar milyon TL.
+async function sendPortfolioToIframe(iframeWindow: Window) {
+  try {
+    const [projeler, ledger] = await Promise.all([
+      api.getProjeler(),
+      maliyetPortfoy().catch(() => null),
+    ]);
+    const ledgerById = new Map<string, PortfoyProje>((ledger?.projeler || []).map((r): [string, PortfoyProje] => [r.proje_id, r]));
+    const mTL = (kurus: number) => kurus / 100 / 1e6;
+    const projects = projeler
+      .filter((p) => p.row_status !== 0 && Number.isFinite(Number(p.center_lng)) && Number.isFinite(Number(p.center_lat)))
+      .map((p) => {
+        const led = ledgerById.get(String(p.id));
+        let cpi: number | null = p.spent > 0 ? p.earned_value / p.spent : null;
+        let spi: number | null = p.planned_spent > 0 ? p.earned_value / p.planned_spent : null;
+        let sapma: number | null = cpi && cpi > 0 ? (1 - 1 / cpi) * 100 : null;   // EAC = BAC/CPI → (BAC−EAC)/BAC
+        let kaynak = 'proje_karti';
+        let butce = p.budget, harcanan = p.spent;
+        if (led && (led.cpi != null || led.spi != null)) {
+          kaynak = 'maliyet_defteri';
+          cpi = led.cpi ?? cpi; spi = led.spi ?? spi; sapma = led.sapma_yuzde ?? sapma;
+          butce = mTL(led.butce); harcanan = mTL(led.gerceklesen);
+        }
+        const r1 = (v: number | null, n = 3) => (v == null || !Number.isFinite(v) ? null : Number(v.toFixed(n)));
+        return {
+          id: String(p.id), kod: p.code, ad: p.name, konum: p.location, durum: p.status, risk: p.risk_level,
+          ilerleme: p.overall_progress, lng: Number(p.center_lng), lat: Number(p.center_lat),
+          butce_m: r1(butce, 1), harcanan_m: r1(harcanan, 1),
+          cpi: r1(cpi), spi: r1(spi), sapma_yuzde: r1(sapma, 1), kaynak,
+        };
+      });
+    iframeWindow.postMessage({ type: 'oda:portfolio-updated', projects }, '*');
+  } catch (err) {
+    console.error('Portföy haritaya gönderilemedi:', err);
+  }
+}
+
+// Harita > Ölçüm > "Metraja aktar": aktif projedeki taşeron ekipleri ve her
+// ekibin sözleşme kalemleri (birim + sözleşme miktarı) iframe'e gönderilir.
+// Liste, pencere her açıldığında yeniden istenir (güncel kalsın diye).
+async function sendMetrajOptionsToIframe(iframeWindow: Window, projectId?: string) {
+  if (!projectId) { iframeWindow.postMessage({ type: 'oda:metraj-options', ekipler: [] }, '*'); return; }
+  const [ekipler, sozlesmeler] = await Promise.all([
+    ekipleriListele(projectId).catch(() => []),
+    sozlesmeleriListele(projectId).catch((): Sozlesme[] => []),
+  ]);
+  const sozlesmeById = new Map(sozlesmeler.map((c) => [c.id, c]));
+  const out = await Promise.all(ekipler.map(async (e) => {
+    const soz = sozlesmeById.get(e.sozlesme_id);
+    const kalemler = await kalemleriGetir(e.sozlesme_id).catch((): SozlesmeKalem[] => []);
+    return {
+      id: e.id,
+      ad: `Ekip #${e.id}${e.is_kolu ? ` — ${e.is_kolu}` : ''}${soz ? ` (${soz.numara})` : ''}`,
+      odeme_tipi: e.odeme_tipi,
+      kalemler: kalemler.map((k) => ({ id: k.id, aciklama: k.aciklama, birim: k.birim, miktar: k.miktar })),
+    };
+  }));
+  iframeWindow.postMessage({ type: 'oda:metraj-options', ekipler: out }, '*');
+}
+
 // Harita üzerindeki PostGIS katmanlarını (db-layer-*) kendi veritabanı
 // tablolarına eşler — ODA tarafı Veri Girişi / Öznitelik Düzenle
 // formlarını bu eşleme üzerinden dinamik olarak (gerçek sütunlara göre) kurar.
@@ -88,6 +226,83 @@ const LAYER_TABLE_MAP: Record<string, string> = {
   'db-layer-binalar': 'tb_binalar_3d',
   'db-layer-altyapi': 'tb_altyapi_hatlari',
 };
+
+// Tablo adı ↔ haritadaki db-layer id'si (geçmişten geri alınan kaydı iframe'e bildirmek için).
+const TABLE_LAYER_MAP: Record<string, string> = Object.fromEntries(Object.entries(LAYER_TABLE_MAP).map(([layerId, table]) => [table, layerId]));
+
+// Veritabanı kaydı → haritadaki (ODA) feature. İlk yükleme ve "geri al" aynı
+// eşleyicileri kullanır; böylece geri alınan kayıt ilk yüklemeyle birebir aynı
+// biçimde görünür. Özellik anahtarları KASITLI OLARAK gerçek sütun adlarıdır
+// (Editör > Öznitelik formu bu adlarla önceden doldurulur).
+const geomOf = (r: { the_geom?: { tip?: string; coordinates?: unknown } }) => ({ type: r.the_geom?.tip, coordinates: r.the_geom?.coordinates });
+
+const toSinirFeature = (r: any) => ({
+  id: r.id,
+  type: 'Feature',
+  geometry: geomOf(r),
+  properties: {
+    layerId: 'db-layer-sinirlar',
+    tablo: LAYER_TABLE_MAP['db-layer-sinirlar'],
+    name: r.project_name,
+    project_id: r.project_id,
+    project_name: r.project_name,
+    ada_parsel: r.ada_parsel,
+    area_sqm: r.area_sqm,
+    veri_durumu: r.veri_durumu,
+  },
+});
+
+// Kat adedi/yükseklik bilgisi dolu olan bir bina, haritada otomatik olarak
+// 3B (ekstrüzyonlu) çizilir.
+const toBinaFeature = (r: any) => {
+  const floors = r.floors_count || 1;
+  const floorHeight = r.height_meters && floors ? r.height_meters / floors : 3;
+  return {
+    id: r.id,
+    type: 'Feature',
+    geometry: geomOf(r),
+    properties: {
+      layerId: 'db-layer-binalar',
+      tablo: LAYER_TABLE_MAP['db-layer-binalar'],
+      name: r.block_name,
+      project_id: r.project_id,
+      block_name: r.block_name,
+      building_type: r.building_type,
+      height_meters: r.height_meters,
+      floors_count: r.floors_count,
+      construction_progress: r.construction_progress,
+      structural_status: r.structural_status,
+      footprint_area_sqm: r.footprint_area_sqm,
+      veri_durumu: r.veri_durumu,
+      extrude: true,
+      floors,
+      floorHeight,
+      height: r.height_meters || floors * floorHeight,
+      base: 0,
+    },
+  };
+};
+
+const toAltyapiFeature = (r: any, colorByType: Record<string, string>) => ({
+  id: r.id,
+  type: 'Feature',
+  geometry: geomOf(r),
+  properties: {
+    layerId: 'db-layer-altyapi',
+    tablo: LAYER_TABLE_MAP['db-layer-altyapi'],
+    name: r.network_name,
+    project_id: r.project_id,
+    line_type: r.line_type,
+    network_name: r.network_name,
+    pipe_or_cable_spec: r.pipe_or_cable_spec,
+    depth_meters: r.depth_meters,
+    voltage_or_pressure: r.voltage_or_pressure,
+    status: r.status,
+    total_length_meters: r.total_length_meters,
+    veri_durumu: r.veri_durumu,
+    line_color: colorByType[String(r.line_type)] || '#10b981',
+  },
+});
 
 // Her db-layer için, sistem (STANDART 7) sütunları hariç tutulmuş gerçek
 // sütun şemasını iframe'e gönderir — 'Veri Girişi' ve 'Öznitelik Düzenle'
@@ -135,7 +350,7 @@ async function sendSchemasToIframe(iframeWindow: Window) {
   }
 }
 
-const OdaMapModule: React.FC<OdaMapModuleProps> = ({ activeProjectId }) => {
+const OdaMapModule: React.FC<OdaMapModuleProps> = ({ activeProjectId, onSelectProject }) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [iframeReady, setIframeReady] = useState(false);
   // handleReady/handleAddSahaPhotos, ([] bağımlılıklı) mount effect'i
@@ -143,6 +358,8 @@ const OdaMapModule: React.FC<OdaMapModuleProps> = ({ activeProjectId }) => {
   // değerini closure'da tutar — güncel değeri her zaman bu ref üzerinden okur.
   const activeProjectIdRef = useRef(activeProjectId);
   useEffect(() => { activeProjectIdRef.current = activeProjectId; }, [activeProjectId]);
+  const onSelectProjectRef = useRef(onSelectProject);
+  useEffect(() => { onSelectProjectRef.current = onSelectProject; }, [onSelectProject]);
 
   useEffect(() => {
     const handleReady = async (event: MessageEvent) => {
@@ -231,72 +448,9 @@ const OdaMapModule: React.FC<OdaMapModuleProps> = ({ activeProjectId }) => {
       // doldurur; anahtarlar sütun adlarından farklı olsaydı mevcut objeler
       // için form boş görünürdü.
       const dbFeatures = [
-        ...sinirlar.map((r) => ({
-          id: r.id,
-          type: 'Feature',
-          geometry: { type: r.the_geom?.tip, coordinates: r.the_geom?.coordinates },
-          properties: {
-            layerId: 'db-layer-sinirlar',
-            tablo: LAYER_TABLE_MAP['db-layer-sinirlar'],
-            name: r.project_name,
-            project_id: r.project_id,
-            project_name: r.project_name,
-            ada_parsel: r.ada_parsel,
-            area_sqm: r.area_sqm,
-            veri_durumu: r.veri_durumu,
-          },
-        })),
-        ...binalar.map((r) => {
-          // Kat adedi/yükseklik bilgisi dolu olan bir bina, haritada
-          // otomatik olarak 3B (ekstrüzyonlu) çizilir — kullanıcının her
-          // birini tek tek "3B'ye çevir" ile dönüştürmesine gerek kalmaz.
-          const floors = r.floors_count || 1;
-          const floorHeight = r.height_meters && floors ? r.height_meters / floors : 3;
-          return {
-            id: r.id,
-            type: 'Feature',
-            geometry: { type: r.the_geom?.tip, coordinates: r.the_geom?.coordinates },
-            properties: {
-              layerId: 'db-layer-binalar',
-              tablo: LAYER_TABLE_MAP['db-layer-binalar'],
-              name: r.block_name,
-              project_id: r.project_id,
-              block_name: r.block_name,
-              building_type: r.building_type,
-              height_meters: r.height_meters,
-              floors_count: r.floors_count,
-              construction_progress: r.construction_progress,
-              structural_status: r.structural_status,
-              footprint_area_sqm: r.footprint_area_sqm,
-              veri_durumu: r.veri_durumu,
-              extrude: true,
-              floors,
-              floorHeight,
-              height: r.height_meters || floors * floorHeight,
-              base: 0,
-            },
-          };
-        }),
-        ...altyapi.map((r) => ({
-          id: r.id,
-          type: 'Feature',
-          geometry: { type: r.the_geom?.tip, coordinates: r.the_geom?.coordinates },
-          properties: {
-            layerId: 'db-layer-altyapi',
-            tablo: LAYER_TABLE_MAP['db-layer-altyapi'],
-            name: r.network_name,
-            project_id: r.project_id,
-            line_type: r.line_type,
-            network_name: r.network_name,
-            pipe_or_cable_spec: r.pipe_or_cable_spec,
-            depth_meters: r.depth_meters,
-            voltage_or_pressure: r.voltage_or_pressure,
-            status: r.status,
-            total_length_meters: r.total_length_meters,
-            veri_durumu: r.veri_durumu,
-            line_color: altyapiColorByType[String(r.line_type)] || '#10b981',
-          },
-        })),
+        ...sinirlar.map(toSinirFeature),
+        ...binalar.map(toBinaFeature),
+        ...altyapi.map((r) => toAltyapiFeature(r, altyapiColorByType)),
       ];
 
       iframeWindow.postMessage(
@@ -378,6 +532,8 @@ const OdaMapModule: React.FC<OdaMapModuleProps> = ({ activeProjectId }) => {
           default:
             break;
         }
+        // Sunucu bu değişikliği harita geçmişine yazdı — listeyi tazele.
+        sendHistoryToIframe(iframeWindow, activeProjectIdRef.current);
       } catch (err) {
         console.error('Obje veritabanına kaydedilemedi:', err);
       }
@@ -443,12 +599,236 @@ const OdaMapModule: React.FC<OdaMapModuleProps> = ({ activeProjectId }) => {
       }
     };
 
+    // Harita > Şantiye: haritada seçilen konuma görev / NCR / ramak kala / İSG
+    // olayı kaydı açar. Kayıt şantiye modülünün KENDİ servisi üzerinden yazılır
+    // (doğrulama + audit orada); sonuç iframe'e 'oda:santiye-result' ile döner.
+    const handleSantiyeCreate = async (event: MessageEvent) => {
+      const iframeWindow = iframeRef.current?.contentWindow;
+      if (!iframeWindow || event.source !== iframeWindow) return;
+      const msg = event.data;
+      if (!msg || msg.type !== 'oda:santiye-create') return;
+      const reply = (ok: boolean, error?: string) => iframeWindow.postMessage({ type: 'oda:santiye-result', op: 'create', ok, error }, '*');
+      const projeId = activeProjectIdRef.current;
+      try {
+        if (!projeId) throw new Error('Önce üst panelden bir proje seçin.');
+        const lat = Number(msg.lat); const lon = Number(msg.lon);
+        if (!Number.isFinite(lat) || !Number.isFinite(lon)) throw new Error('Haritada bir konum seçin.');
+        const baslik = String(msg.baslik || '').trim();
+        const aciklama = String(msg.aciklama || '').trim();
+        const tarih = String(msg.tarih || new Date().toISOString().slice(0, 10));
+        switch (msg.tur) {
+          case 'gorev':
+          case 'ncr': {
+            if (!baslik) throw new Error('Başlık zorunludur.');
+            if (!msg.sorumlu_tipi || !Number.isFinite(Number(msg.sorumlu_id))) throw new Error('Sorumlu seçin.');
+            const ortak = { proje_id: projeId, baslik, sorumlu_tipi: msg.sorumlu_tipi, sorumlu_id: Number(msg.sorumlu_id), lat, lon };
+            if (msg.tur === 'gorev') await santiye.gorevOlustur({ ...ortak, son_tarih: msg.son_tarih || undefined });
+            else await santiye.ncrAc({ ...ortak, aciklama: aciklama || undefined });
+            break;
+          }
+          case 'ramak_kala':
+            if (!aciklama) throw new Error('Açıklama zorunludur.');
+            await santiye.ramakKalaBildir({ proje_id: projeId, tarih, aciklama, anonim: !!msg.anonim, lat, lon });
+            break;
+          case 'olay':
+            if (!aciklama) throw new Error('Açıklama zorunludur.');
+            if (!['is_kazasi', 'meslek_hastaligi', 'yaralanmasiz_olay'].includes(msg.olay_turu)) throw new Error('Olay türünü seçin.');
+            await santiye.olayKaydet({ proje_id: projeId, tur: msg.olay_turu, tarih, aciklama, lat, lon });
+            break;
+          default:
+            throw new Error('Bilinmeyen kayıt türü.');
+        }
+        reply(true);
+        await sendSantiyeToIframe(iframeWindow, projeId);
+      } catch (err) {
+        reply(false, err instanceof Error ? err.message : String(err));
+      }
+    };
+
+    // Harita popup'ındaki durum değiştirme düğmeleri (yalnızca beyaz listedeki geçişler).
+    const handleSantiyeAction = async (event: MessageEvent) => {
+      const iframeWindow = iframeRef.current?.contentWindow;
+      if (!iframeWindow || event.source !== iframeWindow) return;
+      const msg = event.data;
+      if (!msg || msg.type !== 'oda:santiye-action') return;
+      const reply = (ok: boolean, error?: string) => iframeWindow.postMessage({ type: 'oda:santiye-result', op: 'action', ok, error }, '*');
+      try {
+        const id = Number(msg.id);
+        if (!Number.isFinite(id)) throw new Error('Geçersiz kayıt.');
+        if (msg.katman === 'gorev' && ['acik', 'devam', 'iptal'].includes(msg.islem)) await santiye.gorevDurum(id, msg.islem);
+        else if (msg.katman === 'ncr' && msg.islem === 'duzelt') {
+          const not = String(msg.notu || '').trim();
+          if (!not) throw new Error('Düzeltme notu zorunludur.');
+          await santiye.ncrDuzelt(id, not);
+        } else if (msg.katman === 'ncr' && msg.islem === 'kapat') await santiye.ncrKapat(id);
+        else throw new Error('Bu işlem haritadan yapılamaz.');
+        reply(true);
+        await sendSantiyeToIframe(iframeWindow, activeProjectIdRef.current);
+      } catch (err) {
+        reply(false, err instanceof Error ? err.message : String(err));
+      }
+    };
+
+    // Harita > Ölçüm: ölçülen alan/mesafeyi taşeron metrajına (beyan edilen
+    // miktar) yazar. Yazma taşeron modülünün KENDİ servisinden geçer
+    // (ekip + sözleşme kalemi doğrulaması, audit); şef onayı orada yapılır.
+    const handleMetrajOptionsRequest = async (event: MessageEvent) => {
+      const iframeWindow = iframeRef.current?.contentWindow;
+      if (!iframeWindow || event.source !== iframeWindow) return;
+      if (!event.data || event.data.type !== 'oda:metraj-options-request') return;
+      await sendMetrajOptionsToIframe(iframeWindow, activeProjectIdRef.current);
+    };
+    const handleMetrajCreate = async (event: MessageEvent) => {
+      const iframeWindow = iframeRef.current?.contentWindow;
+      if (!iframeWindow || event.source !== iframeWindow) return;
+      const msg = event.data;
+      if (!msg || msg.type !== 'oda:metraj-create') return;
+      const reply = (ok: boolean, error?: string) => iframeWindow.postMessage({ type: 'oda:metraj-result', ok, error }, '*');
+      try {
+        const ekipId = Number(msg.ekip_id);
+        const kalemId = Number(msg.sozlesme_kalem_id);
+        const miktar = Number(msg.miktar);
+        const tarih = String(msg.tarih || '');
+        if (!Number.isInteger(ekipId) || !Number.isInteger(kalemId)) throw new Error('Ekip ve sözleşme kalemi seçin.');
+        if (!Number.isFinite(miktar) || miktar <= 0) throw new Error('Miktar sıfırdan büyük olmalıdır.');
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(tarih)) throw new Error('Geçerli bir tarih girin.');
+        const not = String(msg.notes || '').trim().slice(0, 500);
+        await metrajKaydet(ekipId, { sozlesme_kalem_id: kalemId, tarih, miktar: Math.round(miktar * 100) / 100, notes: not || undefined });
+        reply(true);
+      } catch (err) {
+        reply(false, err instanceof Error ? err.message : String(err));
+      }
+    };
+
+    // Harita > Yer İmi: kaydet / yeniden adlandır / sil. Kayıt proje bazlıdır ve
+    // o projeyi açan herkesle paylaşılır; yalnızca bilinen alanlar kaydedilir.
+    const handleBookmarkOp = async (event: MessageEvent) => {
+      const iframeWindow = iframeRef.current?.contentWindow;
+      if (!iframeWindow || event.source !== iframeWindow) return;
+      const msg = event.data;
+      if (!msg || typeof msg.type !== 'string' || !msg.type.startsWith('oda:bookmark-')) return;
+      const reply = (ok: boolean, error?: string) => iframeWindow.postMessage({ type: 'oda:bookmark-result', op: msg.type, ok, error }, '*');
+      const projeId = activeProjectIdRef.current;
+      try {
+        if (!projeId) throw new Error('Önce üst panelden bir proje seçin.');
+        const name = String(msg.name || '').trim().slice(0, 60);
+        if (msg.type === 'oda:bookmark-save') {
+          const c = msg.view?.center;
+          if (!name) throw new Error('Yer imi adı zorunludur.');
+          if (!Array.isArray(c) || !Number.isFinite(Number(c[0])) || !Number.isFinite(Number(c[1]))) throw new Error('Geçersiz harita görünümü.');
+          await api.createHaritaYerImi({
+            project_id: projeId, name,
+            center: [Number(c[0]), Number(c[1])],
+            zoom: Number(msg.view.zoom), bearing: Number(msg.view.bearing) || 0, pitch: Number(msg.view.pitch) || 0,
+            style_id: msg.styleId ? String(msg.styleId) : null,
+            layer_state: msg.layerState && typeof msg.layerState === 'object' ? msg.layerState : null,
+            santiye: msg.santiye && typeof msg.santiye === 'object' ? msg.santiye : null,
+          });
+        } else if (msg.type === 'oda:bookmark-rename') {
+          if (!msg.id || !name) throw new Error('Yeni ad zorunludur.');
+          await api.updateHaritaYerImi(msg.id, { name });
+        } else if (msg.type === 'oda:bookmark-delete') {
+          if (!msg.id) throw new Error('Geçersiz yer imi.');
+          await api.deleteHaritaYerImi(msg.id);
+        } else {
+          return;
+        }
+        reply(true);
+        await sendBookmarksToIframe(iframeWindow, projeId);
+      } catch (err) {
+        reply(false, err instanceof Error ? err.message : String(err));
+      }
+    };
+
+    // Harita > Geçmiş: liste isteği ve "Geri al". Geri alma sunucuda yapılır
+    // (kayıt önceki haline döner, GERI_AL olarak kaydedilir); ardından haritadaki
+    // feature de güncel kayıttan yeniden kurulup iframe'e bildirilir — iframe
+    // kendi oturum kopyasında (localStorage) eski konumu tutuyor olabilir.
+    const handleHistory = async (event: MessageEvent) => {
+      const iframeWindow = iframeRef.current?.contentWindow;
+      if (!iframeWindow || event.source !== iframeWindow) return;
+      const msg = event.data;
+      if (!msg || typeof msg.type !== 'string') return;
+      if (msg.type === 'oda:history-request') {
+        await sendHistoryToIframe(iframeWindow, activeProjectIdRef.current);
+      } else if (msg.type === 'oda:history-undo') {
+        const reply = (ok: boolean, error?: string) => iframeWindow.postMessage({ type: 'oda:history-result', ok, error }, '*');
+        try {
+          const id = Number(msg.id);
+          if (!Number.isInteger(id)) throw new Error('Geçersiz geçmiş kaydı.');
+          const r = await api.geriAlHaritaDegisikligi(id);
+          const layerId = TABLE_LAYER_MAP[r.tablo];
+          let feature: unknown = null;
+          if (layerId && !r.silindi) {
+            if (layerId === 'db-layer-sinirlar') feature = toSinirFeature(r.kayit);
+            else if (layerId === 'db-layer-binalar') feature = toBinaFeature(r.kayit);
+            else {
+              const tipler = await api.getAltyapiTipleri();
+              const renkler: Record<string, string> = {};
+              tipler.forEach((t) => { renkler[String(t.id)] = t.color; });
+              feature = toAltyapiFeature(r.kayit, renkler);
+            }
+          }
+          iframeWindow.postMessage({ type: 'oda:db-feature-restored', layerId, featureId: r.kayit_id, feature }, '*');
+          reply(true);
+          await sendHistoryToIframe(iframeWindow, activeProjectIdRef.current);
+        } catch (err) {
+          let m = err instanceof Error ? err.message : String(err);
+          try { const j = JSON.parse(m.slice(m.indexOf('{'))); if (j.error) m = j.error; } catch { /* düz metin */ }
+          reply(false, m);
+        }
+      }
+    };
+
+    // Harita > 4D: veri isteği ve haritadan bina↔aktivite eşleme (ekle/çöz).
+    const handleFourD = async (event: MessageEvent) => {
+      const iframeWindow = iframeRef.current?.contentWindow;
+      if (!iframeWindow || event.source !== iframeWindow) return;
+      const msg = event.data;
+      if (!msg || typeof msg.type !== 'string') return;
+      if (msg.type === 'oda:4d-request') {
+        await sendFourDToIframe(iframeWindow, activeProjectIdRef.current);
+      } else if (msg.type === 'oda:4d-link') {
+        const reply = (ok: boolean, error?: string) => iframeWindow.postMessage({ type: 'oda:4d-result', ok, error }, '*');
+        try {
+          const aktiviteId = Number(msg.aktivite_id);
+          const idler = Array.isArray(msg.bina_idler) ? msg.bina_idler.map(String) : [];
+          if (!Number.isInteger(aktiviteId) || !idler.length) throw new Error('Aktivite ve en az bir bina seçin.');
+          if (msg.islem !== 'ekle' && msg.islem !== 'sil') throw new Error('Geçersiz işlem.');
+          const r = await santiye.esleme4d(aktiviteId, idler, msg.islem);
+          reply(true);
+          iframeWindow.postMessage({ type: 'oda:4d-link-done', islem: msg.islem, sonuc: r }, '*');
+          await sendFourDToIframe(iframeWindow, activeProjectIdRef.current);
+        } catch (err) {
+          reply(false, err instanceof Error ? err.message : String(err));
+        }
+      }
+    };
+
+    // Harita > Portföy: veri isteği ve "Bu projeye geç".
+    const handlePortfolio = async (event: MessageEvent) => {
+      const iframeWindow = iframeRef.current?.contentWindow;
+      if (!iframeWindow || event.source !== iframeWindow) return;
+      const msg = event.data;
+      if (!msg) return;
+      if (msg.type === 'oda:portfolio-request') await sendPortfolioToIframe(iframeWindow);
+      else if (msg.type === 'oda:select-project' && typeof msg.id === 'string' && onSelectProjectRef.current) onSelectProjectRef.current(msg.id);
+    };
+
     window.addEventListener('message', handleReady);
     window.addEventListener('message', handleAddDocuments);
     window.addEventListener('message', handleUpdateDbFeature);
     window.addEventListener('message', handleAddSahaPhotos);
     window.addEventListener('message', handleDeleteSahaPhoto);
     window.addEventListener('message', handleRenameSahaPhoto);
+    window.addEventListener('message', handleSantiyeCreate);
+    window.addEventListener('message', handleSantiyeAction);
+    window.addEventListener('message', handleMetrajOptionsRequest);
+    window.addEventListener('message', handleMetrajCreate);
+    window.addEventListener('message', handleBookmarkOp);
+    window.addEventListener('message', handleHistory);
+    window.addEventListener('message', handlePortfolio);
+    window.addEventListener('message', handleFourD);
     return () => {
       window.removeEventListener('message', handleReady);
       window.removeEventListener('message', handleAddDocuments);
@@ -456,6 +836,14 @@ const OdaMapModule: React.FC<OdaMapModuleProps> = ({ activeProjectId }) => {
       window.removeEventListener('message', handleAddSahaPhotos);
       window.removeEventListener('message', handleDeleteSahaPhoto);
       window.removeEventListener('message', handleRenameSahaPhoto);
+      window.removeEventListener('message', handleSantiyeCreate);
+      window.removeEventListener('message', handleSantiyeAction);
+      window.removeEventListener('message', handleMetrajOptionsRequest);
+      window.removeEventListener('message', handleMetrajCreate);
+      window.removeEventListener('message', handleBookmarkOp);
+      window.removeEventListener('message', handleHistory);
+      window.removeEventListener('message', handlePortfolio);
+      window.removeEventListener('message', handleFourD);
     };
   }, []);
 
@@ -467,6 +855,15 @@ const OdaMapModule: React.FC<OdaMapModuleProps> = ({ activeProjectId }) => {
     const iframeWindow = iframeRef.current?.contentWindow;
     if (!iframeWindow) return;
     sendSahaPhotosToIframe(iframeWindow, activeProjectId);
+    sendSantiyeToIframe(iframeWindow, activeProjectId);
+    sendSantiyeOptionsToIframe(iframeWindow, activeProjectId);
+    sendBookmarksToIframe(iframeWindow, activeProjectId);
+    sendHistoryToIframe(iframeWindow, activeProjectId);
+    // Pafta/yazdırma başlık bloğu için proje adı
+    api.getProjeler().then((rows) => {
+      const pr = rows.find((r) => r.id === activeProjectId);
+      iframeWindow.postMessage({ type: 'oda:project-meta', projectId: activeProjectId, projectName: pr?.name || '' }, '*');
+    }).catch(() => { /* proje adı yoksa başlık bloğu boş bırakılır */ });
   }, [activeProjectId, iframeReady]);
 
   useEffect(() => {
@@ -510,6 +907,7 @@ const OdaMapModule: React.FC<OdaMapModuleProps> = ({ activeProjectId }) => {
       src={odaHtmlUrl}
       title="ODA — Harita Çizim Aracı"
       style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
+      allow="geolocation"
       sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals allow-downloads"
     />
   );

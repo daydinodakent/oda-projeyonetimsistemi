@@ -32,6 +32,19 @@ export const raporOnayla = (id: number) => post<GunlukRapor>(`/gunluk-raporlar/$
 export const raporResmiDefterTaslagi = (id: number) => post<{ taslak: string }>(`/gunluk-raporlar/${id}/resmi-defter-taslagi`, {});
 export type { RaporBolumTuru };
 
+// --- 4D zaman çizelgesi (aktivite ↔ bina eşleme) ---
+export interface Zaman4dAktivite {
+  id: number; ad: string; plan_baslangic: string; plan_bitis: string; guncel_yuzde: number;
+  gecmis: { tarih: string; yuzde: number }[]; bina_idler: string[];
+}
+export interface Zaman4d {
+  proje_id: string; bugun: string; aralik: { baslangic: string; bitis: string } | null;
+  aktiviteler: Zaman4dAktivite[]; bagli_aktivite_sayisi: number; baglanmamis_aktivite_sayisi: number;
+}
+export const zaman4dGetir = (projeId: string) => istek<Zaman4d>(`/4d/zaman-cizelgesi?${q({ proje_id: projeId })}`);
+export const esleme4d = (aktiviteId: number, binaIdler: string[], islem: 'ekle' | 'sil') =>
+  post<{ eklenen?: number; zaten_bagli?: number; silinen?: number }>('/4d/eslemeler', { aktivite_id: aktiviteId, bina_idler: binaIdler, islem });
+
 // --- Görev ---
 export const gorevleriListele = (projeId: string) => istek<Gorev[]>(`/gorevler?${q({ proje_id: projeId })}`);
 export const gorevOlustur = (g: { proje_id: string; baslik: string; sorumlu_tipi: SorumluTipi; sorumlu_id: number; wbs_gorev_id?: string; konum_blok?: string; konum_kat?: string; konum_daire?: string; lat?: number; lon?: number; son_tarih?: string }) => post<Gorev>('/gorevler', g);
