@@ -1695,6 +1695,10 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 15l5-6 4 4 4-7 5 9"/><path d="M3 19h18"/></svg>
     <span>Hafriyat</span>
   </button>
+  <button class="mod-btn" data-module="ortofoto" data-tip="Drone ortofoto zaman serisi">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M12 5v14"/><path d="M3 15l4-4 3 3"/><circle cx="16" cy="10" r="1.5"/></svg>
+    <span>Ortofoto</span>
+  </button>
   <button class="mod-btn" data-module="gecmis" data-tip="Değişiklik geçmişi">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 7v5l3 2"/></svg>
     <span>Geçmiş</span>
@@ -2415,6 +2419,63 @@
        Alt çubuktaki 4D zaman kaydırıcısı artık gerçek iş programından beslenebilir:
        aktiviteler binalara bağlanır; tarih ilerledikçe bina plana göre (veya
        gerçekleşen ilerlemeye göre) katlarını tamamlar. -->
+  <div class="module-page" data-module-page="ortofoto" style="display:none;">
+    <span class="field-label" style="margin-bottom:0;">Ortofoto — Zaman Serisi <span style="font-weight:400;">— drone görüntülerini tarihe göre karşılaştır</span></span>
+
+    <div class="san-form">
+      <span class="field-label" style="margin:0;">1 · İçe aktar</span>
+      <input type="file" id="ogFiles" multiple accept=".tif,.tiff,.jpg,.jpeg,.png,.jgw,.jpw,.pgw,.pngw,.wld,.tfw" class="san-input">
+      <div class="san-grid">
+        <div><span class="field-label">Koordinat sistemi</span>
+          <select class="san-input" id="ogCrs">
+            <option value="auto">Otomatik (GeoTIFF'ten)</option>
+            <option value="wgs84">WGS84 (boylam/enlem)</option>
+            <option value="utm35n">UTM 35N</option><option value="utm36n">UTM 36N</option><option value="utm37n">UTM 37N</option>
+            <option value="27">ITRF96 TM27</option><option value="30">ITRF96 TM30</option><option value="33">ITRF96 TM33</option>
+            <option value="36">ITRF96 TM36</option><option value="39">ITRF96 TM39</option><option value="42">ITRF96 TM42</option><option value="45">ITRF96 TM45</option>
+          </select></div>
+        <div><span class="field-label">Varsayılan tarih</span><input type="date" class="san-input" id="ogDate"></div>
+      </div>
+      <div class="btn" id="ogBtnImport">⬆ Görüntüleri ekle</div>
+      <div class="mj-info" style="margin:0;">GeoTIFF (EPSG kodu otomatik okunur) veya JPG/PNG + dünya dosyası (.jgw/.pgw/.wld) birlikte seçilir. Tarih önce dosya adından ("2025-03-14", "14.03.2025"), sonra TIFF etiketinden okunur; bulunamazsa yukarıdaki tarih kullanılır. Büyük dosyalar en fazla 4096 px'e örneklenir. Yalnızca kuzey-yukarı (dönük olmayan) GeoTIFF'ler desteklenir.</div>
+    </div>
+
+    <div class="san-form">
+      <span class="field-label" style="margin:0;">2 · Zaman serisi</span>
+      <div id="ogList" class="bm-list"></div>
+    </div>
+
+    <div class="san-form">
+      <span class="field-label" style="margin:0;">3 · Karşılaştır</span>
+      <div class="san-grid">
+        <div><span class="field-label">Eski (A)</span><select class="san-input" id="ogA"></select></div>
+        <div><span class="field-label">Yeni (B)</span><select class="san-input" id="ogB"></select></div>
+      </div>
+      <select class="san-input" id="ogMode">
+        <option value="tek">Yalnız A</option>
+        <option value="kaydir">Perde (kaydır)</option>
+        <option value="saydam">Saydamlık</option>
+        <option value="degisim">Değişim tespiti</option>
+      </select>
+      <div id="ogSwipeRow" style="display:none;"><span class="field-label">Perde konumu</span><input type="range" id="ogSwipe" min="0" max="100" value="50" style="width:100%;"></div>
+      <div id="ogOpacityRow" style="display:none;"><span class="field-label">B saydamlığı</span><input type="range" id="ogOpacity" min="0" max="100" value="50" style="width:100%;"></div>
+      <div id="ogDiffRow" style="display:none;">
+        <div class="san-grid">
+          <div><span class="field-label">Hassasiyet eşiği</span><input type="number" class="san-input" id="ogEsik" value="0.12" min="0.02" max="0.6" step="0.01"></div>
+          <div><span class="field-label">En küçük alan (m²)</span><input type="number" class="san-input" id="ogMinAlan" value="20" min="1" step="1"></div>
+        </div>
+        <div class="btn" id="ogBtnDiff" style="margin-top:6px;">▶ Değişimi hesapla</div>
+        <div class="pf-kpis" id="ogStats"></div>
+        <div id="ogClusters" class="bm-list"></div>
+        <div class="btn-row">
+          <div class="btn" id="ogBtnGeo" style="flex:1;">GeoJSON indir</div>
+          <div class="btn" id="ogBtnClear" style="flex:1;">Temizle</div>
+        </div>
+        <div class="mj-info warn" style="margin:0;">Piksel farkı yöntemidir: gölge, bitki örtüsü, su ve hizalama kayıklığı yanlış pozitif üretebilir; kırmızı alanlar "inceleme adayı"dır, metraj/hakediş ölçüsü değildir. Kayıklık varsa listeden görüntüye X/Y öteleme (m) verin.</div>
+      </div>
+    </div>
+  </div>
+
   <div class="module-page" data-module-page="fourd" style="display:none;">
     <span class="field-label" style="margin-bottom:0;">4D — İş Programı <span style="font-weight:400;">— zaman çubuğu haritanın altındadır</span></span>
     <div class="san-grid">
@@ -3361,6 +3422,9 @@
 <script src="/vendor/delaunator/5.0.1/delaunator.min.js"></script>
 <script src="/vendor/proj4/2.22.0/proj4.js"></script>
 <script src="/vendor/oda-hafriyat/hafriyat.js"></script>
+<!-- Ortofoto zaman serisi: GeoTIFF okuyucu (geotiff.js, yerel) + saf çekirdek (tarih, EPSG, afin, değişim tespiti) -->
+<script src="/vendor/geotiff/3.0.5/geotiff.js"></script>
+<script src="/vendor/oda-ortofoto/ortofoto.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <!-- sql.js: SQLite, WebAssembly'e derlenmiş halde tarayıcıda çalışır — gerçek,
      spec-uyumlu bir GeoPackage (.gpkg) dosyası (aslında bir SQLite veritabanı)
@@ -7611,6 +7675,8 @@
       }
     } else if (msg.type === 'oda:project-meta'){
       activeProjectName = msg.projectName || '';
+      var pid = String(msg.projectId || '');
+      if (pid !== activeProjectId){ activeProjectId = pid; if (typeof ogProjectChanged === 'function') ogProjectChanged(); }
     }
   });
   bmRender();
@@ -7623,6 +7689,7 @@
   // kutusundan (PDF olarak kaydet dahil) alınır — @page boyutu seçilen kağıda ayarlanır.
   // ---------------------------------------------------------------------
   var activeProjectName = '';
+  var activeProjectId = '';
   var PRINT_PAPER = { A4:[297, 210], A3:[420, 297] };   // yatay: [genişlik, yükseklik] mm
   var PRINT_SCALES = [250, 500, 1000, 2000, 2500, 5000, 10000, 25000];
   var printBlobUrl = null;
@@ -8371,6 +8438,393 @@
   hfRenderOrderOptions();
   hfRefreshSurfaces();
   hfRenderAreaInfo();
+
+  // ---------------------------------------------------------------------
+  // ORTOFOTO zaman serisi — saf çekirdek: /vendor/oda-ortofoto/ortofoto.js (birim testli), GeoTIFF: /vendor/geotiff.
+  // Görüntüler PNG'ye çevrilip MapLibre 'image' kaynağı olarak (4 köşe) gösterilir; IndexedDB'de proje bazında saklanır.
+  // ---------------------------------------------------------------------
+  var OG = globalThis.OdaOrtofoto;
+  var ogItems = [];            // {id, ad, tarih, tarihKaynak, w, h, quad, blob, url, dx, dy}
+  var ogDiff = null;           // {a, b, kutu, gW, gH, esik, stats, kumeler:[{piksel,alanM2,kutu:[w,s,e,n]}], url}
+  var ogSwipeMap = null, ogSwipeEl = null, ogSwipeSyncing = false;
+  var OG_DB = 'odaOrtofoto', OG_STORE = 'items', ogCounter = 0;
+  function ogProjKey(){ return String(activeProjectId || 'yerel'); }
+  function ogDb(){
+    return new Promise(function(res, rej){
+      var rq = indexedDB.open(OG_DB, 1);
+      rq.onupgradeneeded = function(){ rq.result.createObjectStore(OG_STORE); };
+      rq.onsuccess = function(){ res(rq.result); }; rq.onerror = function(){ rej(rq.error); };
+    });
+  }
+  function ogDbPut(it){
+    return ogDb().then(function(db){ return new Promise(function(res, rej){
+      var tx = db.transaction(OG_STORE, 'readwrite');
+      tx.objectStore(OG_STORE).put({ proje: ogProjKey(), id: it.id, ad: it.ad, tarih: it.tarih, tarihKaynak: it.tarihKaynak, w: it.w, h: it.h, quad: it.quad, blob: it.blob, dx: it.dx, dy: it.dy }, ogProjKey() + ':' + it.id);
+      tx.oncomplete = res; tx.onerror = function(){ rej(tx.error); };
+    }); }).catch(function(e){ console.error('Ortofoto IndexedDB yazılamadı:', e); showToast('Ortofoto tarayıcıya kaydedilemedi (oturum sonrası kaybolur).'); });
+  }
+  function ogDbDelete(it){
+    return ogDb().then(function(db){ return new Promise(function(res){
+      var tx = db.transaction(OG_STORE, 'readwrite'); tx.objectStore(OG_STORE).delete(ogProjKey() + ':' + it.id); tx.oncomplete = res; tx.onerror = res;
+    }); }).catch(function(){});
+  }
+  function ogDbLoad(){
+    return ogDb().then(function(db){ return new Promise(function(res, rej){
+      var rq = db.transaction(OG_STORE, 'readonly').objectStore(OG_STORE).getAll();
+      rq.onsuccess = function(){ res((rq.result || []).filter(function(r){ return r.proje === ogProjKey(); })); };
+      rq.onerror = function(){ rej(rq.error); };
+    }); }).catch(function(){ return []; });
+  }
+  function ogLoadStored(){
+    ogDbLoad().then(function(rows){
+      if (!rows.length) return;
+      rows.forEach(function(r){
+        if (ogItems.some(function(x){ return x.id === r.id; })) return;
+        ogCounter = Math.max(ogCounter, parseInt(String(r.id).replace(/\D/g, ''), 10) || 0);
+        ogItems.push({ id:r.id, ad:r.ad, tarih:r.tarih, tarihKaynak:r.tarihKaynak, w:r.w, h:r.h, quad:r.quad, blob:r.blob, url:URL.createObjectURL(r.blob), dx:r.dx || 0, dy:r.dy || 0 });
+      });
+      ogSort(); ogRenderAll();
+    });
+  }
+  function ogSort(){ ogItems.sort(function(a, b){ return a.tarih < b.tarih ? -1 : a.tarih > b.tarih ? 1 : 0; }); }
+  function ogById(id){ return ogItems.filter(function(x){ return x.id === id; })[0] || null; }
+  function ogQuad(it){
+    var c = it.quad, dm = OG.dereceMetre((c[0][1] + c[2][1]) / 2);
+    var sx = (it.dx || 0) / dm.lng, sy = (it.dy || 0) / dm.lat;
+    return c.map(function(p){ return [p[0] + sx, p[1] + sy]; });
+  }
+
+  // ----- içe aktarma -----
+  function ogBase(n){ return n.replace(/\.[^.]+$/, '').toLowerCase(); }
+  function ogExt(n){ return (n.match(/\.([^.]+)$/) || [,''])[1].toLowerCase(); }
+  function ogReadWorld(file){
+    return file.text().then(function(t){
+      var nums = t.split(/\s+/).filter(Boolean).map(Number);
+      if (nums.length < 6 || nums.slice(0, 6).some(function(v){ return !isFinite(v); })) throw new Error('Dünya dosyası okunamadı.');
+      return nums.slice(0, 6);
+    });
+  }
+  function ogConverter(def){
+    if (def.tur === 'cografi') return null;
+    var pj = proj4(def.def, 'EPSG:4326');
+    return function(p){ return pj.forward ? pj.forward(p) : proj4(def.def, 'EPSG:4326', p); };
+  }
+  function ogCanvasToBlob(cv){ return new Promise(function(res){ cv.toBlob(res, 'image/png'); }); }
+  function ogTiffToCanvas(image, maxDim){
+    var W = image.getWidth(), H = image.getHeight(), k = Math.min(1, maxDim / Math.max(W, H));
+    var w = Math.max(1, Math.round(W * k)), h = Math.max(1, Math.round(H * k));
+    var spp = image.getSamplesPerPixel();
+    var samples = spp >= 3 ? [0, 1, 2].concat(spp >= 4 ? [3] : []) : [0];
+    return image.readRasters({ width:w, height:h, samples:samples, interleave:true, resampleMethod:'bilinear' }).then(function(r){
+      var nb = samples.length, cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+      var ctx = cv.getContext('2d'), id = ctx.createImageData(w, h), d = id.data;
+      var nod = null; try { nod = image.getGDALNoData(); } catch (e) {}
+      var scale = 1;
+      if (!(r instanceof Uint8Array || r instanceof Uint8ClampedArray)){
+        var mx = 0, step = Math.max(1, Math.floor(r.length / 200000));
+        for (var i = 0; i < r.length; i += step) if (r[i] > mx) mx = r[i];
+        scale = mx > 0 ? 255 / mx : 1;
+      }
+      for (var p = 0, n = w * h; p < n; p++){
+        var o = p * nb, R, G, B, A = 255;
+        if (nb === 1){ R = G = B = r[o] * scale; if (nod !== null && r[o] === nod) A = 0; }
+        else {
+          R = r[o] * scale; G = r[o + 1] * scale; B = r[o + 2] * scale;
+          if (nb === 4) A = r[o + 3] * scale; else if (nod !== null && r[o] === nod && r[o + 1] === nod && r[o + 2] === nod) A = 0;
+        }
+        d[4 * p] = R; d[4 * p + 1] = G; d[4 * p + 2] = B; d[4 * p + 3] = A;
+      }
+      ctx.putImageData(id, 0, 0);
+      return cv;
+    });
+  }
+  function ogImportOne(file, world, crsSel, defDate){
+    var ext = ogExt(file.name), tarih = OG.tarihAdindan(file.name), kaynak = tarih ? 'dosya adı' : null;
+    var pre;
+    if (ext === 'tif' || ext === 'tiff'){
+      if (!globalThis.GeoTIFF) return Promise.reject(new Error('GeoTIFF bileşeni yüklenemedi.'));
+      pre = GeoTIFF.fromBlob(file).then(function(tiff){ return tiff.getImage(); }).then(function(image){
+        var fd = image.fileDirectory || {};
+        if (!tarih){ var tt = OG.tarihTiffDen(fd.DateTime); if (tt){ tarih = tt; kaynak = 'TIFF etiketi'; } }
+        var def;
+        if (crsSel && crsSel !== 'auto') def = OG.secimTanimi(crsSel);
+        else {
+          var gk = {}; try { gk = image.getGeoKeys() || {}; } catch (e) {}
+          var code = gk.ProjectedCSTypeGeoKey && gk.ProjectedCSTypeGeoKey !== 32767 ? gk.ProjectedCSTypeGeoKey : gk.GeographicTypeGeoKey;
+          def = OG.epsgTanimi(code);
+          if (!def) throw new Error(file.name + ': koordinat sistemi tanınamadı' + (code ? ' (EPSG:' + code + ')' : '') + ' — yukarıdan seçin.');
+        }
+        var bbox;
+        try { bbox = image.getBoundingBox(); } catch (e) { throw new Error(file.name + ': konum bilgisi (georeferans) yok.'); }
+        // geotiff.js, konumsuz dosyada bile tüm dünyayı döndürür — bunu "georeferans yok" say
+        if (bbox[0] <= -180 && bbox[1] <= -90 && bbox[2] >= 180 && bbox[3] >= 90) throw new Error(file.name + ': konum bilgisi (georeferans) yok.');
+        if (fd.ModelTransformation && (fd.ModelTransformation[1] || fd.ModelTransformation[4])) throw new Error(file.name + ': dönük GeoTIFF desteklenmiyor.');
+        var conv = ogConverter(def);
+        var quad = OG.koselerKutudan(bbox, conv);
+        if (def.tur === 'cografi') quad = OG.koselerKutudan(bbox, null);
+        return ogTiffToCanvas(image, 4096).then(function(cv){ return { cv: cv, quad: quad }; });
+      });
+    } else {
+      if (!world) return Promise.reject(new Error(file.name + ': dünya dosyası (.jgw/.pgw/.wld) bulunamadı.'));
+      var def2 = crsSel && crsSel !== 'auto' ? OG.secimTanimi(crsSel) : null;
+      if (!def2) return Promise.reject(new Error(file.name + ': JPG/PNG için koordinat sistemini seçin.'));
+      pre = createImageBitmap(file).then(function(bm){
+        var k = Math.min(1, 4096 / Math.max(bm.width, bm.height)), w = Math.round(bm.width * k), h = Math.round(bm.height * k);
+        var cv = document.createElement('canvas'); cv.width = w; cv.height = h; cv.getContext('2d').drawImage(bm, 0, 0, w, h);
+        var q = OG.koselerDunyaDosyasindan(world, bm.width, bm.height), conv2 = ogConverter(def2);
+        return { cv: cv, quad: conv2 ? q.map(conv2) : q };
+      });
+    }
+    return pre.then(function(r){
+      if (!tarih){ tarih = defDate || new Date(file.lastModified || Date.now()).toISOString().slice(0, 10); kaynak = defDate ? 'varsayılan' : 'dosya tarihi (tahmini)'; }
+      var q = r.quad;
+      if (q.some(function(p){ return !isFinite(p[0]) || !isFinite(p[1]) || Math.abs(p[0]) > 180 || Math.abs(p[1]) > 90; })) throw new Error(file.name + ': köşe koordinatları geçersiz — koordinat sistemini kontrol edin.');
+      return ogCanvasToBlob(r.cv).then(function(blob){
+        return { id: 'og' + (++ogCounter), ad: file.name, tarih: tarih, tarihKaynak: kaynak, w: r.cv.width, h: r.cv.height, quad: q, blob: blob, url: URL.createObjectURL(blob), dx: 0, dy: 0 };
+      });
+    });
+  }
+  function ogImport(){
+    var files = Array.prototype.slice.call(document.getElementById('ogFiles').files || []);
+    if (!files.length){ showToast('Önce dosya seçin.'); return; }
+    var worlds = {}, imgs = [];
+    files.forEach(function(f){
+      var e = ogExt(f.name);
+      if (['jgw','jpw','pgw','pngw','wld','tfw'].indexOf(e) !== -1) worlds[ogBase(f.name)] = f; else imgs.push(f);
+    });
+    if (!imgs.length){ showToast('Görüntü dosyası (.tif/.jpg/.png) seçilmedi.'); return; }
+    var crs = document.getElementById('ogCrs').value, defDate = document.getElementById('ogDate').value || null;
+    showLoading('Ortofoto okunuyor…');
+    var ok = 0, errs = [];
+    imgs.reduce(function(chain, f){
+      return chain.then(function(){
+        var wf = worlds[ogBase(f.name)];
+        return (wf ? ogReadWorld(wf) : Promise.resolve(null)).then(function(w){ return ogImportOne(f, w, crs, defDate); })
+          .then(function(it){ ogItems.push(it); ok++; return ogDbPut(it); })
+          .catch(function(e){ errs.push(e.message || String(e)); });
+      });
+    }, Promise.resolve()).then(function(){
+      hideLoading();
+      ogSort(); ogRenderAll();
+      document.getElementById('ogFiles').value = '';
+      if (ok && ogItems.length){
+        var A = document.getElementById('ogA'), B = document.getElementById('ogB');
+        if (!A.value) A.value = ogItems[0].id;
+        if (!B.value || B.value === A.value) B.value = ogItems[ogItems.length - 1].id;
+        ogApply();
+        var it0 = ogItems[ogItems.length - 1], bb = OG.kutuKoselerden(ogQuad(it0));
+        map.fitBounds([[bb[0], bb[1]], [bb[2], bb[3]]], { padding:40, duration:0 });
+      }
+      showToast(ok + ' görüntü eklendi' + (errs.length ? ' · ' + errs.length + ' hata: ' + errs[0] : '') + '.');
+      if (errs.length) console.warn('Ortofoto hataları:', errs);
+    });
+  }
+
+  // ----- harita katmanları -----
+  function ogEnsureLayers(){
+    ogItems.forEach(function(it){
+      var sid = 'og-src-' + it.id, lid = 'og-img-' + it.id;
+      if (!map.getSource(sid)) map.addSource(sid, { type:'image', url: it.url, coordinates: ogQuad(it) });
+      if (!map.getLayer(lid)) map.addLayer({ id: lid, type:'raster', source: sid, layout:{ visibility:'none' }, paint:{ 'raster-opacity': 1, 'raster-fade-duration': 0 } }, map.getLayer('hafriyat-grid') ? 'hafriyat-grid' : undefined);
+    });
+    if (ogDiff && !map.getSource('og-diff-src')) map.addSource('og-diff-src', { type:'image', url: ogDiff.url, coordinates: ogDiffCoords() });
+    if (ogDiff && !map.getLayer('og-diff-lyr')) map.addLayer({ id:'og-diff-lyr', type:'raster', source:'og-diff-src', layout:{ visibility:'none' }, paint:{ 'raster-opacity':1, 'raster-fade-duration':0, 'raster-resampling':'nearest' } });
+  }
+  function ogDiffCoords(){ var k = ogDiff.kutu; return [[k[0], k[3]], [k[2], k[3]], [k[2], k[1]], [k[0], k[1]]]; }
+  function ogSetVis(lid, vis, op){
+    if (!map.getLayer(lid)) return;
+    map.setLayoutProperty(lid, 'visibility', vis ? 'visible' : 'none');
+    if (vis && op !== undefined) map.setPaintProperty(lid, 'raster-opacity', op);
+  }
+  function ogRedraw(){
+    if (!map || !map.getStyle || !ogItems.length) return;
+    // stil değişiminde kaynak/katmanlar silinir; image kaynağı geri eklenir
+    ogEnsureLayers(); ogApply();
+  }
+  function ogSwipeInit(){
+    if (ogSwipeMap) return;
+    ogSwipeEl = document.createElement('div');
+    ogSwipeEl.style.cssText = 'position:absolute;inset:0;z-index:1;pointer-events:none;display:none;';
+    var inner = document.createElement('div');
+    inner.style.cssText = 'position:absolute;inset:0;';
+    ogSwipeEl.appendChild(inner);
+    var handle = document.createElement('div');
+    handle.id = 'ogSwipeHandle';
+    handle.style.cssText = 'position:absolute;top:0;bottom:0;width:14px;margin-left:-7px;cursor:ew-resize;pointer-events:auto;display:flex;justify-content:center;';
+    handle.innerHTML = '<div style="width:3px;height:100%;background:#fff;box-shadow:0 0 4px rgba(0,0,0,.6);"></div>';
+    ogSwipeEl.appendChild(handle);
+    map.getContainer().appendChild(ogSwipeEl);
+    ogSwipeMap = new maplibregl.Map({ container: inner, style:{ version:8, sources:{}, layers:[] }, interactive:false, attributionControl:false, center: map.getCenter(), zoom: map.getZoom(), bearing: map.getBearing(), pitch: map.getPitch(), fadeDuration:0 });
+    function sync(){ ogSwipeMap.jumpTo({ center: map.getCenter(), zoom: map.getZoom(), bearing: map.getBearing(), pitch: map.getPitch() }); }
+    map.on('move', sync); map.on('resize', function(){ ogSwipeMap.resize(); sync(); });
+    var drag = false;
+    handle.addEventListener('pointerdown', function(e){ drag = true; handle.setPointerCapture(e.pointerId); e.preventDefault(); });
+    handle.addEventListener('pointermove', function(e){
+      if (!drag) return;
+      var r = map.getContainer().getBoundingClientRect();
+      document.getElementById('ogSwipe').value = Math.max(0, Math.min(100, (e.clientX - r.left) / r.width * 100));
+      ogSwipePos();
+    });
+    handle.addEventListener('pointerup', function(){ drag = false; });
+  }
+  function ogSwipePos(){
+    if (!ogSwipeEl) return;
+    var p = parseFloat(document.getElementById('ogSwipe').value) || 0;
+    ogSwipeEl.firstChild.style.clipPath = 'inset(0 0 0 ' + p + '%)';
+    document.getElementById('ogSwipeHandle').style.left = p + '%';
+  }
+  function ogSwipeSet(it){
+    if (!ogSwipeMap) return;
+    function put(){
+      ['og-sw'].forEach(function(id){ if (ogSwipeMap.getLayer(id)) ogSwipeMap.removeLayer(id); if (ogSwipeMap.getSource(id)) ogSwipeMap.removeSource(id); });
+      if (!it) return;
+      ogSwipeMap.addSource('og-sw', { type:'image', url: it.url, coordinates: ogQuad(it) });
+      ogSwipeMap.addLayer({ id:'og-sw', type:'raster', source:'og-sw', paint:{ 'raster-fade-duration':0 } });
+    }
+    if (ogSwipeMap.isStyleLoaded()) put(); else ogSwipeMap.once('load', put);
+  }
+  function ogApply(){
+    if (!map.getStyle) return;
+    var mode = document.getElementById('ogMode').value;
+    var a = ogById(document.getElementById('ogA').value), b = ogById(document.getElementById('ogB').value);
+    document.getElementById('ogSwipeRow').style.display = mode === 'kaydir' ? '' : 'none';
+    document.getElementById('ogOpacityRow').style.display = mode === 'saydam' ? '' : 'none';
+    document.getElementById('ogDiffRow').style.display = mode === 'degisim' ? '' : 'none';
+    ogItems.forEach(function(it){ ogSetVis('og-img-' + it.id, false); });
+    ogSetVis('og-diff-lyr', false);
+    if (a && (mode !== 'saydam' || b)) ogSetVis('og-img-' + a.id, true, 1);
+    if (mode === 'saydam' && b){ ogSetVis('og-img-' + b.id, true, (parseFloat(document.getElementById('ogOpacity').value) || 0) / 100); }
+    if (mode === 'degisim' && ogDiff && a && b && ogDiff.a === a.id && ogDiff.b === b.id) ogSetVis('og-diff-lyr', true, 1);
+    if (mode === 'kaydir' && b){ ogSwipeInit(); ogSwipeEl.style.display = ''; ogSwipeSet(b); ogSwipePos(); }
+    else if (ogSwipeEl){ ogSwipeEl.style.display = 'none'; }
+    ['og-diff-lyr'].forEach(function(id){ if (map.getLayer(id)) map.moveLayer(id); });
+  }
+
+  // ----- değişim tespiti -----
+  function ogGridCanvas(it, bitmap, kutu, gW, gH){
+    var cv = document.createElement('canvas'); cv.width = gW; cv.height = gH;
+    var ctx = cv.getContext('2d', { willReadFrequently:true });
+    var m = OG.afinKaynaktanIzgaraya(ogQuad(it), bitmap.width, bitmap.height, kutu, gW, gH);
+    ctx.imageSmoothingEnabled = true; ctx.setTransform(m[0], m[1], m[2], m[3], m[4], m[5]); ctx.drawImage(bitmap, 0, 0);
+    return ctx.getImageData(0, 0, gW, gH);
+  }
+  function ogRunDiff(){
+    var a = ogById(document.getElementById('ogA').value), b = ogById(document.getElementById('ogB').value);
+    if (!a || !b || a.id === b.id){ showToast('Farklı iki görüntü (A ve B) seçin.'); return; }
+    if (a.tarih > b.tarih) showToast('Uyarı: A, B\'den yeni tarihli — A eski, B yeni olmalı.');
+    var ka = OG.kutuKoselerden(ogQuad(a)), kb = OG.kutuKoselerden(ogQuad(b)), kutu = OG.kutuKesisimi(ka, kb);
+    if (!kutu){ showToast('Görüntülerin ortak alanı yok.'); return; }
+    var esik = parseFloat(document.getElementById('ogEsik').value) || 0.12, minAlan = parseFloat(document.getElementById('ogMinAlan').value) || 20;
+    var dm = OG.dereceMetre((kutu[1] + kutu[3]) / 2), wm = (kutu[2] - kutu[0]) * dm.lng, hm = (kutu[3] - kutu[1]) * dm.lat;
+    var gW, gH;
+    if (wm >= hm){ gW = 1400; gH = Math.max(16, Math.round(1400 * hm / wm)); } else { gH = 1400; gW = Math.max(16, Math.round(1400 * wm / hm)); }
+    var hucreM2 = (wm / gW) * (hm / gH);
+    showLoading('Değişim hesaplanıyor…');
+    Promise.all([createImageBitmap(a.blob), createImageBitmap(b.blob)]).then(function(bm){
+      var A = ogGridCanvas(a, bm[0], kutu, gW, gH), B = ogGridCanvas(b, bm[1], kutu, gW, gH);
+      var fd = OG.farkHesapla(A, B, { normalize:true, blur:true });
+      if (!fd.gecerliPiksel) throw new Error('Ortak alanda geçerli piksel yok.');
+      var sonuc = OG.esikUygula(fd, esik, Math.max(1, Math.round(minAlan / hucreM2)));
+      var cv = document.createElement('canvas'); cv.width = gW; cv.height = gH;
+      cv.getContext('2d').putImageData(new ImageData(OG.degisimRGBA(fd, sonuc.maske, esik), gW, gH), 0, 0);
+      return ogCanvasToBlob(cv).then(function(blob){
+        if (ogDiff && ogDiff.url) URL.revokeObjectURL(ogDiff.url);
+        if (map.getLayer('og-diff-lyr')) map.removeLayer('og-diff-lyr');
+        if (map.getSource('og-diff-src')) map.removeSource('og-diff-src');
+        var px2ll = function(x, y){ return [kutu[0] + x / gW * (kutu[2] - kutu[0]), kutu[3] - y / gH * (kutu[3] - kutu[1])]; };
+        ogDiff = { a: a.id, b: b.id, kutu: kutu, gW: gW, gH: gH, esik: esik, url: URL.createObjectURL(blob),
+          stats: { gecerliM2: fd.gecerliPiksel * hucreM2, degisenM2: sonuc.degisenPiksel * hucreM2, kume: sonuc.kumeler.length, norm: fd.normalizasyon, hucreM2: hucreM2 },
+          kumeler: sonuc.kumeler.slice(0, 200).map(function(k){
+            var p0 = px2ll(k.kutu[0], k.kutu[3] + 1), p1 = px2ll(k.kutu[2] + 1, k.kutu[1]);
+            return { piksel: k.piksel, alanM2: k.piksel * hucreM2, kutu: [p0[0], p0[1], p1[0], p1[1]] };
+          }) };
+        ogEnsureLayers(); ogApply(); ogRenderDiff();
+      });
+    }).then(function(){ hideLoading(); }).catch(function(e){ hideLoading(); showToast('Değişim hesabı başarısız: ' + (e.message || e)); });
+  }
+  function ogFmt(v, n){ return Number(v).toLocaleString('tr-TR', { minimumFractionDigits:n, maximumFractionDigits:n }); }
+  function ogRenderDiff(){
+    var st = document.getElementById('ogStats'), cl = document.getElementById('ogClusters');
+    if (!ogDiff){ st.innerHTML = ''; cl.innerHTML = ''; return; }
+    var s = ogDiff.stats, a = ogById(ogDiff.a), b = ogById(ogDiff.b);
+    st.innerHTML = '<div class="pf-kpi"><b>' + ogFmt(s.degisenM2, 0) + ' m²</b><span>değişen alan (' + ogFmt(s.degisenM2 / s.gecerliM2 * 100, 1) + '%)</span></div>' +
+      '<div class="pf-kpi"><b>' + s.kume + '</b><span>bölge</span></div>' +
+      '<div class="pf-kpi"><b>' + ogFmt(Math.sqrt(s.hucreM2), 2) + ' m</b><span>hücre boyu</span></div>';
+    cl.innerHTML = ogDiff.kumeler.slice(0, 30).map(function(k, i){
+      return '<div class="bm-row" data-og-k="' + i + '"><span>#' + (i + 1) + ' · ' + ogFmt(k.alanM2, 0) + ' m²</span><span style="opacity:.7;">' + santiyeEsc(a ? a.tarih : '') + ' → ' + santiyeEsc(b ? b.tarih : '') + '</span></div>';
+    }).join('') + (ogDiff.kumeler.length > 30 ? '<div class="mj-info" style="margin:0;">İlk 30 bölge listelendi (GeoJSON hepsini içerir).</div>' : '');
+    Array.prototype.forEach.call(cl.querySelectorAll('[data-og-k]'), function(el){
+      el.addEventListener('click', function(){ var k = ogDiff.kumeler[+el.getAttribute('data-og-k')].kutu; map.fitBounds([[k[0], k[1]], [k[2], k[3]]], { padding:80, maxZoom:20, duration:400 }); });
+    });
+  }
+  function ogDiffGeoJSON(){
+    if (!ogDiff){ showToast('Önce değişimi hesaplayın.'); return; }
+    var a = ogById(ogDiff.a), b = ogById(ogDiff.b);
+    var fcc = fc(ogDiff.kumeler.map(function(k, i){
+      var w = k.kutu;
+      return { type:'Feature', properties:{ no:i + 1, alan_m2:Math.round(k.alanM2 * 10) / 10, eski:a && a.tarih, yeni:b && b.tarih, not:'inceleme adayı (bbox)' },
+        geometry:{ type:'Polygon', coordinates:[[[w[0], w[1]], [w[2], w[1]], [w[2], w[3]], [w[0], w[3]], [w[0], w[1]]]] } };
+    }));
+    downloadBlob(new Blob([JSON.stringify(fcc)], { type:'application/geo+json' }), 'ortofoto-degisim.geojson');
+  }
+
+  // ----- arayüz -----
+  function ogRenderAll(){
+    var list = document.getElementById('ogList'), sa = document.getElementById('ogA'), sb = document.getElementById('ogB');
+    var va = sa.value, vb = sb.value;
+    var opts = ogItems.map(function(it){ return '<option value="' + it.id + '">' + santiyeEsc(it.tarih) + ' · ' + santiyeEsc(it.ad) + '</option>'; }).join('');
+    sa.innerHTML = opts; sb.innerHTML = opts;
+    if (ogById(va)) sa.value = va; if (ogById(vb)) sb.value = vb;
+    list.innerHTML = ogItems.length ? ogItems.map(function(it){
+      return '<div class="bm-row" style="flex-wrap:wrap;gap:4px;"><span style="flex:1;min-width:120px;"><b>' + santiyeEsc(it.tarih) + '</b> · ' + santiyeEsc(it.ad) +
+        '<br><span style="opacity:.65;font-size:11px;">tarih: ' + santiyeEsc(it.tarihKaynak || '') + ' · ' + it.w + '×' + it.h + ' px</span></span>' +
+        '<input type="date" class="san-input" style="width:128px;" data-og-date="' + it.id + '" value="' + it.tarih + '">' +
+        '<input type="number" class="san-input" style="width:74px;" title="Doğu öteleme (m)" placeholder="Doğu m" data-og-dx="' + it.id + '" value="' + it.dx + '" step="0.1">' +
+        '<input type="number" class="san-input" style="width:74px;" title="Kuzey öteleme (m)" placeholder="Kuzey m" data-og-dy="' + it.id + '" value="' + it.dy + '" step="0.1">' +
+        '<span class="btn" data-og-go="' + it.id + '">⌖</span><span class="btn" data-og-del="' + it.id + '">✕</span></div>';
+    }).join('') : '<div class="mj-info" style="margin:0;">Henüz görüntü yok.</div>';
+    function q(attr, fn){ Array.prototype.forEach.call(list.querySelectorAll('[' + attr + ']'), function(el){ fn(el, ogById(el.getAttribute(attr))); }); }
+    q('data-og-date', function(el, it){ el.addEventListener('change', function(){ if (!el.value) return; it.tarih = el.value; it.tarihKaynak = 'elle'; ogDbPut(it); ogSort(); ogRenderAll(); }); });
+    function shiftChange(it){ it.dx = parseFloat(list.querySelector('[data-og-dx="' + it.id + '"]').value) || 0; it.dy = parseFloat(list.querySelector('[data-og-dy="' + it.id + '"]').value) || 0;
+      var s = map.getSource('og-src-' + it.id); if (s && s.setCoordinates) s.setCoordinates(ogQuad(it)); ogDbPut(it);
+      if (ogSwipeMap && ogSwipeMap.getSource('og-sw') && ogById(document.getElementById('ogB').value) === it) ogSwipeMap.getSource('og-sw').setCoordinates(ogQuad(it));
+      if (ogDiff && (ogDiff.a === it.id || ogDiff.b === it.id)){ ogDiff = null; ogRenderDiff(); ogApply(); showToast('Öteleme değişti — değişimi yeniden hesaplayın.'); } }
+    q('data-og-dx', function(el, it){ el.addEventListener('change', function(){ shiftChange(it); }); });
+    q('data-og-dy', function(el, it){ el.addEventListener('change', function(){ shiftChange(it); }); });
+    q('data-og-go', function(el, it){ el.addEventListener('click', function(){ var bb = OG.kutuKoselerden(ogQuad(it)); map.fitBounds([[bb[0], bb[1]], [bb[2], bb[3]]], { padding:40, duration:400 }); }); });
+    q('data-og-del', function(el, it){ el.addEventListener('click', function(){
+      if (!confirm('"' + it.ad + '" silinsin mi?')) return;
+      if (map.getLayer('og-img-' + it.id)) map.removeLayer('og-img-' + it.id);
+      if (map.getSource('og-src-' + it.id)) map.removeSource('og-src-' + it.id);
+      URL.revokeObjectURL(it.url); ogItems = ogItems.filter(function(x){ return x !== it; }); ogDbDelete(it);
+      if (ogDiff && (ogDiff.a === it.id || ogDiff.b === it.id)){ ogDiff = null; ogRenderDiff(); }
+      ogRenderAll(); ogApply();
+    }); });
+    ogEnsureLayers();
+  }
+  document.getElementById('ogBtnImport').addEventListener('click', ogImport);
+  ['ogA', 'ogB', 'ogMode'].forEach(function(id){ document.getElementById(id).addEventListener('change', ogApply); });
+  document.getElementById('ogOpacity').addEventListener('input', ogApply);
+  document.getElementById('ogSwipe').addEventListener('input', ogSwipePos);
+  document.getElementById('ogBtnDiff').addEventListener('click', ogRunDiff);
+  document.getElementById('ogBtnGeo').addEventListener('click', ogDiffGeoJSON);
+  document.getElementById('ogBtnClear').addEventListener('click', function(){
+    ogDiff = null; if (map.getLayer('og-diff-lyr')) map.removeLayer('og-diff-lyr'); if (map.getSource('og-diff-src')) map.removeSource('og-diff-src'); ogRenderDiff();
+  });
+  // Uçtan uca testler ve konsol incelemesi için salt-okunur erişim
+  window.__odaOg = { items: function(){ return ogItems; }, diff: function(){ return ogDiff; }, swipeMap: function(){ return ogSwipeMap; }, swipeEl: function(){ return ogSwipeEl; }, apply: ogApply, quad: ogQuad };
+  function ogOpenTab(){ if (!ogItems.length) ogLoadStored(); ogRenderAll(); ogApply(); }
+  // Proje değişince (project-meta) o projenin görüntülerini yükle
+  function ogProjectChanged(){
+    ogItems.forEach(function(it){
+      if (map.getLayer('og-img-' + it.id)) map.removeLayer('og-img-' + it.id);
+      if (map.getSource('og-src-' + it.id)) map.removeSource('og-src-' + it.id);
+      URL.revokeObjectURL(it.url);
+    });
+    ogItems = []; ogDiff = null; ogRenderAll(); ogRenderDiff(); ogLoadStored();
+  }
+  ogRenderAll();
+
 
   // ---------------------------------------------------------------------
   // 4D İŞ PROGRAMI — alt çubuktaki mevcut 4D kaydırıcısına GERÇEK kaynak.
@@ -9771,7 +10225,7 @@
   // Modül navigasyonu (Sorgu/Harita/Analiz/Editör/Rapor/Çıktı)
   // ---------------------------------------------------------------------
   var activeModule = 'harita';
-  var moduleTitles = { sorgu:'Sorgu', harita:'Harita', analiz:'Analiz', editor:'Editör', saha:'Saha', santiye:'Şantiye', yerimi:'Yer İmleri', gecmis:'Değişiklik Geçmişi', portfoy:'Portföy Haritası', fourd:'4D İş Programı', hafriyat:'Hafriyat (Kazı–Dolgu)', cikti:'Çıktı' };
+  var moduleTitles = { sorgu:'Sorgu', harita:'Harita', analiz:'Analiz', editor:'Editör', saha:'Saha', santiye:'Şantiye', yerimi:'Yer İmleri', gecmis:'Değişiklik Geçmişi', portfoy:'Portföy Haritası', fourd:'4D İş Programı', hafriyat:'Hafriyat (Kazı–Dolgu)', ortofoto:'Ortofoto Zaman Serisi', cikti:'Çıktı' };
   var moduleButtons = Array.prototype.slice.call(document.querySelectorAll('.mod-btn[data-module]'));
   function setModule(key){
     activeModule = key;
@@ -9787,6 +10241,7 @@
     if (key !== 'santiye' && typeof santiyeCancelPlacement === 'function') santiyeCancelPlacement();
     if (typeof portfoyToggle === 'function') portfoyToggle(key === 'portfoy');
     if (key === 'hafriyat' && typeof hfOpenTab === 'function') hfOpenTab();
+    if (key === 'ortofoto' && typeof ogOpenTab === 'function') ogOpenTab();
     if (key === 'fourd' && typeof fdOpenTab === 'function') fdOpenTab();
     else if (typeof fdPickMode !== 'undefined' && fdPickMode && typeof fdSetPickMode === 'function') fdSetPickMode(false);
     if (key === 'gecmis' && typeof historyRequest === 'function') historyRequest();
@@ -12180,6 +12635,7 @@
       if (typeof renderPersistedMeasurements === 'function') renderPersistedMeasurements();
       if (typeof santiyeRedraw === 'function') santiyeRedraw();
       if (typeof hfRedraw === 'function') hfRedraw();
+      if (typeof ogRedraw === 'function') ogRedraw();
       rasterOverlays.forEach(function(r){ addRasterLayer(r.id, r.url, r.coords); });
     }
     // map.setStyle() hem bir stil URL'sini (OpenFreeMap) hem de doğrudan bir
