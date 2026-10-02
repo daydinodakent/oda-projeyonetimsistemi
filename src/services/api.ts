@@ -13,6 +13,7 @@ import {
   WbsGorevRecord,
   DokumanRecord,
   SahaFotografRecord,
+  HaritaYerImiRecord,
   VarlikRecord,
   BakimKaydiRecord,
   BildirimRecord,
@@ -1082,6 +1083,47 @@ export async function deleteSahaFotografi(id: number | string): Promise<boolean>
 export async function updateSahaFotografi(id: number | string, patch: Partial<SahaFotografRecord>): Promise<SahaFotografRecord> {
   await ensureSeeded('tb_saha_fotograflari', []);
   return apiUpdate<SahaFotografRecord>('tb_saha_fotograflari', id, patch);
+}
+
+// 11d. TABLO ADI (tb_harita_yer_imleri) — bkz. HaritaYerImiRecord. Geometrisiz,
+// proje bazlı paylaşılan harita görünümleri.
+export async function getHaritaYerImleri(projectId?: string): Promise<HaritaYerImiRecord[]> {
+  await ensureSeeded('tb_harita_yer_imleri', []);
+  const all = await apiList<HaritaYerImiRecord>('tb_harita_yer_imleri');
+  return all
+    .filter((r) => r.row_status !== 0 && (!projectId || r.project_id === projectId))
+    .sort((a, b) => String(b.create_date || '').localeCompare(String(a.create_date || '')));
+}
+export async function createHaritaYerImi(item: Partial<HaritaYerImiRecord>): Promise<HaritaYerImiRecord> {
+  await ensureSeeded('tb_harita_yer_imleri', []);
+  const now = new Date().toISOString();
+  const newItem: HaritaYerImiRecord = {
+    id: item.id || `yerimi-${Date.now()}`,
+    notes: item.notes || null,
+    row_status: 1,
+    create_uid: 1,
+    create_date: now,
+    write_uid: 1,
+    write_date: now,
+    project_id: item.project_id || 'IGA-ETAP-1',
+    name: item.name || 'Yer imi',
+    center: item.center as [number, number],
+    zoom: item.zoom ?? 15,
+    bearing: item.bearing ?? 0,
+    pitch: item.pitch ?? 0,
+    style_id: item.style_id ?? null,
+    layer_state: item.layer_state ?? null,
+    santiye: item.santiye ?? null
+  };
+  return apiCreate('tb_harita_yer_imleri', newItem);
+}
+export async function updateHaritaYerImi(id: number | string, patch: Partial<HaritaYerImiRecord>): Promise<HaritaYerImiRecord> {
+  await ensureSeeded('tb_harita_yer_imleri', []);
+  return apiUpdate<HaritaYerImiRecord>('tb_harita_yer_imleri', id, { ...patch, write_date: new Date().toISOString() });
+}
+export async function deleteHaritaYerImi(id: number | string): Promise<boolean> {
+  await ensureSeeded('tb_harita_yer_imleri', []);
+  return apiSoftDelete('tb_harita_yer_imleri', id);
 }
 
 // 12. TABLO ADI (tb_varliklar)

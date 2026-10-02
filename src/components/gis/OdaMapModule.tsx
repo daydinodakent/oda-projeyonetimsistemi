@@ -117,6 +117,17 @@ async function sendSantiyeOptionsToIframe(iframeWindow: Window, projectId?: stri
   iframeWindow.postMessage({ type: 'oda:santiye-options', sorumlular }, '*');
 }
 
+// Harita > Yer İmi: aktif projenin kayıtlı görünümlerini iframe'e gönderir.
+async function sendBookmarksToIframe(iframeWindow: Window, projectId?: string) {
+  if (!projectId) { iframeWindow.postMessage({ type: 'oda:bookmarks-updated', bookmarks: [] }, '*'); return; }
+  try {
+    const bookmarks = await api.getHaritaYerImleri(projectId);
+    iframeWindow.postMessage({ type: 'oda:bookmarks-updated', bookmarks }, '*');
+  } catch (err) {
+    console.error('Yer imleri haritaya gönderilemedi:', err);
+  }
+}
+
 // Harita > Ölçüm > "Metraja aktar": aktif projedeki taşeron ekipleri ve her
 // ekibin sözleşme kalemleri (birim + sözleşme miktarı) iframe'e gönderilir.
 // Liste, pencere her açıldığında yeniden istenir (güncel kalsın diye).
@@ -604,6 +615,46 @@ const OdaMapModule: React.FC<OdaMapModuleProps> = ({ activeProjectId }) => {
       }
     };
 
+    // Harita > Yer İmi: kaydet / yeniden adlandır / sil. Kayıt proje bazlıdır ve
+    // o projeyi açan herkesle paylaşılır; yalnızca bilinen alanlar kaydedilir.
+    const handleBookmarkOp = async (event: MessageEvent) => {
+      const iframeWindow = iframeRef.current?.contentWindow;
+      if (!iframeWindow || event.source !== iframeWindow) return;
+      const msg = event.data;
+      if (!msg || typeof msg.type !== 'string' || !msg.type.startsWith('oda:bookmark-')) return;
+      const reply = (ok: boolean, error?: string) => iframeWindow.postMessage({ type: 'oda:bookmark-result', op: msg.type, ok, error }, '*');
+      const projeId = activeProjectIdRef.current;
+      try {
+        if (!projeId) throw new Error('Önce üst panelden bir proje seçin.');
+        const name = String(msg.name || '').trim().slice(0, 60);
+        if (msg.type === 'oda:bookmark-save') {
+          const c = msg.view?.center;
+          if (!name) throw new Error('Yer imi adı zorunludur.');
+          if (!Array.isArray(c) || !Number.isFinite(Number(c[0])) || !Number.isFinite(Number(c[1]))) throw new Error('Geçersiz harita görünümü.');
+          await api.createHaritaYerImi({
+            project_id: projeId, name,
+            center: [Number(c[0]), Number(c[1])],
+            zoom: Number(msg.view.zoom), bearing: Number(msg.view.bearing) || 0, pitch: Number(msg.view.pitch) || 0,
+            style_id: msg.styleId ? String(msg.styleId) : null,
+            layer_state: msg.layerState && typeof msg.layerState === 'object' ? msg.layerState : null,
+            santiye: msg.santiye && typeof msg.santiye === 'object' ? msg.santiye : null,
+          });
+        } else if (msg.type === 'oda:bookmark-rename') {
+          if (!msg.id || !name) throw new Error('Yeni ad zorunludur.');
+          await api.updateHaritaYerImi(msg.id, { name });
+        } else if (msg.type === 'oda:bookmark-delete') {
+          if (!msg.id) throw new Error('Geçersiz yer imi.');
+          await api.deleteHaritaYerImi(msg.id);
+        } else {
+          return;
+        }
+        reply(true);
+        await sendBookmarksToIframe(iframeWindow, projeId);
+      } catch (err) {
+        reply(false, err instanceof Error ? err.message : String(err));
+      }
+    };
+
     window.addEventListener('message', handleReady);
     window.addEventListener('message', handleAddDocuments);
     window.addEventListener('message', handleUpdateDbFeature);
@@ -614,6 +665,7 @@ const OdaMapModule: React.FC<OdaMapModuleProps> = ({ activeProjectId }) => {
     window.addEventListener('message', handleSantiyeAction);
     window.addEventListener('message', handleMetrajOptionsRequest);
     window.addEventListener('message', handleMetrajCreate);
+    window.addEventListener('message', handleBookmarkOp);
     return () => {
       window.removeEventListener('message', handleReady);
       window.removeEventListener('message', handleAddDocuments);
@@ -625,6 +677,7 @@ const OdaMapModule: React.FC<OdaMapModuleProps> = ({ activeProjectId }) => {
       window.removeEventListener('message', handleSantiyeAction);
       window.removeEventListener('message', handleMetrajOptionsRequest);
       window.removeEventListener('message', handleMetrajCreate);
+      window.removeEventListener('message', handleBookmarkOp);
     };
   }, []);
 
@@ -638,6 +691,12 @@ const OdaMapModule: React.FC<OdaMapModuleProps> = ({ activeProjectId }) => {
     sendSahaPhotosToIframe(iframeWindow, activeProjectId);
     sendSantiyeToIframe(iframeWindow, activeProjectId);
     sendSantiyeOptionsToIframe(iframeWindow, activeProjectId);
+    sendBookmarksToIframe(iframeWindow, activeProjectId);
+    // Pafta/yazdırma başlık bloğu için proje adı
+    api.getProjeler().then((rows) => {
+      const pr = rows.find((r) => r.id === activeProjectId);
+      iframeWindow.postMessage({ type: 'oda:project-meta', projectId: activeProjectId, projectName: pr?.name || '' }, '*');
+    }).catch(() => { /* proje adı yoksa başlık bloğu boş bırakılır */ });
   }, [activeProjectId, iframeReady]);
 
   useEffect(() => {

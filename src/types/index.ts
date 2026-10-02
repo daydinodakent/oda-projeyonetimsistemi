@@ -211,6 +211,21 @@ export interface DokumanRecord extends BaseEntity {
 // olarak saklanır (bkz. server/db.js SPATIAL_TABLES) — böylece .gpkg dosyası
 // QGIS gibi bir GIS aracında açıldığında bu fotoğraflar da gerçek bir
 // coğrafi katman olarak görünür.
+// Harita > Yer İmi: proje bazlı, paylaşılan kayıtlı harita görünümü (merkez/zoom/
+// yön/eğim + altlık + katman görünürlüğü + şantiye katmanı/filtre durumu).
+// Geometrisi olmayan sade bir tablodur (generic "records" deposu).
+export interface HaritaYerImiRecord extends BaseEntity {
+  project_id: string;
+  name: string;
+  center: [number, number];
+  zoom: number;
+  bearing: number;
+  pitch: number;
+  style_id?: string | null;
+  layer_state?: Record<string, boolean> | null;
+  santiye?: { katman?: Record<string, boolean>; durum?: string; gun?: string } | null;
+}
+
 export interface SahaFotografRecord extends BaseEntity {
   project_id: string;
   name: string;
