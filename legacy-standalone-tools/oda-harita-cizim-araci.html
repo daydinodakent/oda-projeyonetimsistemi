@@ -886,6 +886,22 @@
   .btn.primary:hover{color:#fff;}
   .btn.primary.danger{background:rgba(224,104,90,.15);border-color:var(--danger);color:var(--danger);}
   .btn.primary.danger:hover{background:var(--danger);color:#fff;}
+  /* GeoPDF dışa aktarma penceresi (bkz. #geoPdfModal, openGeoPdfModal). */
+  .geopdf-section-head{display:flex;align-items:center;justify-content:space-between;margin-top:12px;}
+  .geopdf-section-head:first-child{margin-top:0;}
+  .geopdf-toggle-all{font-size:10.5px;color:var(--teal);cursor:pointer;}
+  .geopdf-toggle-all:hover{text-decoration:underline;}
+  .geopdf-list{
+    margin-top:6px;max-height:170px;overflow-y:auto;border:1px solid var(--line);border-radius:2px;
+    background:var(--bg-panel-raise);padding:4px 0;
+  }
+  .geopdf-row{display:flex;align-items:center;gap:8px;padding:5px 10px;font-size:12px;color:var(--text);cursor:pointer;}
+  .geopdf-row:hover{background:rgba(255,255,255,.04);}
+  .geopdf-row input{margin:0;flex:0 0 auto;}
+  .geopdf-row-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .geopdf-row-meta{font-size:10.5px;color:var(--text-dim);flex:0 0 auto;}
+  .geopdf-row.disabled{opacity:.45;cursor:default;}
+  .geopdf-hint{font-size:10.5px;color:var(--text-dim);line-height:1.4;margin-top:5px;}
   /* ---------- Taslak çizim kontrolleri (mobil için) ---------- */
   #draftControls{
     position:absolute;left:50%;bottom:40px;transform:translate(-50%,8px);z-index:6;
@@ -1583,6 +1599,10 @@
               <div class="split-btn-menu-item" id="btnMapExport">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 15V3"/><path d="M7 8l5-5 5 5"/><path d="M4 21h16"/></svg>
                 <span>Export (GeoPackage)</span>
+              </div>
+              <div class="split-btn-menu-item" id="btnMapExportGeoPdf">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/><path d="M8 13h8M8 17h5"/></svg>
+                <span>Export (GeoPDF)</span>
               </div>
             </div>
           </div>
@@ -2306,6 +2326,59 @@
     <div class="modal-actions">
       <div class="btn" id="btnLayerModalCancel">Vazgeç</div>
       <div class="btn primary" id="btnLayerModalCreate">Oluştur</div>
+    </div>
+  </div>
+</div>
+
+<!-- GeoPDF dışa aktarma — CBS Haritası split-butonundaki "Export (GeoPDF)"
+     ile açılır (bkz. openGeoPdfModal / exportGeoPdf). Seçilen altlıklar
+     raster, aktif haritanın katmanları vektör olarak, her biri PDF'te ayrı
+     açılıp kapanabilen bir katman (OCG) halinde tek bir coğrafi PDF'e yazılır. -->
+<div class="modal-overlay" id="geoPdfModal">
+  <div class="modal-box tall" style="width:460px;max-width:calc(100vw - 40px);max-height:85vh;">
+    <div class="modal-header">
+      <div class="modal-title">GeoPDF Olarak Dışa Aktar</div>
+      <button type="button" class="modal-close-x" id="btnGeoPdfClose" title="Kapat">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="geopdf-section-head">
+        <span class="field-label" style="margin:0;">Altlıklar</span>
+        <span class="geopdf-toggle-all" data-target="geoPdfBasemapList">Tümü / Hiçbiri</span>
+      </div>
+      <div class="geopdf-list" id="geoPdfBasemapList"></div>
+      <div class="geopdf-hint">Her altlık PDF'te ayrı bir katman olur; aynı anda yalnızca biri görünür (şu anki altlık açık başlar).</div>
+
+      <div class="geopdf-section-head">
+        <span class="field-label" style="margin:0;">Katmanlar</span>
+        <span class="geopdf-toggle-all" data-target="geoPdfLayerList">Tümü / Hiçbiri</span>
+      </div>
+      <div class="geopdf-list" id="geoPdfLayerList"></div>
+      <div class="geopdf-hint">Haritada gizli olan katmanlar PDF'e eklenir ama kapalı başlar.</div>
+
+      <div style="display:flex;gap:10px;margin-top:12px;">
+        <label style="flex:1;">
+          <span class="field-label" style="margin-top:0;">Kapsam</span>
+          <select id="geoPdfExtent" class="native-select">
+            <option value="view">Mevcut görünüm</option>
+            <option value="data">Tüm seçili katmanlar</option>
+          </select>
+        </label>
+        <label style="flex:1;">
+          <span class="field-label" style="margin-top:0;">Çözünürlük</span>
+          <select id="geoPdfScale" class="native-select">
+            <option value="1">Standart</option>
+            <option value="2" selected>Yüksek (2×)</option>
+            <option value="3">Çok yüksek (3×)</option>
+          </select>
+        </label>
+      </div>
+      <div class="geopdf-hint">Harita kuzey yukarı ve eğimsiz (2B) olarak dışa aktarılır; 3B binalar/modeller taban izdüşümü olarak yer alır. Koordinat sistemi: Web Mercator (EPSG:3857).</div>
+    </div>
+    <div class="modal-actions">
+      <div class="btn" id="btnGeoPdfCancel">Vazgeç</div>
+      <div class="btn primary" id="btnGeoPdfExport">Dışa Aktar</div>
     </div>
   </div>
 </div>
@@ -8531,6 +8604,367 @@
     exportFeaturesAsGeoPackage(mapFeats, (activeMap && activeMap.name) || 'oda_tum_cizim');
   }
 
+  // =========================================================================
+  // "Export (GeoPDF)" — aktif CBS Haritasının katmanlarını (vektör) ve
+  // seçilen altlıkları (raster) TEK bir coğrafi referanslı PDF'e (ISO 32000
+  // GeoPDF) yazar. Tamamen TARAYICIDA çalışır, sunucuya veri gönderilmez:
+  //  1) Her altlık, ana haritayla AYNI boyutta, ekran dışı (off-screen) ve
+  //     kuzey-yukarı/eğimsiz BAĞIMSIZ bir MapLibre haritasında çizilip PNG
+  //     olarak alınır — ana haritanın kamerasına/katmanlarına DOKUNULMAZ,
+  //     kullanıcının çizimleri altlık görüntüsüne karışmaz (vektör olarak
+  //     ayrıca yazılır, PDF'te ayrı ayrı açılıp kapanabilsin diye).
+  //  2) PNG'ler GDAL (gdal3.js, bkz. ensureGdalReady — içe aktarma ile AYNI
+  //     tembel yüklenen WASM) ile EPSG:3857 GeoTIFF'e çevrilir.
+  //  3) Her katman ayrı bir GeoJSON'a, renk/kalınlık/kesik çizgi bilgisi
+  //     OGR_STYLE özniteliğine yazılır; hepsi tek bir OGR VRT veri kaynağında
+  //     birleştirilip PDF sürücüsünün OGR_DATASOURCE seçeneğine verilir.
+  //  4) PDF sürücüsü: ilk altlık ana raster, diğerleri EXTRA_RASTERS; altlıklar
+  //     EXCLUSIVE_LAYERS (aynı anda tek biri açık), haritada gizli katmanlar
+  //     ve şu an seçili olmayan altlıklar OFF_LAYERS (kapalı başlar).
+  // =========================================================================
+  var GEOPDF_BLANK_STYLE = {
+    version: 8, sources: {},
+    layers: [{ id:'geopdf-bg', type:'background', paint:{ 'background-color':'#ffffff' } }]
+  };
+
+  function geoPdfLayerFeatures(layerId){
+    return features.filter(function(f){ return f.properties && f.properties.layerId === layerId && f.geometry; });
+  }
+
+  function openGeoPdfModal(){
+    var bmList = document.getElementById('geoPdfBasemapList');
+    bmList.innerHTML = '';
+    STYLES.forEach(function(s){
+      var row = document.createElement('label');
+      row.className = 'geopdf-row';
+      row.innerHTML = '<input type="checkbox" checked data-style-id="' + escapeAttrHtml(s.id) + '">' +
+        '<span class="geopdf-row-name"></span>' +
+        (s.id === currentStyleId ? '<span class="geopdf-row-meta">şu anki</span>' : '');
+      row.querySelector('.geopdf-row-name').textContent = s.label;
+      bmList.appendChild(row);
+    });
+
+    var lyList = document.getElementById('geoPdfLayerList');
+    lyList.innerHTML = '';
+    var mapLayers = layers.filter(function(l){ return l.mapId === activeMapId && l.id !== MEASURE_LAYER_ID; });
+    if (!mapLayers.length){
+      lyList.innerHTML = '<div class="geopdf-row disabled">Bu haritada katman yok.</div>';
+    }
+    mapLayers.forEach(function(l){
+      var count = geoPdfLayerFeatures(l.id).length;
+      var row = document.createElement('label');
+      row.className = 'geopdf-row' + (count ? '' : ' disabled');
+      row.innerHTML = '<input type="checkbox" ' + (count ? 'checked' : 'disabled') + ' data-layer-id="' + escapeAttrHtml(l.id) + '">' +
+        '<span class="geopdf-row-name"></span>' +
+        '<span class="geopdf-row-meta">' + count + (l.visible === false ? ' · gizli' : '') + '</span>';
+      row.querySelector('.geopdf-row-name').textContent = l.name;
+      lyList.appendChild(row);
+    });
+    document.getElementById('geoPdfModal').classList.add('show');
+  }
+
+  // "#rgb" / "#rrggbb" → "#RRGGBB"; tanınmayan değerler için fallback.
+  function geoPdfHex(color, fallback){
+    var c = String(color || '').trim();
+    var m3 = /^#([0-9a-f])([0-9a-f])([0-9a-f])$/i.exec(c);
+    if (m3) return ('#' + m3[1] + m3[1] + m3[2] + m3[2] + m3[3] + m3[3]).toUpperCase();
+    if (/^#[0-9a-f]{6}$/i.test(c)) return c.toUpperCase();
+    if (/^#[0-9a-f]{8}$/i.test(c)) return c.slice(0, 7).toUpperCase();
+    return fallback;
+  }
+
+  // Haritadaki çizim kurallarıyla (bkz. ensureLayer 'poly-fill'/'line-layer-*'/
+  // 'point-layer' ve visibleFeaturesForRender) AYNI renk/kalınlık seçimini
+  // OGR stil dizesine (PEN/BRUSH/SYMBOL) çevirir — PDF sürücüsü her objeyi
+  // bu dizeye göre çizer (OGR_STYLE özniteliği, OGRFeature::GetStyleString).
+  function geoPdfStyleString(f, lyr){
+    var p = f.properties || {};
+    var color = (lyr && lyr.color) || null;
+    if (p.line_color) color = p.line_color;
+    var dash = (lyr && lyr.dash) || 'solid';
+    var pattern = dash === 'dashed' ? ',p:"6px 4px"' : dash === 'dotted' ? ',p:"1px 3px"' : '';
+    var t = f.geometry.type;
+    if (t === 'Point' || t === 'MultiPoint'){
+      return 'SYMBOL(id:ogr-sym-3,c:' + geoPdfHex(color, '#3FC2AC') + ',s:' + (1.4 * ((lyr && lyr.scale) || 1)).toFixed(2) + ')';
+    }
+    if (t === 'LineString' || t === 'MultiLineString'){
+      return 'PEN(c:' + geoPdfHex(color, '#12D16F') + ',w:' + ((lyr && lyr.lineWidth) || 3) + 'px' + pattern + ')';
+    }
+    var fill;
+    if (p.extrude){
+      var progress = getEffectiveProgress(f);
+      fill = geoPdfHex((progress >= 100) ? EXTRUSION_PROGRESS_COLOR : extrusionStatusColor(p.veri_durumu), '#EEF29C');
+    } else {
+      fill = geoPdfHex((lyr && (lyr.fillColor || lyr.color)) || null, '#EEF29C');
+    }
+    return 'BRUSH(fc:' + fill + '8C);PEN(c:' + geoPdfHex(color, '#E02424') + ',w:' + ((lyr && lyr.lineWidth) || 2.6) + 'px' + pattern + ')';
+  }
+
+  // PDF'in "obje ağacına" yazılacak öznitelikler: yalnızca ilkel değerler,
+  // dahili (__ önekli) alanlar ve gömülü dosya/base64 içerikleri HARİÇ
+  // (aksi halde PDF boyutu gereksizce şişer).
+  function geoPdfFeature(f, lyr){
+    var src = f.properties || {};
+    var props = {};
+    Object.keys(src).forEach(function(k){
+      if (k.indexOf('__') === 0 || /data_url|base64|file_data/i.test(k)) return;
+      var v = src[k];
+      if (v === null || v === undefined) return;
+      if (typeof v === 'string'){ if (/^data:/i.test(v)) return; props[k] = v.length > 254 ? v.slice(0, 254) : v; }
+      else if (typeof v === 'number' || typeof v === 'boolean') props[k] = v;
+    });
+    props.etiket = String(src.name || src.ad || src.label || src.title || (lyr && lyr.name) || f.id || '');
+    props.OGR_STYLE = geoPdfStyleString(f, lyr);
+    return { type:'Feature', geometry: f.geometry, properties: props };
+  }
+
+  // PDF sürücüsü OGR_DATASOURCE'taki vektörleri raster'ın koordinat
+  // sistemine KENDİSİ dönüştürmüyor (canlı testte doğrulandı: WGS84
+  // GeoJSON'daki objeler EPSG:3857 raster'ın dışına düşüp hiç çizilmedi) —
+  // bu yüzden geometriler burada Web Mercator metreye çevrilir ve GeoJSON'a
+  // "crs" üyesiyle EPSG:3857 yazılır; raster ile vektör AYNI sistemde olur.
+  function geoPdfProjectGeometry(g){
+    function pt(c){ var m = geoPdfToMercator({ lng: c[0], lat: c[1] }); return [m[0], m[1]]; }
+    function walk(c){ return typeof c[0] === 'number' ? pt(c) : c.map(walk); }
+    return { type: g.type, coordinates: walk(g.coordinates) };
+  }
+
+  // Bir altlığı ekran dışı, BAĞIMSIZ bir MapLibre haritasında çizip PNG
+  // olarak döndürür. view: { center, zoom } VEYA { bounds } (kapsamı veriye
+  // sığdırmak için). Dönen ul/lr, PNG'nin köşe koordinatlarıdır (lng/lat).
+  function renderBasemapForGeoPdf(styleDef, cssW, cssH, pixelRatio, view){
+    return new Promise(function(resolve, reject){
+      var el = document.createElement('div');
+      el.style.cssText = 'position:fixed;left:-30000px;top:0;width:' + cssW + 'px;height:' + cssH + 'px;pointer-events:none;';
+      document.body.appendChild(el);
+      var opts = {
+        container: el, style: styleDef, bearing: 0, pitch: 0, interactive: false,
+        attributionControl: false, fadeDuration: 0, pixelRatio: pixelRatio, maxZoom: 23,
+        preserveDrawingBuffer: true, canvasContextAttributes: { preserveDrawingBuffer: true }
+      };
+      if (view.bounds){ opts.bounds = view.bounds; opts.fitBoundsOptions = { padding: 24 }; }
+      else { opts.center = view.center; opts.zoom = view.zoom; }
+      var m;
+      try{ m = new maplibregl.Map(opts); }
+      catch(err){ el.remove(); reject(err); return; }
+      var done = false;
+      function finish(){
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        try{
+          var canvas = m.getCanvas();
+          var result = {
+            ul: m.unproject([0, 0]), lr: m.unproject([cssW, cssH]),
+            center: m.getCenter(), zoom: m.getZoom()
+          };
+          canvas.toBlob(function(blob){
+            try{ m.remove(); }catch(e){ /* yoksay */ }
+            el.remove();
+            if (!blob){ reject(new Error('Altlık görüntüsü alınamadı.')); return; }
+            result.blob = blob;
+            resolve(result);
+          }, 'image/png');
+        }catch(err){
+          try{ m.remove(); }catch(e){ /* yoksay */ }
+          el.remove();
+          reject(err);
+        }
+      }
+      // Ağır/yavaş bir fayans sunucusu dışa aktarımı sonsuza kadar
+      // bekletmesin — süre dolarsa o ana kadar çizilmiş hali alınır.
+      var timer = setTimeout(finish, 45000);
+      m.once('idle', finish);
+      m.on('error', function(e){ console.warn('GeoPDF altlık hatası:', e && e.error ? e.error : e); });
+    });
+  }
+
+  function geoPdfToMercator(ll){
+    var R = 6378137;
+    var lat = Math.max(-85.05112878, Math.min(85.05112878, ll.lat));
+    return [R * ll.lng * Math.PI / 180, R * Math.log(Math.tan(Math.PI / 4 + lat * Math.PI / 360))];
+  }
+
+  function geoPdfSafeName(name, used){
+    var base = String(name || 'Katman').replace(/[,\r\n]+/g, ' ').trim() || 'Katman';
+    var n = base, i = 2;
+    while (used[n]){ n = base + ' (' + i + ')'; i++; }
+    used[n] = true;
+    return n;
+  }
+
+  async function exportGeoPdf(opts){
+    var loadingEl = document.getElementById('loadingIndicator').querySelector('span');
+    function status(msg){ loadingEl.textContent = msg; }
+    showLoading('GeoPDF hazırlanıyor…');
+    var Gdal = null;
+    var openedDatasets = [];
+    try{
+      var activeMap = maps.find(function(m){ return m.id === activeMapId; });
+      var title = (activeMap && activeMap.name) || 'ODA Harita';
+      var usedNames = {};
+
+      // --- Vektör katmanlar ---
+      var vectorLayers = [];
+      opts.layerIds.forEach(function(id){
+        var lyr = getLayer(id);
+        if (!lyr) return;
+        var feats = geoPdfLayerFeatures(id).map(function(f){ return geoPdfFeature(f, lyr); });
+        if (!feats.length) return;
+        vectorLayers.push({ lyr: lyr, feats: feats, displayName: geoPdfSafeName(lyr.name, usedNames) });
+      });
+
+      // --- Kapsam ---
+      var container = map.getContainer();
+      var cssW = Math.max(200, Math.round(container.clientWidth));
+      var cssH = Math.max(200, Math.round(container.clientHeight));
+      var view;
+      if (opts.extent === 'data'){
+        var allFeats = [];
+        vectorLayers.forEach(function(v){ allFeats = allFeats.concat(v.feats); });
+        if (!allFeats.length) throw new Error('"Tüm seçili katmanlar" kapsamı için en az bir şekil içeren katman seçin.');
+        var bb = turf.bbox(fc(allFeats));
+        view = { bounds: [[bb[0], bb[1]], [bb[2], bb[3]]] };
+      } else {
+        view = { center: map.getCenter(), zoom: map.getZoom() };
+      }
+
+      // --- Altlıklar (raster) ---
+      var styleEntries = opts.styleIds.map(function(id){ return STYLES.find(function(s){ return s.id === id; }); }).filter(Boolean);
+      // Şu anki altlık seçiliyse ana raster o olsun (PDF açıldığında görünen).
+      styleEntries.sort(function(a, b){ return (b.id === currentStyleId) - (a.id === currentStyleId); });
+      var renderList = styleEntries.length
+        ? styleEntries.map(function(s){ return { label: s.label, style: s.style || s.url, initiallyOn: false }; })
+        : [{ label: null, style: GEOPDF_BLANK_STYLE, initiallyOn: true }];
+      if (styleEntries.length) renderList[0].initiallyOn = true;
+
+      var shots = [];
+      for (var i = 0; i < renderList.length; i++){
+        status('Altlık çiziliyor (' + (i + 1) + '/' + renderList.length + ')' + (renderList[i].label ? ': ' + renderList[i].label : '') + '…');
+        try{
+          var shot = await renderBasemapForGeoPdf(renderList[i].style, cssW, cssH, opts.scale, view);
+          // İlk altlık kapsamı kesinleştirir; diğerleri AYNI merkez/zoom ile
+          // çizilir — böylece tüm altlıklar piksel piksel çakışır.
+          if (i === 0) view = { center: shot.center, zoom: shot.zoom };
+          shot.item = renderList[i];
+          shots.push(shot);
+        }catch(err){
+          console.error('Altlık çizilemedi:', renderList[i].label, err);
+          showToast((renderList[i].label || 'Altlık') + ' çizilemedi, PDF\'e eklenmeyecek.');
+        }
+      }
+      if (!shots.length) throw new Error('Hiçbir altlık çizilemedi.');
+
+      // --- GDAL ---
+      status('GDAL motoru hazırlanıyor… (ilk kullanımda ~40 MB indirilir)');
+      Gdal = await ensureGdalReady();
+      status('GeoPDF oluşturuluyor…');
+      var stamp = 'gp' + Date.now();
+
+      // Tüm altlıklar AYNI kapsamla çizildiğinden tek bir ullr yeterli.
+      var ul = geoPdfToMercator(shots[0].ul), lr = geoPdfToMercator(shots[0].lr);
+      var georef = ['-a_srs', 'EPSG:3857', '-a_ullr', String(ul[0]), String(ul[1]), String(lr[0]), String(lr[1])];
+      var rasterNames = [];
+      var pngDatasets = [];
+      var extraTifPaths = [];
+      for (var j = 0; j < shots.length; j++){
+        var s = shots[j];
+        var opened = await Gdal.open([new File([s.blob], stamp + '_b' + j + '.png', { type:'image/png' })]);
+        var pngDs = opened.datasets[0];
+        openedDatasets.push(pngDs);
+        pngDatasets.push(pngDs);
+        rasterNames.push(s.item.label ? geoPdfSafeName(s.item.label, usedNames) : null);
+        // İlk altlık doğrudan PDF'e çevrilen ana raster olur (georef aşağıda
+        // -a_srs/-a_ullr ile verilir); EXTRA_RASTERS ise coğrafi referanslı
+        // DOSYA istediğinden diğerleri önce GeoTIFF'e çevrilir.
+        if (j > 0){
+          var tif = await Gdal.gdal_translate(pngDs, ['-of', 'GTiff'].concat(georef), stamp + '_b' + j);
+          extraTifPaths.push(tif.real);
+        }
+      }
+
+      // Vektörler: her katman ayrı bir GeoJSON → hepsi TEK bir GeoPackage'in
+      // ayrı tablolarına (L0, L1, …) yazılır; PDF sürücüsünün OGR_DATASOURCE'u
+      // bunu okur, her tablo PDF'te ayrı bir katman olur. (OGR VRT ile
+      // birleştirme DENENDİ: bu gdal3.js derlemesinde VRT katmanları PDF'e
+      // hiç obje çizdirmiyor — canlı testte doğrulandı.)
+      var vectorPath = null;
+      if (vectorLayers.length){
+        var gjFiles = vectorLayers.map(function(v, k){
+          var projected = v.feats.map(function(f){ return { type:'Feature', geometry: geoPdfProjectGeometry(f.geometry), properties: f.properties }; });
+          var gj = { type:'FeatureCollection', crs:{ type:'name', properties:{ name:'urn:ogc:def:crs:EPSG::3857' } }, features: projected };
+          return new File([JSON.stringify(gj)], stamp + '_L' + k + '.geojson', { type:'application/geo+json' });
+        });
+        var gjOpened = await Gdal.open(gjFiles);
+        gjOpened.datasets.forEach(function(d){ openedDatasets.push(d); });
+        for (var k = 0; k < gjOpened.datasets.length; k++){
+          var gpkgOpts = k === 0 ? ['-f', 'GPKG', '-nln', 'L0'] : ['-f', 'GPKG', '-update', '-append', '-nln', 'L' + k];
+          var gpkgOut = await Gdal.ogr2ogr(gjOpened.datasets[k], gpkgOpts, stamp + '_layers');
+          vectorPath = gpkgOut.real;
+        }
+      }
+
+      var co = ['-of', 'PDF'].concat(georef).concat([
+        '-co', 'DPI=' + (96 * opts.scale),
+        '-co', 'GEO_ENCODING=ISO32000',
+        '-co', 'TITLE=' + title,
+        '-co', 'CREATOR=ODA+ Proje Yönetim Sistemi',
+        '-co', 'OGR_DISPLAY_FIELD=etiket']);
+      var offLayers = [];
+      var namedRasters = rasterNames.filter(Boolean);
+      if (rasterNames[0]) co.push('-co', 'LAYER_NAME=' + rasterNames[0]);
+      if (extraTifPaths.length){
+        co.push('-co', 'EXTRA_RASTERS=' + extraTifPaths.join(','));
+        co.push('-co', 'EXTRA_RASTERS_LAYER_NAME=' + rasterNames.slice(1).join(','));
+        rasterNames.slice(1).forEach(function(n){ offLayers.push(n); });
+      }
+      if (namedRasters.length > 1) co.push('-co', 'EXCLUSIVE_LAYERS=' + namedRasters.join(','));
+      if (vectorPath){
+        co.push('-co', 'OGR_DATASOURCE=' + vectorPath);
+        co.push('-co', 'OGR_DISPLAY_LAYER_NAMES=' + vectorLayers.map(function(v){ return v.displayName; }).join(','));
+        vectorLayers.forEach(function(v){ if (v.lyr.visible === false) offLayers.push(v.displayName); });
+      }
+      if (offLayers.length) co.push('-co', 'OFF_LAYERS=' + offLayers.join(','));
+
+      var pdfOut = await Gdal.gdal_translate(pngDatasets[0], co, stamp + '_out');
+      var pdfBytes = await Gdal.getFileBytes(pdfOut.real);
+      var fileName = (title.replace(/[\\\/:*?"<>|]+/g, '_').trim() || 'harita') + '.pdf';
+      downloadBlob(new Blob([pdfBytes], { type:'application/pdf' }), fileName);
+      showToast(fileName + ' indirildi — ' + shots.length + ' altlık, ' + vectorLayers.length + ' katman (GeoPDF).');
+    }catch(err){
+      console.error('GeoPDF oluşturulamadı:', err);
+      showToast('GeoPDF oluşturulamadı: ' + (err && err.message ? err.message : 'bilinmeyen hata'));
+    }finally{
+      if (Gdal) openedDatasets.forEach(function(d){ try{ Gdal.close(d); }catch(e){ /* yoksay */ } });
+      hideLoading();
+    }
+  }
+
+  document.getElementById('btnGeoPdfClose').addEventListener('click', function(){
+    document.getElementById('geoPdfModal').classList.remove('show');
+  });
+  document.getElementById('btnGeoPdfCancel').addEventListener('click', function(){
+    document.getElementById('geoPdfModal').classList.remove('show');
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('#geoPdfModal .geopdf-toggle-all'), function(t){
+    t.addEventListener('click', function(){
+      var boxes = Array.prototype.slice.call(document.querySelectorAll('#' + t.getAttribute('data-target') + ' input[type=checkbox]:not(:disabled)'));
+      var anyOff = boxes.some(function(b){ return !b.checked; });
+      boxes.forEach(function(b){ b.checked = anyOff; });
+    });
+  });
+  document.getElementById('btnGeoPdfExport').addEventListener('click', function(){
+    var styleIds = Array.prototype.map.call(document.querySelectorAll('#geoPdfBasemapList input:checked'), function(b){ return b.getAttribute('data-style-id'); });
+    var layerIds = Array.prototype.map.call(document.querySelectorAll('#geoPdfLayerList input:checked'), function(b){ return b.getAttribute('data-layer-id'); });
+    if (!styleIds.length && !layerIds.length){ showToast('En az bir altlık veya katman seçin.'); return; }
+    document.getElementById('geoPdfModal').classList.remove('show');
+    exportGeoPdf({
+      styleIds: styleIds, layerIds: layerIds,
+      extent: document.getElementById('geoPdfExtent').value,
+      scale: parseInt(document.getElementById('geoPdfScale').value, 10) || 2
+    });
+  });
+
   // "Yeni CBS Haritası" — split-buton menüsünün en üstünde: isim sorar,
   // onaylanınca yeni bir harita (ve tek bir varsayılan/kök klasör) oluşturup
   // onu etkinleştirir. Katman ağacı (renderLayerTree) ve harita render'ı
@@ -9216,6 +9650,11 @@
     e.stopPropagation();
     document.getElementById('mapSplitMenu').classList.remove('show');
     exportAllAsGeoPackage();
+  });
+  document.getElementById('btnMapExportGeoPdf').addEventListener('click', function(e){
+    e.stopPropagation();
+    document.getElementById('mapSplitMenu').classList.remove('show');
+    openGeoPdfModal();
   });
   document.addEventListener('click', function(e){
     var menu = document.getElementById('mapSplitMenu');
