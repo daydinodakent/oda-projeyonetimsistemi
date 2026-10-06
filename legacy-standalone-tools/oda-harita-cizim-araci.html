@@ -11452,19 +11452,246 @@
   // uygulamıyor — bu yüzden yazı yüksekliği (m) Mercator ölçeğine (1/cos
   // enlem), haritadaki ncz-text-layer ile aynı em oranına (büyük harf ≈ 0,7
   // em) ve sayfa birimine (unitsPerMercM) burada çevrilir.
-  // Standart PDF fontu (Helvetica) UTF-8 metni bozduğundan Türkçe harfler
-  // Latin karşılıklarına çevrilir; asıl metin ncz_metin özniteliğinde kalır.
+  // font (bkz. loadGeoPdfFont) varsa metin UTF-8 olarak bırakılır ve PDF
+  // sonradan gömülü Noto Sans ile düzeltilir (bkz. geoPdfEmbedFont); yoksa
+  // standart Helvetica UTF-8'i bozacağından Türkçe harfler Latin
+  // karşılıklarına çevrilir. Asıl metin her durumda ncz_metin özniteliğinde kalır.
   var GEOPDF_ASCII = { 'ç':'c', 'Ç':'C', 'ğ':'g', 'Ğ':'G', 'ı':'i', 'İ':'I', 'ö':'o', 'Ö':'O', 'ş':'s', 'Ş':'S', 'ü':'u', 'Ü':'U' };
-  function geoPdfLabelStyle(f, lyr, unitsPerMercM){
+  function geoPdfLabelText(raw, font){
+    var text = String(raw).replace(/[\r\n\t]+/g, ' ').replace(/"/g, "'");
+    if (font){
+      return Array.from(text).map(function(ch){
+        var cp = ch.codePointAt(0);
+        return cp >= 0x20 && cp <= 0xFFFF && font.gidFor(cp) ? ch : '?';
+      }).join('');
+    }
+    return text.replace(/[çÇğĞıİöÖşŞüÜ]/g, function(ch){ return GEOPDF_ASCII[ch]; }).replace(/[^\x20-\x7e]/g, '?');
+  }
+  function geoPdfLabelStyle(f, lyr, unitsPerMercM, font){
     var p = f.properties || {};
     var lat = f.geometry.coordinates[1] * Math.PI / 180;
     var heightM = Number(p.ncz_yazi_yuksekligi) || 2;
     var size = heightM / Math.cos(lat) / 0.7 * unitsPerMercM;
-    var text = String(p.ncz_metin)
-      .replace(/[çÇğĞıİöÖşŞüÜ]/g, function(ch){ return GEOPDF_ASCII[ch]; })
-      .replace(/[^\x20-\x7e]/g, '?').replace(/"/g, "'");
     var color = geoPdfHex(p.line_color || (lyr && lyr.color), '#1F2937');
-    return 'LABEL(f:"Helvetica",t:"' + text + '",s:' + size.toFixed(3) + 'mm,a:' + (Number(p.ncz_aci) || 0).toFixed(2) + ',c:' + color + ',p:1)';
+    return 'LABEL(f:"Helvetica",t:"' + geoPdfLabelText(p.ncz_metin, font) + '",s:' + size.toFixed(3) + 'mm,a:' + (Number(p.ncz_aci) || 0).toFixed(2) + ',c:' + color + ',p:1)';
+  }
+
+  // ---- GeoPDF yazıları için gömülü Unicode font ---------------------------
+  // GDAL PDF sürücüsü etiketleri yalnızca standart Type1 fontlarla
+  // (/Helvetica /WinAnsiEncoding, satır içi /F1 sözlüğü) ve metnin ham UTF-8
+  // baytlarıyla yazar; ş/ğ/ı/İ gibi harfler bozulur. Çözüm: GDAL çıktısındaki
+  // bu font sözlükleri, UTF-8 bayt dizilerini doğrudan Unicode kod noktasına
+  // (= CID) eşleyen özel bir CMap'li Type0 / CIDFontType2 fonta (gömülü Noto
+  // Sans, OFL) yönlendirilir. Metinlerin konumu/boyutu, katmanlar (OCG) ve
+  // coğrafi referans olduğu gibi kalır; yalnızca xref tablosu yeniden yazılır.
+  var GEOPDF_FONT_URL = '/vendor/fonts/noto-sans/NotoSans-Regular.ttf';
+  var geoPdfFontPromise = null;
+  function loadGeoPdfFont(){
+    if (!geoPdfFontPromise){
+      geoPdfFontPromise = fetch(GEOPDF_FONT_URL).then(function(r){
+        if (!r.ok) throw new Error('Font indirilemedi: ' + r.status);
+        return r.arrayBuffer();
+      }).then(parseTrueTypeForPdf).catch(function(err){ geoPdfFontPromise = null; throw err; });
+    }
+    return geoPdfFontPromise;
+  }
+  // Yalnızca PDF'e gömmek için gerekenler: head/hhea/hmtx/OS2 ölçüleri ve
+  // cmap (biçim 4, Unicode BMP) üzerinden kod noktası → glif numarası.
+  function parseTrueTypeForPdf(buf){
+    var dv = new DataView(buf);
+    var tables = {};
+    var numTables = dv.getUint16(4);
+    for (var i = 0; i < numTables; i++){
+      var rec = 12 + i * 16;
+      var tag = String.fromCharCode(dv.getUint8(rec), dv.getUint8(rec + 1), dv.getUint8(rec + 2), dv.getUint8(rec + 3));
+      tables[tag] = dv.getUint32(rec + 8);
+    }
+    ['head', 'hhea', 'hmtx', 'cmap'].forEach(function(t){ if (tables[t] === undefined) throw new Error('Geçersiz TrueType fontu (' + t + ' yok).'); });
+    var head = tables.head, hhea = tables.hhea;
+    var unitsPerEm = dv.getUint16(head + 18);
+    var scale = 1000 / unitsPerEm;
+    var numHMetrics = dv.getUint16(hhea + 34);
+    var cmap = tables.cmap, sub = -1;
+    var nSub = dv.getUint16(cmap + 2);
+    for (var s = 0; s < nSub; s++){
+      var platform = dv.getUint16(cmap + 4 + s * 8), enc = dv.getUint16(cmap + 6 + s * 8);
+      var off = cmap + dv.getUint32(cmap + 8 + s * 8);
+      if (dv.getUint16(off) === 4 && ((platform === 3 && enc === 1) || platform === 0)){ sub = off; if (platform === 3) break; }
+    }
+    if (sub < 0) throw new Error('Fontta Unicode cmap (biçim 4) bulunamadı.');
+    var segCount = dv.getUint16(sub + 6) / 2;
+    var endPos = sub + 14, startPos = endPos + segCount * 2 + 2, deltaPos = startPos + segCount * 2, rangePos = deltaPos + segCount * 2;
+    function gidFor(cp){
+      for (var k = 0; k < segCount; k++){
+        var end = dv.getUint16(endPos + k * 2);
+        if (cp > end) continue;
+        var start = dv.getUint16(startPos + k * 2);
+        if (cp < start) return 0;
+        var delta = dv.getInt16(deltaPos + k * 2), ro = dv.getUint16(rangePos + k * 2);
+        if (ro === 0) return (cp + delta) & 0xFFFF;
+        var g = dv.getUint16(rangePos + k * 2 + ro + (cp - start) * 2);
+        return g ? (g + delta) & 0xFFFF : 0;
+      }
+      return 0;
+    }
+    function advance(gid){
+      var idx = Math.min(gid, numHMetrics - 1);
+      return Math.round(dv.getUint16(tables.hmtx + idx * 4) * scale);
+    }
+    var capHeight = tables['OS/2'] !== undefined && dv.getUint16(tables['OS/2']) >= 2 ? dv.getInt16(tables['OS/2'] + 88) : dv.getInt16(hhea + 4);
+    return {
+      bytes: new Uint8Array(buf), gidFor: gidFor, advance: advance,
+      bbox: [dv.getInt16(head + 36), dv.getInt16(head + 38), dv.getInt16(head + 40), dv.getInt16(head + 42)].map(function(v){ return Math.round(v * scale); }),
+      ascent: Math.round(dv.getInt16(hhea + 4) * scale), descent: Math.round(dv.getInt16(hhea + 6) * scale),
+      capHeight: Math.round(capHeight * scale)
+    };
+  }
+
+  async function geoPdfDeflate(bytes){
+    var stream = new Blob([bytes]).stream().pipeThrough(new CompressionStream('deflate'));
+    return new Uint8Array(await new Response(stream).arrayBuffer());
+  }
+  function geoPdfAsciiBytes(str){
+    var out = new Uint8Array(str.length);
+    for (var i = 0; i < str.length; i++) out[i] = str.charCodeAt(i) & 0xFF;
+    return out;
+  }
+  function geoPdfUtf8Hex(cp){
+    return Array.from(new TextEncoder().encode(String.fromCodePoint(cp))).map(function(b){ return ('0' + b.toString(16)).slice(-2).toUpperCase(); }).join('');
+  }
+  function geoPdfHex4(n){ return ('000' + n.toString(16).toUpperCase()).slice(-4); }
+
+  // pdfBytes: GDAL'ın ürettiği tek sürümlü (klasik xref) PDF. codePoints:
+  // etiketlerde geçen kod noktaları. Dönen değer düzeltilmiş PDF baytları;
+  // beklenmeyen bir yapıda null döner (çağıran orijinali kullanır).
+  async function geoPdfEmbedFont(pdfBytes, font, codePoints){
+    var n = pdfBytes.length;
+    var chunks = [];
+    for (var c = 0; c < n; c += 0x8000) chunks.push(String.fromCharCode.apply(null, pdfBytes.subarray(c, Math.min(n, c + 0x8000))));
+    var s = chunks.join('');
+
+    var sx = s.lastIndexOf('startxref');
+    if (sx < 0) return null;
+    var xrefPos = parseInt(s.slice(sx + 9, sx + 40).trim(), 10);
+    if (!(xrefPos > 0) || s.substr(xrefPos, 4) !== 'xref') return null;
+    var trailerPos = s.indexOf('trailer', xrefPos);
+    if (trailerPos < 0) return null;
+    var trailerDict = s.slice(trailerPos + 7, sx).trim();
+    if (/\/Prev\b/.test(trailerDict)) return null;
+    var sizeMatch = /\/Size\s+(\d+)/.exec(trailerDict);
+    if (!sizeMatch) return null;
+    var size = parseInt(sizeMatch[1], 10);
+
+    // Eski xref: nesne numarası → bayt konumu.
+    var offsets = [];
+    var lines = s.slice(xrefPos + 4, trailerPos).split(/\r\n|\r|\n/).map(function(l){ return l.trim(); }).filter(Boolean);
+    for (var li = 0; li < lines.length; ){
+      var head = lines[li].split(/\s+/);
+      var first = parseInt(head[0], 10), count = parseInt(head[1], 10);
+      if (!(count >= 0)) return null;
+      for (var e = 0; e < count; e++){
+        var parts = lines[li + 1 + e].split(/\s+/);
+        if (parts[2] === 'n') offsets[first + e] = parseInt(parts[0], 10);
+      }
+      li += 1 + count;
+    }
+
+    // GDAL anahtarları alfabetik yazar (/BaseFont /Encoding /Subtype /Type);
+    // sıraya bağlı kalmamak için içerik ayrıca denetlenir.
+    var fontRe = /\/F1\s*<<([^<>]*)>>/g;
+    var matches = [], m;
+    while ((m = fontRe.exec(s)) && m.index < xrefPos){
+      if (/\/BaseFont\s*\/Helvetica\b/.test(m[1]) && /\/Encoding\s*\/WinAnsiEncoding/.test(m[1]) && /\/Subtype\s*\/Type1/.test(m[1])) matches.push({ pos: m.index, len: m[0].length });
+    }
+    if (!matches.length) return null;
+
+    var idFont = size, idCid = size + 1, idDesc = size + 2, idFile = size + 3, idEnc = size + 4, idGidMap = size + 5, idToUni = size + 6;
+    var replacement = geoPdfAsciiBytes('/F1 ' + idFont + ' 0 R');
+
+    // Kod noktaları (ASCII her zaman) → CID = kod noktası, CIDToGIDMap ile glife.
+    var cps = {};
+    for (var a = 0x20; a <= 0x7E; a++) cps[a] = true;
+    codePoints.forEach(function(cp){ if (cp > 0x7E && cp <= 0xFFFF && font.gidFor(cp)) cps[cp] = true; });
+    var cpList = Object.keys(cps).map(Number).sort(function(x, y){ return x - y; });
+    var maxCp = cpList[cpList.length - 1];
+    var gidMap = new Uint8Array((maxCp + 1) * 2);
+    var widths = [];
+    cpList.forEach(function(cp){
+      var gid = font.gidFor(cp);
+      gidMap[cp * 2] = gid >> 8; gidMap[cp * 2 + 1] = gid & 0xFF;
+      widths.push(cp + ' [' + font.advance(gid) + ']');
+    });
+    var nonAscii = cpList.filter(function(cp){ return cp > 0x7E; });
+    function cmapBody(kind){
+      var out = '/CIDInit /ProcSet findresource begin\n12 dict begin\nbegincmap\n' +
+        '/CIDSystemInfo << /Registry (Adobe) /Ordering (' + (kind === 'enc' ? 'Identity' : 'UCS') + ') /Supplement 0 >> def\n' +
+        '/CMapName /' + (kind === 'enc' ? 'OdaUTF8-Identity' : 'OdaUTF8-UCS') + ' def\n/CMapType ' + (kind === 'enc' ? 1 : 2) + ' def\n' +
+        '3 begincodespacerange\n<00> <7F>\n<C280> <DFBF>\n<E08080> <EFBFBF>\nendcodespacerange\n';
+      out += kind === 'enc' ? '1 begincidrange\n<20> <7E> 32\nendcidrange\n' : '1 beginbfrange\n<20> <7E> <0020>\nendbfrange\n';
+      for (var b = 0; b < nonAscii.length; b += 100){
+        var block = nonAscii.slice(b, b + 100);
+        out += block.length + (kind === 'enc' ? ' begincidchar\n' : ' beginbfchar\n');
+        block.forEach(function(cp){ out += '<' + geoPdfUtf8Hex(cp) + '> ' + (kind === 'enc' ? cp : '<' + geoPdfHex4(cp) + '>') + '\n'; });
+        out += kind === 'enc' ? 'endcidchar\n' : 'endbfchar\n';
+      }
+      return out + 'endcmap\nCMapName currentdict /CMap defineresource pop\nend\nend\n';
+    }
+
+    var fontFile = await geoPdfDeflate(font.bytes);
+    var gidMapZ = await geoPdfDeflate(gidMap);
+    var encStr = cmapBody('enc'), uniStr = cmapBody('uni');
+    var objects = [
+      { id: idFont, body: '<< /Type /Font /Subtype /Type0 /BaseFont /NotoSans-Regular /Encoding ' + idEnc + ' 0 R /DescendantFonts [' + idCid + ' 0 R] /ToUnicode ' + idToUni + ' 0 R >>' },
+      { id: idCid, body: '<< /Type /Font /Subtype /CIDFontType2 /BaseFont /NotoSans-Regular /CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> /FontDescriptor ' + idDesc + ' 0 R /DW 1000 /W [' + widths.join(' ') + '] /CIDToGIDMap ' + idGidMap + ' 0 R >>' },
+      { id: idDesc, body: '<< /Type /FontDescriptor /FontName /NotoSans-Regular /Flags 32 /FontBBox [' + font.bbox.join(' ') + '] /ItalicAngle 0 /Ascent ' + font.ascent + ' /Descent ' + font.descent + ' /CapHeight ' + font.capHeight + ' /StemV 80 /FontFile2 ' + idFile + ' 0 R >>' },
+      { id: idFile, dict: '<< /Length ' + fontFile.length + ' /Length1 ' + font.bytes.length + ' /Filter /FlateDecode >>', data: fontFile },
+      { id: idEnc, dict: '<< /Type /CMap /CMapName /OdaUTF8-Identity /CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> /Length ' + encStr.length + ' >>', data: geoPdfAsciiBytes(encStr) },
+      { id: idGidMap, dict: '<< /Length ' + gidMapZ.length + ' /Filter /FlateDecode >>', data: gidMapZ },
+      { id: idToUni, dict: '<< /Length ' + uniStr.length + ' >>', data: geoPdfAsciiBytes(uniStr) }
+    ];
+
+    // Gövde: xref'e kadar orijinal baytlar, font sözlükleri referansla değişmiş.
+    var parts = [], cursor = 0, deltaAt = [];
+    matches.forEach(function(mt){
+      parts.push(pdfBytes.subarray(cursor, mt.pos));
+      parts.push(replacement);
+      deltaAt.push({ pos: mt.pos, d: replacement.length - mt.len });
+      cursor = mt.pos + mt.len;
+    });
+    parts.push(pdfBytes.subarray(cursor, xrefPos));
+    var bodyLen = parts.reduce(function(t, p){ return t + p.length; }, 0);
+    function shifted(pos){
+      var d = 0;
+      for (var q = 0; q < deltaAt.length && deltaAt[q].pos < pos; q++) d += deltaAt[q].d;
+      return pos + d;
+    }
+    var newOffsets = [];
+    offsets.forEach(function(o, id){ if (o !== undefined) newOffsets[id] = shifted(o); });
+
+    var pos = bodyLen;
+    objects.forEach(function(o){
+      var headStr = '\n' + o.id + ' 0 obj\n';
+      newOffsets[o.id] = pos + 1;
+      var pieces;
+      if (o.data) pieces = [geoPdfAsciiBytes(headStr + o.dict + '\nstream\n'), o.data, geoPdfAsciiBytes('\nendstream\nendobj\n')];
+      else pieces = [geoPdfAsciiBytes(headStr + o.body + '\nendobj\n')];
+      pieces.forEach(function(p){ parts.push(p); pos += p.length; });
+    });
+
+    var newSize = size + objects.length;
+    var xref = 'xref\n0 ' + newSize + '\n0000000000 65535 f\r\n';
+    for (var id = 1; id < newSize; id++){
+      xref += newOffsets[id] !== undefined
+        ? ('000000000' + newOffsets[id]).slice(-10) + ' 00000 n\r\n'
+        : '0000000000 65535 f\r\n';
+    }
+    xref += 'trailer\n' + trailerDict.replace(/\/Size\s+\d+/, '/Size ' + newSize) + '\nstartxref\n' + pos + '\n%%EOF\n';
+    parts.push(geoPdfAsciiBytes(xref));
+
+    var total = pos + xref.length;
+    var out = new Uint8Array(total), w = 0;
+    parts.forEach(function(p){ out.set(p, w); w += p.length; });
+    return out;
   }
 
   // PDF'in "obje ağacına" yazılacak öznitelikler: yalnızca ilkel değerler,
@@ -11656,15 +11883,23 @@
       // birleştirme DENENDİ: bu gdal3.js derlemesinde VRT katmanları PDF'e
       // hiç obje çizdirmiyor — canlı testte doğrulandı.)
       var vectorPath = null;
+      var labelFont = null, labelCodePoints = {};
       if (vectorLayers.length){
         // NCZ yazılarının boyutu kapsama bağlıdır: sayfa genişliği (birim) =
         // PNG genişliği / (DPI / 72) = cssW × 0,75.
         var unitsPerMercM = (cssW * 0.75) / Math.abs(lr[0] - ul[0]);
+        var labelFeats = [];
         vectorLayers.forEach(function(v){
-          v.feats.forEach(function(f){
-            if (f.geometry.type === 'Point' && f.properties.ncz_metin != null) f.properties.OGR_STYLE = geoPdfLabelStyle(f, v.lyr, unitsPerMercM);
-          });
+          v.feats.forEach(function(f){ if (f.geometry.type === 'Point' && f.properties.ncz_metin != null) labelFeats.push({ f: f, lyr: v.lyr }); });
         });
+        if (labelFeats.length){
+          try{ labelFont = await loadGeoPdfFont(); }
+          catch(err){ console.warn('GeoPDF fontu yüklenemedi, Türkçe harfler Latin karşılıklarına çevrilecek:', err); }
+          labelFeats.forEach(function(x){
+            x.f.properties.OGR_STYLE = geoPdfLabelStyle(x.f, x.lyr, unitsPerMercM, labelFont);
+            if (labelFont) Array.from(geoPdfLabelText(x.f.properties.ncz_metin, labelFont)).forEach(function(ch){ labelCodePoints[ch.codePointAt(0)] = true; });
+          });
+        }
         var gjFiles = vectorLayers.map(function(v, k){
           var projected = v.feats.map(function(f){ return { type:'Feature', geometry: geoPdfProjectGeometry(f.geometry), properties: f.properties }; });
           var gj = { type:'FeatureCollection', crs:{ type:'name', properties:{ name:'urn:ogc:def:crs:EPSG::3857' } }, features: projected };
@@ -11703,6 +11938,14 @@
 
       var pdfOut = await Gdal.gdal_translate(pngDatasets[0], co, stamp + '_out');
       var pdfBytes = await Gdal.getFileBytes(pdfOut.real);
+      if (labelFont){
+        status('Yazı fontu gömülüyor…');
+        var fixed = null;
+        try{ fixed = await geoPdfEmbedFont(pdfBytes, labelFont, Object.keys(labelCodePoints).map(Number)); }
+        catch(err){ console.error('GeoPDF fontu gömülemedi:', err); }
+        if (fixed) pdfBytes = fixed;
+        else showToast('Yazı fontu PDF\'e gömülemedi; Türkçe harfler hatalı görünebilir.');
+      }
       var fileName = (title.replace(/[\\\/:*?"<>|]+/g, '_').trim() || 'harita') + '.pdf';
       downloadBlob(new Blob([pdfBytes], { type:'application/pdf' }), fileName);
       showToast(fileName + ' indirildi — ' + shots.length + ' altlık, ' + vectorLayers.length + ' katman (GeoPDF).');
