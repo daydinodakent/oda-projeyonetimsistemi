@@ -1114,7 +1114,7 @@
      .status-snap-btn.active{color:#e02424} genel kuralını (Snap için)
      ezmek üzere KASITLI olarak kullanıldı. */
   #statusSplitViewBtn{ position:relative; }
-  #statusSplitViewBtn.active{ color:var(--teal); }
+  #statusSplitViewBtn.active{ color:#2ee6c4; }
   #statusSplitViewCount{
     display:none;position:absolute;top:-3px;right:-4px;
     background:#33383d;border-radius:3px;
@@ -1126,21 +1126,27 @@
   #statusbar.split-active #statusSplitViewCount{ display:inline; }
   #statusbar .div{width:1px;height:12px;background:var(--line);}
   #statusbar span{display:inline-flex;align-items:center;gap:5px;}
+  /* Durum çubuğu simgeleri: kullanıcı isteğiyle daha büyük (16px) ve koyu
+     zeminde net seçilen renklerde — pasif düğmeler açık gri, açık/aktif
+     durumlar canlı turkuaz (Saha/BIM/Bölünmüş) ve kırmızı (Snap). */
   .status-icon{width:12px;height:12px;flex:0 0 auto;color:var(--text-dim);}
+  #statusbar .status-icon{width:16px;height:16px;color:#9fb3c4;}
+  #statusbar .status-snap-btn .status-icon{color:inherit;}
   .status-snap-btn{
-    background:transparent;border:none;color:#6b7684;
-    font-family:var(--font-mono);font-size:11px;padding:2px 8px;border-radius:2px;cursor:pointer;
-    display:inline-flex;align-items:center;gap:5px;
+    background:transparent;border:none;color:#b4c0cc;
+    font-family:var(--font-mono);font-size:11px;padding:2px 7px;border-radius:3px;cursor:pointer;
+    display:inline-flex;align-items:center;gap:5px;transition:background .15s ease,color .15s ease;
   }
+  .status-snap-btn:hover{color:#ffffff;background:rgba(255,255,255,.08);}
   .status-snap-btn .status-icon{color:inherit;}
-  .status-snap-btn.active{color:#e02424;}
-  .saha-toggle-btn.on{color:var(--teal);}
-  .bim-view-toggle-btn.on{color:var(--teal);}
+  .status-snap-btn.active{color:#ff5a4f;}
+  .saha-toggle-btn.on{color:#2ee6c4;}
+  .bim-view-toggle-btn.on{color:#2ee6c4;}
   /* Durum çubuğundaki Saha (fotoğraf katmanı göster/gizle) düğmesi, diğer
-     küçük durum çubuğu simgelerinden biraz daha büyük gösterilir — sıkça
+     durum çubuğu simgelerinden biraz daha büyük gösterilir — sıkça
      kullanılan bir aç/kapa olduğundan tıklaması daha kolay olsun diye. */
-  #statusSahaToggleBtn{padding:4px 10px;}
-  #statusSahaToggleBtn .status-icon{width:16px;height:16px;}
+  #statusSahaToggleBtn{padding:2px 9px;}
+  #statusbar #statusSahaToggleBtn .status-icon{width:18px;height:18px;}
   #snapTolerancePopover{
     position:absolute;bottom:34px;right:14px;z-index:8;display:none;
     background:var(--bg-panel);border:1px solid var(--line);border-radius:var(--radius);
@@ -11294,7 +11300,9 @@
         if (!blob) return;
         var props = f.properties || {};
         var lyrForFeature = getLayer(props.layerId);
-        insertStmt.run([blob, lyrForFeature ? lyrForFeature.name : '', props.name || '', JSON.stringify(props)]);
+        // NCZ yazılarının adı yoktur; metni 'name' sütununa yazılır ki
+        // QGIS vb. doğrudan etiketleyebilsin.
+        insertStmt.run([blob, lyrForFeature ? lyrForFeature.name : '', props.name || props.ncz_metin || '', JSON.stringify(props)]);
       });
       insertStmt.free();
     });
@@ -11432,7 +11440,31 @@
     } else {
       fill = geoPdfHex((lyr && (lyr.fillColor || lyr.color)) || null, '#EEF29C');
     }
-    return 'BRUSH(fc:' + fill + '8C);PEN(c:' + geoPdfHex(color, '#E02424') + ',w:' + ((lyr && lyr.lineWidth) || 2.6) + 'px' + pattern + ')';
+    // Haritadaki 'poly-fill' ile aynı opaklık (katmanın fillOpacity'si, yoksa 0,55).
+    var fillOpacity = (lyr && lyr.fillOpacity != null) ? lyr.fillOpacity : 0.55;
+    var alphaHex = ('0' + Math.round(Math.max(0, Math.min(1, fillOpacity)) * 255).toString(16)).slice(-2).toUpperCase();
+    return 'BRUSH(fc:' + fill + alphaHex + ');PEN(c:' + geoPdfHex(color, '#E02424') + ',w:' + ((lyr && lyr.lineWidth) || 2.6) + 'px' + pattern + ')';
+  }
+
+  // NCZ yazıları (ncz_metin) PDF'te sembol değil gerçek metin olarak yazılır
+  // (OGR LABEL stili). Canlı testte: GDAL PDF sürücüsü "mm" birimindeki
+  // boyutu doğrudan sayfa birimi (UserUnit) olarak kullanıyor, zemin ölçeği
+  // uygulamıyor — bu yüzden yazı yüksekliği (m) Mercator ölçeğine (1/cos
+  // enlem), haritadaki ncz-text-layer ile aynı em oranına (büyük harf ≈ 0,7
+  // em) ve sayfa birimine (unitsPerMercM) burada çevrilir.
+  // Standart PDF fontu (Helvetica) UTF-8 metni bozduğundan Türkçe harfler
+  // Latin karşılıklarına çevrilir; asıl metin ncz_metin özniteliğinde kalır.
+  var GEOPDF_ASCII = { 'ç':'c', 'Ç':'C', 'ğ':'g', 'Ğ':'G', 'ı':'i', 'İ':'I', 'ö':'o', 'Ö':'O', 'ş':'s', 'Ş':'S', 'ü':'u', 'Ü':'U' };
+  function geoPdfLabelStyle(f, lyr, unitsPerMercM){
+    var p = f.properties || {};
+    var lat = f.geometry.coordinates[1] * Math.PI / 180;
+    var heightM = Number(p.ncz_yazi_yuksekligi) || 2;
+    var size = heightM / Math.cos(lat) / 0.7 * unitsPerMercM;
+    var text = String(p.ncz_metin)
+      .replace(/[çÇğĞıİöÖşŞüÜ]/g, function(ch){ return GEOPDF_ASCII[ch]; })
+      .replace(/[^\x20-\x7e]/g, '?').replace(/"/g, "'");
+    var color = geoPdfHex(p.line_color || (lyr && lyr.color), '#1F2937');
+    return 'LABEL(f:"Helvetica",t:"' + text + '",s:' + size.toFixed(3) + 'mm,a:' + (Number(p.ncz_aci) || 0).toFixed(2) + ',c:' + color + ',p:1)';
   }
 
   // PDF'in "obje ağacına" yazılacak öznitelikler: yalnızca ilkel değerler,
@@ -11625,6 +11657,14 @@
       // hiç obje çizdirmiyor — canlı testte doğrulandı.)
       var vectorPath = null;
       if (vectorLayers.length){
+        // NCZ yazılarının boyutu kapsama bağlıdır: sayfa genişliği (birim) =
+        // PNG genişliği / (DPI / 72) = cssW × 0,75.
+        var unitsPerMercM = (cssW * 0.75) / Math.abs(lr[0] - ul[0]);
+        vectorLayers.forEach(function(v){
+          v.feats.forEach(function(f){
+            if (f.geometry.type === 'Point' && f.properties.ncz_metin != null) f.properties.OGR_STYLE = geoPdfLabelStyle(f, v.lyr, unitsPerMercM);
+          });
+        });
         var gjFiles = vectorLayers.map(function(v, k){
           var projected = v.feats.map(function(f){ return { type:'Feature', geometry: geoPdfProjectGeometry(f.geometry), properties: f.properties }; });
           var gj = { type:'FeatureCollection', crs:{ type:'name', properties:{ name:'urn:ogc:def:crs:EPSG::3857' } }, features: projected };
