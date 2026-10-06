@@ -183,6 +183,16 @@
   }
   .subtab svg{width:14px;height:14px;}
   .subtab.active{color:var(--text);border-bottom-color:var(--amber);}
+  /* Saha alt sekmeleri (bkz. #sahaSubtabs) — .subtab görünümünde, 5 sekme
+     dar panele sığsın diye daha sıkı; yalnızca Saha grubundayken görünür. */
+  .saha-subtabs{display:none;border-bottom:1px solid var(--line);flex:0 0 auto;}
+  .saha-subtabs.show{display:flex;}
+  .saha-subtab{
+    flex:1 1 auto;padding:10px 4px;text-align:center;font-size:11.5px;font-weight:600;white-space:nowrap;
+    color:var(--text-dim);cursor:pointer;border-bottom:2px solid transparent;
+  }
+  .saha-subtab:hover{color:var(--text);}
+  .saha-subtab.active{color:var(--text);border-bottom-color:var(--amber);}
   .subtabpage{display:none;}
   .subtabpage.active{display:flex;flex-direction:column;gap:14px;flex:1;overflow-y:auto;padding:14px;}
 
@@ -1701,7 +1711,7 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 8V6a2 2 0 0 1 2-2h2M4 16v2a2 2 0 0 0 2 2h2M20 8V6a2 2 0 0 0-2-2h-2M20 16v2a2 2 0 0 1-2 2h-2"/><circle cx="12" cy="12" r="3.2"/></svg>
     <span>Saha</span>
   </button>
-  <button class="mod-btn" data-module="santiye" data-tip="Şantiye">
+  <button class="mod-btn" data-module="santiye" style="display:none;" data-tip="Şantiye">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s-7-6.5-7-11a7 7 0 0 1 14 0c0 4.5-7 11-7 11z"/><path d="M9.5 10.5h5M12 8v5"/></svg>
     <span>Şantiye</span>
   </button>
@@ -1709,11 +1719,11 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h12v18l-6-4.5L6 21z"/></svg>
     <span>Yer İmi</span>
   </button>
-  <button class="mod-btn" data-module="fourd" data-tip="4D iş programı">
+  <button class="mod-btn" data-module="fourd" style="display:none;" data-tip="4D iş programı">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v16M12 13l2 2 4-4"/></svg>
     <span>4D</span>
   </button>
-  <button class="mod-btn" data-module="hafriyat" data-tip="Kazı–dolgu hacmi">
+  <button class="mod-btn" data-module="hafriyat" style="display:none;" data-tip="Kazı–dolgu hacmi">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 15l5-6 4 4 4-7 5 9"/><path d="M3 19h18"/></svg>
     <span>Hafriyat</span>
   </button>
@@ -1725,7 +1735,7 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 7v5l3 2"/></svg>
     <span>Geçmiş</span>
   </button>
-  <button class="mod-btn" data-module="portfoy" data-tip="Portföy haritası">
+  <button class="mod-btn" data-module="portfoy" style="display:none;" data-tip="Portföy haritası">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="7" cy="8" r="3"/><circle cx="17" cy="9" r="4.5"/><circle cx="10" cy="17.5" r="2.5"/></svg>
     <span>Portföy</span>
   </button>
@@ -1746,6 +1756,16 @@
     <button id="panelCollapse" title="Paneli daralt">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M15 5l-7 7 7 7"/></svg>
     </button>
+  </div>
+  <!-- Saha grubu: Şantiye / 4D / Hafriyat / Portföy, sol çubukta ayrı
+       modül olmak yerine Saha'nın alt sekmeleridir (bkz. SAHA_GROUP, setModule).
+       Her sekme mevcut module-page'ini gösterir. -->
+  <div class="saha-subtabs" id="sahaSubtabs">
+    <div class="saha-subtab" data-saha-module="saha">Dosyalar</div>
+    <div class="saha-subtab" data-saha-module="santiye">Şantiye</div>
+    <div class="saha-subtab" data-saha-module="fourd">4D</div>
+    <div class="saha-subtab" data-saha-module="hafriyat">Hafriyat</div>
+    <div class="saha-subtab" data-saha-module="portfoy">Portföy</div>
   </div>
 
   <!-- ================= HARİTA MODÜLÜ ================= -->
@@ -10323,9 +10343,22 @@
   var activeModule = 'harita';
   var moduleTitles = { sorgu:'Sorgu', harita:'Harita', analiz:'Analiz', editor:'Editör', saha:'Saha', santiye:'Şantiye', yerimi:'Yer İmleri', gecmis:'Değişiklik Geçmişi', portfoy:'Portföy Haritası', fourd:'4D İş Programı', hafriyat:'Hafriyat (Kazı–Dolgu)', ortofoto:'Ortofoto Zaman Serisi', cikti:'Çıktı' };
   var moduleButtons = Array.prototype.slice.call(document.querySelectorAll('.mod-btn[data-module]'));
+  // Saha grubu: bu modüller sol çubukta değil, Saha panelindeki alt
+  // sekmelerdedir (bkz. #sahaSubtabs); sol çubuktaki Saha düğmesi grubun
+  // en son açılan sekmesine döner.
+  var SAHA_GROUP = ['saha', 'santiye', 'fourd', 'hafriyat', 'portfoy'];
+  var lastSahaModule = 'saha';
+  var sahaSubtabEls = Array.prototype.slice.call(document.querySelectorAll('.saha-subtab'));
   function setModule(key){
     activeModule = key;
-    moduleButtons.forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-module') === key); });
+    var inSaha = SAHA_GROUP.indexOf(key) >= 0;
+    if (inSaha) lastSahaModule = key;
+    moduleButtons.forEach(function(b){
+      var m = b.getAttribute('data-module');
+      b.classList.toggle('active', m === key || (inSaha && m === 'saha'));
+    });
+    document.getElementById('sahaSubtabs').classList.toggle('show', inSaha);
+    sahaSubtabEls.forEach(function(t){ t.classList.toggle('active', t.getAttribute('data-saha-module') === key); });
     document.querySelectorAll('.module-page').forEach(function(p){
       p.style.display = (p.getAttribute('data-module-page') === key) ? 'flex' : 'none';
       p.style.flexDirection = 'column';
@@ -10333,7 +10366,7 @@
       p.style.overflowY = 'auto';
       p.style.padding = '14px';
     });
-    document.getElementById('panelTitle').textContent = moduleTitles[key] || key;
+    document.getElementById('panelTitle').textContent = inSaha ? 'Saha' : (moduleTitles[key] || key);
     if (key !== 'santiye' && typeof santiyeCancelPlacement === 'function') santiyeCancelPlacement();
     if (typeof portfoyToggle === 'function') portfoyToggle(key === 'portfoy');
     if (key === 'hafriyat' && typeof hfOpenTab === 'function') hfOpenTab();
@@ -10343,7 +10376,13 @@
     if (key === 'gecmis' && typeof historyRequest === 'function') historyRequest();
   }
   moduleButtons.forEach(function(b){
-    b.addEventListener('click', function(){ setModule(b.getAttribute('data-module')); });
+    b.addEventListener('click', function(){
+      var key = b.getAttribute('data-module');
+      setModule(key === 'saha' && SAHA_GROUP.indexOf(activeModule) < 0 ? lastSahaModule : key);
+    });
+  });
+  sahaSubtabEls.forEach(function(t){
+    t.addEventListener('click', function(){ setModule(t.getAttribute('data-saha-module')); });
   });
   setModule('harita');
 
