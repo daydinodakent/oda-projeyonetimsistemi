@@ -1034,6 +1034,22 @@
   .geopdf-row-meta{font-size:10.5px;color:var(--text-dim);flex:0 0 auto;}
   .geopdf-row.disabled{opacity:.45;cursor:default;}
   .geopdf-hint{font-size:10.5px;color:var(--text-dim);line-height:1.4;margin-top:5px;}
+  /* Veri girişi formunda açılıp kapanan grup (bkz. #ffShapeSection). */
+  .ff-group{margin-top:14px;border:1px solid var(--line);border-radius:2px;background:var(--bg-panel-raise);}
+  .ff-group-head{
+    width:100%;display:flex;align-items:center;gap:8px;padding:8px 10px;background:none;border:none;
+    color:var(--text);cursor:pointer;font:inherit;text-align:left;
+  }
+  .ff-group-head:hover .ff-group-title{color:var(--teal);}
+  .ff-group-title{font-size:11px;font-weight:600;letter-spacing:.02em;color:var(--text-dim);}
+  .ff-group-summary{flex:1;min-width:0;font-size:11px;color:var(--amber);text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .ff-group-chevron{width:14px;height:14px;flex:0 0 auto;color:var(--text-dim);transition:transform .15s ease;}
+  .ff-group.open .ff-group-chevron{transform:rotate(180deg);}
+  .ff-group-body{display:none;padding:2px 10px 10px;border-top:1px solid var(--line);}
+  .ff-group.open .ff-group-body{display:block;padding-top:10px;}
+  #ff3DFields > div{min-width:0;}
+  #ff3DFields input{width:100%;min-width:0;box-sizing:border-box;}
+  .ncz-swatch{width:10px;height:10px;border-radius:2px;flex:0 0 auto;border:1px solid rgba(255,255,255,.25);}
   /* ---------- Taslak çizim kontrolleri (mobil için) ---------- */
   #draftControls{
     position:absolute;left:50%;bottom:40px;transform:translate(-50%,8px);z-index:6;
@@ -2130,7 +2146,7 @@
         <span class="fmt ok" title="Doğrudan içe/dışa aktarılır (yerel birim → metre varsayımıyla)">DXF</span>
         <span class="fmt no" title="Bu ortamda desteklenmiyor — önce DXF/GeoJSON'a dönüştürün">DWG</span>
         <span class="fmt no" title="Bu ortamda desteklenmiyor">DGN</span>
-        <span class="fmt no" title="Bu ortamda desteklenmiyor">NCZ</span>
+        <span class="fmt ok" title="NetCAD çizimi — katman seçimi, TM/UTM → WGS84 dönüşümü ile içe aktarılır">NCZ</span>
         <div class="fmt-cat">GIS</div>
         <span class="fmt ok" title=".shp veya .shp+.dbf içeren .zip desteklenir">SHP</span>
         <span class="fmt no" title="Bu ortamda desteklenmiyor">GDB</span>
@@ -2164,7 +2180,7 @@
           style="width:70px;background:var(--bg-panel-raise);border:1px solid var(--line);color:var(--text);border-radius:2px;padding:4px 6px;font-family:var(--font-mono);font-size:12px;text-align:right;">
       </div>
       <input type="file" id="importInput" multiple
-        accept=".json,.geojson,.kml,.kmz,.zip,.shp,.gml,.dxf,.gltf,.glb,.bin,.ifc,.jpg,.jpeg,.png,.jgw,.pgw,.jpw,.wld"
+        accept=".json,.geojson,.kml,.kmz,.zip,.shp,.gml,.dxf,.ncz,.gltf,.glb,.bin,.ifc,.jpg,.jpeg,.png,.jgw,.pgw,.jpw,.wld"
         hidden>
       <div class="field-label" style="margin-top:6px;">GLTF için ayrı .bin dosyanız varsa modelle birlikte seçin.</div>
     </div>
@@ -2199,7 +2215,7 @@
   <div class="module-page" data-module-page="saha" style="display:none;">
     <span class="field-label" style="margin-bottom:0;">Saha Dosyaları <span style="font-weight:400;">— konumlu galeri: fotoğraf/video/PDF/CAD/GIS/BİM ve diğer dosyalar; EXIF GPS varsa otomatik, yoksa haritada pinleyin</span></span>
 
-    <input type="file" id="sahaPhotoInput" accept="image/*,video/*,application/pdf,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.dwg,.dxf,.skp,.rvt,.ifc,.shp,.geojson,.json,.kml,.kmz,.gpkg,.nwd,.nwc" multiple style="display:none;">
+    <input type="file" id="sahaPhotoInput" accept="image/*,video/*,application/pdf,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.dwg,.dxf,.ncz,.skp,.rvt,.ifc,.shp,.geojson,.json,.kml,.kmz,.gpkg,.nwd,.nwc" multiple style="display:none;">
     <div class="btn-row">
       <div class="btn primary" id="btnSahaAddPhoto" style="flex:1;">+ Dosya Ekle</div>
     </div>
@@ -2932,6 +2948,45 @@
   </div>
 </div>
 
+<!-- NetCAD (.ncz) içe aktarma: dosya ayrıştırıldıktan sonra açılır (bkz.
+     openNczImportModal / importNczLayers). Seçilen her NetCAD katmanı,
+     dosya adını taşıyan yeni bir klasörün altında ayrı bir katman olur. -->
+<div class="modal-overlay" id="nczImportModal">
+  <div class="modal-box tall" style="width:460px;max-width:calc(100vw - 40px);max-height:85vh;">
+    <div class="modal-header">
+      <div class="modal-title">NetCAD (NCZ) İçe Aktar</div>
+      <button type="button" class="modal-close-x" id="btnNczClose" title="Kapat">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="geopdf-hint" id="nczFileInfo" style="margin-top:0;"></div>
+      <div class="geopdf-section-head">
+        <span class="field-label" style="margin:0;">Katmanlar</span>
+        <span class="geopdf-toggle-all" id="nczToggleAll">Tümü / Hiçbiri</span>
+      </div>
+      <div class="geopdf-list" id="nczLayerList" style="max-height:260px;"></div>
+      <label style="display:block;margin-top:12px;">
+        <span class="field-label" style="margin-top:0;">Dilim (projeksiyon dosyada yoksa)</span>
+        <select id="nczZone" class="native-select">
+          <option value="27">ITRF96 / 3° — DOM 27°</option>
+          <option value="30" selected>ITRF96 / 3° — DOM 30°</option>
+          <option value="33">ITRF96 / 3° — DOM 33°</option>
+          <option value="36">ITRF96 / 3° — DOM 36°</option>
+          <option value="39">ITRF96 / 3° — DOM 39°</option>
+          <option value="42">ITRF96 / 3° — DOM 42°</option>
+          <option value="45">ITRF96 / 3° — DOM 45°</option>
+        </select>
+      </label>
+      <div class="geopdf-hint" id="nczProjInfo"></div>
+    </div>
+    <div class="modal-actions">
+      <div class="btn" id="btnNczCancel">Vazgeç</div>
+      <div class="btn primary" id="btnNczImport">İçe Aktar</div>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="featureFormModal">
   <div class="modal-box tall" style="max-height:85vh;">
     <div class="modal-header">
@@ -2945,8 +3000,17 @@
     </div>
 
     <div class="modal-body">
-      <div id="ffShapeSection" style="display:none;">
-        <span class="field-label" style="margin-top:0;">Şekil</span>
+      <div id="ffDynamicFields"></div>
+
+      <!-- Poligon katmanlarında çizim şekli + 3B ayarı: formun altında,
+           varsayılan kapalı, açılıp kapanabilen grup (bkz. ffSetShapeGroupOpen). -->
+      <div id="ffShapeSection" class="ff-group" style="display:none;">
+        <button type="button" class="ff-group-head" id="ffShapeGroupHead" aria-expanded="false">
+          <span class="ff-group-title">Şekil ve 3B</span>
+          <span class="ff-group-summary" id="ffShapeSummary">Serbest</span>
+          <svg class="ff-group-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="ff-group-body" id="ffShapeGroupBody">
         <div class="tool-grid" id="ffShapeButtons">
           <button type="button" class="tool active" data-shape="polygon" data-tip="Serbest çizim (köşe köşe)">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/></svg>
@@ -2975,9 +3039,8 @@
             <input type="number" id="ffFloorHeight" min="0.5" step="0.1" value="3">
           </div>
         </div>
+        </div>
       </div>
-
-      <div id="ffDynamicFields"></div>
     </div>
 
     <div class="modal-actions">
@@ -3476,9 +3539,14 @@
   // NOT: bu, Google'ın resmi/desteklenen bir ürünü olmayan genel bilinen
   // (mt0-3.google.com/vt) raster fayans uç noktalarını kullanır; üretim
   // ortamında resmi/faturalı Google Maps Platform anahtarı önerilir.
+  // Raster altlıkların kendi glif (font) kaynağı yoktur; haritadaki yazı
+  // katmanları (ölçüm etiketleri, NCZ yazıları) bunlarda da çizilebilsin diye
+  // vektör altlıkların kullandığı OpenFreeMap font sunucusu tanımlanır.
+  var RASTER_STYLE_GLYPHS = 'https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf';
   function googleRasterStyle(lyrs, attribution){
     return {
       version: 8,
+      glyphs: RASTER_STYLE_GLYPHS,
       sources: {
         'google-raster-src': {
           type: 'raster',
@@ -4323,7 +4391,7 @@
     ensureLayer('poly-fill', {
       id:'poly-fill', type:'fill', source:'features',
       filter:['all', ['==', ['geometry-type'], 'Polygon'], ['!=', ['coalesce', ['get','extrude'], false], true]],
-      paint:{ 'fill-color':['coalesce', ['get','__layerFillColor'], ['coalesce', ['get','__layerColor'], '#eef29c']], 'fill-opacity':0.55 }
+      paint:{ 'fill-color':['coalesce', ['get','__layerFillColor'], ['coalesce', ['get','__layerColor'], '#eef29c']], 'fill-opacity':['coalesce', ['get','__layerFillOpacity'], 0.55] }
     });
     var POLY_FILTER = ['all', ['==', ['geometry-type'], 'Polygon'], ['!=', ['coalesce', ['get','extrude'], false], true]];
     var LINE_FILTER = ['all', ['==', ['geometry-type'], 'LineString'], ['!=', ['coalesce', ['get','pipe'], false], true]];
@@ -4354,7 +4422,7 @@
     ensureSymbolIcons();
     ensureLayer('point-layer', {
       id:'point-layer', type:'symbol', source:'features',
-      filter:['==', ['geometry-type'], 'Point'],
+      filter:['all', ['==', ['geometry-type'], 'Point'], ['!', ['has', 'ncz_metin']]],
       layout:{
         'icon-image': ['concat', 'sym-', ['coalesce', ['get','__layerSymbol'], 'circle']],
         'icon-size': ['*', 0.42, ['coalesce', ['get','__layerScale'], 1]],
@@ -4365,6 +4433,28 @@
         'icon-color':['coalesce', ['get','__layerColor'], '#3fc2ac'],
         'icon-halo-color':'#08161f',
         'icon-halo-width':1.2
+      }
+    });
+    // NetCAD yazıları (bkz. importNczLayers → ncz_metin): yazı yüksekliği
+    // metre cinsindendir, harita ölçeğiyle birlikte büyür/küçülür. Boyut,
+    // ~40° enlemde metre başına piksel × (yazı yüksekliği / büyük harf oranı
+    // ≈0,7) ile hesaplanır; z10 ile z22 arasında üstel (taban 2) ara değer.
+    ensureLayer('ncz-text-layer', {
+      id:'ncz-text-layer', type:'symbol', source:'features',
+      filter:['all', ['==', ['geometry-type'], 'Point'], ['has', 'ncz_metin']],
+      layout:{
+        'text-field':['get','ncz_metin'],
+        'text-font':['Noto Sans Regular'],
+        'text-size':['interpolate', ['exponential', 2], ['zoom'],
+          10, ['*', ['coalesce', ['get','ncz_yazi_yuksekligi'], 2], 0.0244],
+          22, ['*', ['coalesce', ['get','ncz_yazi_yuksekligi'], 2], 100]],
+        'text-rotate':['-', 0, ['coalesce', ['get','ncz_aci'], 0]],
+        'text-rotation-alignment':'map', 'text-pitch-alignment':'map',
+        'text-anchor':'bottom-left', 'text-allow-overlap':true, 'text-ignore-placement':true
+      },
+      paint:{
+        'text-color':['coalesce', ['get','__layerColor'], '#1f2937'],
+        'text-halo-color':'rgba(255,255,255,0.85)', 'text-halo-width':1
       }
     });
     // İnce çizgi/küçük nokta üzerine tam isabetle tıklamak zor olduğundan,
@@ -5323,7 +5413,7 @@
   var DOC_TYPE_EXT_MAP = {
     resim: ['jpg','jpeg','png','gif','webp','bmp','svg'],
     video: ['mp4','mov','avi','mkv','webm'],
-    cad: ['dwg','dxf','skp','rvt','ifc'],
+    cad: ['dwg','dxf','ncz','skp','rvt','ifc'],
     gis: ['shp','geojson','kml','kmz','gpkg'],
     bim: ['ifc','rvt','nwd','nwc','gltf','glb']
   };
@@ -10480,6 +10570,7 @@
       if (lyr){
         if (lyr.color) f2.properties.__layerColor = lyr.color;
         if (lyr.fillColor) f2.properties.__layerFillColor = lyr.fillColor;
+        if (lyr.fillOpacity != null) f2.properties.__layerFillOpacity = lyr.fillOpacity;
         if (lyr.lineWidth) f2.properties.__layerWidth = lyr.lineWidth;
         if (lyr.dash) f2.properties.__layerDash = lyr.dash;
         if (lyr.symbol) f2.properties.__layerSymbol = lyr.symbol;
@@ -11597,6 +11688,32 @@
       boxes.forEach(function(b){ b.checked = anyOff; });
     });
   });
+  function closeNczImportModal(){
+    document.getElementById('nczImportModal').classList.remove('show');
+    nczPending = null;
+  }
+  document.getElementById('btnNczClose').addEventListener('click', closeNczImportModal);
+  document.getElementById('btnNczCancel').addEventListener('click', closeNczImportModal);
+  document.getElementById('nczToggleAll').addEventListener('click', function(){
+    var boxes = Array.prototype.slice.call(document.querySelectorAll('#nczLayerList input[type=checkbox]'));
+    var anyOff = boxes.some(function(b){ return !b.checked; });
+    boxes.forEach(function(b){ b.checked = anyOff; });
+  });
+  document.getElementById('btnNczImport').addEventListener('click', function(){
+    if (!nczPending) return;
+    var keys = Array.prototype.map.call(document.querySelectorAll('#nczLayerList input:checked'), function(b){ return b.getAttribute('data-ncz-key'); });
+    if (!keys.length){ showToast('En az bir katman seçin.'); return; }
+    var job = nczPending;
+    var zone = parseInt(document.getElementById('nczZone').value, 10) || 30;
+    closeNczImportModal();
+    showLoading('NCZ içe aktarılıyor…');
+    // Yükleme göstergesi çizilsin diye dönüşüm bir sonraki karede başlar.
+    setTimeout(function(){
+      importNczLayers(job.parsed, keys, zone, job.fileName)
+        .catch(function(err){ console.error(err); showToast(job.fileName + ' içe aktarılamadı: ' + err.message); })
+        .finally(function(){ hideLoading(); });
+    }, 30);
+  });
   document.getElementById('btnGeoPdfExport').addEventListener('click', function(){
     var styleIds = Array.prototype.map.call(document.querySelectorAll('#geoPdfBasemapList input:checked'), function(b){ return b.getAttribute('data-style-id'); });
     var layerIds = Array.prototype.map.call(document.querySelectorAll('#geoPdfLayerList input:checked'), function(b){ return b.getAttribute('data-layer-id'); });
@@ -12072,7 +12189,7 @@
   // formatlar önerilsin diye), seçici açıldıktan hemen sonra TAM listeye
   // geri döndürülür — tarayıcı accept'i dialog AÇILIRKENki değeriyle
   // okuduğundan bu, sonradan başka bir satırın .accept'ini etkilemez.
-  var IMPORT_INPUT_FULL_ACCEPT = '.json,.geojson,.kml,.kmz,.zip,.shp,.gml,.dxf,.gltf,.glb,.bin,.ifc,.jpg,.jpeg,.png,.jgw,.pgw,.jpw,.wld';
+  var IMPORT_INPUT_FULL_ACCEPT = '.json,.geojson,.kml,.kmz,.zip,.shp,.gml,.dxf,.ncz,.gltf,.glb,.bin,.ifc,.jpg,.jpeg,.png,.jgw,.pgw,.jpw,.wld';
   // Her formatın yanındaki küçük "göz" ikonu (bkz. importSampleDirectly),
   // kullanıcının o formatın nasıl bir şey olduğunu anlaması için örnek
   // dosyayı ÖNİZLEME olmadan DOĞRUDAN haritaya ekler/gösterir — bkz.
@@ -12080,7 +12197,8 @@
   var ADD_CONTENT_GROUPS = [
     { title:'CAD Dosyaları', items:[
       { label:'DXF', hint:'AutoCAD çizim dosyası — birim/ölçek dönüşümü ile', icon:'vector', inputId:'importInput', accept:'.dxf',
-        sample:{ kind:'file', mime:'text', path:'/samples/ornek.dxf', name:'ornek.dxf' } }
+        sample:{ kind:'file', mime:'text', path:'/samples/ornek.dxf', name:'ornek.dxf' } },
+      { label:'NetCAD (NCZ)', hint:'Katman seçimi ile — TM/UTM koordinatları WGS84\'e dönüştürülür', icon:'vector', inputId:'importInput', accept:'.ncz' }
     ]},
     { title:'GIS Dosyaları', items:[
       { label:'Shapefile (.zip)', hint:'SHP+DBF+SHX birlikte sıkıştırılmış', icon:'vector', inputId:'importInput', accept:'.zip',
@@ -12530,15 +12648,28 @@
   // ---------------------------------------------------------------------
   var ffSelectedShape = 'polygon'; // 'polygon' (serbest) | 'rectangle' | 'circle' — sadece Poligon katmanlarda anlamlı
   function ffSyncShapeButtons(){
+    var label = 'Serbest';
     document.querySelectorAll('#ffShapeButtons .tool').forEach(function(b){
-      b.classList.toggle('active', b.getAttribute('data-shape') === ffSelectedShape);
+      var on = b.getAttribute('data-shape') === ffSelectedShape;
+      b.classList.toggle('active', on);
+      if (on) label = b.textContent.trim();
     });
+    // Grup kapalıyken de seçim görünsün diye başlıkta özetlenir.
+    document.getElementById('ffShapeSummary').textContent = label + (document.getElementById('ff3DCheckbox').checked ? ' · 3B' : '');
   }
+  function ffSetShapeGroupOpen(open){
+    document.getElementById('ffShapeSection').classList.toggle('open', open);
+    document.getElementById('ffShapeGroupHead').setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+  document.getElementById('ffShapeGroupHead').addEventListener('click', function(){
+    ffSetShapeGroupOpen(!document.getElementById('ffShapeSection').classList.contains('open'));
+  });
   document.querySelectorAll('#ffShapeButtons .tool').forEach(function(b){
     b.addEventListener('click', function(){ ffSelectedShape = b.getAttribute('data-shape'); ffSyncShapeButtons(); });
   });
   document.getElementById('ff3DCheckbox').addEventListener('change', function(e){
     document.getElementById('ff3DFields').style.display = e.target.checked ? 'flex' : 'none';
+    ffSyncShapeButtons();
   });
 
   document.getElementById('btnPlaceFeature').addEventListener('click', function(){
@@ -12550,9 +12681,10 @@
     var isPoly = lyr.geomType === 'Polygon';
     document.getElementById('ffShapeSection').style.display = isPoly ? 'block' : 'none';
     ffSelectedShape = 'polygon';
-    ffSyncShapeButtons();
     document.getElementById('ff3DCheckbox').checked = false;
     document.getElementById('ff3DFields').style.display = 'none';
+    ffSyncShapeButtons();
+    ffSetShapeGroupOpen(false);
     document.getElementById('ffFloors').value = 1;
     document.getElementById('ffFloorHeight').value = 3;
     renderSchemaFields(document.getElementById('ffDynamicFields'), lyr, null);
@@ -12700,7 +12832,8 @@
       id: id, label: name,
       style: {
         version: 8,
-        sources: { 'xyz-custom-src': { type:'raster', tiles:[url], tileSize:256 } },
+        glyphs: RASTER_STYLE_GLYPHS,
+        sources: { 'xyz-custom-src':{ type:'raster', tiles:[url], tileSize:256 } },
         layers: [{ id:'xyz-custom-layer', type:'raster', source:'xyz-custom-src' }]
       }
     };
@@ -13739,6 +13872,742 @@
     return rawFeats.map(function(f){
       return { type:'Feature', geometry:{ type:f.geometry.type, coordinates:mapCoords(f.geometry.coordinates) }, properties: f.properties || {} };
     });
+  }
+
+  // ==== NCZ PARSER BEGIN ====
+  // ---- NetCAD NCZ (ikili) okuyucu ------------------------------------------
+  // oda-cad projesindeki src/core/io/nczParser.ts'in düz JS karşılığı; o da
+  // "Jeomatik NCZ Reader" QGIS eklentisinin saf-Python ayrıştırıcısının
+  // TypeScript portudur (Copyright (C) 2026 Erdinç Örsan ÜNAL,
+  // GPL-2.0-or-later). Dönen koordinatlar dosyanın projeksiyonlu CRS'indedir
+  // (x = sağa/doğu, y = yukarı/kuzey). Ham öznitelik tabloları (@TABnnn)
+  // objelere bağlanamadığı için okunmaz.
+  var parseNcz = (function(){
+    var BLOCK_LAYER_TABLE = 6, BLOCK_GEOMETRY = 21, BLOCK_GEOMETRY_EXT = 22;
+    var BLOCK_VERSION = 25, BLOCK_NAMED_DATA = 28, EXT_HEADER = 28;
+    var GEOMETRY_MIN_BYTES = { 1:87, 2:39, 3:74, 4:120, 5:94, 6:95, 7:113, 9:24, 10:124, 11:82, 12:122, 13:122, 15:90 };
+    var EXT_HEADER_TYPES = { 1:1, 4:1, 5:1, 6:1, 7:1, 9:1, 10:1, 13:1 };
+    var EMBEDDED_CONTAINERS = { 0:1, 5:1, 14:1, 48:1, 108:1, 111:1, 132:1, 150:1, 180:1 };
+    var LEGACY_CHARS = { 221:'İ', 222:'Ş', 208:'Ğ', 240:'ğ', 253:'ı', 254:'ş' };
+    var MAX_ABS = 100000000;
+    function argb(r, g, b){ return ((255 << 24) | (r << 16) | (g << 8) | b) >>> 0; }
+    function finite(v){ return Number.isFinite(v); }
+    function pyMod(a, n){ return ((a % n) + n) % n; }
+    function trimNulSpace(s){ return s.replace(/^[\x00 ]+|[\x00 ]+$/g, ''); }
+    function isTokenByte(v){ return (v >= 48 && v <= 57) || (v >= 65 && v <= 90) || (v >= 97 && v <= 122) || v === 45 || v === 95; }
+
+    return function parseNcz(input){
+      var data = input instanceof Uint8Array ? input : new Uint8Array(input);
+      var view = new DataView(data.buffer, data.byteOffset, data.byteLength);
+      var len = data.length;
+      var layerNames = [], layerColors = [], entities = [];
+      var versionName = '', epsg = '', projectionText = '', projection = null, unsupported = {};
+
+      // ---- sınır kontrollü ilkel okuyucular ----
+      function u8(o){ return o >= 0 && o < len ? data[o] : 0; }
+      function u32(o){ return o >= 0 && o + 4 <= len ? view.getUint32(o, true) : 0; }
+      function f64(o){ return o >= 0 && o + 8 <= len ? view.getFloat64(o, true) : 0; }
+      function f32(o){ return o >= 0 && o + 4 <= len ? view.getFloat32(o, true) : 0; }
+      function legacyChar(v){ return LEGACY_CHARS[v] || String.fromCharCode(v); }
+      function legacyString(offset, length){
+        var s = '';
+        for (var i = 0; i < length; i++){
+          if (offset + i >= len) break;
+          s += legacyChar(data[offset + i]);
+        }
+        return s.replace(/\x00+$/, '');
+      }
+      function asciiString(start, end){
+        var s = '';
+        for (var i = start; i < end && i < len; i++) s += String.fromCharCode(data[i]);
+        return s;
+      }
+
+      // ---- blok tarama ----
+      function scanBlocks(){
+        var cursor = 0;
+        while (cursor + 5 < len){
+          var blockSize = u32(cursor + 1) + 4;
+          var total = blockSize + 1;
+          if (blockSize < 4 || cursor + total > len){ cursor += 1; continue; }
+          var type = data[cursor];
+          if (type === BLOCK_VERSION && !versionName) versionName = legacyString(cursor + 6, data[cursor + 5]);
+          else if (type === BLOCK_NAMED_DATA) parseNamedData(cursor, blockSize);
+          else if (type === BLOCK_LAYER_TABLE) parseLayerTable(cursor, blockSize);
+          else if ((type === BLOCK_GEOMETRY || type === BLOCK_GEOMETRY_EXT) && blockSize >= 7) parseGeometry(cursor, blockSize, type === BLOCK_GEOMETRY_EXT ? EXT_HEADER : 0);
+          else if (EMBEDDED_CONTAINERS[type]) parseEmbedded(cursor, blockSize);
+          cursor += total;
+        }
+      }
+      function parseNamedData(offset, blockSize){
+        var end = Math.min(len, offset + blockSize + 1);
+        if (offset + 6 > end) return;
+        var name = legacyString(offset + 6, data[offset + 5]);
+        if (name === 'MPROJ' && offset + 22 <= end){
+          var kind = data[offset + 16], datum = data[offset + 17], zone = data[offset + 21];
+          var projName = ({ 1:'Coğrafi', 2:'6°', 3:'3°' })[kind] || 'Tanımsız';
+          var datumName = ({ 0:'WGS-84', 1:'ITRF', 4:'ED50', 254:'ED50-HGK' })[datum] || 'Tanımsız';
+          projectionText = datumName + ' / ' + projName + ' / Dilim ' + zone;
+          projection = { kind:kind, datum:datum, zone:zone };
+        } else if (name === 'TILED_XML'){
+          epsg = readEpsg(offset, end - offset);
+        } else if (name === 'LEX.ST2' && offset + 21 <= end){
+          var count = data[offset + 20];
+          for (var i = 0; i < count; i++){
+            var item = offset + 79 + i * 256;
+            if (item + 3 > end) break;
+            layerColors.push(argb(data[item], data[item + 1], data[item + 2]));
+          }
+        }
+      }
+      function parseLayerTable(offset, blockSize){
+        var end = Math.min(len, offset + blockSize + 1);
+        if (offset + 18 > end) return;
+        var count = data[offset + 16] + data[offset + 17] * 256;
+        for (var i = 0; i < count; i++){
+          var item = offset + 18 + i * 29;
+          if (item + 29 > end) break;
+          var name = legacyString(item + 5, data[item + 4]);
+          if (name.trim()) layerNames.push(name);
+        }
+      }
+      function readEpsg(offset, maxLength){
+        for (var i = 0; i < maxLength - 3; i++){
+          if (offset + i + 2 >= len) break;
+          if (data[offset + i] === 0x53 && data[offset + i + 1] === 0x52 && data[offset + i + 2] === 0x53){
+            var s = '', c = 0;
+            while (offset + i + c < len && data[offset + i + c] !== 62){ s += legacyChar(data[offset + i + c]); c++; }
+            return s.replace('SRS:', '').replace(/"/g, '');
+          }
+        }
+        return '';
+      }
+      function finalizeEntities(){
+        if (entities.some(function(e){ return e.geometryKind === 'SmartObject'; })){
+          entities = entities.filter(function(e){ return !(e.geometryKind === 'Symbol' && e.layerCode === 0 && e.labelText === 'S0'); });
+        }
+        entities.forEach(function(e){
+          if (!e.layerName) e.layerName = layerName(e.layerCode);
+          if (e.colorArgb === null) e.colorArgb = geometryColor(e.layerCode, 0);
+        });
+      }
+
+      // ---- geometri dağıtımı ----
+      function parseGeometry(offset, blockSize, ext){
+        if (blockSize < 7 || offset + 6 >= len) return;
+        var type = data[offset + 6];
+        var min = GEOMETRY_MIN_BYTES[type];
+        if (min !== undefined){
+          if (EXT_HEADER_TYPES[type]) min += ext;
+          if (blockSize + 1 < min) return;
+        }
+        switch (type){
+          case 1: return parsePoint(offset, ext);
+          case 2: return parseLine(offset, blockSize);
+          case 3: return parseCircle(offset);
+          case 4: return parseArc(offset, ext);
+          case 5: return parseText(offset, ext);
+          case 6: return parseSymbol(offset, blockSize, ext);
+          case 7: return parseMultiline(offset, blockSize, ext);
+          case 9: return parseCompressedCurve(offset, blockSize, ext);
+          case 10: return parseBox(offset, blockSize, ext);
+          case 11: return parseMapSheet(offset, blockSize);
+          case 12: return parseTriangle(offset);
+          case 13: return parseBlockRef(offset, blockSize, ext);
+          case 15: return parseSmartObject(offset, blockSize);
+          default: unsupported[type] = (unsupported[type] || 0) + 1;
+        }
+      }
+      function parseEmbedded(offset, blockSize){
+        var cursor = offset + 5;
+        var end = Math.min(len, offset + blockSize);
+        while (cursor + 6 < end){
+          var isGeom = data[cursor] === BLOCK_GEOMETRY || data[cursor] === BLOCK_GEOMETRY_EXT;
+          if (!isGeom || data[cursor + 5] !== data[cursor + 6]){ cursor++; continue; }
+          var inner = u32(cursor + 1) + 4;
+          var total = inner + 1;
+          if (inner < 7 || cursor + total > end){ cursor++; continue; }
+          parseGeometry(cursor, inner, data[cursor] === BLOCK_GEOMETRY_EXT ? EXT_HEADER : 0);
+          cursor += total;
+        }
+      }
+
+      // ---- varlık okuyucuları ----
+      function parsePoint(o, ext){
+        var rx = f64(o + 8), ry = f64(o + 16);
+        var z = f32(o + 24);
+        if (z === 0) z = f32(o + 28);
+        if (!validXY(rx, ry)) return;
+        append('Point', u8(o + 7), u8(o + 37), [coord(rx, ry, z)], { name: legacyString(o + ext + 87, u8(o + ext + 86)) });
+      }
+      function parseLine(o, size){
+        var x1 = f64(o + 8), y1 = f64(o + 16), z1 = f32(o + 24);
+        var x2 = f64(o + size - 19), y2 = f64(o + size - 11), z2 = f32(o + size - 3);
+        if (!validXY(x1, y1) || !validXY(x2, y2)) return;
+        append('Line', u8(o + 7), u8(o + 37), [coord(x1, y1, z1), coord(x2, y2, z2)]);
+      }
+      function parseMultiline(o, size, ext){
+        var text = legacyString(o + ext + 87, u8(o + ext + 86));
+        var count = Math.floor((size + 1 - 113 - ext) / 24);
+        if (count < 2) return;
+        var end = Math.min(len, o + size + 1);
+        var coords = [];
+        for (var i = 0; i < count; i++){
+          var co = i * 24 + (o + ext + 113);
+          if (co + 24 > end) break;
+          coords.push(coord(f64(co), f64(co + 8), f64(co + 16)));
+        }
+        if (coords.length < 2) return;
+        var closed = isNearlyClosed(coords);
+        if (closed && !sameCoord(coords[0], coords[coords.length - 1])) coords.push({ x:coords[0].x, y:coords[0].y, z:coords[0].z });
+        var bm = boxMetrics(coords);
+        append(closed ? 'Polygon' : 'Polyline', u8(o + 7), u8(o + 37), coords, {
+          labelText: text, isClosed: closed, boxWidth: bm[1], boxHeight: bm[2], rotationDegrees: bm[0] ? bm[3] : 0
+        });
+      }
+      function parseCompressedCurve(o, size, ext){
+        var ox = f64(o + 8), oy = f64(o + 16);
+        if (!validXY(ox, oy)) return;
+        var start = o + ext + 122, end = o + size + 1;
+        if (start + 8 > end) return;
+        var coords = [], bad = 0;
+        for (var r = start; r < end - 7; r += 18){
+          var dx = f32(r), dy = f32(r + 4);
+          if (!finite(dx) || !finite(dy)){ bad++; if (coords.length && bad >= 4) break; continue; }
+          var x = ox + dx, y = oy + dy;
+          if (!validXY(x, y)){ bad++; if (coords.length && bad >= 4) break; continue; }
+          bad = 0;
+          var c = coord(x, y, 0);
+          var prev = coords[coords.length - 1];
+          if (prev && Math.abs(prev.x - c.x) < 0.0001 && Math.abs(prev.y - c.y) < 0.0001) continue;
+          coords.push(c);
+        }
+        if (coords.length < 2) return;
+        append('Polyline', u8(o + 7), u8(o + 37), coords);
+      }
+      function parseCircle(o){
+        var rx = f64(o + 8), ry = f64(o + 16), z = f32(o + 24);
+        if (!validXY(rx, ry)) return;
+        var x2 = f64(o + 50), x3 = f64(o + 66);
+        append('Circle', u8(o + 7), u8(o + 37), [coord(rx, ry, z)], { radius: Math.abs(x2 - x3) / 2 });
+      }
+      function parseArc(o, ext){
+        var rx = f64(o + 8), ry = f64(o + 16), z = f32(o + 24);
+        if (!validXY(rx, ry)) return;
+        append('Arc', u8(o + 7), u8(o + 37), [coord(rx, ry, z)], {
+          radius: f64(o + ext + 86), startAngle: f64(o + ext + 104), endAngle: f64(o + ext + 112)
+        });
+      }
+      function parseText(o, ext){
+        var rx = f64(o + 8), ry = f64(o + 16);
+        var z = f32(o + 24);
+        if (z === 0) z = f32(o + 28);
+        if (!validXY(rx, ry)) return;
+        var text = readTextPayload(o, ext);
+        if (!text) return;
+        var h = positiveFloat(o + ext + 86);
+        if (h === null) h = positiveFloat(o + 86);
+        if (h === null) return;
+        var rot = pyMod(f32(o + ext + 90) * (180 / Math.PI), 360);
+        append('Text', u8(o + 7), u8(o + 37), [coord(rx, ry, z)], { labelText: text, textHeight: h, rotationDegrees: rot });
+      }
+      function parseSymbol(o, size, ext){
+        var rx = f64(o + 8), ry = f64(o + 16), z = f32(o + 24);
+        if (!validXY(rx, ry)) return;
+        var end = Math.min(len, o + size + 1);
+        var so = o + ext + 94;
+        if (so < o || so >= end) so = o + 94;
+        var code = so >= 0 && so < end ? data[so] : 0;
+        var sz = positiveFloat(o + ext + 86);
+        if (sz === null) sz = positiveFloat(o + 86);
+        if (sz === null) sz = 5;
+        var rot = pyMod(f32(o + ext + 90) * (180 / Math.PI), 360);
+        append('Symbol', u8(o + 7), u8(o + 37), [coord(rx, ry, z)], { labelText: 'S' + code, textHeight: sz, rotationDegrees: rot });
+      }
+      function parseBlockRef(o, size, ext){
+        var rx = f64(o + 8), ry = f64(o + 16), z = f32(o + 24);
+        if (!validXY(rx, ry)) return;
+        var name = lengthPrefixedName(o + ext + 86, o + size + 1);
+        var rot = pyMod(f32(o + ext + 118) * (180 / Math.PI), 360);
+        append('Block', u8(o + 7), u8(o + 37), [coord(rx, ry, z)], { labelText: name, rotationDegrees: rot });
+      }
+      function parseBox(o, size, ext){
+        var x1 = f64(o + 8), y1 = f64(o + 16);
+        var x2 = f64(o + ext + 104), y2 = f64(o + ext + 112);
+        var rotRad = f32(o + ext + 120);
+        if (!validXY(x1, y1) || !validXY(x2, y2)) return;
+        var w = Math.abs(x2 - x1), h = Math.abs(y2 - y1);
+        var rot = pyMod(rotRad * (180 / Math.PI), 360);
+        var a = rot * (Math.PI / 180);
+        var sx = Math.sin(a), sy = Math.cos(a), bx = Math.cos(a), by = -Math.sin(a);
+        var p1x = x1 + bx * w, p1y = y1 + by * w;
+        var p2x = p1x + sx * h, p2y = p1y + sy * h;
+        var p3x = x1 + sx * h, p3y = y1 + sy * h;
+        append('Polygon', u8(o + 7), u8(o + 37), [
+          coord(x1, y1, 0), coord(p1x, p1y, 0), coord(p2x, p2y, 0), coord(p3x, p3y, 0), coord(x1, y1, 0)
+        ], { isClosed: true, boxWidth: w, boxHeight: h, rotationDegrees: rot, labelText: planBoxName(o, size) });
+      }
+      function parseMapSheet(o, size){
+        var x1 = f64(o + 50), y1 = f64(o + 58), x2 = f64(o + 66), y2 = f64(o + 74);
+        if (!validXY(x1, y1) || !validXY(x2, y2)) return;
+        var minX = Math.min(x1, x2), maxX = Math.max(x1, x2), minY = Math.min(y1, y2), maxY = Math.max(y1, y2);
+        if (Math.abs(maxX - minX) < 0.001 || Math.abs(maxY - minY) < 0.001) return;
+        var name = lengthPrefixedName(o + 86, o + size + 1);
+        append('MapSheet', u8(o + 7), u8(o + 37), [
+          coord(minX, minY, 0), coord(maxX, minY, 0), coord(maxX, maxY, 0), coord(minX, maxY, 0), coord(minX, minY, 0)
+        ], { isClosed: true, boxWidth: maxX - minX, boxHeight: maxY - minY, labelText: name });
+      }
+      function triangleVertex(o, xo, yo, zo){
+        if (o + xo + 8 > len || o + yo + 8 > len) return null;
+        var x = f64(o + xo), y = f64(o + yo);
+        var z = zo !== undefined && o + zo + 4 <= len ? f32(o + zo) : 0;
+        if (!validXY(x, y)) return null;
+        return coord(x, y, z);
+      }
+      function parseTriangle(o){
+        var a = triangleVertex(o, 8, 16, 24), b = triangleVertex(o, 86, 94), c = triangleVertex(o, 106, 114);
+        if (!a || !b || !c) return;
+        var area2 = Math.abs((b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x));
+        if (area2 <= 0.0001) return;
+        append('Triangle', u8(o + 7), u8(o + 37), [a, b, c]);
+      }
+      function parseSmartObject(o, size){
+        var end = Math.min(len, o + size + 1);
+        var x1 = f64(o + 8), y1 = f64(o + 16);
+        if (!validXY(x1, y1)) return;
+        var w = o + 177 <= end ? f64(o + 169) : 0;
+        var h = o + 185 <= end ? f64(o + 177) : 0;
+        var gx = o + 193 <= end ? f64(o + 185) : 0;
+        var gy = o + 201 <= end ? f64(o + 193) : 0;
+        var x2 = f64(o + 66), y2 = f64(o + 74);
+        if (w <= 0 || h <= 0){
+          if (!validXY(x2, y2)) return;
+          w = Math.abs(x2 - x1);
+          h = Math.abs(y2 - y1);
+        }
+        if (w < 0.001 || h < 0.001) return;
+        var grads = f32(o + 82);
+        var rot = finite(grads) ? pyMod(grads * 0.9, 360) : 0;
+        var scale = f32(o + 86);
+        if (!finite(scale)) scale = 0;
+        var a = (rot * Math.PI) / 180;
+        var bx = Math.sin(a), by = Math.cos(a), sx = Math.cos(a), sy = -Math.sin(a);
+        var p1x = x1 + bx * w, p1y = y1 + by * w;
+        var p2x = p1x + sx * h, p2y = p1y + sy * h;
+        var p3x = x1 + sx * h, p3y = y1 + sy * h;
+        var payload = asciiString(o, end);
+        var label = payload.indexOf('BASIC') >= 0 ? 'BASIC' : asciiToken(o + 145, end);
+        append('SmartObject', u8(o + 7), u8(o + 37), [
+          coord(x1, y1, 0), coord(p1x, p1y, 0), coord(p2x, p2y, 0), coord(p3x, p3y, 0), coord(x1, y1, 0)
+        ], { isClosed: true, boxWidth: w, boxHeight: h, rotationDegrees: rot, scale: scale, gridX: gx, gridY: gy, labelText: label });
+      }
+      function append(kind, layerCode, colorCode, coordinates, extra){
+        extra = extra || {};
+        entities.push({
+          geometryKind: kind,
+          layerCode: layerCode,
+          layerName: layerName(layerCode),
+          colorArgb: geometryColor(layerCode, colorCode),
+          name: extra.name || '',
+          labelText: extra.labelText || '',
+          textHeight: extra.textHeight || 0,
+          rotationDegrees: extra.rotationDegrees || 0,
+          boxWidth: extra.boxWidth || 0,
+          boxHeight: extra.boxHeight || 0,
+          scale: extra.scale || 0,
+          gridX: extra.gridX || 0,
+          gridY: extra.gridY || 0,
+          radius: extra.radius || 0,
+          startAngle: extra.startAngle || 0,
+          endAngle: extra.endAngle || 0,
+          isClosed: !!extra.isClosed,
+          coordinates: coordinates
+        });
+      }
+
+      // ---- yardımcılar ----
+      function readTextPayload(o, ext){
+        return lengthPrefixedText(o + ext + 97, o + ext + 98) ||
+          lengthPrefixedText(o + ext + 86, o + ext + 87) ||
+          lengthPrefixedText(o + 97, o + 98) ||
+          lengthPrefixedText(o + 86, o + 87);
+      }
+      function lengthPrefixedText(lenOff, textOff){
+        if (lenOff < 0 || lenOff >= len || textOff < 0 || textOff >= len) return '';
+        var n = data[lenOff];
+        if (n <= 0 || n > 240 || textOff + n > len) return '';
+        return trimNulSpace(legacyString(textOff, n));
+      }
+      function positiveFloat(o){
+        if (o < 0 || o + 4 > len) return null;
+        var v = f32(o);
+        return !finite(v) || v <= 0 || v > 100000 ? null : v;
+      }
+      function planBoxName(o, size){
+        var end = Math.min(len, o + size + 1);
+        for (var i = o; i < Math.max(o, end - 4); i++){
+          if (i + 4 > end) break;
+          if (asciiString(i, i + 4).toLowerCase() !== 'plan') continue;
+          var c = i + 4;
+          while (c < end && c - i < 32 && isTokenByte(data[c])) c++;
+          if (c <= i + 4) continue;
+          var name = trimNulSpace(asciiString(i, c));
+          if (name.length > 4 && /^\d+$/.test(name.slice(4))) return name;
+        }
+        return '';
+      }
+      function lengthPrefixedName(start, end){
+        var bound = Math.min(end, len);
+        for (var i = Math.max(0, start); i < Math.max(0, bound - 2); i++){
+          var n = data[i];
+          if (n <= 0 || n > 64 || i + 1 + n > bound) continue;
+          var v = trimNulSpace(legacyString(i + 1, n));
+          if (v && !/[\x00-\x08\x0a-\x1f]/.test(v)) return v;
+        }
+        return '';
+      }
+      function asciiToken(start, end){
+        var bound = Math.min(end, len);
+        var c = Math.max(0, start);
+        while (c < bound){
+          if (!isTokenByte(data[c])){ c++; continue; }
+          var s = c;
+          while (c < bound && isTokenByte(data[c])) c++;
+          if (c - s >= 3) return asciiString(s, c);
+        }
+        return '';
+      }
+      // [dikdörtgen mi, genişlik, yükseklik, dönüklük°]
+      function boxMetrics(coords){
+        var none = [false, 0, 0, 0];
+        if (coords.length < 5) return none;
+        var pts = sameCoord(coords[0], coords[coords.length - 1]) ? coords.slice(0, -1) : coords;
+        pts = simplifyRing(pts);
+        if (pts.length !== 4) return none;
+        var edges = [0, 1, 2, 3].map(function(i){
+          var a = pts[i], b = pts[(i + 1) % 4];
+          return [b.x - a.x, b.y - a.y];
+        });
+        var lens = edges.map(function(e){ return Math.hypot(e[0], e[1]); });
+        if (lens.some(function(l){ return l < 0.001; })) return none;
+        function eq(a, b){ return Math.abs(a - b) <= Math.max(Math.max(Math.abs(a), Math.abs(b)) * 0.02, 0.02); }
+        function ortho(i){
+          var a = edges[i], b = edges[(i + 1) % 4];
+          return Math.abs((a[0] * b[0] + a[1] * b[1]) / (lens[i] * lens[(i + 1) % 4])) <= 0.03;
+        }
+        if (!(eq(lens[0], lens[2]) && eq(lens[1], lens[3]) && [0, 1, 2, 3].every(ortho))) return none;
+        return [true, lens[0], lens[1], pyMod((Math.atan2(edges[0][1], edges[0][0]) * 180) / Math.PI, 360)];
+      }
+      function simplifyRing(points){
+        if (points.length <= 4) return points;
+        var s = points.slice();
+        var removed = true;
+        while (removed && s.length > 4){
+          removed = false;
+          for (var i = 0; i < s.length; i++){
+            var p = s[(i - 1 + s.length) % s.length], c = s[i], n = s[(i + 1) % s.length];
+            var ax = c.x - p.x, ay = c.y - p.y, bx = n.x - c.x, by = n.y - c.y;
+            var al = Math.hypot(ax, ay), bl = Math.hypot(bx, by);
+            if (al < 0.001 || bl < 0.001 || Math.abs(ax * by - ay * bx) / (al * bl) <= 0.02){
+              s.splice(i, 1);
+              removed = true;
+              break;
+            }
+          }
+        }
+        return s;
+      }
+      function isNearlyClosed(c){
+        if (c.length < 4) return false;
+        var first = c[0], last = c[c.length - 1];
+        if (sameCoord(first, last)) return true;
+        if (c.length < 5) return false;
+        var ref = Math.min(dist(first, c[1]), dist(c[c.length - 2], last));
+        if (ref <= 0.001) return false;
+        return dist(first, last) <= Math.max(ref * 0.2, 0.05);
+      }
+      function sameCoord(a, b){ return Math.abs(a.x - b.x) < 0.001 && Math.abs(a.y - b.y) < 0.001 && Math.abs(a.z - b.z) < 0.001; }
+      function dist(a, b){ return Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z); }
+      // NetCAD (kuzey, doğu) sırasıyla saklar → x = doğu, y = kuzey.
+      function coord(rawX, rawY, z){ return { x: rawY, y: rawX, z: z }; }
+      function validXY(x, y){ return finite(x) && finite(y) && Math.abs(x) <= MAX_ABS && Math.abs(y) <= MAX_ABS; }
+      function geometryColor(layerCode, colorCode){
+        if (colorCode === 1) return argb(0, 0, 255);
+        if (colorCode === 255) return argb(255, 0, 0);
+        if (colorCode !== 0) return null;
+        if (layerCode >= 0 && layerCode < layerColors.length) return normalizeColor(layerColors[layerCode]);
+        if (layerCode - 1 >= 0 && layerCode - 1 < layerColors.length) return normalizeColor(layerColors[layerCode - 1]);
+        return null;
+      }
+      function layerName(code){
+        if (code >= 0 && code < layerNames.length) return layerNames[code];
+        if (code - 1 >= 0 && code - 1 < layerNames.length) return layerNames[code - 1];
+        return '';
+      }
+      function normalizeColor(v){
+        var r = (v >>> 16) & 255, g = (v >>> 8) & 255, b = v & 255;
+        return r === 0 && g === 0 && b <= 1 ? argb(0, 0, 0) : v;
+      }
+
+      scanBlocks();
+      finalizeEntities();
+      return {
+        entities: entities, layerNames: layerNames, layerColors: layerColors,
+        versionName: versionName, epsg: epsg, projectionText: projectionText,
+        projection: projection, unsupportedGeometryTypes: unsupported
+      };
+    };
+  })();
+  // ==== NCZ PARSER END ====
+
+  // ---- NCZ → harita objeleri (oda-cad nczImporter.ts karşılığı) ----------
+  var NCZ_POLYGON_KINDS = { Polygon:1, Circle:1, Triangle:1, MapSheet:1, SmartObject:1 };
+  var NCZ_POINT_KINDS = { Point:1, Symbol:1, Block:1, Text:1 };
+  var NCZ_KIND_LABELS = {
+    Point:'Nokta', Line:'Çizgi', Polyline:'Çoklu çizgi', Polygon:'Kapalı alan', Circle:'Daire', Arc:'Yay',
+    Text:'Yazı', Symbol:'Sembol', Block:'Blok', MapSheet:'Pafta', Triangle:'Üçgen', SmartObject:'Akıllı nesne'
+  };
+  // visibleFeaturesForRender her çizimde objeleri kopyaladığından haritanın
+  // akıcı kalması için tek seferde aktarılan obje sayısı sınırlanır.
+  var NCZ_MAX_FEATURES = 60000;
+
+  function nczLayerKey(e){ return (e.layerName || '').trim() || ('KATMAN_' + e.layerCode); }
+
+  function nczHex(argbVal){
+    if (argbVal == null) return null;
+    var r = (argbVal >>> 16) & 255, g = (argbVal >>> 8) & 255, b = argbVal & 255;
+    // Beyaz (NetCAD'in koyu ekranı için) açık altlıkta kaybolur.
+    if (r > 235 && g > 235 && b > 235) return '#334155';
+    return '#' + [r, g, b].map(function(v){ return v.toString(16).padStart(2, '0'); }).join('');
+  }
+
+  // Katman başına obje/yazı sayısı ve en sık kullanılan renk (katman rengi).
+  function summarizeNczLayers(parsed){
+    var byKey = {};
+    parsed.entities.forEach(function(e){
+      var key = nczLayerKey(e);
+      var s = byKey[key] || (byKey[key] = { key:key, count:0, texts:0, colors:{} });
+      s.count++;
+      if (e.geometryKind === 'Text') s.texts++;
+      var hex = nczHex(e.colorArgb);
+      if (hex) s.colors[hex] = (s.colors[hex] || 0) + 1;
+    });
+    return Object.keys(byKey).map(function(k){
+      var s = byKey[k], best = null;
+      Object.keys(s.colors).forEach(function(c){ if (!best || s.colors[c] > s.colors[best]) best = c; });
+      return { key:s.key, count:s.count, texts:s.texts, color:best };
+    }).sort(function(a, b){ return b.count - a.count; });
+  }
+
+  function nczMedian(values){
+    if (!values.length) return 0;
+    var sorted = values.slice().sort(function(a, b){ return a - b; });
+    return sorted[Math.floor(sorted.length / 2)];
+  }
+  // Türkiye 3°/6° TM ızgarası: sağa ~100–900 km, yukarı ~3,8–4,8 milyon m.
+  function nczLooksLikeTurkeyGrid(x, y){ return x > 100000 && x < 900000 && y > 3800000 && y < 4800000; }
+
+  // Dosyanın MPROJ kaydına göre (yoksa seçilen 3° dilime göre) TM/UTM →
+  // WGS84 dönüştürücüsü; ızgara Türkiye'ye benzemiyorsa yerel çizim kabul
+  // edilip harita merkezine (1 birim = 1 m) yerleştirilir (bkz. placeDXFOnMap).
+  function nczBuildProjector(proj4lib, parsed, fallbackZone){
+    var p = parsed.projection;
+    var zone = p ? p.zone : 0, kind = p ? p.kind : 0, datum = p ? p.datum : 1;
+    var note = parsed.projectionText;
+    if (kind === 1) return { toLngLat: function(x, y){ return [x, y]; }, note: note || 'Coğrafi (enlem/boylam)' };
+
+    var xs = [], ys = [];
+    parsed.entities.forEach(function(e){
+      if (e.coordinates.length){ xs.push(e.coordinates[0].x); ys.push(e.coordinates[0].y); }
+    });
+    var cx = nczMedian(xs), cy = nczMedian(ys);
+    var projected = kind === 2 || kind === 3;
+    if (!projected && !nczLooksLikeTurkeyGrid(cx, cy)){
+      var center = map.getCenter();
+      var cosLat = Math.cos(center.lat * Math.PI / 180);
+      return {
+        toLngLat: function(x, y){ return [center.lng + (x - cx) / (111320 * cosLat), center.lat + (y - cy) / 111320]; },
+        note: 'Yerel koordinat sistemi algılandı: çizim harita merkezine yerleştirildi (1 birim = 1 m)'
+      };
+    }
+    if (!projected){
+      kind = 3;
+      zone = fallbackZone;
+      note = 'Projeksiyon dosyada tanımsız → ITRF / 3° / DOM ' + fallbackZone + '° varsayıldı';
+    } else if (zone <= 0){
+      zone = kind === 3 ? fallbackZone : 35;
+    }
+    var lon0 = kind === 3 ? zone : zone * 6 - 183;
+    var k = kind === 3 ? 1 : 0.9996;
+    var datumDef = datum === 4 || datum === 254
+      ? '+ellps=intl +towgs84=-87,-98,-121,0,0,0,0'
+      : '+ellps=GRS80 +towgs84=0,0,0,0,0,0,0';
+    var conv = proj4lib('+proj=tmerc +lat_0=0 +lon_0=' + lon0 + ' +k=' + k + ' +x_0=500000 +y_0=0 ' + datumDef + ' +units=m +no_defs', 'EPSG:4326');
+    return { toLngLat: function(x, y){ return conv.forward([x, y]); }, note: note };
+  }
+
+  function nczArcPoints(e){
+    if (!e.coordinates.length || e.radius <= 0) return [];
+    var c = e.coordinates[0];
+    var start = e.startAngle, end = e.endAngle;
+    // Bazı dosyalar radyan, bazıları derece saklar.
+    if (Math.abs(start) <= 2 * Math.PI + 0.001 && Math.abs(end) <= 2 * Math.PI + 0.001){
+      start = start * 180 / Math.PI;
+      end = end * 180 / Math.PI;
+    }
+    if (![c.x, c.y, e.radius, start, end].every(Number.isFinite)) return [];
+    while (end < start) end += 360;
+    var sweep = end - start;
+    if (sweep <= 0 || sweep > 3600) return [];
+    var steps = Math.max(8, Math.floor(48 * Math.max(sweep, 1) / 360));
+    var pts = [];
+    for (var i = 0; i <= steps; i++){
+      var a = (start + sweep * i / steps) * Math.PI / 180;
+      pts.push({ x: c.x + Math.cos(a) * e.radius, y: c.y + Math.sin(a) * e.radius, z: 0 });
+    }
+    return pts;
+  }
+  function nczCirclePoints(e){
+    if (!e.coordinates.length || e.radius <= 0) return [];
+    var c = e.coordinates[0], pts = [];
+    for (var i = 0; i < 64; i++){
+      var a = 2 * Math.PI * i / 64;
+      pts.push({ x: c.x + Math.cos(a) * e.radius, y: c.y + Math.sin(a) * e.radius, z: 0 });
+    }
+    pts.push(pts[0]);
+    return pts;
+  }
+
+  // Seçilen NetCAD katmanlarını, dosya adını taşıyan yeni bir klasörün
+  // altında NetCAD katmanı başına AYRI bir harita katmanı olarak ekler.
+  // Yazılar, haritada metin olarak çizilen nokta objeleridir (ncz_metin).
+  async function importNczLayers(parsed, keys, fallbackZone, fileName){
+    // proj4, sayfa başında /vendor/proj4 ile yüklenir (bkz. hafriyat).
+    if (typeof proj4 === 'undefined') throw new Error('Projeksiyon kütüphanesi (proj4) yüklenemedi.');
+    var projector = nczBuildProjector(proj4, parsed, fallbackZone);
+    var wanted = {};
+    keys.forEach(function(k){ wanted[k] = true; });
+    var summaryByKey = {};
+    summarizeNczLayers(parsed).forEach(function(s){ summaryByKey[s.key] = s; });
+
+    var baseName = fileName.replace(/\.ncz$/i, '');
+    var folderId = 'folder-' + uid();
+    var layerByKey = {}, geomTypesByKey = {}, newLayers = [], converted = [], truncated = 0;
+    function lngLat(c){ var ll = projector.toLngLat(c.x, c.y); return [ll[0], ll[1]]; }
+    function round(v, d){ var m = Math.pow(10, d); return Math.round(v * m) / m; }
+
+    parsed.entities.forEach(function(e){
+      var key = nczLayerKey(e);
+      if (!wanted[key]) return;
+      var isPoint = !!NCZ_POINT_KINDS[e.geometryKind];
+      var planar = isPoint ? e.coordinates.slice(0, 1)
+        : e.geometryKind === 'Arc' ? nczArcPoints(e)
+        : e.geometryKind === 'Circle' ? nczCirclePoints(e)
+        : e.coordinates;
+      if (planar.length < (isPoint ? 1 : 2)) return;
+      var isPolygon = !isPoint && (NCZ_POLYGON_KINDS[e.geometryKind] || e.isClosed) && planar.length >= 3;
+      if (converted.length >= NCZ_MAX_FEATURES){ truncated++; return; }
+
+      var lyr = layerByKey[key];
+      if (!lyr){
+        var summary = summaryByKey[key] || {};
+        lyr = layerByKey[key] = {
+          id:'layer-' + uid(), name:key, visible:true, color: summary.color || '#2563eb', fillColor:null, fillOpacity:0.12,
+          lineWidth:1.6, dash:'solid', symbol:'circle', scale:0.6, geomType:null, mapId:activeMapId, folderId:folderId
+        };
+        newLayers.push(lyr);
+        geomTypesByKey[key] = {};
+      }
+
+      var geometry;
+      if (isPoint){
+        geometry = { type:'Point', coordinates: lngLat(planar[0]) };
+      } else if (isPolygon){
+        var ring = planar.map(lngLat);
+        var f0 = ring[0], fl = ring[ring.length - 1];
+        if (f0[0] !== fl[0] || f0[1] !== fl[1]) ring.push([f0[0], f0[1]]);
+        if (ring.length < 4) return;
+        geometry = { type:'Polygon', coordinates:[ring] };
+      } else {
+        geometry = { type:'LineString', coordinates: planar.map(lngLat) };
+      }
+      if (!geometry.coordinates.length) return;
+      geomTypesByKey[key][geometry.type] = true;
+
+      var props = { layerId: lyr.id, ncz_katman: key, ncz_tur: NCZ_KIND_LABELS[e.geometryKind] || e.geometryKind };
+      if (e.geometryKind === 'Text'){
+        props.ncz_metin = e.labelText;
+        props.ncz_yazi_yuksekligi = round(e.textHeight, 3);
+        props.ncz_aci = round(e.rotationDegrees, 2);
+      } else if (e.labelText || e.name){
+        props.name = e.labelText || e.name;
+      }
+      if (isPoint && e.coordinates[0] && e.coordinates[0].z) props.ncz_z = round(e.coordinates[0].z, 3);
+      if (e.geometryKind === 'Circle' || e.geometryKind === 'Arc') props.ncz_yaricap = round(e.radius, 3);
+      // Katman renginden farklı renkli objeler kendi rengini korur (bkz.
+      // visibleFeaturesForRender → line_color).
+      var hex = nczHex(e.colorArgb);
+      if (hex && hex !== lyr.color) props.line_color = hex;
+      converted.push({ id: uid(), type:'Feature', geometry: geometry, properties: props });
+    });
+
+    if (!converted.length){
+      showToast(fileName + ': seçilen katmanlarda içe aktarılabilir geometri bulunamadı.');
+      return;
+    }
+    newLayers.forEach(function(l){
+      var types = Object.keys(geomTypesByKey[l.name] || {});
+      l.geomType = types.length === 1 ? types[0] : null;
+    });
+    pushHistory();
+    folders.push({ id:folderId, name:baseName, mapId:activeMapId, parentFolderId:getDefaultFolderId(activeMapId), expanded:true });
+    Array.prototype.push.apply(layers, newLayers);
+    features = features.concat(converted);
+    activeLayerId = newLayers[0].id;
+    renderFeatures();
+    try{
+      map.fitBounds(turf.bbox(fc(converted)), { padding:80, duration:600, maxZoom:18 });
+    }catch(err){ /* yoksay */ }
+    showToast(fileName + ': ' + converted.length + ' obje, ' + newLayers.length + ' katman olarak "' + baseName + '" klasörüne aktarıldı'
+      + (truncated ? ' (' + truncated + ' obje sınır nedeniyle alınmadı)' : '') + ' — ' + projector.note + '.');
+  }
+
+  // Ayrıştırılmış dosyayı bekleyen katman seçim penceresi (bkz. #nczImportModal).
+  var nczPending = null;
+  async function openNczImportModal(file){
+    var parsed = parseNcz(await file.arrayBuffer());
+    if (!parsed.entities.length){
+      showToast(file.name + ': NCZ dosyasında okunabilir obje bulunamadı.');
+      return;
+    }
+    nczPending = { parsed: parsed, fileName: file.name };
+    var summary = summarizeNczLayers(parsed);
+    var list = document.getElementById('nczLayerList');
+    list.innerHTML = '';
+    summary.forEach(function(s){
+      var row = document.createElement('label');
+      row.className = 'geopdf-row';
+      row.innerHTML = '<input type="checkbox" checked>' +
+        '<span class="ncz-swatch"></span>' +
+        '<span class="geopdf-row-name"></span>' +
+        '<span class="geopdf-row-meta">' + s.count + (s.texts ? ' · ' + s.texts + ' yazı' : '') + '</span>';
+      row.querySelector('input').setAttribute('data-ncz-key', s.key);
+      row.querySelector('.ncz-swatch').style.background = s.color || '#2563eb';
+      row.querySelector('.geopdf-row-name').textContent = s.key;
+      list.appendChild(row);
+    });
+    var info = file.name + ' · ' + parsed.entities.length + ' obje, ' + summary.length + ' katman' + (parsed.versionName ? ' · ' + parsed.versionName : '');
+    document.getElementById('nczFileInfo').textContent = info;
+    var hasProj = parsed.projection && (parsed.projection.kind === 1 || parsed.projection.kind === 2 || parsed.projection.kind === 3);
+    document.getElementById('nczProjInfo').textContent = hasProj
+      ? 'Dosyadaki projeksiyon: ' + parsed.projectionText + ' — dilim seçimi kullanılmaz.'
+      : 'Dosyada projeksiyon tanımı yok: koordinatlar Türkiye TM ızgarasındaysa seçilen dilim (ITRF96 / 3°) kullanılır, değilse çizim harita merkezine yerleştirilir.';
+    var zoneSel = document.getElementById('nczZone');
+    zoneSel.disabled = !!hasProj;
+    // Projeksiyon türü tanımsız olsa da dosyada bir 3° dilim (DOM) yazılıysa onu öner.
+    var fileZone = parsed.projection ? String(parsed.projection.zone) : '';
+    if (!hasProj && Array.prototype.some.call(zoneSel.options, function(o){ return o.value === fileZone; })) zoneSel.value = fileZone;
+    document.getElementById('nczImportModal').classList.add('show');
   }
 
   // ---- GLTF / GLB (BIM/3B model) -----------------------------------------
@@ -14868,6 +15737,8 @@
       } else if (/\.dxf$/.test(name)){
         var scale = parseFloat(document.getElementById('dxfScaleInput').value) || 1;
         addImportedFeatures(placeDXFOnMap(parseDXF(await file.text()), scale), file.name);
+      } else if (/\.ncz$/.test(name)){
+        await openNczImportModal(file);
       } else if (/\.(jpe?g|png)$/.test(name)){
         showToast(file.name + ': konumlandırmak için aynı anda aynı isimli .jgw/.pgw dosyasını da seçin.');
       } else if (/\.(jgw|pgw|jpw|wld)$/.test(name)){
