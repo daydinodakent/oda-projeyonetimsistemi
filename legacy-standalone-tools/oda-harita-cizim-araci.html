@@ -5390,6 +5390,12 @@
     pop.style.top = top + 'px';
   }
 
+  // Balonun boyutu sonradan değişirse (doküman paneli açılınca, önizleme
+  // resmi/videosu yüklenince) üst kenarı harita dışına taşmasın diye yeniden konumlanır.
+  if (window.ResizeObserver){
+    new ResizeObserver(function(){ updateInfoPopoverPosition(); }).observe(document.getElementById('infoPopover'));
+  }
+
   function handleInfoClick(e){
     var hit = map.queryRenderedFeatures(e.point, { layers: selectableLayers() });
     var f = null;
@@ -5402,6 +5408,13 @@
     // Boş bir noktaya tıklanınca Bilgi formu AÇILMAZ ve halihazırda açıksa
     // DEĞİŞMEZ — yalnızca gerçekten bir obje bulunduğunda güncellenir.
     if (!f) return;
+    showInfoForFeature(f, e.lngLat);
+  }
+
+  // Bir objenin Bilgi balonunu (öznitelikler + sağında Dokümanlar paneli)
+  // açar — Bilgi modunda tıklamadan ve doküman eklendikten sonra otomatik
+  // olarak (bkz. commitStagedDocuments) ortak kullanılır.
+  function showInfoForFeature(f, fallbackLngLat){
     var pop = document.getElementById('infoPopover');
     var main = document.getElementById('infoPopoverBody');
     var lyr = getLayer(f.properties && f.properties.layerId);
@@ -5432,7 +5445,7 @@
     main.innerHTML = '<div style="display:flex;align-items:center;gap:8px;">' +
         '<span style="width:18px;height:18px;flex:0 0 auto;color:var(--gold);">' + iconFor(f) + '</span>' +
         '<b>' + (lyrLabel ? escapeAttrHtml(lyrLabel) : typeLabel(f)) + '</b></div>' + body;
-    infoPopoverAnchorLngLat = infoAnchorForFeature(f) || { lng: e.lngLat.lng, lat: e.lngLat.lat };
+    infoPopoverAnchorLngLat = infoAnchorForFeature(f) || (fallbackLngLat ? { lng: fallbackLngLat.lng, lat: fallbackLngLat.lat } : null);
     pop.classList.add('show');
     updateInfoPopoverPosition();
     renderInfoDocsPanel(f.id);
@@ -5644,6 +5657,17 @@
           files: filesPayload
         }, '*');
         showToast(filesPayload.length + ' doküman "' + typeLabel(targetFeature) + '" objesine eklendi.');
+        // Eklenen dosyalar beklemeden sağdaki Dokümanlar panelinde görünsün:
+        // üst pencerenin kaydı tamamlayıp 'oda:documents-updated' ile gerçek
+        // listeyi göndermesine kadar önbelleğe geçici olarak eklenir (o mesaj
+        // önbelleği zaten baştan kurar), objenin Bilgi balonu açılır ve ilk
+        // eklenen dosya seçili/önizlemede gelir.
+        var cached = featureDocumentsCache[targetFeatureId] || (featureDocumentsCache[targetFeatureId] = []);
+        filesPayload.forEach(function(p){
+          cached.push({ feature_id: targetFeatureId, name: p.name, doc_type: p.docType, file_data_url: p.dataUrl, file_size: p.sizeLabel });
+        });
+        infoDocsPreferred = { featureId: targetFeatureId, name: filesPayload[0].name };
+        showInfoForFeature(targetFeature);
       }
       if (failed.length) showToast('Eklenemedi — ' + failed.join('; '));
     });
@@ -5847,6 +5871,10 @@
     });
     previewEl.querySelector('[data-act="remove"]').addEventListener('click', function(){ removeBimModelFromFeature(featureId); });
   }
+  // Yeni eklenen dokümanın, liste yenilense de (bkz. 'oda:documents-updated')
+  // seçili kalması için — kullanıcı başka bir satıra tıklayınca ya da başka
+  // bir objenin bilgisi açılınca bırakılır.
+  var infoDocsPreferred = null; // { featureId, name }
   function renderInfoDocsPanel(featureId){
     activeInfoFeatureId = featureId;
     var panel = document.getElementById('infoDocsPanel');
@@ -5854,6 +5882,12 @@
     var previewEl = document.getElementById('infoDocsPreview');
     var docs = featureId ? (featureDocumentsCache[featureId] || []) : [];
     var bimModel = featureBimModelOf(featureId);
+    if (infoDocsPreferred && infoDocsPreferred.featureId !== featureId) infoDocsPreferred = null;
+    var preferredIdx = -1;
+    if (infoDocsPreferred){
+      for (var pi = docs.length - 1; pi >= 0; pi--){ if (docs[pi].name === infoDocsPreferred.name){ preferredIdx = pi; break; } }
+    }
+    var selectedIdx = preferredIdx >= 0 ? preferredIdx : (bimModel ? -1 : 0);
     if (!docs.length && !bimModel){
       panel.classList.remove('show');
       listEl.innerHTML = '';
@@ -5865,12 +5899,13 @@
     // Eklenmiş 3B model: listenin en üstünde, özel (küp) ikonlu satır.
     if (bimModel){
       var mrow = document.createElement('div');
-      mrow.className = 'info-doc-row info-doc-row-model active';
+      mrow.className = 'info-doc-row info-doc-row-model' + (selectedIdx === -1 ? ' active' : '');
       mrow.title = 'Objeye eklenmiş 3B model (sağ tık: kaldır)';
       mrow.innerHTML = '<span class="doc-model-icon">' + INFO_MODEL_ICON_SVG + '</span>' +
         '<span class="doc-name">' + escapeAttrHtml(bimModel.name || '3B Model') + '</span>' +
         '<span class="doc-type-badge doc-model-badge">3B</span>';
       mrow.addEventListener('click', function(){
+        infoDocsPreferred = null;
         listEl.querySelectorAll('.info-doc-row').forEach(function(r){ r.classList.remove('active'); });
         mrow.classList.add('active');
         renderInfoModelPreview(bimModel, featureId);
@@ -5885,10 +5920,11 @@
     }
     docs.forEach(function(d, idx){
       var row = document.createElement('div');
-      row.className = 'info-doc-row' + (idx === 0 && !bimModel ? ' active' : '');
+      row.className = 'info-doc-row' + (idx === selectedIdx ? ' active' : '');
       row.innerHTML = '<span class="doc-type-badge" style="background:' + (DOC_TYPE_ICON_COLOR[d.doc_type] || '#8a94a6') + '">' +
         (DOC_TYPE_LABELS[d.doc_type] || 'Dosya') + '</span><span class="doc-name">' + escapeAttrHtml(d.name) + '</span>';
       row.addEventListener('click', function(){
+        infoDocsPreferred = null;
         listEl.querySelectorAll('.info-doc-row').forEach(function(r){ r.classList.remove('active'); });
         row.classList.add('active');
         renderInfoDocPreview(d, docs);
@@ -5905,8 +5941,12 @@
       }
       listEl.appendChild(row);
     });
-    if (bimModel) renderInfoModelPreview(bimModel, featureId);
-    else renderInfoDocPreview(docs[0], docs);
+    if (selectedIdx === -1) renderInfoModelPreview(bimModel, featureId);
+    else renderInfoDocPreview(docs[selectedIdx], docs);
+    var activeRow = listEl.querySelector('.info-doc-row.active');
+    if (activeRow) activeRow.scrollIntoView({ block: 'nearest' });
+    // Panel genişleyince balon yeni boyutuna göre yeniden konumlansın.
+    updateInfoPopoverPosition();
   }
   // Bilgi balonundaki doküman önizlemesi — türe göre gerçek bir viewer gösterir:
   // resim <img>, video <video controls>, PDF tarayıcının yerleşik görüntüleyicisiyle
