@@ -694,23 +694,39 @@
     display:flex;align-items:center;gap:4px;padding:0 6px;box-shadow:0 4px 18px rgba(0,0,0,.28);
   }
   #sahaFilmstrip.hidden{display:none;}
+  /* Kaydırma okları: yalnızca fotoğraflar şeride sığmadığında görünür (bkz.
+     sahaUpdateFilmstripNav); ince, çerçevesiz ok simgeleri. Uçtayken soluklaşır. */
   .saha-filmstrip-nav{
-    flex:0 0 auto;width:24px;height:60px;background:#e9e6df;border:1px solid #d3cfc4;
-    color:#5b6470;border-radius:2px;cursor:pointer;font-size:18px;line-height:1;
+    flex:0 0 auto;width:16px;height:32px;padding:0;background:none;border:none;border-radius:3px;
+    color:#6b7280;cursor:pointer;display:none;align-items:center;justify-content:center;
   }
-  .saha-filmstrip-nav:hover{color:#1f2937;border-color:var(--teal);background:#dfdcd3;}
+  .saha-filmstrip-nav svg{width:14px;height:14px;}
+  .saha-filmstrip-nav.show{display:flex;}
+  .saha-filmstrip-nav:hover{color:#111827;background:rgba(0,0,0,.06);}
+  .saha-filmstrip-nav.at-end{opacity:.3;pointer-events:none;}
+  /* Şerit (track) kartın üstüne SAHA_DOCK_HEADROOM kadar taşar: "dock" gibi
+     büyüyen fotoğraflar yukarı doğru, kırpılmadan açılabilsin diye. Taşan
+     şeffaf bölge haritadaki tıklamaları engellemesin diye pointer-events
+     yalnızca öğelerde açıktır. Kaydırma çubuğu gizlidir; kaydırma oklar,
+     yatay kaydırma ve fare tekerleğiyle yapılır. */
   #sahaFilmstripTrack{
-    flex:1 1 auto;display:flex;gap:8px;overflow-x:auto;scroll-behavior:smooth;height:100%;
-    align-items:center;justify-content:center;padding:8px 2px;
+    flex:1 1 auto;display:flex;gap:6px;overflow-x:auto;overflow-y:hidden;scroll-behavior:smooth;
+    align-self:flex-end;height:136px;padding:0 4px 8px;
+    align-items:flex-end;justify-content:safe center;pointer-events:none;
+    scrollbar-width:none;
   }
+  #sahaFilmstripTrack::-webkit-scrollbar{display:none;}
   #sahaLeaderLineSvg{position:absolute;inset:0;z-index:4;width:100%;height:100%;pointer-events:none;}
   #sahaLeaderLine{stroke:#ec4899;stroke-width:1.5;stroke-dasharray:4 3;display:none;filter:drop-shadow(0 0 2px rgba(0,0,0,.6));}
   .saha-filmstrip-item{
     flex:0 0 auto;width:64px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;
+    pointer-events:auto;transition:width .12s ease-out;
   }
   .saha-filmstrip-thumb-wrap{
     width:56px;height:56px;border-radius:2px;overflow:hidden;border:2px solid transparent;background:#e2dfd7;
+    transition:width .12s ease-out,height .12s ease-out,box-shadow .12s ease-out;
   }
+  .saha-filmstrip-item.magnified .saha-filmstrip-thumb-wrap{box-shadow:0 4px 12px rgba(0,0,0,.28);}
   .saha-filmstrip-item:hover .saha-filmstrip-thumb-wrap{border-color:var(--teal)!important;}
   .saha-filmstrip-item.active .saha-filmstrip-thumb-wrap{border-color:var(--amber)!important;box-shadow:0 0 0 1px var(--amber);}
   .saha-filmstrip-thumb-wrap img{width:100%;height:100%;object-fit:cover;display:block;}
@@ -3266,9 +3282,9 @@
 <!-- Saha fotoğrafları şeridi — kayıtlı saha fotoğrafı olduğunda kanvasın alt
      kısmında (durum çubuğunun hemen üstünde) belirir. bkz. renderSahaFilmstrip(). -->
 <div id="sahaFilmstrip" class="hidden">
-  <button id="sahaFilmstripPrev" class="saha-filmstrip-nav" title="Geri">‹</button>
+  <button id="sahaFilmstripPrev" class="saha-filmstrip-nav" title="Geri"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
   <div id="sahaFilmstripTrack"></div>
-  <button id="sahaFilmstripNext" class="saha-filmstrip-nav" title="İleri">›</button>
+  <button id="sahaFilmstripNext" class="saha-filmstrip-nav" title="İleri"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></button>
   <button id="sahaFilmstripClose" class="saha-filmstrip-close" title="Kapat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
 </div>
 
@@ -6896,8 +6912,82 @@
       });
       track.appendChild(item);
     });
+    sahaUpdateFilmstripNav();
     sahaUpdateLeaderLine();
   }
+
+  // Kaydırma okları yalnızca fotoğraflar şeride sığmadığında görünür; uçta
+  // olunan yöndeki ok soluklaşır. Ölçüm büyütülmemiş (dinlenme) hâle göre
+  // yapılır — fare üzerindeyken büyüyen öğeler okları açıp kapatmasın diye.
+  function sahaUpdateFilmstripNav(){
+    var track = document.getElementById('sahaFilmstripTrack');
+    if (track.classList.contains('dock-active')) return;
+    var overflow = track.scrollWidth > track.clientWidth + 1;
+    var prev = document.getElementById('sahaFilmstripPrev'), next = document.getElementById('sahaFilmstripNext');
+    prev.classList.toggle('show', overflow);
+    next.classList.toggle('show', overflow);
+    prev.classList.toggle('at-end', overflow && track.scrollLeft <= 1);
+    next.classList.toggle('at-end', overflow && track.scrollLeft + track.clientWidth >= track.scrollWidth - 1);
+  }
+
+  // macOS Dock benzeri büyütme: imlece yakın fotoğraflar uzaklığa göre
+  // kosinüs eğrisiyle büyür (en fazla SAHA_DOCK_MAX kat), komşular yana
+  // açılır; küçük resimler alttan hizalı olduğundan yukarı doğru büyür.
+  var SAHA_DOCK_BASE = 56, SAHA_DOCK_MAX = 1.65, SAHA_DOCK_RADIUS = 130;
+  function sahaDockMagnify(clientX){
+    var track = document.getElementById('sahaFilmstripTrack');
+    track.classList.add('dock-active');
+    Array.prototype.forEach.call(track.querySelectorAll('.saha-filmstrip-item'), function(item){
+      var wrap = item.querySelector('.saha-filmstrip-thumb-wrap');
+      // Uzaklık, öğenin büyümemiş merkezine göre ölçülür (data-cx) — aksi
+      // halde büyüyen öğeler merkezleri kaydırıp titremeye yol açar.
+      var cx = Number(item.getAttribute('data-cx'));
+      var d = Math.abs(clientX - cx);
+      var f = d < SAHA_DOCK_RADIUS ? (Math.cos(Math.PI * d / SAHA_DOCK_RADIUS) + 1) / 2 : 0;
+      var size = Math.round(SAHA_DOCK_BASE * (1 + (SAHA_DOCK_MAX - 1) * f));
+      wrap.style.width = size + 'px';
+      wrap.style.height = size + 'px';
+      item.style.width = (size + 8) + 'px';
+      item.classList.toggle('magnified', f > 0.5);
+    });
+  }
+  function sahaDockReset(){
+    var track = document.getElementById('sahaFilmstripTrack');
+    track.classList.remove('dock-active');
+    Array.prototype.forEach.call(track.querySelectorAll('.saha-filmstrip-item'), function(item){
+      var wrap = item.querySelector('.saha-filmstrip-thumb-wrap');
+      wrap.style.width = ''; wrap.style.height = ''; item.style.width = '';
+      item.classList.remove('magnified');
+    });
+    sahaUpdateFilmstripNav();
+  }
+  // Büyümemiş (dinlenme) merkezleri ölçer — giriş anında ve kaydırmadan sonra.
+  function sahaDockMeasure(){
+    Array.prototype.forEach.call(document.querySelectorAll('#sahaFilmstripTrack .saha-filmstrip-item'), function(item){
+      var r = item.getBoundingClientRect();
+      item.setAttribute('data-cx', r.left + r.width / 2);
+    });
+  }
+  (function(){
+    var dock = document.getElementById('sahaFilmstrip');
+    var track = document.getElementById('sahaFilmstripTrack');
+    // Giriş/çıkış kartın kendisinden dinlenir: büyüyen öğeler kartın
+    // çocukları olduğundan imleç kartın üstüne taşan kısma çıksa da kopmaz.
+    dock.addEventListener('mouseenter', function(){ if (!track.classList.contains('dock-active')) sahaDockMeasure(); });
+    dock.addEventListener('mousemove', function(e){ sahaDockMagnify(e.clientX); });
+    dock.addEventListener('mouseleave', sahaDockReset);
+    track.addEventListener('scroll', function(){
+      if (track.classList.contains('dock-active')){ sahaDockReset(); sahaDockMeasure(); }
+      sahaUpdateFilmstripNav();
+    });
+    // Fare tekerleği (dikey) yatay kaydırmaya çevrilir — kaydırma çubuğu gizli.
+    track.addEventListener('wheel', function(e){
+      if (track.scrollWidth <= track.clientWidth || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+      e.preventDefault();
+      track.scrollBy({ left: e.deltaY, behavior: 'auto' });
+    }, { passive: false });
+    window.addEventListener('resize', sahaUpdateFilmstripNav);
+  })();
 
   // Filmstrip'ten bir fotoğraf seçilince, o fotoğrafın haritadaki pin'ine
   // ince kesikli bir çizgiyle bağlantı gösterir (SVG <line>, bkz. HTML'deki
@@ -6953,7 +7043,8 @@
   document.getElementById('statusSahaToggleBtn').addEventListener('click', function(){
     sahaVisible = !sahaVisible;
     applySahaVisibility();
-    showToast(sahaVisible ? 'Saha fotoğrafları gösteriliyor.' : 'Saha fotoğrafları gizlendi.');
+    // Açılınca şerit kendisi görünür olduğundan bildirim gösterilmez.
+    if (!sahaVisible) showToast('Saha fotoğrafları gizlendi.');
   });
   document.getElementById('sahaFilmstripClose').addEventListener('click', function(){
     sahaVisible = false;
