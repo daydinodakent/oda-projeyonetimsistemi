@@ -6817,13 +6817,21 @@
 
   // Harita üzerinde saha fotoğrafı pin katmanı — GeoJSON kaynağı ilk
   // kullanımda (kayıtlı fotoğraf listesi ilk geldiğinde) tembel oluşturulur.
+  var sahaLayerHandlersBound = false;
   function ensureSahaPhotoLayer(){
     if (map.getSource(SAHA_SOURCE_ID)) return;
     map.addSource(SAHA_SOURCE_ID, { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
     map.addLayer({
       id: SAHA_LAYER_ID, type: 'symbol', source: SAHA_SOURCE_ID,
-      layout: { 'icon-image': ['get', 'icon'], 'icon-size': 1, 'icon-allow-overlap': true, 'icon-ignore-placement': true }
+      layout: {
+        'icon-image': ['get', 'icon'], 'icon-size': 1, 'icon-allow-overlap': true, 'icon-ignore-placement': true,
+        'visibility': sahaVisible ? 'visible' : 'none'
+      }
     });
+    // Katman kimliğine bağlı olay dinleyicileri altlık (stil) değişiminden
+    // sonra da geçerli kalır — katman yeniden kurulduğunda iki kez bağlanmasın.
+    if (sahaLayerHandlersBound) return;
+    sahaLayerHandlersBound = true;
     // Bilgi/Öznitelik Düzenle/Doküman Ekle modlarından biri açıkken, bu
     // noktaların üzerine gelince imleç 'pointer'a düşüp modun kendi imlecini
     // (help/copy) gizlemesin — sadece hiçbir özel mod aktif değilken göster.
@@ -13091,6 +13099,14 @@
       if (typeof hfRedraw === 'function') hfRedraw();
       if (typeof ogRedraw === 'function') ogRedraw();
       rasterOverlays.forEach(function(r){ addRasterLayer(r.id, r.url, r.coords); });
+      // Saha fotoğrafı yuvarlakları: setStyle kaynak/katmanla birlikte
+      // map.addImage ile eklenen simgeleri de siler — kayıt sıfırlanıp
+      // simgeler ve katman yeniden kurulur (aksi halde şerit açıkken
+      // haritada hiçbir fotoğraf görünmüyordu).
+      if (sahaPhotos.length){
+        sahaRegisteredIconIds = {};
+        updateSahaPhotoSource();
+      }
     }
     // map.setStyle() hem bir stil URL'sini (OpenFreeMap) hem de doğrudan bir
     // stil nesnesini (ör. Google raster stilleri) kabul eder.
