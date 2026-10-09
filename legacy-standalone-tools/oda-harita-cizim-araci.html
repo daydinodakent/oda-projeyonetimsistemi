@@ -576,6 +576,7 @@
     background:#8a94a6;color:#fff;font-size:9.5px;font-weight:700;letter-spacing:.2px;
   }
   .saha-doc-thumb.is-cad .saha-doc-loading{background:#6d8fe0;}
+  .saha-doc-thumb.is-bim .saha-doc-loading{background:#a06de0;}
   .saha-doc-badge{
     position:absolute;left:3px;bottom:3px;padding:0 4px;border-radius:2px;color:#fff;
     font-size:8.5px;font-weight:700;line-height:13px;pointer-events:none;
@@ -6672,7 +6673,7 @@
     var docKind = dataUrl ? sahaDocPreviewKind(name) : null;
     if (docKind){
       var docEntry = sahaDocPreviewEntry(docKind, dataUrl);
-      return '<div class="saha-doc-thumb is-' + (docKind === 'pdf' ? 'pdf' : 'cad') + ' ' + (extraClass || '') + (docEntry.url ? ' ready' : '') +
+      return '<div class="saha-doc-thumb is-' + (docKind === 'pdf' ? 'pdf' : 'cad') + (docKind === 'ifc' || docKind === 'gltf' ? ' is-bim' : '') + ' ' + (extraClass || '') + (docEntry.url ? ' ready' : '') +
         '" data-doc-key="' + docEntry.key + '">' + sahaDocPreviewInner(docEntry) + '</div>';
     }
     if (docType === 'resim' || !docType) return '<img class="' + (extraClass || '') + '" src="' + (dataUrl || '') + '">';
@@ -6779,11 +6780,15 @@
   var SAHA_DOC_PREVIEW_KINDS = {
     pdf: { label: 'PDF', color: '#d93025', alignTop: true },
     dxf: { label: 'DXF', color: '#3b6fd8', alignTop: false },
-    dwg: { label: 'DWG', color: '#3b6fd8', alignTop: false }
+    dwg: { label: 'DWG', color: '#3b6fd8', alignTop: false },
+    ifc: { label: 'IFC', color: '#8b5cf6', alignTop: false },
+    gltf: { label: '3B', color: '#8b5cf6', alignTop: false }
   };
   function sahaDocPreviewKind(name){
-    var m = /\.(pdf|dxf|dwg)$/i.exec(String(name || ''));
-    return m ? m[1].toLowerCase() : null;
+    var m = /\.(pdf|dxf|dwg|ifc|gltf|glb)$/i.exec(String(name || ''));
+    if (!m) return null;
+    var ext = m[1].toLowerCase();
+    return ext === 'glb' ? 'gltf' : ext;
   }
   var sahaPdfjsPromise = null;
   function loadPdfJs(){
@@ -6817,7 +6822,10 @@
     if (e) return e;
     e = { key: 'doc' + (++sahaDocPreviewSeq), kind: kind, canvas: null, url: null, failed: false };
     sahaDocPreviews.set(mapKey, e);
-    var render = kind === 'pdf' ? sahaRenderPdfPreview : kind === 'dxf' ? sahaRenderDxfPreview : sahaRenderDwgPreview;
+    var render = kind === 'pdf' ? sahaRenderPdfPreview
+      : kind === 'dxf' ? sahaRenderDxfPreview
+      : kind === 'dwg' ? sahaRenderDwgPreview
+      : function(bytes){ return sahaRender3dPreview(kind, bytes); };
     e.promise = sahaSrcBytes(src).then(render).then(function(canvas){
       e.canvas = canvas;
       e.url = canvas.toDataURL('image/png');
@@ -6874,6 +6882,114 @@
     return sahaDocPreviewEntry(kind, src).promise.then(function(e){
       return sahaDrawCircleIcon(e.canvas, e.canvas.width, e.canvas.height, ringColor, { alignTop: k.alignTop, label: { text: k.label, color: k.color } });
     });
+  }
+
+  // ---- IFC / glTF (GLB): 3B model önizlemesi --------------------------------
+  // Model, BIM Görüntüleyici/harita mesh'leriyle AYNI çıkarıcılarla
+  // (extractIfcMeshesFromBlob — web-ifc; extractGltfMeshesFromBlob —
+  // GLTFLoader) yüklenir, ekran dışı bir three.js sahnesinde izometrik
+  // açıdan (Y yukarı) bir kez çizilir. Tarayıcıların WebGL bağlam sınırı
+  // nedeniyle tek bir çizici paylaşılır ve işler sırayla (saha3dQueue) yapılır.
+  // Harici .bin/doku dosyasına bağlı .gltf'ler tek başına yüklenemez → tür simgesi.
+  var SAHA_3D_THUMB_W = 480, SAHA_3D_THUMB_H = 360;
+  var saha3dPreviewCtx = null;
+  var saha3dQueue = Promise.resolve();
+  async function saha3dPreviewContext(){
+    if (saha3dPreviewCtx) return saha3dPreviewCtx;
+    var THREE = await import('three');
+    var renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+    renderer.setPixelRatio(1);
+    renderer.setSize(SAHA_3D_THUMB_W, SAHA_3D_THUMB_H, false);
+    renderer.setClearColor(0x1b2733, 1);
+    var envTex = null;
+    try{
+      var RoomEnvironment = (await import('three/addons/environments/RoomEnvironment.js')).RoomEnvironment;
+      var pmrem = new THREE.PMREMGenerator(renderer);
+      envTex = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+      pmrem.dispose();
+    }catch(err){ /* ortam ışığı olmadan da çizilir */ }
+    saha3dPreviewCtx = { THREE: THREE, renderer: renderer, envTex: envTex };
+    return saha3dPreviewCtx;
+  }
+  function sahaRender3dPreview(kind, bytes){
+    var job = saha3dQueue.then(async function(){
+      var c3 = await saha3dPreviewContext();
+      var THREE = c3.THREE;
+      var blob = new Blob([bytes]);
+      var meshes = kind === 'ifc' ? await extractIfcMeshesFromBlob(blob, THREE) : await extractGltfMeshesFromBlob(blob, THREE);
+      if (!meshes || !meshes.length) throw new Error('Modelde çizilebilir geometri yok');
+      var scene = new THREE.Scene();
+      if (c3.envTex) scene.environment = c3.envTex;
+      scene.add(new THREE.HemisphereLight(0xffffff, 0x30302a, 0.9));
+      var sun = new THREE.DirectionalLight(0xffffff, 1.1);
+      scene.add(sun);
+      var group = new THREE.Group();
+      scene.add(group);
+      // attach: mesh'in dünya dönüşümünü koruyarak yeni gruba taşır.
+      meshes.forEach(function(m){ m.updateWorldMatrix(true, false); group.attach(m); });
+      var box = new THREE.Box3().setFromObject(group);
+      if (box.isEmpty()) throw new Error('Model sınırları hesaplanamadı');
+      var center = box.getCenter(new THREE.Vector3());
+      var radius = Math.max(box.getSize(new THREE.Vector3()).length() / 2, 1e-6);
+      var fov = 35;
+      var camera = new THREE.PerspectiveCamera(fov, SAHA_3D_THUMB_W / SAHA_3D_THUMB_H, radius / 200, radius * 200);
+      var dir = new THREE.Vector3(1, 0.8, 1.3).normalize();
+      var dist = radius / Math.sin(THREE.MathUtils.degToRad(fov / 2));
+      // Kadraj: sınır küresi/kutusu boş köşeleri de (eğik çatı üstü vb.)
+      // kapsadığından model küçük ve kaymış kalıyordu. Bunun yerine modelin
+      // gerçek köşe noktalarından bir örneklem ekrana izdüşürülür; birkaç adımda
+      // hedef, izdüşüm kutusunu ortalayacak şekilde kaydırılır ve mesafe, model
+      // kadrajın ~%86'sını dolduracak şekilde ayarlanır.
+      var pts = [];
+      group.updateMatrixWorld(true);
+      group.traverse(function(o){
+        var pos = o.isMesh && o.geometry && o.geometry.attributes && o.geometry.attributes.position;
+        if (!pos) return;
+        var step = Math.max(1, Math.floor(pos.count / 3000));
+        for (var vi = 0; vi < pos.count; vi += step) pts.push(new THREE.Vector3().fromBufferAttribute(pos, vi).applyMatrix4(o.matrixWorld));
+      });
+      if (pts.length > 60000){
+        var keep = Math.ceil(pts.length / 60000);
+        pts = pts.filter(function(p, i){ return i % keep === 0; });
+      }
+      var target = center.clone(), tmp = new THREE.Vector3();
+      var halfTan = Math.tan(THREE.MathUtils.degToRad(fov / 2)), aspect = SAHA_3D_THUMB_W / SAHA_3D_THUMB_H;
+      for (var it = 0; it < 4; it++){
+        camera.position.copy(target).addScaledVector(dir, dist);
+        camera.lookAt(target);
+        camera.updateMatrixWorld();
+        if (it === 3 || !pts.length) break;
+        var mnx = Infinity, mxx = -Infinity, mny = Infinity, mxy = -Infinity;
+        pts.forEach(function(p){
+          tmp.copy(p).project(camera);
+          if (tmp.x < mnx) mnx = tmp.x; if (tmp.x > mxx) mxx = tmp.x;
+          if (tmp.y < mny) mny = tmp.y; if (tmp.y > mxy) mxy = tmp.y;
+        });
+        if (!isFinite(mnx) || !isFinite(mny)) break;
+        var right = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0);
+        var up = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 1);
+        target.addScaledVector(right, (mnx + mxx) / 2 * dist * halfTan * aspect).addScaledVector(up, (mny + mxy) / 2 * dist * halfTan);
+        var ext = Math.max((mxx - mnx) / 2, (mxy - mny) / 2);
+        if (ext > 0) dist = Math.max(dist * ext / 0.86, radius * 0.6);
+      }
+      sun.position.copy(center).add(new THREE.Vector3(radius * 2, radius * 4, radius));
+      c3.renderer.render(scene, camera);
+      var out = document.createElement('canvas');
+      out.width = SAHA_3D_THUMB_W; out.height = SAHA_3D_THUMB_H;
+      out.getContext('2d').drawImage(c3.renderer.domElement, 0, 0);
+      group.traverse(function(o){
+        if (o.geometry) o.geometry.dispose();
+        if (o.material){
+          (Array.isArray(o.material) ? o.material : [o.material]).forEach(function(mat){
+            Object.keys(mat).forEach(function(k){ if (mat[k] && mat[k].isTexture) mat[k].dispose(); });
+            mat.dispose();
+          });
+        }
+      });
+      return out;
+    });
+    saha3dQueue = job.catch(function(){ /* sıradaki işler etkilenmesin */ });
+    return job;
   }
 
   // ---- DWG: AutoCAD'in kaydettiği önizleme resmi --------------------------
@@ -7550,6 +7666,10 @@
           };
         })
       });
+      // Listeden çıkan dosyaların simgeleri, yeni veri haritaya işlendikten
+      // SONRA silinir — önce silinirse eski objeler bir an simgesiz kalıp
+      // MapLibre "image could not be loaded" uyarısı veriyordu.
+      setTimeout(function(){ sahaCleanupRemovedIcons(sahaPhotos); }, 1000);
     });
   }
 
@@ -7963,7 +8083,7 @@
   window.addEventListener('message', function(e){
     var msg = e.data;
     if (!msg || msg.type !== 'oda:saha-photos-updated' || !Array.isArray(msg.photos)) return;
-    sahaCleanupRemovedIcons(msg.photos);
+    // Eski simgeler, yeni veri haritaya işlendikten sonra temizlenir (bkz. updateSahaPhotoSource).
     sahaPhotos = msg.photos;
     updateSahaPhotoSource();
     renderSahaTree();
