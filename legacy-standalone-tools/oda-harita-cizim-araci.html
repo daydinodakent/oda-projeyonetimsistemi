@@ -7047,17 +7047,171 @@
     }
     return null;
   }
+  // Önce AutoCAD'in gömdüğü küçük resim (hızlı, ek indirme yok); yoksa ya da
+  // açılamazsa DWG, LibreDWG (WASM) ile okunup DXF ile aynı çiziciyle çizilir.
   function sahaRenderDwgPreview(bytes){
     var img = sahaExtractDwgPreview(bytes);
-    if (!img) return Promise.reject(new Error('DWG dosyasında kayıtlı önizleme resmi yok'));
+    if (!img) return sahaRenderDwgVector(bytes);
     return createImageBitmap(new Blob([img.data], { type: img.mime })).then(function(bmp){
       var canvas = document.createElement('canvas');
       canvas.width = bmp.width; canvas.height = bmp.height;
       canvas.getContext('2d').drawImage(bmp, 0, 0);
       if (bmp.close) bmp.close();
       return canvas;
-    });
+    }).catch(function(){ return sahaRenderDwgVector(bytes); });
   }
+
+  // ---- DWG: LibreDWG (WASM) ile vektör önizleme ----------------------------
+  // Gömülü küçük resmi olmayan DWG'ler (AutoCAD'de THUMBSAVE kapalıyken
+  // kaydedilenler) için. @mlightcad/libredwg-web, GNU LibreDWG'nin
+  // WebAssembly derlemesidir (GPL-3.0); ~9,5 MB WASM ilk ihtiyaçta
+  // jsdelivr'dan bir kez yüklenir. Okunan veritabanı (katmanlar, blok
+  // kayıtları, model uzayı öğeleri; açılar radyan) önizleme ilkellerine çevrilir.
+  var SAHA_LIBREDWG_BASE = 'https://cdn.jsdelivr.net/npm/@mlightcad/libredwg-web@0.7.15/';
+  var sahaLibreDwgModPromise = null;
+  function loadLibreDwgModule(){
+    if (!sahaLibreDwgModPromise){
+      sahaLibreDwgModPromise = import(SAHA_LIBREDWG_BASE + 'dist/libredwg-web.js')
+        .catch(function(err){ sahaLibreDwgModPromise = null; throw err; });
+    }
+    return sahaLibreDwgModPromise;
+  }
+  // Canlı testte: aynı WASM örneğinde İKİNCİ dosyanın convert'i ("null
+  // function" / Aborted) başarısız oluyor — bu yüzden her DWG için yeni bir
+  // örnek kurulur (WASM tarayıcı önbelleğinden gelir, ~60 ms). İşler sırayla
+  // yapılır ki aynı anda birden fazla 9,5 MB'lık örnek bellekte durmasın.
+  var sahaDwgQueue = Promise.resolve();
+  function sahaRenderDwgVector(bytes){
+    var job = sahaDwgQueue.then(function(){
+      return loadLibreDwgModule().then(function(mod){
+        // create(yol) dosya adını "yol/dosya" diye ekler — sonda "/" olmamalı.
+        return mod.LibreDwg.create(SAHA_LIBREDWG_BASE + 'wasm').then(function(lib){
+          var dwg = lib.dwg_read_data(bytes, mod.Dwg_File_Type.DWG);
+          if (!dwg) throw new Error('DWG okunamadı');
+          var db;
+          try{ db = lib.convert(dwg); }
+          finally{ try{ lib.dwg_free(dwg); }catch(err){ /* yoksay */ } }
+          return sahaDrawCadPrimitives(sahaCollectDwgPrimitives(db));
+        });
+      });
+    });
+    sahaDwgQueue = job.catch(function(){ /* sıradaki işler etkilenmesin */ });
+    return job;
+  }
+  function sahaCollectDwgPrimitives(db){
+    var tables = db.tables || {};
+    var layers = {}, blocks = {};
+    ((tables.LAYER && tables.LAYER.entries) || []).forEach(function(l){ layers[l.name] = l; });
+    ((tables.BLOCK_RECORD && tables.BLOCK_RECORD.entries) || []).forEach(function(b){ blocks[b.name] = b; });
+    var lines = [], texts = [], budget = { pts: 0, max: 400000 };
+    function pt(p){ return p ? [Number(p.x) || 0, Number(p.y) || 0] : [0, 0]; }
+    function colorOf(e, parentColor){
+      var aci = e.colorIndex;
+      if (aci === 0) return parentColor;                                  // BYBLOCK
+      if (aci >= 1 && aci <= 255) return sahaAciColor(aci);               // açık renk
+      if (e.layer === '0' && parentColor) return parentColor;             // blok içi "0" katmanı
+      var lyr = layers[e.layer];
+      return sahaAciColor(lyr ? Math.abs(lyr.colorIndex || 7) : 7);
+    }
+    function hidden(e){
+      var lyr = layers[e.layer];
+      return e.isVisible === false || !!(lyr && (lyr.off || lyr.frozen || lyr.colorIndex < 0));
+    }
+    function addLine(m, pts, color){
+      if (pts.length < 2 || budget.pts > budget.max) return;
+      budget.pts += pts.length;
+      lines.push({ pts: pts.map(function(p){ return sahaAffPt(m, p[0], p[1]); }), color: color });
+    }
+    function addText(m, p, h, rot, str, color, top){
+      if (!str) return;
+      var q = sahaAffPt(m, p[0], p[1]), scale = Math.sqrt(Math.abs(m[0]*m[3] - m[1]*m[2]));
+      texts.push({ x: q[0], y: q[1], h: (h || 1) * scale, rot: sahaTextRot(m, rot || 0), str: str, color: color, top: !!top });
+    }
+    function verts(list){ return (list || []).map(function(v){ var p = v.point || v; return [Number(p.x) || 0, Number(p.y) || 0, Number(v.bulge) || 0]; }); }
+    function walk(list, m, parentColor, depth){
+      (list || []).forEach(function(e){
+        if (budget.pts > budget.max || hidden(e)) return;
+        var color = colorOf(e, parentColor), t = e.type;
+        var em = (SAHA_OCS_TYPES[t] && e.extrusionDirection && e.extrusionDirection.z < 0) ? sahaAffMul(m, SAHA_OCS_MIRROR) : m;
+        if (t === 'LINE') addLine(em, [pt(e.startPoint), pt(e.endPoint)], color);
+        else if (t === 'LWPOLYLINE' || t === 'POLYLINE2D' || t === 'POLYLINE3D' || t === 'POLYLINE'){
+          addLine(em, sahaBulgePoints(verts(e.vertices), ((e.flag || e.flags || 0) & 1) === 1), color);
+        } else if (t === 'CIRCLE'){
+          if (e.radius > 0) addLine(em, sahaArcPoints(pt(e.center)[0], pt(e.center)[1], e.radius, e.radius, 0, 0, Math.PI * 2), color);
+        } else if (t === 'ARC'){
+          var s = e.startAngle || 0, en = e.endAngle != null ? e.endAngle : Math.PI * 2;
+          while (en <= s) en += Math.PI * 2;
+          if (e.radius > 0) addLine(em, sahaArcPoints(pt(e.center)[0], pt(e.center)[1], e.radius, e.radius, 0, s, en), color);
+        } else if (t === 'ELLIPSE'){
+          var mj = pt(e.majorAxisEndPoint), major = Math.hypot(mj[0], mj[1]);
+          var es = e.startAngle || 0, ee = e.endAngle != null ? e.endAngle : Math.PI * 2;
+          while (ee <= es) ee += Math.PI * 2;
+          if (major > 0) addLine(em, sahaArcPoints(pt(e.center)[0], pt(e.center)[1], major, major * (e.axisRatio || 1), Math.atan2(mj[1], mj[0]), es, ee), color);
+        } else if (t === 'SPLINE'){
+          var sp = (e.fitPoints && e.fitPoints.length >= 2 ? e.fitPoints : e.controlPoints) || [];
+          addLine(em, sp.map(pt), color);
+        } else if (t === 'SOLID' || t === 'TRACE' || t === '3DFACE'){
+          var corners = ['corner1', 'corner2', 'corner3', 'corner4'].map(function(k){ return e[k]; }).filter(Boolean).map(pt);
+          if (corners.length >= 3){
+            if (t !== '3DFACE' && corners.length === 4) corners = [corners[0], corners[1], corners[3], corners[2]];
+            corners.push(corners[0]);
+            addLine(em, corners, color);
+          }
+        } else if (t === 'HATCH'){
+          // Tarama dolgusu çizilmez, sınırları (polyline tipindeki yollar) çizilir.
+          (e.boundaryPaths || []).forEach(function(bp){
+            if (bp.vertices && bp.vertices.length >= 2) addLine(em, sahaBulgePoints(verts(bp.vertices), bp.isClosed !== 0), color);
+          });
+        } else if (t === 'TEXT' || t === 'ATTRIB'){
+          addText(em, pt(e.startPoint || e.insertionPoint), e.textHeight, e.rotation, e.text, color, false);
+        } else if (t === 'MTEXT'){
+          var rot = e.direction ? Math.atan2(e.direction.y || 0, e.direction.x || 1) : (e.rotation || 0);
+          var str = String(e.text || '').replace(/\\P/gi, ' ').replace(/\\[A-Za-z][^;\\]*;/g, '').replace(/\\[~ ]/g, ' ').replace(/[{}]/g, '').trim();
+          addText(em, pt(e.insertionPoint), e.textHeight, rot, str, color, true);
+        } else if ((t === 'INSERT' || t === 'DIMENSION') && depth < 10){
+          var blk = blocks[e.name || e.blockName];
+          if (blk){
+            if (t === 'DIMENSION') walk(blk.entities, em, color, depth + 1);
+            else {
+              var ip = pt(e.insertionPoint), base = pt(blk.basePoint);
+              var sx = e.xScale || 1, sy = e.yScale || sx, ang = e.rotation || 0;
+              var cols = Math.min(50, Math.max(1, e.columnCount || 1)), rows = Math.min(50, Math.max(1, e.rowCount || 1));
+              var cs = e.columnSpacing || 0, rs = e.rowSpacing || 0, ca = Math.cos(ang), sa = Math.sin(ang);
+              for (var ci = 0; ci < cols; ci++){
+                for (var ri = 0; ri < rows; ri++){
+                  var ox = ci * cs, oy = ri * rs;
+                  var local = [ca * sx, sa * sx, -sa * sy, ca * sy,
+                    ip[0] + ca * ox - sa * oy - (ca * sx * base[0] - sa * sy * base[1]),
+                    ip[1] + sa * ox + ca * oy - (sa * sx * base[0] + ca * sy * base[1])];
+                  walk(blk.entities, sahaAffMul(em, local), color, depth + 1);
+                }
+              }
+            }
+          }
+          (e.attribs || []).forEach(function(a){ addText(em, pt(a.startPoint || a.insertionPoint), a.textHeight, a.rotation, a.text, colorOf(a, color), false); });
+        }
+      });
+    }
+    walk(db.entities, [1, 0, 0, 1, 0, 0], '#ffffff', 0);
+    return { lines: lines, texts: texts };
+  }
+  // Nesne koordinat sistemi (OCS): CIRCLE/ARC/LWPOLYLINE/HATCH/TEXT/INSERT
+  // vb. koordinatları OCS'dedir. AutoCAD'de aynalanan öğelerde extrusion
+  // (0,0,-1) olur ve OCS X ekseni dünyaya göre terstir (x_dünya = −x_ocs) —
+  // dönüştürülmezse bu öğeler ±X'te (ör. −400 km) çizilip kadrajı bozuyordu.
+  // Eğik (z ≠ ±1) extrusion'lar 2B önizlemede yok sayılır.
+  var SAHA_OCS_MIRROR = [-1, 0, 0, 1, 0, 0];
+  var SAHA_OCS_TYPES = { CIRCLE:1, ARC:1, LWPOLYLINE:1, POLYLINE:1, POLYLINE2D:1, HATCH:1, SOLID:1, TRACE:1, TEXT:1, ATTRIB:1, INSERT:1 };
+  // Yazı açısı, dönüşümle (dönme/aynalama dahil) taşınan yön vektöründen hesaplanır.
+  function sahaTextRot(m, rot){
+    var c = Math.cos(rot), s = Math.sin(rot);
+    return Math.atan2(m[1] * c + m[3] * s, m[0] * c + m[2] * s);
+  }
+  // 2B afin dönüşüm [a,b,c,d,e,f]: x' = a·x + c·y + e, y' = b·x + d·y + f.
+  function sahaAffMul(m, n){
+    return [m[0]*n[0] + m[2]*n[1], m[1]*n[0] + m[3]*n[1], m[0]*n[2] + m[2]*n[3], m[1]*n[2] + m[3]*n[3], m[0]*n[4] + m[2]*n[5] + m[4], m[1]*n[4] + m[3]*n[5] + m[5]];
+  }
+  function sahaAffPt(m, x, y){ return [m[0]*x + m[2]*y + m[4], m[1]*x + m[3]*y + m[5]]; }
 
   // ---- DXF: önizleme için hafif okuyucu + çizici ---------------------------
   // İçe aktarmadaki parseDXF'ten (yalnızca LINE/POINT/CIRCLE/LWPOLYLINE)
@@ -7190,10 +7344,6 @@
   // Ayrıştırılmış DXF → dünya koordinatlarında { lines:[{pts,color}], texts:[...] }.
   function sahaCollectDxfPrimitives(dxf){
     var lines = [], texts = [], budget = { pts: 0, max: 400000 };
-    function mul(m, n){
-      return [m[0]*n[0] + m[2]*n[1], m[1]*n[0] + m[3]*n[1], m[0]*n[2] + m[2]*n[3], m[1]*n[2] + m[3]*n[3], m[0]*n[4] + m[2]*n[5] + m[4], m[1]*n[4] + m[3]*n[5] + m[5]];
-    }
-    function tp(m, x, y){ return [m[0]*x + m[2]*y + m[4], m[1]*x + m[3]*y + m[5]]; }
     function colorOf(rec, parentColor){
       var tc = sahaDxfGet(rec, 420);
       if (tc != null){ var t = parseInt(tc, 10); if (!isNaN(t)) return 'rgb(' + ((t >> 16) & 255) + ',' + ((t >> 8) & 255) + ',' + (t & 255) + ')'; }
@@ -7213,23 +7363,24 @@
     function addLine(m, pts, color){
       if (pts.length < 2 || budget.pts > budget.max) return;
       budget.pts += pts.length;
-      lines.push({ pts: pts.map(function(p){ return tp(m, p[0], p[1]); }), color: color });
+      lines.push({ pts: pts.map(function(p){ return sahaAffPt(m, p[0], p[1]); }), color: color });
     }
     function addText(m, rec, str, color){
       if (!str) return;
       var x = sahaDxfNum(rec, 10, 0), y = sahaDxfNum(rec, 20, 0), h = sahaDxfNum(rec, 40, 1);
       var rot = sahaDxfNum(rec, 50, 0) * Math.PI / 180;
       if (rec.type === 'MTEXT' && sahaDxfGet(rec, 11) != null && sahaDxfGet(rec, 50) == null) rot = Math.atan2(sahaDxfNum(rec, 21, 0), sahaDxfNum(rec, 11, 1));
-      var p = tp(m, x, y), scale = Math.sqrt(Math.abs(m[0]*m[3] - m[1]*m[2]));
-      texts.push({ x: p[0], y: p[1], h: h * scale, rot: rot + Math.atan2(m[1], m[0]), str: str, color: color, top: rec.type === 'MTEXT' });
+      var p = sahaAffPt(m, x, y), scale = Math.sqrt(Math.abs(m[0]*m[3] - m[1]*m[2]));
+      texts.push({ x: p[0], y: p[1], h: h * scale, rot: sahaTextRot(m, rot), str: str, color: color, top: rec.type === 'MTEXT' });
     }
     function walk(list, m, parentColor, depth){
       list.forEach(function(rec){
         if (budget.pts > budget.max || hidden(rec)) return;
         var color = colorOf(rec, parentColor);
+        var em = (SAHA_OCS_TYPES[rec.type] && sahaDxfNum(rec, 230, 1) < 0) ? sahaAffMul(m, SAHA_OCS_MIRROR) : m;
         var t = rec.type;
         if (t === 'LINE'){
-          addLine(m, [[sahaDxfNum(rec, 10, 0), sahaDxfNum(rec, 20, 0)], [sahaDxfNum(rec, 11, 0), sahaDxfNum(rec, 21, 0)]], color);
+          addLine(em, [[sahaDxfNum(rec, 10, 0), sahaDxfNum(rec, 20, 0)], [sahaDxfNum(rec, 11, 0), sahaDxfNum(rec, 21, 0)]], color);
         } else if (t === 'LWPOLYLINE'){
           var verts = [], cur = null;
           rec.c.forEach(function(p){
@@ -7237,24 +7388,24 @@
             else if (p[0] === 20 && cur) cur[1] = parseFloat(p[1]);
             else if (p[0] === 42 && cur) cur[2] = parseFloat(p[1]) || 0;
           });
-          addLine(m, sahaBulgePoints(verts, ((parseInt(sahaDxfGet(rec, 70), 10) || 0) & 1) === 1), color);
+          addLine(em, sahaBulgePoints(verts, ((parseInt(sahaDxfGet(rec, 70), 10) || 0) & 1) === 1), color);
         } else if (t === 'POLYLINE'){
           var pv = (rec.children || []).filter(function(v){ return v.type === 'VERTEX'; }).map(function(v){
             return [sahaDxfNum(v, 10, 0), sahaDxfNum(v, 20, 0), sahaDxfNum(v, 42, 0)];
           });
-          addLine(m, sahaBulgePoints(pv, ((parseInt(sahaDxfGet(rec, 70), 10) || 0) & 1) === 1), color);
+          addLine(em, sahaBulgePoints(pv, ((parseInt(sahaDxfGet(rec, 70), 10) || 0) & 1) === 1), color);
         } else if (t === 'CIRCLE'){
           var r0 = sahaDxfNum(rec, 40, 0);
-          if (r0 > 0) addLine(m, sahaArcPoints(sahaDxfNum(rec, 10, 0), sahaDxfNum(rec, 20, 0), r0, r0, 0, 0, Math.PI * 2), color);
+          if (r0 > 0) addLine(em, sahaArcPoints(sahaDxfNum(rec, 10, 0), sahaDxfNum(rec, 20, 0), r0, r0, 0, 0, Math.PI * 2), color);
         } else if (t === 'ARC'){
           var r1 = sahaDxfNum(rec, 40, 0), s = sahaDxfNum(rec, 50, 0) * Math.PI / 180, e = sahaDxfNum(rec, 51, 360) * Math.PI / 180;
           while (e <= s) e += Math.PI * 2;
-          if (r1 > 0) addLine(m, sahaArcPoints(sahaDxfNum(rec, 10, 0), sahaDxfNum(rec, 20, 0), r1, r1, 0, s, e), color);
+          if (r1 > 0) addLine(em, sahaArcPoints(sahaDxfNum(rec, 10, 0), sahaDxfNum(rec, 20, 0), r1, r1, 0, s, e), color);
         } else if (t === 'ELLIPSE'){
           var mx = sahaDxfNum(rec, 11, 1), my = sahaDxfNum(rec, 21, 0), major = Math.hypot(mx, my);
           var es = sahaDxfNum(rec, 41, 0), ee = sahaDxfNum(rec, 42, Math.PI * 2);
           while (ee <= es) ee += Math.PI * 2;
-          if (major > 0) addLine(m, sahaArcPoints(sahaDxfNum(rec, 10, 0), sahaDxfNum(rec, 20, 0), major, major * sahaDxfNum(rec, 40, 1), Math.atan2(my, mx), es, ee), color);
+          if (major > 0) addLine(em, sahaArcPoints(sahaDxfNum(rec, 10, 0), sahaDxfNum(rec, 20, 0), major, major * sahaDxfNum(rec, 40, 1), Math.atan2(my, mx), es, ee), color);
         } else if (t === 'SPLINE'){
           var ctrl = [], fit = [], cx = null, fx = null;
           rec.c.forEach(function(p){
@@ -7263,23 +7414,23 @@
             else if (p[0] === 11) fx = parseFloat(p[1]);
             else if (p[0] === 21 && fx != null){ fit.push([fx, parseFloat(p[1])]); fx = null; }
           });
-          addLine(m, fit.length >= 2 ? fit : ctrl, color);
+          addLine(em, fit.length >= 2 ? fit : ctrl, color);
         } else if (t === 'SOLID' || t === 'TRACE' || t === '3DFACE'){
           var q = [[10, 20], [11, 21], [13, 23], [12, 22]];
           if (t === '3DFACE') q = [[10, 20], [11, 21], [12, 22], [13, 23]];
           var qp = q.map(function(c){ return [sahaDxfNum(rec, c[0], 0), sahaDxfNum(rec, c[1], 0)]; });
           qp.push(qp[0]);
-          addLine(m, qp, color);
+          addLine(em, qp, color);
         } else if (t === 'TEXT' || t === 'ATTRIB'){
-          addText(m, rec, sahaDxfGet(rec, 1), color);
+          addText(em, rec, sahaDxfGet(rec, 1), color);
         } else if (t === 'MTEXT'){
           var raw = rec.c.filter(function(p){ return p[0] === 3; }).map(function(p){ return p[1]; }).join('') + (sahaDxfGet(rec, 1) || '');
-          addText(m, rec, raw.replace(/\\P/gi, ' ').replace(/\\[A-Za-z][^;\\]*;/g, '').replace(/\\[~ ]/g, ' ').replace(/[{}]/g, '').trim(), color);
+          addText(em, rec, raw.replace(/\\P/gi, ' ').replace(/\\[A-Za-z][^;\\]*;/g, '').replace(/\\[~ ]/g, ' ').replace(/[{}]/g, '').trim(), color);
         } else if ((t === 'INSERT' || t === 'DIMENSION') && depth < 10){
           var blk = dxf.blocks[sahaDxfGet(rec, 2)];
           if (blk){
             if (t === 'DIMENSION'){
-              walk(blk.entities, m, color, depth + 1);
+              walk(blk.entities, em, color, depth + 1);
             } else {
               var ix = sahaDxfNum(rec, 10, 0), iy = sahaDxfNum(rec, 20, 0);
               var sx = sahaDxfNum(rec, 41, 1), sy = sahaDxfNum(rec, 42, sx), ang = sahaDxfNum(rec, 50, 0) * Math.PI / 180;
@@ -7292,12 +7443,12 @@
                   var local = [ca * sx, sa * sx, -sa * sy, ca * sy,
                     ix + ca * ox - sa * oy - (ca * sx * blk.base[0] - sa * sy * blk.base[1]),
                     iy + sa * ox + ca * oy - (sa * sx * blk.base[0] + ca * sy * blk.base[1])];
-                  walk(blk.entities, mul(m, local), color, depth + 1);
+                  walk(blk.entities, sahaAffMul(em, local), color, depth + 1);
                 }
               }
             }
           }
-          (rec.children || []).forEach(function(a){ if (a.type === 'ATTRIB') addText(m, a, sahaDxfGet(a, 1), colorOf(a, color)); });
+          (rec.children || []).forEach(function(a){ if (a.type === 'ATTRIB') addText(em, a, sahaDxfGet(a, 1), colorOf(a, color)); });
         }
       });
     }
@@ -7305,7 +7456,11 @@
     return { lines: lines, texts: texts };
   }
   function sahaRenderDxfPreview(bytes){
-    var prim = sahaCollectDxfPrimitives(sahaParseDxfForPreview(sahaDecodeDxfText(bytes)));
+    return sahaDrawCadPrimitives(sahaCollectDxfPrimitives(sahaParseDxfForPreview(sahaDecodeDxfText(bytes))));
+  }
+  // DXF ve DWG (LibreDWG) önizlemelerinin ortak çizimi: dünya
+  // koordinatlarındaki { lines, texts } koyu zemine sığdırılarak çizilir.
+  function sahaDrawCadPrimitives(prim){
     var xs = [], ys = [];
     prim.lines.forEach(function(l){
       var stepN = Math.max(1, Math.floor(l.pts.length / 50));
@@ -7314,7 +7469,7 @@
     });
     prim.texts.forEach(function(t){ xs.push(t.x); ys.push(t.y); });
     xs = xs.filter(isFinite); ys = ys.filter(isFinite);
-    if (!xs.length || !ys.length) throw new Error('DXF içinde çizilebilir öğe yok');
+    if (!xs.length || !ys.length) throw new Error('Çizimde çizilebilir öğe yok');
     // Uzaktaki tekil öğeler (ör. orijindeki unutulmuş bir nokta) çizimi
     // küçültmesin diye çok noktalı çizimlerde uç %0,5'lik dilimler atılır.
     xs.sort(function(a, b){ return a - b; }); ys.sort(function(a, b){ return a - b; });
