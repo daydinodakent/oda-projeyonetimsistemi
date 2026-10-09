@@ -550,6 +550,22 @@
   .saha-popup{max-width:180px;}
   .saha-popup-img{width:100%;border-radius:2px;display:block;margin-bottom:6px;cursor:zoom-in;}
   .saha-popup-img.saha-type-thumb{height:80px;font-size:13px;}
+  /* Video saha dosyası önizlemesi (bkz. sahaThumbHtml): videonun karesi +
+     ortada yarı saydam oynat işareti; popup'ta video sessiz döngüde oynar. */
+  .saha-video-thumb{position:relative;width:100%;height:100%;background:#000;overflow:hidden;border-radius:2px;}
+  .saha-video-thumb video{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none;}
+  .saha-video-play{
+    position:absolute;left:50%;top:50%;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;
+    background:rgba(0,0,0,.55);box-shadow:0 0 0 1.5px rgba(255,255,255,.85);pointer-events:none;
+  }
+  .saha-video-play::after{
+    content:'';position:absolute;left:8.5px;top:6px;border-style:solid;
+    border-width:5px 0 5px 8px;border-color:transparent transparent transparent #fff;
+  }
+  .saha-tree-thumb.saha-video-thumb{width:18px;height:18px;}
+  .saha-tree-thumb.saha-video-thumb .saha-video-play{display:none;}
+  .saha-popup-img.saha-video-thumb{height:auto;aspect-ratio:16/9;}
+  .saha-popup-img.saha-video-thumb.playing .saha-video-play{opacity:0;transition:opacity .3s;}
   .saha-popup-name{font-size:12px;font-weight:600;color:#0f1e29;}
   .saha-popup-notes{font-size:11px;color:#3c4c56;margin-top:3px;white-space:pre-wrap;}
   .saha-popup-coord{font-family:var(--font-mono);font-size:10px;color:#6b7684;margin-top:4px;}
@@ -6623,6 +6639,13 @@
   // etiketli bir simge — pending kart, kayıtlı liste satırı ve filmstrip'te ortak.
   function sahaThumbHtml(docType, dataUrl, extraClass){
     if (docType === 'resim' || !docType) return '<img class="' + (extraClass || '') + '" src="' + (dataUrl || '') + '">';
+    // Video: düz renkli simge yerine videonun kendi karesi (ilk ~0,5 sn) +
+    // ortada oynat işareti. Yalnızca üst veri yüklenir (preload=metadata).
+    if (docType === 'video' && dataUrl){
+      return '<div class="saha-video-thumb ' + (extraClass || '') + '">' +
+        '<video src="' + dataUrl + '" muted playsinline preload="metadata" onloadedmetadata="this.currentTime=Math.min(0.5,(this.duration||1)/3)"></video>' +
+        '<span class="saha-video-play"></span></div>';
+    }
     var color = DOC_TYPE_ICON_COLOR[docType] || DOC_TYPE_ICON_COLOR.diger;
     var label = (DOC_TYPE_LABELS[docType] || 'Dosya').slice(0, 3).toUpperCase();
     return '<div class="saha-type-thumb ' + (extraClass || '') + '" style="background:' + color + '">' + label + '</div>';
@@ -6635,31 +6658,79 @@
     return new Promise(function(resolve, reject){
       var img = new Image();
       img.onload = function(){
-        var size = SAHA_ICON_SIZE;
-        var canvas = document.createElement('canvas');
-        canvas.width = size; canvas.height = size;
-        var ctx = canvas.getContext('2d');
-        var r = size / 2;
-        ctx.save();
-        ctx.beginPath();
-        ctx.arc(r, r, r - 3, 0, Math.PI * 2);
-        ctx.closePath();
-        ctx.clip();
-        // Fotoğrafı, en-boy oranını koruyarak dairenin tamamını kaplayacak
-        // şekilde (object-fit:cover mantığıyla) ortalar.
-        var scale = Math.max(size / img.naturalWidth, size / img.naturalHeight);
-        var w = img.naturalWidth * scale, h = img.naturalHeight * scale;
-        ctx.drawImage(img, (size - w) / 2, (size - h) / 2, w, h);
-        ctx.restore();
-        ctx.beginPath();
-        ctx.arc(r, r, r - 2.5, 0, Math.PI * 2);
-        ctx.lineWidth = 3;
-        ctx.strokeStyle = ringColor || '#ffffff';
-        ctx.stroke();
-        resolve(ctx.getImageData(0, 0, size, size));
+        resolve(sahaDrawCircleIcon(img, img.naturalWidth, img.naturalHeight, ringColor, false));
       };
       img.onerror = function(){ reject(new Error('simge oluşturulamadı')); };
       img.src = dataUrl;
+    });
+  }
+  // Görüntü kaynağını (img/video karesi) dairesel kırpıp halka çizer;
+  // playBadge ise ortaya yarı saydam bir oynat işareti ekler (video pinleri).
+  function sahaDrawCircleIcon(source, srcW, srcH, ringColor, playBadge){
+    var size = SAHA_ICON_SIZE;
+    var canvas = document.createElement('canvas');
+    canvas.width = size; canvas.height = size;
+    var ctx = canvas.getContext('2d');
+    var r = size / 2;
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(r, r, r - 3, 0, Math.PI * 2);
+    ctx.closePath();
+    ctx.clip();
+    // Görüntüyü, en-boy oranını koruyarak dairenin tamamını kaplayacak
+    // şekilde (object-fit:cover mantığıyla) ortalar.
+    var scale = Math.max(size / srcW, size / srcH);
+    var w = srcW * scale, h = srcH * scale;
+    ctx.drawImage(source, (size - w) / 2, (size - h) / 2, w, h);
+    ctx.restore();
+    if (playBadge){
+      var br = size * 0.2;
+      ctx.beginPath();
+      ctx.arc(r, r, br, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(0,0,0,0.55)';
+      ctx.fill();
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(r - br * 0.35, r - br * 0.5);
+      ctx.lineTo(r + br * 0.55, r);
+      ctx.lineTo(r - br * 0.35, r + br * 0.5);
+      ctx.closePath();
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+    }
+    ctx.beginPath();
+    ctx.arc(r, r, r - 2.5, 0, Math.PI * 2);
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = ringColor || '#ffffff';
+    ctx.stroke();
+    return ctx.getImageData(0, 0, size, size);
+  }
+  // Video saha dosyası pini: videodan bir kare (~0,5 sn ya da sürenin 1/3'ü)
+  // alınıp fotoğraflar gibi daire içine kırpılır, ortaya oynat işareti konur.
+  // Kare alınamazsa (bozuk/desteklenmeyen kodek, zaman aşımı) reddeder ve
+  // çağıran tür simgesine (VİD) düşer.
+  function sahaBuildVideoIcon(dataUrl, ringColor){
+    return new Promise(function(resolve, reject){
+      var v = document.createElement('video');
+      v.muted = true; v.playsInline = true; v.preload = 'auto';
+      var done = false;
+      function finish(err, data){
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        v.removeAttribute('src'); v.load();
+        if (err) reject(err); else resolve(data);
+      }
+      var timer = setTimeout(function(){ finish(new Error('video karesi zaman aşımı')); }, 8000);
+      v.addEventListener('loadedmetadata', function(){ v.currentTime = Math.min(0.5, (v.duration || 1) / 3); });
+      v.addEventListener('seeked', function(){
+        try{ finish(null, sahaDrawCircleIcon(v, v.videoWidth, v.videoHeight, ringColor, true)); }
+        catch(err){ finish(err); }
+      });
+      v.addEventListener('error', function(){ finish(new Error('video okunamadı')); });
+      v.src = dataUrl;
     });
   }
   // Fotoğraf DIŞINDAKİ saha dosyaları (video/cad/gis/bim/diğer) için pin
@@ -6695,7 +6766,11 @@
       .map(function(p){
         var iconId = 'saha-photo-' + p.id;
         var isImage = (p.doc_type === 'resim' || !p.doc_type) && p.file_data_url;
-        var builder = isImage ? sahaBuildCircleIcon(p.file_data_url, sahaColorForId(p.id)) : sahaBuildTypeIcon(p.doc_type, sahaColorForId(p.id));
+        var isVideo = p.doc_type === 'video' && p.file_data_url;
+        var ring = sahaColorForId(p.id);
+        var builder = isImage ? sahaBuildCircleIcon(p.file_data_url, ring)
+          : isVideo ? sahaBuildVideoIcon(p.file_data_url, ring).catch(function(){ return sahaBuildTypeIcon(p.doc_type, ring); })
+          : sahaBuildTypeIcon(p.doc_type, ring);
         return builder.then(function(imgData){
           if (!map.hasImage(iconId)) map.addImage(iconId, imgData);
           sahaRegisteredIconIds[iconId] = true;
@@ -6744,6 +6819,17 @@
     // kartını gösterir (bkz. sahaOpenLightbox → renderLightbox).
     var imgEl = popup.getElement().querySelector('.saha-popup-img');
     if (imgEl) imgEl.addEventListener('click', function(){ sahaOpenLightbox(p); });
+    // Video: popup'ta sessiz ve döngüde önizleme oynar (tam ekran/sesli
+    // oynatma için tıklanınca lightbox açılır).
+    var videoEl = imgEl && imgEl.querySelector('video');
+    if (videoEl){
+      videoEl.removeAttribute('onloadedmetadata');
+      videoEl.loop = true; videoEl.muted = true; videoEl.autoplay = true; videoEl.preload = 'auto';
+      imgEl.title = 'Tam ekran ve sesli oynatmak için tıklayın';
+      videoEl.addEventListener('playing', function(){ imgEl.classList.add('playing'); });
+      var playPromise = videoEl.play();
+      if (playPromise && playPromise.catch) playPromise.catch(function(){ /* otomatik oynatma engellendi — kare + oynat işareti kalır */ });
+    }
   }
 
   // Tam ekran görüntüleyici (lightbox) — hem Saha dosyası popup'ındaki
