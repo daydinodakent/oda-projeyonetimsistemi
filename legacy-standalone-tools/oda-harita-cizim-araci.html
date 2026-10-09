@@ -562,6 +562,23 @@
     content:'';position:absolute;left:8.5px;top:6px;border-style:solid;
     border-width:5px 0 5px 8px;border-color:transparent transparent transparent #fff;
   }
+  /* PDF saha dosyası önizlemesi (bkz. sahaThumbHtml/sahaPdfThumbEntry): ilk
+     sayfanın üst kısmı + köşede kırmızı PDF etiketi; hazır olana kadar yer tutucu. */
+  .saha-pdf-thumb{position:relative;width:100%;height:100%;background:#fff;overflow:hidden;border-radius:2px;}
+  .saha-pdf-thumb img{width:100%;height:100%;object-fit:cover;object-position:top;display:block;}
+  .saha-pdf-loading{
+    position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    background:#8a94a6;color:#fff;font-size:9.5px;font-weight:700;letter-spacing:.2px;
+  }
+  .saha-pdf-badge{
+    position:absolute;left:3px;bottom:3px;padding:0 4px;border-radius:2px;background:#d93025;color:#fff;
+    font-size:8.5px;font-weight:700;line-height:13px;pointer-events:none;
+  }
+  .saha-tree-thumb.saha-pdf-thumb{width:18px;height:18px;}
+  .saha-tree-thumb.saha-pdf-thumb .saha-pdf-badge{display:none;}
+  .saha-tree-thumb.saha-pdf-thumb .saha-pdf-loading{font-size:6px;}
+  .saha-popup-img.saha-pdf-thumb{height:150px;box-shadow:0 0 0 1px #d9d5cb;}
+  .saha-popup-img.saha-pdf-thumb .saha-pdf-loading{font-size:13px;}
   .saha-tree-thumb.saha-video-thumb{width:18px;height:18px;}
   .saha-tree-thumb.saha-video-thumb .saha-video-play{display:none;}
   .saha-popup-img.saha-video-thumb{height:auto;aspect-ratio:16/9;}
@@ -6560,7 +6577,7 @@
         ? '<span class="saha-gps-badge ' + (p.hasGps ? 'auto' : 'manual') + '">' + (p.hasGps ? '📍 Konum bulundu (EXIF)' : '📍 Elle konumlandırıldı') + '</span>'
         : '<span class="saha-gps-badge missing">⚠ Konum yok</span>';
       card.innerHTML =
-        '<div class="saha-photo-thumb-wrap">' + sahaThumbHtml(p.docType, p.dataUrl, 'saha-photo-thumb') + '</div>' +
+        '<div class="saha-photo-thumb-wrap">' + sahaThumbHtml(p.docType, p.dataUrl, 'saha-photo-thumb', p.name) + '</div>' +
         '<div class="saha-photo-info">' +
           '<div class="saha-photo-name" title="' + p.name.replace(/"/g,'&quot;') + '">' + p.name.replace(/</g,'&lt;') + '</div>' +
           badgeHtml +
@@ -6637,7 +6654,12 @@
   // Saha dosyası küçük resmi: fotoğrafsa gerçek <img>, değilse (video/cad/gis/
   // bim/diğer) DOC_TYPE_ICON_COLOR/LABELS'a göre renklendirilmiş kısa tür
   // etiketli bir simge — pending kart, kayıtlı liste satırı ve filmstrip'te ortak.
-  function sahaThumbHtml(docType, dataUrl, extraClass){
+  function sahaThumbHtml(docType, dataUrl, extraClass, name){
+    // PDF: ilk sayfanın görüntüsü (hazır değilse "PDF" yer tutucusu; bkz. sahaPdfThumbEntry).
+    if (dataUrl && sahaIsPdfName(name)){
+      var pdfEntry = sahaPdfThumbEntry(dataUrl);
+      return '<div class="saha-pdf-thumb ' + (extraClass || '') + (pdfEntry.url ? ' ready' : '') + '" data-pdf-key="' + pdfEntry.key + '">' + sahaPdfThumbInner(pdfEntry) + '</div>';
+    }
     if (docType === 'resim' || !docType) return '<img class="' + (extraClass || '') + '" src="' + (dataUrl || '') + '">';
     // Video: düz renkli simge yerine videonun kendi karesi (ilk ~0,5 sn) +
     // ortada oynat işareti. Yalnızca üst veri yüklenir (preload=metadata).
@@ -6658,15 +6680,19 @@
     return new Promise(function(resolve, reject){
       var img = new Image();
       img.onload = function(){
-        resolve(sahaDrawCircleIcon(img, img.naturalWidth, img.naturalHeight, ringColor, false));
+        resolve(sahaDrawCircleIcon(img, img.naturalWidth, img.naturalHeight, ringColor));
       };
       img.onerror = function(){ reject(new Error('simge oluşturulamadı')); };
       img.src = dataUrl;
     });
   }
-  // Görüntü kaynağını (img/video karesi) dairesel kırpıp halka çizer;
-  // playBadge ise ortaya yarı saydam bir oynat işareti ekler (video pinleri).
-  function sahaDrawCircleIcon(source, srcW, srcH, ringColor, playBadge){
+  // Görüntü kaynağını (img/video karesi/PDF sayfası) dairesel kırpıp halka
+  // çizer. opts.play: ortaya yarı saydam oynat işareti (video pinleri);
+  // opts.alignTop: dikeyde ortalamak yerine üstten hizala (PDF sayfasının
+  // başlık kısmı görünsün); opts.label: altta küçük renkli etiket ("PDF").
+  function sahaDrawCircleIcon(source, srcW, srcH, ringColor, opts){
+    opts = opts || {};
+    var playBadge = !!opts.play;
     var size = SAHA_ICON_SIZE;
     var canvas = document.createElement('canvas');
     canvas.width = size; canvas.height = size;
@@ -6681,7 +6707,19 @@
     // şekilde (object-fit:cover mantığıyla) ortalar.
     var scale = Math.max(size / srcW, size / srcH);
     var w = srcW * scale, h = srcH * scale;
-    ctx.drawImage(source, (size - w) / 2, (size - h) / 2, w, h);
+    ctx.drawImage(source, (size - w) / 2, opts.alignTop ? 0 : (size - h) / 2, w, h);
+    if (opts.label){
+      // Etiket dairenin içinde, alt kenara yakın — kırpma alanı hâlâ etkin.
+      ctx.font = 'bold ' + Math.round(size * 0.2) + 'px sans-serif';
+      var lw = ctx.measureText(opts.label.text).width + 8, lh = Math.round(size * 0.26);
+      var lx = (size - lw) / 2, ly = size - lh - 5;
+      ctx.fillStyle = opts.label.color;
+      ctx.fillRect(lx, ly, lw, lh);
+      ctx.fillStyle = '#ffffff';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(opts.label.text, size / 2, ly + lh / 2 + 0.5);
+    }
     ctx.restore();
     if (playBadge){
       var br = size * 0.2;
@@ -6707,6 +6745,91 @@
     ctx.stroke();
     return ctx.getImageData(0, 0, size, size);
   }
+  // ---- PDF saha dosyası önizlemesi --------------------------------------
+  // İlk sayfa pdf.js ile (ilk ihtiyaçta jsdelivr'dan tembel yüklenir) bir kez
+  // kanvasa çizilir ve kaynak adresine göre önbelleğe alınır; harita pini,
+  // şerit, saha ağacı ve popup aynı görüntüyü kullanır. Görüntü hazır olmadan
+  // çizilen küçük resimler "PDF" yer tutucusudur ve hazır olunca
+  // data-pdf-key ile bulunup yerinde güncellenir (bkz. sahaHydratePdfThumbs).
+  var SAHA_PDFJS_URL = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.min.mjs';
+  var SAHA_PDFJS_WORKER_URL = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs';
+  var SAHA_PDF_THUMB_WIDTH = 360;
+  var sahaPdfjsPromise = null;
+  function loadPdfJs(){
+    if (!sahaPdfjsPromise){
+      sahaPdfjsPromise = import(SAHA_PDFJS_URL).then(function(lib){
+        lib.GlobalWorkerOptions.workerSrc = SAHA_PDFJS_WORKER_URL;
+        return lib;
+      }).catch(function(err){ sahaPdfjsPromise = null; throw err; });
+    }
+    return sahaPdfjsPromise;
+  }
+  function sahaPdfBytes(src){
+    var m = /^data:[^;,]*(;base64)?,/.exec(src);
+    if (m){
+      var payload = src.slice(m[0].length);
+      if (!m[1]) return Promise.resolve(new TextEncoder().encode(decodeURIComponent(payload)));
+      var bin = atob(payload), bytes = new Uint8Array(bin.length);
+      for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      return Promise.resolve(bytes);
+    }
+    return fetch(src).then(function(r){
+      if (!r.ok) throw new Error('PDF indirilemedi: ' + r.status);
+      return r.arrayBuffer();
+    }).then(function(b){ return new Uint8Array(b); });
+  }
+  var sahaPdfThumbs = new Map(); // kaynak (data URL/adres) → { key, canvas, url, failed, promise }
+  var sahaPdfThumbSeq = 0;
+  function sahaPdfThumbEntry(src){
+    var e = sahaPdfThumbs.get(src);
+    if (e) return e;
+    e = { key: 'pdf' + (++sahaPdfThumbSeq), canvas: null, url: null, failed: false };
+    sahaPdfThumbs.set(src, e);
+    e.promise = Promise.all([loadPdfJs(), sahaPdfBytes(src)]).then(function(r){
+      return r[0].getDocument({ data: r[1], isEvalSupported: false }).promise;
+    }).then(function(doc){
+      return doc.getPage(1).then(function(page){
+        var base = page.getViewport({ scale: 1 });
+        var vp = page.getViewport({ scale: SAHA_PDF_THUMB_WIDTH / base.width });
+        var canvas = document.createElement('canvas');
+        canvas.width = Math.round(vp.width); canvas.height = Math.round(vp.height);
+        var ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        return page.render({ canvasContext: ctx, viewport: vp }).promise.then(function(){
+          doc.destroy();
+          return canvas;
+        });
+      });
+    }).then(function(canvas){
+      e.canvas = canvas;
+      e.url = canvas.toDataURL('image/png');
+      sahaHydratePdfThumbs(e);
+      return e;
+    }).catch(function(err){
+      e.failed = true;
+      console.warn('PDF önizlemesi oluşturulamadı:', err);
+      throw err;
+    });
+    e.promise.catch(function(){ /* yer tutucu "PDF" kalır */ });
+    return e;
+  }
+  function sahaPdfThumbInner(e){
+    return e.url ? '<img src="' + e.url + '" alt=""><span class="saha-pdf-badge">PDF</span>' : '<span class="saha-pdf-loading">PDF</span>';
+  }
+  function sahaHydratePdfThumbs(e){
+    document.querySelectorAll('[data-pdf-key="' + e.key + '"]').forEach(function(el){
+      el.innerHTML = sahaPdfThumbInner(e);
+      el.classList.add('ready');
+    });
+  }
+  // PDF pini: ilk sayfanın üst kısmı daire içinde + altta kırmızı "PDF" etiketi.
+  function sahaBuildPdfIcon(src, ringColor){
+    return sahaPdfThumbEntry(src).promise.then(function(e){
+      return sahaDrawCircleIcon(e.canvas, e.canvas.width, e.canvas.height, ringColor, { alignTop: true, label: { text: 'PDF', color: '#d93025' } });
+    });
+  }
+
   // Video saha dosyası pini: videodan bir kare (~0,5 sn ya da sürenin 1/3'ü)
   // alınıp fotoğraflar gibi daire içine kırpılır, ortaya oynat işareti konur.
   // Kare alınamazsa (bozuk/desteklenmeyen kodek, zaman aşımı) reddeder ve
@@ -6726,7 +6849,7 @@
       var timer = setTimeout(function(){ finish(new Error('video karesi zaman aşımı')); }, 8000);
       v.addEventListener('loadedmetadata', function(){ v.currentTime = Math.min(0.5, (v.duration || 1) / 3); });
       v.addEventListener('seeked', function(){
-        try{ finish(null, sahaDrawCircleIcon(v, v.videoWidth, v.videoHeight, ringColor, true)); }
+        try{ finish(null, sahaDrawCircleIcon(v, v.videoWidth, v.videoHeight, ringColor, { play: true })); }
         catch(err){ finish(err); }
       });
       v.addEventListener('error', function(){ finish(new Error('video okunamadı')); });
@@ -6767,9 +6890,11 @@
         var iconId = 'saha-photo-' + p.id;
         var isImage = (p.doc_type === 'resim' || !p.doc_type) && p.file_data_url;
         var isVideo = p.doc_type === 'video' && p.file_data_url;
+        var isPdf = sahaIsPdfName(p.name) && p.file_data_url;
         var ring = sahaColorForId(p.id);
         var builder = isImage ? sahaBuildCircleIcon(p.file_data_url, ring)
           : isVideo ? sahaBuildVideoIcon(p.file_data_url, ring).catch(function(){ return sahaBuildTypeIcon(p.doc_type, ring); })
+          : isPdf ? sahaBuildPdfIcon(p.file_data_url, ring).catch(function(){ return sahaBuildTypeIcon(p.doc_type, ring); })
           : sahaBuildTypeIcon(p.doc_type, ring);
         return builder.then(function(imgData){
           if (!map.hasImage(iconId)) map.addImage(iconId, imgData);
@@ -6799,7 +6924,7 @@
       .setLngLat([p.lng, p.lat])
       .setHTML(
         '<div class="saha-popup">' +
-          sahaThumbHtml(p.doc_type, p.file_data_url, 'saha-popup-img') +
+          sahaThumbHtml(p.doc_type, p.file_data_url, 'saha-popup-img', p.name) +
           '<div class="saha-popup-name">' + String(p.name || '').replace(/</g,'&lt;') + '</div>' +
           (p.notes ? '<div class="saha-popup-notes">' + String(p.notes).replace(/</g,'&lt;') + '</div>' : '') +
           '<div class="saha-popup-coord">' + Number(p.lat).toFixed(6) + ', ' + Number(p.lng).toFixed(6) + '</div>' +
@@ -7028,7 +7153,7 @@
       item.className = 'saha-filmstrip-item' + (String(p.id) === String(sahaLeaderTargetId) ? ' active' : '');
       item.setAttribute('data-id', p.id);
       item.innerHTML =
-        '<div class="saha-filmstrip-thumb-wrap" style="border-color:' + sahaColorForId(p.id) + '">' + sahaThumbHtml(p.doc_type, p.file_data_url) + '</div>' +
+        '<div class="saha-filmstrip-thumb-wrap" style="border-color:' + sahaColorForId(p.id) + '">' + sahaThumbHtml(p.doc_type, p.file_data_url, '', p.name) + '</div>' +
         '<span class="saha-filmstrip-name">' + String(p.name || '').replace(/</g,'&lt;') + '</span>';
       item.addEventListener('click', function(){
         document.querySelectorAll('.saha-filmstrip-item.active').forEach(function(el){ el.classList.remove('active'); });
@@ -7344,7 +7469,7 @@
     row.setAttribute('draggable', 'true');
     row.innerHTML =
       '<span class="tree-toggle-spacer"></span>' +
-      sahaThumbHtml(p.doc_type, p.file_data_url, 'saha-tree-thumb') +
+      sahaThumbHtml(p.doc_type, p.file_data_url, 'saha-tree-thumb', p.name) +
       '<span class="layer-name" title="' + String(p.name || '').replace(/"/g,'&quot;') + '">' + escapeAttrHtml(p.name || '') + '</span>' +
       '<span class="layer-count">' + Number(p.lat).toFixed(5) + ', ' + Number(p.lng).toFixed(5) + '</span>' +
       '<button class="layer-icon-btn del" title="Sil"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 6l12 12M18 6L6 18"/></svg></button>';
