@@ -2240,6 +2240,7 @@
         <span class="fmt no" title="Bu ortamda desteklenmiyor">GPKG</span>
         <span class="fmt ok" title="KML ve KMZ desteklenir">KML/KMZ</span>
         <span class="fmt ok" title="Basit Point/LineString/Polygon desteklenir">GML</span>
+        <span class="fmt ok" title="3B şehir modeli — LOD1/LOD2 binalar 3B bina olarak, koordinat dönüşümüyle">CityGML</span>
         <span class="fmt no" title="Bu ortamda desteklenmiyor">TAB</span>
         <div class="fmt-cat">BIM</div>
         <span class="fmt ok" title="Taban izdüşümü + yükseklik olarak 3B poligona aktarılır (tam mesh/materyal desteklenmez)">GLTF</span>
@@ -2267,7 +2268,7 @@
           style="width:70px;background:var(--bg-panel-raise);border:1px solid var(--line);color:var(--text);border-radius:2px;padding:4px 6px;font-family:var(--font-mono);font-size:12px;text-align:right;">
       </div>
       <input type="file" id="importInput" multiple
-        accept=".json,.geojson,.kml,.kmz,.zip,.shp,.gml,.dxf,.ncz,.gltf,.glb,.bin,.ifc,.jpg,.jpeg,.png,.jgw,.pgw,.jpw,.wld"
+        accept=".json,.geojson,.kml,.kmz,.zip,.shp,.gml,.citygml,.xml,.dxf,.ncz,.gltf,.glb,.bin,.ifc,.jpg,.jpeg,.png,.jgw,.pgw,.jpw,.wld"
         hidden>
       <div class="field-label" style="margin-top:6px;">GLTF için ayrı .bin dosyanız varsa modelle birlikte seçin.</div>
     </div>
@@ -5176,6 +5177,9 @@
       var floors = Math.max(1, parseInt(f.properties.floors, 10) || 1);
       if (floors <= 1) return; // tek kat: mevcut poly-extrusion katmanı zaten gösteriyor
       var floorH = f.properties.floorHeight || ((f.properties.height || 30) / floors);
+      // Zeminden yüksekte başlayan objeler (ör. CityGML'de podyum üstündeki
+      // kule) için kat şeritleri taban kotundan itibaren çizilir.
+      var off = Number(f.properties.base) || 0;
       // İş programı kaynağı + bağlı bina: kat kat (kısmi kat dahil) büyür; geride ise eksik kısım hayalet renkte
       if (FOURD_ACTIVE && fdProgramOn() && fdStates[String(f.id)]){
         fdFloorFeatures(f, floors, floorH).forEach(function(x){ floorFeats.push(x); });
@@ -5186,7 +5190,7 @@
         var isPickG = fdPickMode && fdPickIds[String(f.id)];
         for (var gi = 0; gi < floors; gi++){
           floorFeats.push({ type:'Feature', id: f.id + '_floor' + gi, geometry: f.geometry,
-            properties:{ parentId: f.id, floorIndex: gi, base: gi * floorH, top: (gi + 1) * floorH, bandParity: gi % 2, fillColor: isPickG ? FD_PICK_COLOR : floorShadeColor('grey', gi, floors) } });
+            properties:{ parentId: f.id, floorIndex: gi, base: off + gi * floorH, top: off + (gi + 1) * floorH, bandParity: gi % 2, fillColor: isPickG ? FD_PICK_COLOR : floorShadeColor('grey', gi, floors) } });
         }
         return;
       }
@@ -5205,7 +5209,7 @@
           type:'Feature',
           id: f.id + '_floor' + i,
           geometry: f.geometry,
-          properties:{ parentId: f.id, floorIndex: i, base: i * floorH, top: (i + 1) * floorH, bandParity: i % 2, fillColor: isSelected ? SELECTION_COLOR : ((fdPickMode && fdPickIds[String(f.id)]) ? FD_PICK_COLOR : shade) }
+          properties:{ parentId: f.id, floorIndex: i, base: off + i * floorH, top: off + (i + 1) * floorH, bandParity: i % 2, fillColor: isSelected ? SELECTION_COLOR : ((fdPickMode && fdPickIds[String(f.id)]) ? FD_PICK_COLOR : shade) }
         });
       }
     });
@@ -13553,7 +13557,7 @@
   // formatlar önerilsin diye), seçici açıldıktan hemen sonra TAM listeye
   // geri döndürülür — tarayıcı accept'i dialog AÇILIRKENki değeriyle
   // okuduğundan bu, sonradan başka bir satırın .accept'ini etkilemez.
-  var IMPORT_INPUT_FULL_ACCEPT = '.json,.geojson,.kml,.kmz,.zip,.shp,.gml,.dxf,.ncz,.gltf,.glb,.bin,.ifc,.jpg,.jpeg,.png,.jgw,.pgw,.jpw,.wld';
+  var IMPORT_INPUT_FULL_ACCEPT = '.json,.geojson,.kml,.kmz,.zip,.shp,.gml,.citygml,.xml,.dxf,.ncz,.gltf,.glb,.bin,.ifc,.jpg,.jpeg,.png,.jgw,.pgw,.jpw,.wld';
   // Her formatın yanındaki küçük "göz" ikonu (bkz. importSampleDirectly),
   // kullanıcının o formatın nasıl bir şey olduğunu anlaması için örnek
   // dosyayı ÖNİZLEME olmadan DOĞRUDAN haritaya ekler/gösterir — bkz.
@@ -13573,6 +13577,8 @@
         sample:{ kind:'file', mime:'text', path:'/samples/ornek.kml', name:'ornek.kml' } },
       { label:'GML', hint:'Geography Markup Language', icon:'vector', inputId:'importInput', accept:'.gml',
         sample:{ kind:'file', mime:'text', path:'/samples/ornek.gml', name:'ornek.gml' } },
+      { label:'CityGML', hint:'3B şehir modeli — LOD1/LOD2 binalar 3B bina olarak, koordinat dönüşümüyle', icon:'model3d', inputId:'importInput', accept:'.gml,.citygml,.xml',
+        sample:{ kind:'file', mime:'text', path:'/samples/ornek_citygml.gml', name:'ornek_citygml.gml', desc:'TUREF/TM30 (EPSG:5254) koordinatlarında 4 bina: LOD2 ofis, beşik çatılı konut, LOD1 depo ve kule+podyum.' } },
       { label:'Genel Format (GDAL/OGR)', hint:'TAB, GPX, MapInfo ve daha fazlası — tarayıcıda', icon:'gdal', inputId:'gdalImportInput',
         sample:{ kind:'file', mime:'text', path:'/samples/ornek.geojson', name:'ornek.geojson', desc:'GDAL/OGR onlarca formatı destekler; burada örnek olarak GeoJSON gösteriliyor.' } }
     ]},
@@ -15064,6 +15070,196 @@
       if (pl) feats.push({ type:'Feature', geometry:{ type:'Polygon', coordinates:[ posListToCoords(pl.textContent) ] }, properties:{} });
     });
     return feats;
+  }
+
+  // ---- CityGML (3B şehir modeli; 1.0/2.0/3.0) ------------------------------
+  // Binalar (Building / BuildingPart; LOD0–LOD2 katı ya da sınır yüzeyleri)
+  // haritadaki 3B bina (ekstrüzyon) olarak aktarılır: taban izdüşümü
+  // GroundSurface'ten, yoksa en alttaki yatay yüzeyden, o da yoksa tüm
+  // köşelerin dışbükey zarfından; yükseklik measuredHeight'tan ya da Z
+  // aralığından. Çatı biçimi (beşik vb.) ekstrüzyonda düz görünür. Koordinat
+  // sistemi srsName'den okunur (EPSG kodu ya da AdV "ETRS89_UTMnn") ve proj4
+  // ile WGS84'e çevrilir (bkz. cityGmlProjDef).
+  function isCityGmlText(text){
+    return /xmlns(:\w+)?="http:\/\/www\.opengis\.net\/citygml\//.test(text.slice(0, 20000)) ||
+      /<(\w+:)?CityModel[\s>]/.test(text.slice(0, 20000));
+  }
+  // EPSG kodu → proj4 tanımı (sık kullanılanlar); bilinmeyenler için null.
+  function cityGmlProjDef(code){
+    var GRS80 = '+ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs';
+    var ED50 = '+ellps=intl +towgs84=-87,-98,-121,0,0,0,0 +units=m +no_defs';
+    if (code >= 5253 && code <= 5259) return '+proj=tmerc +lat_0=0 +lon_0=' + (27 + (code - 5253) * 3) + ' +k=1 +x_0=500000 +y_0=0 ' + GRS80; // TUREF / TM27–TM45
+    if (code >= 2319 && code <= 2325) return '+proj=tmerc +lat_0=0 +lon_0=' + (27 + (code - 2319) * 3) + ' +k=1 +x_0=500000 +y_0=0 ' + ED50;  // ED50 / TM27–TM45
+    if (code >= 25828 && code <= 25838) return '+proj=utm +zone=' + (code - 25800) + ' ' + GRS80;                                        // ETRS89 / UTM
+    if (code >= 32601 && code <= 32660) return '+proj=utm +zone=' + (code - 32600) + ' +datum=WGS84 +units=m +no_defs';                // WGS84 / UTM K
+    if (code >= 32701 && code <= 32760) return '+proj=utm +zone=' + (code - 32700) + ' +south +datum=WGS84 +units=m +no_defs';         // WGS84 / UTM G
+    if (code >= 23031 && code <= 23038) return '+proj=utm +zone=' + (code - 23000) + ' ' + ED50;                                       // ED50 / UTM
+    if (code >= 31466 && code <= 31469) return '+proj=tmerc +lat_0=0 +lon_0=' + ((code - 31464) * 3) + ' +k=1 +x_0=' + ((code - 31464) * 1000000 + 500000) +
+      ' +y_0=0 +ellps=bessel +towgs84=598.1,73.7,418.2,0.202,0.045,-2.455,6.7 +units=m +no_defs';                                         // DHDN / Gauss-Krüger
+    if (code === 2154) return '+proj=lcc +lat_0=46.5 +lon_0=3 +lat_1=49 +lat_2=44 +x_0=700000 +y_0=6600000 ' + GRS80;                    // Lambert-93
+    if (code === 28992) return '+proj=sterea +lat_0=52.15616055555555 +lon_0=5.38763888888889 +k=0.9999079 +x_0=155000 +y_0=463000 +ellps=bessel +towgs84=565.417,50.3319,465.552,-0.398957,0.343988,-1.8774,4.0725 +units=m +no_defs'; // RD New
+    if (code === 3857 || code === 900913) return 'EPSG:3857';
+    return null;
+  }
+  // srsName → { toLngLat(x, y), note } — geographic, projected (proj4) ya da
+  // tanınmayan (epsg.io'dan tanım istenir; o da olmazsa yerel yerleşim).
+  async function cityGmlProjector(srsName, sample){
+    var s = String(srsName || '');
+    var m = /EPSG(?::|::|\/0\/|\/)(\d{4,6})/i.exec(s);
+    var code = m ? parseInt(m[1], 10) : null;
+    var adv = /ETRS89_UTM(\d{2})/i.exec(s);
+    if (!code && adv) code = 25800 + parseInt(adv[1], 10);
+    // Coğrafi sistemler: WGS84 (2B/3B), ETRS89 (2B/3B), JGD2011 (2B/3B; Japonya PLATEAU).
+    if ([4326, 4979, 4258, 4937, 6668, 6697].indexOf(code) !== -1){
+      // EPSG coğrafi eksen sırası enlem,boylam'dır (urn/http biçimleri); kısa
+      // "EPSG:4326" çoğu dosyada boylam,enlem yazılır.
+      var latFirst = /urn:|opengis\.net/i.test(s);
+      return { toLngLat: function(x, y){ return latFirst ? [y, x] : [x, y]; }, note: 'Koordinat sistemi: coğrafi enlem/boylam (EPSG:' + code + ')' };
+    }
+    if (typeof proj4 === 'undefined') throw new Error('Projeksiyon kütüphanesi (proj4) yüklenemedi.');
+    var def = code ? cityGmlProjDef(code) : null;
+    if (code && !def){
+      try{
+        var r = await fetch('https://epsg.io/' + code + '.proj4');
+        if (r.ok){ var t = (await r.text()).trim(); if (/^\+proj=/.test(t)) def = t; }
+      }catch(err){ /* çevrimdışı — aşağıda yerel yerleşime düşer */ }
+    }
+    if (def){
+      var conv = proj4(def, 'EPSG:4326');
+      // Eksen sırası: CityGML dosyalarının çoğu doğu,kuzey yazar; sonuç
+      // geçersizse kuzey,doğu denenir.
+      var swap = false;
+      if (sample){
+        var a = conv.forward([sample[0], sample[1]]);
+        if (!(isFinite(a[0]) && isFinite(a[1]) && Math.abs(a[1]) <= 85 && Math.abs(a[0]) <= 180)) swap = true;
+      }
+      return {
+        toLngLat: function(x, y){ return conv.forward(swap ? [y, x] : [x, y]); },
+        note: 'Koordinat sistemi: EPSG:' + code + ' → WGS84'
+      };
+    }
+    // Koordinat sistemi bilinmiyor: çizim harita merkezine yerleştirilir (1 birim = 1 m).
+    var center = map.getCenter(), cosLat = Math.cos(center.lat * Math.PI / 180);
+    var ox = sample ? sample[0] : 0, oy = sample ? sample[1] : 0;
+    return {
+      toLngLat: function(x, y){ return [center.lng + (x - ox) / (111320 * cosLat), center.lat + (y - oy) / 111320]; },
+      note: 'Koordinat sistemi tanınamadı' + (code ? ' (EPSG:' + code + ')' : '') + ' — bina grubu harita merkezine yerleştirildi'
+    };
+  }
+  async function parseCityGML(text){
+    var doc = new DOMParser().parseFromString(text, 'text/xml');
+    if (doc.getElementsByTagName('parsererror').length) throw new Error('XML okunamadı');
+    function ln(el){ return el.localName || el.nodeName.replace(/^.*:/, ''); }
+    function childText(el, name){
+      for (var c = el.firstElementChild; c; c = c.nextElementSibling) if (ln(c) === name) return c.textContent.trim();
+      return null;
+    }
+    // Bir sahibin (Building/BuildingPart) kendi alt ağacındaki öğeler — iç içe
+    // BuildingPart'lar ayrı işlendiği için onların altına inilmez.
+    function ownDescendants(owner, name, out){
+      out = out || [];
+      for (var c = owner.firstElementChild; c; c = c.nextElementSibling){
+        var n = ln(c);
+        if (n === 'BuildingPart') continue;
+        if (n === name) out.push(c);
+        ownDescendants(c, name, out);
+      }
+      return out;
+    }
+    function ringCoords(poly){
+      var ext = null;
+      for (var c = poly.firstElementChild; c; c = c.nextElementSibling){ var n = ln(c); if (n === 'exterior' || n === 'outerBoundaryIs'){ ext = c; break; } }
+      if (!ext) return null;
+      var pl = ext.getElementsByTagNameNS('*', 'posList')[0];
+      var pts = [];
+      if (pl){
+        var dim = parseInt(pl.getAttribute('srsDimension') || pl.getAttribute('dimension') || '3', 10) || 3;
+        var n = pl.textContent.trim().split(/\s+/).map(Number);
+        for (var i = 0; i + dim - 1 < n.length; i += dim) pts.push([n[i], n[i + 1], dim >= 3 ? n[i + 2] : 0]);
+      } else {
+        Array.prototype.forEach.call(ext.getElementsByTagNameNS('*', 'pos'), function(p){
+          var v = p.textContent.trim().split(/\s+/).map(Number);
+          pts.push([v[0], v[1], v.length > 2 ? v[2] : 0]);
+        });
+      }
+      pts = pts.filter(function(p){ return isFinite(p[0]) && isFinite(p[1]); });
+      return pts.length >= 3 ? pts : null;
+    }
+    var srsEl = doc.querySelector('[srsName]');
+    var srsName = srsEl ? srsEl.getAttribute('srsName') : '';
+    var owners = [];
+    ['Building', 'BuildingPart'].forEach(function(name){
+      Array.prototype.forEach.call(doc.getElementsByTagNameNS('*', name), function(el){ owners.push(el); });
+    });
+    var items = [];
+    owners.forEach(function(owner){
+      var polys = ownDescendants(owner, 'Polygon').map(function(pg){
+        var inGround = false;
+        for (var a = pg.parentElement; a && a !== owner; a = a.parentElement){ if (ln(a) === 'GroundSurface'){ inGround = true; break; } }
+        return { pts: ringCoords(pg), ground: inGround };
+      }).filter(function(p){ return p.pts; });
+      if (!polys.length) return; // geometrisi yalnızca BuildingPart'larda olan Building
+      var minZ = Infinity, maxZ = -Infinity;
+      polys.forEach(function(p){ p.pts.forEach(function(q){ if (q[2] < minZ) minZ = q[2]; if (q[2] > maxZ) maxZ = q[2]; }); });
+      var foots = polys.filter(function(p){ return p.ground; });
+      if (!foots.length){
+        // En alttaki yatay yüzey (LOD1 katının tabanı).
+        foots = polys.filter(function(p){ return p.pts.every(function(q){ return Math.abs(q[2] - minZ) < 0.05; }); });
+      }
+      var rings = foots.map(function(p){ return p.pts.map(function(q){ return [q[0], q[1]]; }); });
+      if (!rings.length){
+        var all = [];
+        polys.forEach(function(p){ p.pts.forEach(function(q){ all.push([q[0], q[1]]); }); });
+        var hull = convexHull2D(all);
+        if (hull.length >= 3) rings = [hull];
+      }
+      if (!rings.length) return;
+      var mh = parseFloat(childText(owner, 'measuredHeight'));
+      var storeys = parseInt(childText(owner, 'storeysAboveGround'), 10);
+      var props = { citygml_id: owner.getAttributeNS('http://www.opengis.net/gml', 'id') || owner.getAttribute('gml:id') || '' };
+      var nm = childText(owner, 'name');
+      if (nm) props.name = nm;
+      ['function', 'usage', 'class', 'roofType', 'yearOfConstruction'].forEach(function(k){ var v = childText(owner, k); if (v) props['citygml_' + k] = v; });
+      if (isFinite(mh)) props.citygml_measuredHeight = mh;
+      if (isFinite(storeys)) props.citygml_storeys = storeys;
+      if (ln(owner) === 'BuildingPart') props.citygml_tur = 'Bina parçası';
+      Array.prototype.forEach.call(owner.children, function(c){
+        if (!/Attribute$/.test(ln(c)) || !c.getAttribute('name')) return;
+        var v = childText(c, 'value');
+        if (v != null) props[c.getAttribute('name')] = v;
+      });
+      // Bina sayımı için kök Building (BuildingPart'ın bağlı olduğu bina).
+      var root = owner;
+      for (var up = owner.parentElement; up; up = up.parentElement){ if (ln(up) === 'Building') root = up; }
+      items.push({ rings: rings, measured: isFinite(mh) && mh > 0 ? mh : null, minZ: minZ, maxZ: maxZ, storeys: storeys, props: props, root: root });
+    });
+    if (!items.length) throw new Error('dosyada bina (Building) geometrisi bulunamadı');
+    var zs = items.map(function(it){ return it.minZ; }).filter(isFinite);
+    var groundZ = zs.length ? Math.min.apply(null, zs) : 0;
+    var sample = items[0].rings[0][0];
+    var proj = await cityGmlProjector(srsName, sample);
+    var feats = [];
+    items.forEach(function(it){
+      // Harita kuralı: base = alt kot, height = MUTLAK üst kot (zemine göre),
+      // floorHeight = kendi yüksekliği / kat (bkz. poly-extrusion, updateFloorSource).
+      // Alt parçalar (ör. podyum üstündeki kule) zeminden yüksekte başlar.
+      // Z aralığı varsa geometri esas alınır; düz (LOD0) ise measuredHeight.
+      var base = isFinite(it.minZ) ? Math.max(0, it.minZ - groundZ) : 0;
+      var own = (isFinite(it.maxZ - it.minZ) && it.maxZ - it.minZ > 0.1) ? it.maxZ - it.minZ : (it.measured || 3);
+      var floors = it.storeys > 0 ? it.storeys : Math.max(1, Math.round(own / 3));
+      it.rings.forEach(function(r){
+        var ring = r.map(function(p){ return proj.toLngLat(p[0], p[1]); });
+        var a = ring[0], b = ring[ring.length - 1];
+        if (a[0] !== b[0] || a[1] !== b[1]) ring.push([a[0], a[1]]);
+        if (ring.length < 4) return;
+        feats.push({ type:'Feature', geometry:{ type:'Polygon', coordinates:[ring] }, properties: Object.assign({}, it.props, {
+          extrude: true, floors: floors, floorHeight: own / floors, height: base + own, base: base
+        }) });
+      });
+    });
+    var roots = [];
+    items.forEach(function(it){ if (roots.indexOf(it.root) === -1) roots.push(it.root); });
+    return { feats: feats, note: proj.note, buildings: roots.length, parts: items.length };
   }
 
   // ---- Shapefile (.shp [+ .dbf]) ----------------------------------------
@@ -17104,8 +17300,25 @@
       } else if (/\.shp$/.test(name)){
         addImportedFeatures(parseSHP(await file.arrayBuffer()), file.name);
         showToast('Not: .dbf olmadan öznitelikler içe aktarılamadı.');
-      } else if (/\.gml$/.test(name)){
-        addImportedFeatures(parseGML(await file.text()), file.name);
+      } else if (/\.(gml|xml|citygml)$/.test(name)){
+        var gmlText = await file.text();
+        if (isCityGmlText(gmlText)){
+          // CityGML: binalar 3B (ekstrüzyon) olarak, koordinat dönüşümüyle.
+          var city = await parseCityGML(gmlText);
+          addImportedFeatures(city.feats, file.name);
+          // Kapsama uçuş ve 3B açı TEK hareketle: ensure3DView'ün ayrı easeTo'su
+          // addImportedFeatures'ın fitBounds'unu kesip uzak dosyalarda haritayı
+          // yerinde bırakıyordu.
+          try{
+            var cityCam = map.cameraForBounds(turf.bbox({ type:'FeatureCollection', features: city.feats }), { padding: 80, maxZoom: 18 });
+            if (cityCam) map.easeTo({ center: cityCam.center, zoom: cityCam.zoom - 0.3, pitch: Math.max(map.getPitch(), 55), bearing: -20, duration: 900 });
+          }catch(err){ ensure3DView(); }
+          showToast(file.name + ': ' + city.buildings + ' bina' + (city.parts > city.buildings ? ' (' + city.parts + ' parça)' : '') + ' 3B olarak aktarıldı — ' + city.note + '.');
+        } else if (/\.gml$/.test(name)){
+          addImportedFeatures(parseGML(gmlText), file.name);
+        } else {
+          showToast(file.name + ': CityGML/GML içeriği bulunamadı.');
+        }
       } else if (/\.dxf$/.test(name)){
         var scale = parseFloat(document.getElementById('dxfScaleInput').value) || 1;
         addImportedFeatures(placeDXFOnMap(parseDXF(await file.text()), scale), file.name);
