@@ -2240,7 +2240,7 @@
         <span class="fmt no" title="Bu ortamda desteklenmiyor">GPKG</span>
         <span class="fmt ok" title="KML ve KMZ desteklenir">KML/KMZ</span>
         <span class="fmt ok" title="Basit Point/LineString/Polygon desteklenir">GML</span>
-        <span class="fmt ok" title="3B şehir modeli — LOD1/LOD2 binalar 3B bina olarak, koordinat dönüşümüyle">CityGML</span>
+        <span class="fmt ok" title="3B şehir modeli — binalar (çatılarıyla), köprü, tünel, yol, su, bitki örtüsü, arazi, kent mobilyası; gerçek 3B mesh + koordinat dönüşümü">CityGML</span>
         <span class="fmt no" title="Bu ortamda desteklenmiyor">TAB</span>
         <div class="fmt-cat">BIM</div>
         <span class="fmt ok" title="Taban izdüşümü + yükseklik olarak 3B poligona aktarılır (tam mesh/materyal desteklenmez)">GLTF</span>
@@ -4691,6 +4691,11 @@
     // 'poly-extrusion' ile ÇAKIŞMAZ.
     if (!map.getLayer('ifc-mesh-layer')){
       map.addLayer(createIfcMeshMapLayer());
+    }
+    // CityGML kent nesnelerinin gerçek 3B mesh'i (çatılar, köprüler, arazi…;
+    // bkz. createCityGmlMeshMapLayer / syncCityGmlMeshes).
+    if (!map.getLayer('citygml-mesh-layer')){
+      map.addLayer(createCityGmlMeshMapLayer());
     }
 
     ensureLayer('draft-fill', {
@@ -11662,6 +11667,13 @@
         if (lyr.color) f2.properties.__layerColor = lyr.color;
         if (lyr.fillColor) f2.properties.__layerFillColor = lyr.fillColor;
         if (lyr.fillOpacity != null) f2.properties.__layerFillOpacity = lyr.fillOpacity;
+        // CityGML: gerçek 3B mesh çiziliyorsa ekstrüzyon kutusu gizlenir;
+        // taban, mesh'in altında tıklanabilir ince bir iz olarak kalır.
+        if (lyr.cityGml && cityGmlMeshReady(lyr)){
+          f2.properties.extrude = false;
+          f2.properties.__layerFillOpacity = 0.03;
+          f2.properties.__layerWidth = 0.8;
+        }
         if (lyr.lineWidth) f2.properties.__layerWidth = lyr.lineWidth;
         if (lyr.dash) f2.properties.__layerDash = lyr.dash;
         if (lyr.symbol) f2.properties.__layerSymbol = lyr.symbol;
@@ -13506,6 +13518,7 @@
     if (typeof updateLayerTransformToolbar === 'function') updateLayerTransformToolbar();
     if (typeof syncIfcMeshLayer === 'function') syncIfcMeshLayer();
     if (typeof syncFeatureBimMeshes === 'function') syncFeatureBimMeshes();
+    if (typeof syncCityGmlMeshes === 'function') syncCityGmlMeshes();
     if (typeof updateBimHud === 'function') updateBimHud();
   }
 
@@ -13577,8 +13590,8 @@
         sample:{ kind:'file', mime:'text', path:'/samples/ornek.kml', name:'ornek.kml' } },
       { label:'GML', hint:'Geography Markup Language', icon:'vector', inputId:'importInput', accept:'.gml',
         sample:{ kind:'file', mime:'text', path:'/samples/ornek.gml', name:'ornek.gml' } },
-      { label:'CityGML', hint:'3B şehir modeli — LOD1/LOD2 binalar 3B bina olarak, koordinat dönüşümüyle', icon:'model3d', inputId:'importInput', accept:'.gml,.citygml,.xml',
-        sample:{ kind:'file', mime:'text', path:'/samples/ornek_citygml.gml', name:'ornek_citygml.gml', desc:'TUREF/TM30 (EPSG:5254) koordinatlarında 4 bina: LOD2 ofis, beşik çatılı konut, LOD1 depo ve kule+podyum.' } },
+      { label:'CityGML', hint:'3B şehir modeli — binalar (çatılarıyla), köprü, yol, su, bitki, arazi… gerçek 3B olarak', icon:'model3d', inputId:'importInput', accept:'.gml,.citygml,.xml',
+        sample:{ kind:'file', mime:'text', path:'/samples/ornek_citygml.gml', name:'ornek_citygml.gml', desc:'TUREF/TM30 (EPSG:5254) koordinatlarında kurgusal yerleşke: 4 bina (beşik çatılı konut, kule+podyum dahil), arazi (TIN), yol, gölet, köprü, ağaçlar, direkler ve park alanı.' } },
       { label:'Genel Format (GDAL/OGR)', hint:'TAB, GPX, MapInfo ve daha fazlası — tarayıcıda', icon:'gdal', inputId:'gdalImportInput',
         sample:{ kind:'file', mime:'text', path:'/samples/ornek.geojson', name:'ornek.geojson', desc:'GDAL/OGR onlarca formatı destekler; burada örnek olarak GeoJSON gösteriliyor.' } }
     ]},
@@ -15146,7 +15159,45 @@
       note: 'Koordinat sistemi tanınamadı' + (code ? ' (EPSG:' + code + ')' : '') + ' — bina grubu harita merkezine yerleştirildi'
     };
   }
-  async function parseCityGML(text){
+  // CityGML kent nesnesi sınıfları: her sınıf, dosya adlı klasörde ayrı bir
+  // katman olur. owners: o sınıfı başlatan öğe adları (yerel ad, sürümden bağımsız).
+  var CITYGML_CLASSES = {
+    building:   { label: 'Binalar',          unit: 'bina',                owners: ['Building', 'BuildingPart'],                              color: '#3fc2ac' },
+    bridge:     { label: 'Köprüler',         unit: 'köprü',               owners: ['Bridge', 'BridgePart'],                                  color: '#a7adb5' },
+    tunnel:     { label: 'Tüneller',         unit: 'tünel',               owners: ['Tunnel', 'TunnelPart'],                                  color: '#8d7f70' },
+    transport:  { label: 'Ulaşım',           unit: 'yol/ulaşım öğesi',    owners: ['Road', 'Railway', 'Track', 'Square', 'Waterway', 'TransportationComplex'], color: '#6b6f75' },
+    water:      { label: 'Su yüzeyleri',     unit: 'su yüzeyi',           owners: ['WaterBody'],                                             color: '#3f8fd2' },
+    vegetation: { label: 'Bitki örtüsü',     unit: 'bitki',               owners: ['SolitaryVegetationObject', 'PlantCover'],                color: '#4f9d4a' },
+    relief:     { label: 'Arazi',            unit: 'arazi modeli',        owners: ['TINRelief'],                                             color: '#b9a77a' },
+    furniture:  { label: 'Kent mobilyası',   unit: 'kent mobilyası',      owners: ['CityFurniture'],                                         color: '#d4a017' },
+    landuse:    { label: 'Arazi kullanımı',  unit: 'arazi kullanım alanı', owners: ['LandUse'],                                               color: '#9fbf6a' },
+    generic:    { label: 'Diğer nesneler',   unit: 'diğer nesne',         owners: ['GenericCityObject', 'GenericOccupiedSpace', 'GenericUnoccupiedSpace', 'GenericThematicSurface'], color: '#a5a5c8' }
+  };
+  var CITYGML_OWNER_CLASS = {};
+  Object.keys(CITYGML_CLASSES).forEach(function(k){ CITYGML_CLASSES[k].owners.forEach(function(o){ CITYGML_OWNER_CLASS[o] = k; }); });
+  // Sınır yüzeyi türü → anlam (mesh rengi; kapanış yüzeyleri çizilmez).
+  var CITYGML_SEMANTIC = {
+    RoofSurface: 'roof', WallSurface: 'wall', OuterCeilingSurface: 'wall', GroundSurface: 'ground', OuterFloorSurface: 'ground',
+    ClosureSurface: 'closure', WaterClosureSurface: 'closure', TrafficArea: 'traffic', AuxiliaryTrafficArea: 'aux',
+    WaterSurface: 'water', WaterGroundSurface: 'ground'
+  };
+  // Mesh renkleri (sınıf → anlam → renk); 'auto' = yüzey eğimine göre çatı/duvar.
+  var CITYGML_MESH_COLORS = {
+    building: { roof: '#b5502e', wall: '#ece6d9', ground: '#8a8a8a', auto: 'auto' },
+    bridge: { _: '#a7adb5' }, tunnel: { _: '#8d7f70' },
+    transport: { traffic: '#5f646b', aux: '#9aa38f', _: '#6b6f75' },
+    water: { _: '#3f8fd2' }, vegetation: { _: '#4f9d4a' }, relief: { _: '#b9a77a' },
+    furniture: { _: '#d4a017' }, landuse: { _: '#c3d6a0' }, generic: { _: '#a5a5c8' }
+  };
+  // Düz (yüzey benzeri) sınıflarda her çokgen ayrı bir harita öğesi olur;
+  // diğerlerinde nesne başına tek öğe (dışbükey zarf).
+  var CITYGML_SURFACE_CLASSES = { transport: 1, water: 1, landuse: 1 };
+  var CITYGML_MAX_SURFACE_FEATURES = 20000;
+
+  // XML → şehir nesneleri (dosyanın kendi koordinatlarında). Her nesne kendi
+  // çokgenlerini (dış + iç halkalar, anlam etiketi) taşır; iç içe nesneler
+  // (BuildingPart vb.) ayrı nesne olarak işlenir, üst nesneye karışmaz.
+  function parseCityGmlObjects(text){
     var doc = new DOMParser().parseFromString(text, 'text/xml');
     if (doc.getElementsByTagName('parsererror').length) throw new Error('XML okunamadı');
     function ln(el){ return el.localName || el.nodeName.replace(/^.*:/, ''); }
@@ -15154,112 +15205,408 @@
       for (var c = el.firstElementChild; c; c = c.nextElementSibling) if (ln(c) === name) return c.textContent.trim();
       return null;
     }
-    // Bir sahibin (Building/BuildingPart) kendi alt ağacındaki öğeler — iç içe
-    // BuildingPart'lar ayrı işlendiği için onların altına inilmez.
-    function ownDescendants(owner, name, out){
-      out = out || [];
-      for (var c = owner.firstElementChild; c; c = c.nextElementSibling){
-        var n = ln(c);
-        if (n === 'BuildingPart') continue;
-        if (n === name) out.push(c);
-        ownDescendants(c, name, out);
-      }
-      return out;
-    }
-    function ringCoords(poly){
-      var ext = null;
-      for (var c = poly.firstElementChild; c; c = c.nextElementSibling){ var n = ln(c); if (n === 'exterior' || n === 'outerBoundaryIs'){ ext = c; break; } }
-      if (!ext) return null;
-      var pl = ext.getElementsByTagNameNS('*', 'posList')[0];
+    function readRing(ringParent){
+      var pl = ringParent.getElementsByTagNameNS('*', 'posList')[0];
       var pts = [];
       if (pl){
         var dim = parseInt(pl.getAttribute('srsDimension') || pl.getAttribute('dimension') || '3', 10) || 3;
         var n = pl.textContent.trim().split(/\s+/).map(Number);
         for (var i = 0; i + dim - 1 < n.length; i += dim) pts.push([n[i], n[i + 1], dim >= 3 ? n[i + 2] : 0]);
       } else {
-        Array.prototype.forEach.call(ext.getElementsByTagNameNS('*', 'pos'), function(p){
+        Array.prototype.forEach.call(ringParent.getElementsByTagNameNS('*', 'pos'), function(p){
           var v = p.textContent.trim().split(/\s+/).map(Number);
           pts.push([v[0], v[1], v.length > 2 ? v[2] : 0]);
         });
       }
-      pts = pts.filter(function(p){ return isFinite(p[0]) && isFinite(p[1]); });
+      pts = pts.filter(function(p){ return isFinite(p[0]) && isFinite(p[1]) && isFinite(p[2]); });
+      if (pts.length > 1){
+        var a = pts[0], b = pts[pts.length - 1];
+        if (a[0] === b[0] && a[1] === b[1] && a[2] === b[2]) pts.pop(); // kapanış tekrarını at
+      }
       return pts.length >= 3 ? pts : null;
     }
+    function readPolygon(pg){
+      var outer = null, inners = [];
+      for (var c = pg.firstElementChild; c; c = c.nextElementSibling){
+        var n = ln(c);
+        if (n === 'exterior' || n === 'outerBoundaryIs') outer = readRing(c);
+        else if (n === 'interior' || n === 'innerBoundaryIs'){ var r = readRing(c); if (r) inners.push(r); }
+      }
+      return outer ? { outer: outer, inners: inners } : null;
+    }
     var srsEl = doc.querySelector('[srsName]');
-    var srsName = srsEl ? srsEl.getAttribute('srsName') : '';
-    var owners = [];
-    ['Building', 'BuildingPart'].forEach(function(name){
-      Array.prototype.forEach.call(doc.getElementsByTagNameNS('*', name), function(el){ owners.push(el); });
-    });
-    var items = [];
-    owners.forEach(function(owner){
-      var polys = ownDescendants(owner, 'Polygon').map(function(pg){
-        var inGround = false;
-        for (var a = pg.parentElement; a && a !== owner; a = a.parentElement){ if (ln(a) === 'GroundSurface'){ inGround = true; break; } }
-        return { pts: ringCoords(pg), ground: inGround };
-      }).filter(function(p){ return p.pts; });
-      if (!polys.length) return; // geometrisi yalnızca BuildingPart'larda olan Building
+    var objects = [];
+    var all = doc.getElementsByTagName('*');
+    for (var i = 0; i < all.length; i++){
+      var owner = all[i], cls = CITYGML_OWNER_CLASS[ln(owner)];
+      if (!cls) continue;
+      var polys = [];
+      (function walk(el, semantic){
+        for (var c = el.firstElementChild; c; c = c.nextElementSibling){
+          var n = ln(c);
+          if (CITYGML_OWNER_CLASS[n]) continue; // iç içe şehir nesnesi — kendisi ayrıca işlenir
+          var sem = CITYGML_SEMANTIC[n] || semantic;
+          if (n === 'Polygon' || n === 'Triangle' || n === 'PolygonPatch'){
+            var pg = readPolygon(c);
+            if (pg){ pg.sem = sem || null; polys.push(pg); }
+            continue;
+          }
+          walk(c, sem);
+        }
+      })(owner, null);
+      if (!polys.length) continue; // geometrisi yalnızca alt parçalarında olan nesne
       var minZ = Infinity, maxZ = -Infinity;
-      polys.forEach(function(p){ p.pts.forEach(function(q){ if (q[2] < minZ) minZ = q[2]; if (q[2] > maxZ) maxZ = q[2]; }); });
-      var foots = polys.filter(function(p){ return p.ground; });
-      if (!foots.length){
-        // En alttaki yatay yüzey (LOD1 katının tabanı).
-        foots = polys.filter(function(p){ return p.pts.every(function(q){ return Math.abs(q[2] - minZ) < 0.05; }); });
-      }
-      var rings = foots.map(function(p){ return p.pts.map(function(q){ return [q[0], q[1]]; }); });
-      if (!rings.length){
-        var all = [];
-        polys.forEach(function(p){ p.pts.forEach(function(q){ all.push([q[0], q[1]]); }); });
-        var hull = convexHull2D(all);
-        if (hull.length >= 3) rings = [hull];
-      }
-      if (!rings.length) return;
-      var mh = parseFloat(childText(owner, 'measuredHeight'));
-      var storeys = parseInt(childText(owner, 'storeysAboveGround'), 10);
-      var props = { citygml_id: owner.getAttributeNS('http://www.opengis.net/gml', 'id') || owner.getAttribute('gml:id') || '' };
+      polys.forEach(function(p){ p.outer.forEach(function(q){ if (q[2] < minZ) minZ = q[2]; if (q[2] > maxZ) maxZ = q[2]; }); });
+      var props = { citygml_id: owner.getAttributeNS('http://www.opengis.net/gml', 'id') || owner.getAttributeNS('http://www.opengis.net/gml/3.2', 'id') || owner.getAttribute('gml:id') || '' };
       var nm = childText(owner, 'name');
       if (nm) props.name = nm;
-      ['function', 'usage', 'class', 'roofType', 'yearOfConstruction'].forEach(function(k){ var v = childText(owner, k); if (v) props['citygml_' + k] = v; });
+      props.citygml_tur = ln(owner);
+      ['function', 'usage', 'class', 'roofType', 'yearOfConstruction', 'species', 'height', 'averageHeight'].forEach(function(k){
+        var v = childText(owner, k); if (v) props['citygml_' + k] = v;
+      });
+      var mh = parseFloat(childText(owner, 'measuredHeight'));
       if (isFinite(mh)) props.citygml_measuredHeight = mh;
+      var storeys = parseInt(childText(owner, 'storeysAboveGround'), 10);
       if (isFinite(storeys)) props.citygml_storeys = storeys;
-      if (ln(owner) === 'BuildingPart') props.citygml_tur = 'Bina parçası';
       Array.prototype.forEach.call(owner.children, function(c){
         if (!/Attribute$/.test(ln(c)) || !c.getAttribute('name')) return;
         var v = childText(c, 'value');
         if (v != null) props[c.getAttribute('name')] = v;
       });
-      // Bina sayımı için kök Building (BuildingPart'ın bağlı olduğu bina).
+      // Sayım için kök nesne (Parça → bağlı olduğu bina/köprü/tünel).
       var root = owner;
-      for (var up = owner.parentElement; up; up = up.parentElement){ if (ln(up) === 'Building') root = up; }
-      items.push({ rings: rings, measured: isFinite(mh) && mh > 0 ? mh : null, minZ: minZ, maxZ: maxZ, storeys: storeys, props: props, root: root });
+      for (var up = owner.parentElement; up; up = up.parentElement){ if (CITYGML_OWNER_CLASS[ln(up)] === cls) root = up; }
+      objects.push({ cls: cls, polys: polys, props: props, root: root, minZ: minZ, maxZ: maxZ,
+        measured: isFinite(mh) && mh > 0 ? mh : null, storeys: storeys });
+    }
+    return { objects: objects, srsName: srsEl ? srsEl.getAttribute('srsName') : '' };
+  }
+
+  // Çokgeni (3B, düzlemsel) üçgenlere böler: Newell normalinin en büyük
+  // bileşeni atılarak 2B'ye izdüşürülür ve three.js'in earcut'ı (ShapeUtils)
+  // ile iç halkalar dahil üçgenlenir. Dönen dizi köşe üçlülerinin indeksleri.
+  function cityGmlTriangulate(THREE, outer, inners){
+    var nx = 0, ny = 0, nz = 0;
+    for (var i = 0; i < outer.length; i++){
+      var a = outer[i], b = outer[(i + 1) % outer.length];
+      nx += (a[1] - b[1]) * (a[2] + b[2]); ny += (a[2] - b[2]) * (a[0] + b[0]); nz += (a[0] - b[0]) * (a[1] + b[1]);
+    }
+    var ax = Math.abs(nx), ay = Math.abs(ny), az = Math.abs(nz);
+    var u = 0, v = 1;
+    if (ax >= ay && ax >= az){ u = 1; v = 2; } else if (ay >= az){ u = 0; v = 2; }
+    function to2(r){ return r.map(function(p){ return new THREE.Vector2(p[u], p[v]); }); }
+    var faces = THREE.ShapeUtils.triangulateShape(to2(outer), inners.map(to2));
+    var len = Math.hypot(nx, ny, nz) || 1;
+    return { faces: faces, normalZ: nz / len };
+  }
+  // sRGB onaltılık renk → three.js köşe renkleri için DOĞRUSAL (linear) RGB —
+  // köşe renkleri doğrusal kabul edildiğinden çevrilmezse açık tonlar koyulaşır.
+  function cityGmlHexToRgb(hex){
+    var n = parseInt(hex.slice(1), 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255].map(function(v){
+      var c = v / 255;
+      return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
     });
-    if (!items.length) throw new Error('dosyada bina (Building) geometrisi bulunamadı');
-    var zs = items.map(function(it){ return it.minZ; }).filter(isFinite);
-    var groundZ = zs.length ? Math.min.apply(null, zs) : 0;
-    var sample = items[0].rings[0][0];
-    var proj = await cityGmlProjector(srsName, sample);
-    var feats = [];
-    items.forEach(function(it){
-      // Harita kuralı: base = alt kot, height = MUTLAK üst kot (zemine göre),
-      // floorHeight = kendi yüksekliği / kat (bkz. poly-extrusion, updateFloorSource).
-      // Alt parçalar (ör. podyum üstündeki kule) zeminden yüksekte başlar.
-      // Z aralığı varsa geometri esas alınır; düz (LOD0) ise measuredHeight.
-      var base = isFinite(it.minZ) ? Math.max(0, it.minZ - groundZ) : 0;
-      var own = (isFinite(it.maxZ - it.minZ) && it.maxZ - it.minZ > 0.1) ? it.maxZ - it.minZ : (it.measured || 3);
-      var floors = it.storeys > 0 ? it.storeys : Math.max(1, Math.round(own / 3));
-      it.rings.forEach(function(r){
-        var ring = r.map(function(p){ return proj.toLngLat(p[0], p[1]); });
-        var a = ring[0], b = ring[ring.length - 1];
-        if (a[0] !== b[0] || a[1] !== b[1]) ring.push([a[0], a[1]]);
-        if (ring.length < 4) return;
-        feats.push({ type:'Feature', geometry:{ type:'Polygon', coordinates:[ring] }, properties: Object.assign({}, it.props, {
-          extrude: true, floors: floors, floorHeight: own / floors, height: base + own, base: base
-        }) });
+  }
+  // Nesneler → sınıf başına üçgen dizileri (mesh verisi). Konumlar, çapa
+  // noktasına göre yerel metre (doğu, kuzey, yukarı); yukarı = Z − zemin kotu.
+  // Yerel metreler Web Mercator üzerinden hesaplanır — harita çizimiyle aynı.
+  function buildCityGmlMeshData(THREE, objects, proj, groundZ, anchorLngLat){
+    var anchorMc = maplibregl.MercatorCoordinate.fromLngLat(anchorLngLat, 0);
+    var s = anchorMc.meterInMercatorCoordinateUnits();
+    var byClass = {};
+    var cache = new Map();
+    function local(p){
+      var key = p[0] + ',' + p[1];
+      var xy = cache.get(key);
+      if (!xy){
+        var ll = proj.toLngLat(p[0], p[1]);
+        var mc = maplibregl.MercatorCoordinate.fromLngLat(ll, 0);
+        xy = [(mc.x - anchorMc.x) / s, -(mc.y - anchorMc.y) / s];
+        if (cache.size < 2000000) cache.set(key, xy);
+      }
+      return [xy[0], xy[1], p[2] - groundZ];
+    }
+    objects.forEach(function(o){
+      var palette = CITYGML_MESH_COLORS[o.cls] || { _: '#a5a5c8' };
+      var bucket = byClass[o.cls] || (byClass[o.cls] = { pos: [], col: [] });
+      o.polys.forEach(function(pg){
+        if (pg.sem === 'closure') return;
+        var tri;
+        try{ tri = cityGmlTriangulate(THREE, pg.outer, pg.inners); }catch(err){ return; }
+        if (!tri.faces.length) return;
+        var hex = palette[pg.sem] || palette._;
+        if (!hex || hex === 'auto') hex = o.cls === 'building' ? (Math.abs(tri.normalZ) > 0.6 && pg.outer[0][2] > o.minZ + 0.5 ? palette.roof : palette.wall) : (palette._ || '#a5a5c8');
+        var rgb = cityGmlHexToRgb(hex);
+        var verts = pg.outer.concat.apply(pg.outer, pg.inners).map(local);
+        tri.faces.forEach(function(f){
+          for (var k = 0; k < 3; k++){
+            var q = verts[f[k]];
+            bucket.pos.push(q[0], q[1], q[2]);
+            bucket.col.push(rgb[0], rgb[1], rgb[2]);
+          }
+        });
       });
     });
-    var roots = [];
-    items.forEach(function(it){ if (roots.indexOf(it.root) === -1) roots.push(it.root); });
-    return { feats: feats, note: proj.note, buildings: roots.length, parts: items.length };
+    var out = {};
+    Object.keys(byClass).forEach(function(c){
+      if (byClass[c].pos.length) out[c] = { positions: new Float32Array(byClass[c].pos), colors: new Float32Array(byClass[c].col) };
+    });
+    return { anchor: { lng: anchorLngLat[0], lat: anchorLngLat[1] }, byClass: out };
+  }
+
+  // CityGML metni → sınıf başına harita öğeleri + mesh verisi.
+  async function parseCityGML(text){
+    var parsed = parseCityGmlObjects(text);
+    var objects = parsed.objects;
+    if (!objects.length) throw new Error('dosyada şehir nesnesi (bina, köprü, yol, arazi…) geometrisi bulunamadı');
+    var zs = objects.map(function(o){ return o.minZ; }).filter(isFinite);
+    var groundZ = zs.length ? Math.min.apply(null, zs) : 0;
+    var sample = objects[0].polys[0].outer[0];
+    var proj = await cityGmlProjector(parsed.srsName, sample);
+    function ringLL(r){
+      var ring = r.map(function(p){ return proj.toLngLat(p[0], p[1]); });
+      ring.push([ring[0][0], ring[0][1]]);
+      return ring;
+    }
+    var surfaceTotal = 0;
+    objects.forEach(function(o){ if (CITYGML_SURFACE_CLASSES[o.cls]) surfaceTotal += o.polys.length; });
+    var featsByClass = {}, roots = {};
+    objects.forEach(function(o){
+      var list = featsByClass[o.cls] || (featsByClass[o.cls] = []);
+      var rl = roots[o.cls] || (roots[o.cls] = []);
+      if (rl.indexOf(o.root) === -1) rl.push(o.root);
+      if (o.cls === 'building'){
+        // Bina: taban GroundSurface'ten, yoksa en alttaki yatay yüzeyden, o da
+        // yoksa dışbükey zarftan. Harita kuralı: base = alt kot, height =
+        // MUTLAK üst kot, floorHeight = kendi yüksekliği / kat (mesh yokken
+        // ekstrüzyon yedeği; mesh varken taban tıklanabilir iz olarak kalır).
+        var foots = o.polys.filter(function(p){ return p.sem === 'ground'; });
+        if (!foots.length) foots = o.polys.filter(function(p){ return p.outer.every(function(q){ return Math.abs(q[2] - o.minZ) < 0.05; }); });
+        var rings = foots.map(function(p){ return p.outer; });
+        if (!rings.length){
+          var pts = [];
+          o.polys.forEach(function(p){ p.outer.forEach(function(q){ pts.push([q[0], q[1]]); }); });
+          var hull = convexHull2D(pts);
+          if (hull.length >= 3) rings = [hull];
+        }
+        var base = isFinite(o.minZ) ? Math.max(0, o.minZ - groundZ) : 0;
+        var own = (isFinite(o.maxZ - o.minZ) && o.maxZ - o.minZ > 0.1) ? o.maxZ - o.minZ : (o.measured || 3);
+        var floors = o.storeys > 0 ? o.storeys : Math.max(1, Math.round(own / 3));
+        rings.forEach(function(r){
+          list.push({ type:'Feature', geometry:{ type:'Polygon', coordinates:[ringLL(r)] }, properties: Object.assign({}, o.props, {
+            extrude: true, floors: floors, floorHeight: own / floors, height: base + own, base: base
+          }) });
+        });
+      } else if (CITYGML_SURFACE_CLASSES[o.cls] && surfaceTotal <= CITYGML_MAX_SURFACE_FEATURES){
+        // Yol/su/arazi kullanımı: her yüzey kendi izdüşümüyle (dikey olanlar hariç).
+        o.polys.forEach(function(p){
+          if (p.sem === 'closure') return;
+          var hull2 = convexHull2D(p.outer.map(function(q){ return [q[0], q[1]]; }));
+          if (hull2.length < 3) return; // dikey ya da bozuk yüzey
+          list.push({ type:'Feature', geometry:{ type:'Polygon', coordinates:[ringLL(p.outer)] }, properties: Object.assign({}, o.props, p.sem ? { citygml_yuzey: p.sem } : {}) });
+        });
+      } else {
+        // Köprü/tünel/bitki/mobilya/arazi/diğer: nesne başına dışbükey zarf.
+        var pts2 = [];
+        o.polys.forEach(function(p){ p.outer.forEach(function(q){ pts2.push([q[0], q[1]]); }); });
+        var hull3 = convexHull2D(pts2);
+        if (hull3.length >= 3){
+          list.push({ type:'Feature', geometry:{ type:'Polygon', coordinates:[ringLL(hull3)] }, properties: Object.assign({}, o.props, {
+            citygml_yukseklik: isFinite(o.maxZ - o.minZ) ? Math.round((o.maxZ - o.minZ) * 100) / 100 : null
+          }) });
+        }
+      }
+    });
+    Object.keys(featsByClass).forEach(function(k){ if (!featsByClass[k].length) delete featsByClass[k]; });
+    var THREE = await import('three');
+    var anchor = proj.toLngLat(sample[0], sample[1]);
+    var mesh = buildCityGmlMeshData(THREE, objects, proj, groundZ, anchor);
+    var counts = {};
+    Object.keys(roots).forEach(function(k){ counts[k] = roots[k].length; });
+    return { featsByClass: featsByClass, mesh: mesh, note: proj.note, counts: counts };
+  }
+
+  // İçe aktarma: dosya adlı yeni klasör + sınıf başına katman; orijinal dosya
+  // (sayfa yenilenince mesh yeniden kurulsun diye) BIM dosya deposuna yazılır.
+  // Katmanlar sourceFormat DEĞİL cityGml { sourceId, cls } ile işaretlenir —
+  // sourceFormat'lı katmanlar BIM Görüntüleyici/bölünmüş görünüm listelerine girer.
+  async function importCityGml(file, text){
+    var res = await parseCityGML(text);
+    var sourceId = 'citygml-' + uid();
+    var baseName = file.name.replace(/\.(gml|xml|citygml)$/i, '');
+    var folderId = 'folder-' + uid();
+    var newLayers = [], newFeats = [];
+    Object.keys(CITYGML_CLASSES).forEach(function(cls){
+      var feats = res.featsByClass[cls];
+      if (!feats || !feats.length) return;
+      var def = CITYGML_CLASSES[cls];
+      var lyr = {
+        id: 'layer-' + uid(), name: def.label, visible: true, color: def.color, fillColor: null,
+        fillOpacity: cls === 'building' ? null : 0.18, lineWidth: 1.2, dash: 'solid', symbol: 'circle', scale: 1,
+        geomType: 'Polygon', mapId: activeMapId, folderId: folderId, cityGml: { sourceId: sourceId, cls: cls }
+      };
+      newLayers.push(lyr);
+      feats.forEach(function(f){
+        newFeats.push({ id: uid(), type: 'Feature', geometry: f.geometry, properties: Object.assign({ layerId: lyr.id }, f.properties) });
+      });
+    });
+    if (!newFeats.length) throw new Error('haritaya eklenebilir öğe çıkarılamadı');
+    saveBimFile(sourceId, file, 'citygml');
+    cityGmlMeshCache[sourceId] = { data: res.mesh };
+    pushHistory();
+    folders.push({ id: folderId, name: baseName, mapId: activeMapId, parentFolderId: getDefaultFolderId(activeMapId), expanded: true });
+    Array.prototype.push.apply(layers, newLayers);
+    features = features.concat(newFeats);
+    activeLayerId = newLayers[0].id;
+    renderFeatures();
+    // Kapsama uçuş ve 3B açı TEK hareketle (ayrı bir easeTo fitBounds'u keserdi).
+    try{
+      var cam = map.cameraForBounds(turf.bbox({ type: 'FeatureCollection', features: newFeats }), { padding: 80, maxZoom: 18 });
+      if (cam) map.easeTo({ center: cam.center, zoom: cam.zoom - 0.3, pitch: Math.max(map.getPitch(), 55), bearing: -20, duration: 900 });
+    }catch(err){ ensure3DView(); }
+    var parts = Object.keys(CITYGML_CLASSES).filter(function(k){ return res.counts[k]; }).map(function(k){
+      return res.counts[k] + ' ' + CITYGML_CLASSES[k].unit;
+    });
+    return { summary: parts.join(', '), note: res.note };
+  }
+
+  // ---- CityGML 3B mesh katmanı ----------------------------------------------
+  // Çatısı, duvarları ve diğer kent nesneleri gerçek 3B üçgenleriyle (LOD1–
+  // LOD3) çizilir. Kaynak başına (sourceId) sınıf grupları; her grup kendi
+  // çapasına göre (Mercator çeviri × [s, −s, s] ölçek; yerel eksenler doğu,
+  // kuzey, yukarı) MapLibre'nin ana matrisiyle çizilir. Mesh hazır olunca o
+  // katmanların ekstrüzyon kutuları gizlenir, tabanları tıklanabilir iz olarak
+  // kalır (bkz. visibleFeaturesForRender → cityGmlMeshReady).
+  var cityGmlMeshCtx = null;    // { THREE, scene, camera, renderer }
+  var cityGmlMeshCache = {};    // sourceId → { data, groups } | { loading } | { failed }
+  function cityGmlMeshReady(lyr){
+    var e = lyr && lyr.cityGml && cityGmlMeshCache && cityGmlMeshCache[lyr.cityGml.sourceId];
+    return !!(e && e.groups && cityGmlMeshCtx);
+  }
+  function buildCityGmlGroups(THREE, data){
+    var groups = {};
+    Object.keys(data.byClass).forEach(function(cls){
+      var g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.BufferAttribute(data.byClass[cls].positions, 3));
+      g.setAttribute('color', new THREE.BufferAttribute(data.byClass[cls].colors, 3));
+      g.computeVertexNormals();
+      var mat = new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide });
+      if (cls === 'water'){ mat.transparent = true; mat.opacity = 0.8; }
+      var mesh = new THREE.Mesh(g, mat);
+      mesh.frustumCulled = false;
+      var group = new THREE.Group();
+      group.add(mesh);
+      group.userData.cityAnchor = data.anchor;
+      group.userData.cls = cls;
+      groups[cls] = group;
+    });
+    return groups;
+  }
+  function syncCityGmlMeshes(){
+    if (!cityGmlMeshCache || !layers) return; // başlangıçta değişkenler henüz atanmamış olabilir
+    var wanted = {}; // sourceId → { cls: görünür mü }
+    layers.forEach(function(l){
+      if (!l.cityGml || l.mapId !== activeMapId) return;
+      var w = wanted[l.cityGml.sourceId] || (wanted[l.cityGml.sourceId] = {});
+      w[l.cityGml.cls] = l.visible !== false;
+    });
+    Object.keys(cityGmlMeshCache).forEach(function(sid){
+      var e = cityGmlMeshCache[sid];
+      if (wanted[sid] || !e.groups) return;
+      Object.keys(e.groups).forEach(function(c){ var g = e.groups[c]; if (g.parent) g.parent.remove(g); });
+    });
+    Object.keys(wanted).forEach(function(sid){
+      var e = cityGmlMeshCache[sid];
+      if (!e){
+        // Sayfa yeniden açıldı: orijinal dosya depodan okunup mesh yeniden kurulur.
+        cityGmlMeshCache[sid] = { loading: true };
+        getBimFile(sid).then(function(rec){
+          if (!rec || !rec.blob) throw new Error('kaynak dosya tarayıcı deposunda yok');
+          return rec.blob.text();
+        }).then(parseCityGML).then(function(res){
+          cityGmlMeshCache[sid] = { data: res.mesh };
+          syncCityGmlMeshes();
+          renderFeatures();
+        }).catch(function(err){
+          console.warn('CityGML mesh yüklenemedi (ekstrüzyon gösterilecek):', err);
+          cityGmlMeshCache[sid] = { failed: true };
+        });
+        return;
+      }
+      if (!e.data || !cityGmlMeshCtx) return;
+      if (!e.groups){
+        e.groups = buildCityGmlGroups(cityGmlMeshCtx.THREE, e.data);
+        // Mesh artık hazır: ekstrüzyon kutularını gizlemek için öğeler bir kez
+        // yeniden çizilir (renderFeatures → renderLayerTree → buraya; grup
+        // kurulu olduğundan döngü olmaz).
+        setTimeout(renderFeatures, 0);
+      }
+      Object.keys(e.groups).forEach(function(cls){
+        var g = e.groups[cls];
+        if (g.parent !== cityGmlMeshCtx.scene) cityGmlMeshCtx.scene.add(g);
+        g.userData.wantVisible = !!wanted[sid][cls];
+      });
+    });
+    if (typeof map !== 'undefined' && map) map.triggerRepaint();
+  }
+  function createCityGmlMeshMapLayer(){
+    return {
+      id: 'citygml-mesh-layer',
+      type: 'custom',
+      renderingMode: '3d',
+      onAdd: async function(mapRef, gl){
+        var THREE = await import('three');
+        var scene = new THREE.Scene();
+        // Yerel eksenler Z-yukarı: yarıküre ışığının "yukarı"sı +Z.
+        var hemi = new THREE.HemisphereLight(0xffffff, 0x8a8a80, 1.5);
+        hemi.position.set(0, 0, 1);
+        scene.add(hemi);
+        var sun = new THREE.DirectionalLight(0xffffff, 1.6);
+        sun.position.set(0.55, -0.35, 0.75); // eğik güneş: çatı eğimleri farklı tonlanır
+        scene.add(sun);
+        var renderer = new THREE.WebGLRenderer({ canvas: mapRef.getCanvas(), context: gl, antialias: true });
+        renderer.autoClear = false;
+        renderer.setPixelRatio(window.devicePixelRatio || 1);
+        renderer.setSize(mapRef.getCanvas().clientWidth, mapRef.getCanvas().clientHeight, false);
+        mapRef.on('resize', function(){ renderer.setSize(mapRef.getCanvas().clientWidth, mapRef.getCanvas().clientHeight, false); });
+        // Stil değişiminde yeni sahne kurulur; eski gruplar yeni sahneye taşınır.
+        Object.keys(cityGmlMeshCache).forEach(function(sid){
+          var e = cityGmlMeshCache[sid];
+          if (e.groups) Object.keys(e.groups).forEach(function(c){ if (e.groups[c].parent) e.groups[c].parent.remove(e.groups[c]); });
+        });
+        cityGmlMeshCtx = { THREE: THREE, scene: scene, camera: new THREE.Camera(), renderer: renderer };
+        syncCityGmlMeshes();
+        renderFeatures();
+      },
+      render: function(gl, args){
+        if (!cityGmlMeshCtx) return;
+        var c = cityGmlMeshCtx, THREE = c.THREE;
+        var groups = c.scene.children.filter(function(o){ return o.userData && o.userData.cityAnchor; });
+        if (!groups.length) return;
+        try{
+          var main = args.defaultProjectionData.mainMatrix;
+          var terrainOn = map.getTerrain && map.getTerrain();
+          c.renderer.resetState();
+          groups.forEach(function(g){ g.visible = false; });
+          groups.forEach(function(g){
+            if (!g.userData.wantVisible) return;
+            var a = g.userData.cityAnchor;
+            var elev = terrainOn ? (map.queryTerrainElevation([a.lng, a.lat]) || 0) : 0;
+            var mc = maplibregl.MercatorCoordinate.fromLngLat([a.lng, a.lat], elev);
+            var s = mc.meterInMercatorCoordinateUnits();
+            var m = new THREE.Matrix4().makeTranslation(mc.x, mc.y, mc.z).scale(new THREE.Vector3(s, -s, s));
+            c.camera.projectionMatrix.fromArray(main).multiply(m);
+            g.visible = true;
+            c.renderer.render(c.scene, c.camera);
+            g.visible = false;
+          });
+          c.renderer.resetState();
+        }catch(err){
+          console.error('citygml-mesh-layer render hatası:', err);
+        }
+      }
+    };
   }
 
   // ---- Shapefile (.shp [+ .dbf]) ----------------------------------------
@@ -17303,17 +17650,9 @@
       } else if (/\.(gml|xml|citygml)$/.test(name)){
         var gmlText = await file.text();
         if (isCityGmlText(gmlText)){
-          // CityGML: binalar 3B (ekstrüzyon) olarak, koordinat dönüşümüyle.
-          var city = await parseCityGML(gmlText);
-          addImportedFeatures(city.feats, file.name);
-          // Kapsama uçuş ve 3B açı TEK hareketle: ensure3DView'ün ayrı easeTo'su
-          // addImportedFeatures'ın fitBounds'unu kesip uzak dosyalarda haritayı
-          // yerinde bırakıyordu.
-          try{
-            var cityCam = map.cameraForBounds(turf.bbox({ type:'FeatureCollection', features: city.feats }), { padding: 80, maxZoom: 18 });
-            if (cityCam) map.easeTo({ center: cityCam.center, zoom: cityCam.zoom - 0.3, pitch: Math.max(map.getPitch(), 55), bearing: -20, duration: 900 });
-          }catch(err){ ensure3DView(); }
-          showToast(file.name + ': ' + city.buildings + ' bina' + (city.parts > city.buildings ? ' (' + city.parts + ' parça)' : '') + ' 3B olarak aktarıldı — ' + city.note + '.');
+          // CityGML: tüm kent nesneleri gerçek 3B mesh + tıklanabilir taban olarak.
+          var city = await importCityGml(file, gmlText);
+          showToast(file.name + ': ' + city.summary + ' 3B olarak aktarıldı — ' + city.note + '.');
         } else if (/\.gml$/.test(name)){
           addImportedFeatures(parseGML(gmlText), file.name);
         } else {
