@@ -2245,6 +2245,7 @@
         <div class="fmt-cat">BIM</div>
         <span class="fmt ok" title="Taban izdüşümü + yükseklik olarak 3B poligona aktarılır (tam mesh/materyal desteklenmez)">GLTF</span>
         <span class="fmt ok" title="Taban izdüşümü + yükseklik olarak 3B poligona aktarılır (tam mesh/materyal desteklenmez)">GLB</span>
+        <span class="fmt ok" title="3D Gaussian Splatting sahnesi (.ply, .splat, .spz v2/v3) — gerçek 3B splat çizimi; harita merkezine yerleştirilir, halka ile taşınır/döndürülür/ölçeklenir">Gaussian Splat</span>
         <span class="fmt no" title="Bu ortamda desteklenmiyor">RVT</span>
         <span class="fmt ok" title="Taban izdüşümü + yükseklik olarak 3B poligona aktarılır (tam BIM geometrisi/yerleştirme hiyerarşisi değil)">IFC</span>
         <span class="fmt no" title="Bu ortamda desteklenmiyor">NWD</span>
@@ -2268,7 +2269,7 @@
           style="width:70px;background:var(--bg-panel-raise);border:1px solid var(--line);color:var(--text);border-radius:2px;padding:4px 6px;font-family:var(--font-mono);font-size:12px;text-align:right;">
       </div>
       <input type="file" id="importInput" multiple
-        accept=".json,.geojson,.kml,.kmz,.zip,.shp,.gml,.citygml,.xml,.dxf,.ncz,.gltf,.glb,.bin,.ifc,.jpg,.jpeg,.png,.jgw,.pgw,.jpw,.wld"
+        accept=".json,.geojson,.kml,.kmz,.zip,.shp,.gml,.citygml,.xml,.dxf,.ncz,.gltf,.glb,.bin,.ifc,.ply,.splat,.spz,.jpg,.jpeg,.png,.jgw,.pgw,.jpw,.wld"
         hidden>
       <div class="field-label" style="margin-top:6px;">GLTF için ayrı .bin dosyanız varsa modelle birlikte seçin.</div>
     </div>
@@ -11290,7 +11291,7 @@
     var lid = sel && sel.properties && sel.properties.layerId;
     var blyr = lid ? getLayer(lid) : null;
     if (!blyr || !blyr.bimAnchor) return;
-    if (blyr.sourceFormat !== 'ifc' && blyr.sourceFormat !== 'gltf' && blyr.sourceFormat !== 'glb') return;
+    if (blyr.sourceFormat !== 'ifc' && blyr.sourceFormat !== 'gltf' && blyr.sourceFormat !== 'glb' && blyr.sourceFormat !== 'splat') return;
     bimHudDismissedLayerId = null; // model yeniden seçildi → X ile kapatılmış olsa da araçlar geri gelir
     if (activeLayerId === blyr.id){ updateBimHud(); return; } // Esc ile gizlenmişse yeniden göster
     activeLayerId = blyr.id;
@@ -11648,7 +11649,7 @@
       // DEĞİL, GERÇEK mesh olarak ayrı bir WebGL katmanında (bkz.
       // ifc-mesh-layer / syncIfcMeshLayer) gösteriliyor — burada dışarıda
       // bırakılmazsa aynı eleman hem kutu hem gerçek mesh olarak çakışırdı.
-      if (lyr.sourceFormat === 'ifc' || lyr.sourceFormat === 'gltf' || lyr.sourceFormat === 'glb') return false;
+      if (lyr.sourceFormat === 'ifc' || lyr.sourceFormat === 'gltf' || lyr.sourceFormat === 'glb' || lyr.sourceFormat === 'splat') return false;
       // "BIM Görünümü" açıkken ve bu bina için bir BIM dosyası işaretliyse
       // (bkz. enableBimViewForFeature), kaba ekstrüzyon kutusu yerine
       // syncFeatureBimMeshes()'in eklediği gerçek mesh gösterilir.
@@ -13339,8 +13340,8 @@
       ];
       // BIM Görüntüleyici — yalnızca IFC/GLTF/GLB'den içe aktarılmış (bkz.
       // createBimLayerForImport / addImportedFeatures) katmanlarda görünür.
-      if (['ifc','gltf','glb'].indexOf(lyr.sourceFormat) >= 0){
-        items.push({ label:'BIM Görüntüleyicide Aç', action:function(){ openBimViewer(lyr.id); } });
+      if (['ifc','gltf','glb','splat'].indexOf(lyr.sourceFormat) >= 0){
+        if (lyr.sourceFormat !== 'splat') items.push({ label:'BIM Görüntüleyicide Aç', action:function(){ openBimViewer(lyr.id); } });
         items.push({ label:'Objeye 3D Model olarak ekle', action:function(){ startBimAttachMode(lyr.id); } });
         items.push({ sep:true });
       }
@@ -13570,7 +13571,7 @@
   // formatlar önerilsin diye), seçici açıldıktan hemen sonra TAM listeye
   // geri döndürülür — tarayıcı accept'i dialog AÇILIRKENki değeriyle
   // okuduğundan bu, sonradan başka bir satırın .accept'ini etkilemez.
-  var IMPORT_INPUT_FULL_ACCEPT = '.json,.geojson,.kml,.kmz,.zip,.shp,.gml,.citygml,.xml,.dxf,.ncz,.gltf,.glb,.bin,.ifc,.jpg,.jpeg,.png,.jgw,.pgw,.jpw,.wld';
+  var IMPORT_INPUT_FULL_ACCEPT = '.json,.geojson,.kml,.kmz,.zip,.shp,.gml,.citygml,.xml,.dxf,.ncz,.gltf,.glb,.bin,.ifc,.ply,.splat,.spz,.jpg,.jpeg,.png,.jgw,.pgw,.jpw,.wld';
   // Her formatın yanındaki küçük "göz" ikonu (bkz. importSampleDirectly),
   // kullanıcının o formatın nasıl bir şey olduğunu anlaması için örnek
   // dosyayı ÖNİZLEME olmadan DOĞRUDAN haritaya ekler/gösterir — bkz.
@@ -13602,6 +13603,8 @@
         sample:{ kind:'file', mime:'text', path:'/samples/ornek.ifc', name:'ornek.ifc', desc:'Tek duvarlı, minimal ama geçerli bir IFC4 (STEP) dosyası.' } },
       { label:'IFC/BIM (Gelişmiş)', hint:'IfcOpenShell, sunucu — her eleman ayrı taban izdüşümü + yükseklik', icon:'ifc', inputId:'ifcImportInput',
         sample:{ kind:'file', mime:'text', path:'/samples/ornek.ifc', name:'ornek.ifc', desc:'Tek duvarlı, minimal ama geçerli bir IFC4 (STEP) dosyası.' } },
+      { label:'Gaussian Splat', hint:'3DGS sahnesi (.ply / .splat / .spz) — fotoğraflardan üretilmiş gerçekçi 3B; harita merkezine yerleşir, halka ile konumlandırılır', icon:'model3d', inputId:'importInput', accept:'.ply,.splat,.spz',
+        sample:{ kind:'file', mime:'binary', path:'/samples/ornek_gaussian.ply', name:'ornek_gaussian.ply', desc:'Kurgusal bir meydan çeşmesi: taş çeşme, kubbeli saçak, yalak, kaldırım taşı zemin, çimen, iki servi ve bir bank — standart 3DGS .ply (SH derece 0).' } },
       { label:'Nokta Bulutu (LAS/LAZ)', hint:'Sunucu — büyük dosyalar örneklenerek gösterilir', icon:'cloud', inputId:'pointCloudImportInput',
         sample:{ kind:'file', mime:'las', path:'/samples/ornek.las', name:'ornek.las', desc:'25 noktalık minimal geçerli bir LAS 1.2 (format 0) dosyası.' } }
     ]},
@@ -14528,7 +14531,7 @@
     // Taşı/Döndür/Ölçekle araç çubuğu (clusterLayerTransform) onlar için
     // ARTIK GEREKSİZ, kullanıcı isteğiyle gizlendi.
     var lyr = getLayer(activeLayerId);
-    if (lyr && (lyr.sourceFormat === 'ifc' || lyr.sourceFormat === 'gltf' || lyr.sourceFormat === 'glb')) return false;
+    if (lyr && (lyr.sourceFormat === 'ifc' || lyr.sourceFormat === 'gltf' || lyr.sourceFormat === 'glb' || lyr.sourceFormat === 'splat')) return false;
     return true;
   }
   function updateLayerTransformToolbar(){
@@ -17150,7 +17153,7 @@
     var patched = false;
     Promise.all(candidates.map(function(l){
       return getBimFile(l.id).then(function(rec){
-        if (rec && rec.format && ['ifc','gltf','glb'].indexOf(rec.format) >= 0){
+        if (rec && rec.format && ['ifc','gltf','glb','splat'].indexOf(rec.format) >= 0){
           l.sourceFormat = rec.format;
           patched = true;
         }
@@ -17215,6 +17218,510 @@
     renderFeatures();
     ensure3DView();
     try{ var bbox = turf.bbox(f); map.fitBounds(bbox, { padding:80, duration:600, maxZoom:18 }); }catch(e){ /* yoksay */ }
+  }
+
+  // ---- Gaussian Splat (3DGS: .ply / .splat / .spz) ---------------------------
+  // Fotoğraflardan eğitilmiş (3D Gaussian Splatting) sahneler: her öğe konum,
+  // 3B kovaryans (ölçek + dönüş), renk ve opaklık taşıyan yarı saydam bir
+  // elipsoittir. Dosya koordinatsızdır; BIM modelleri gibi harita merkezine
+  // yerleştirilir ve aynı halka HUD'uyla taşınır/döndürülür/ölçeklenir
+  // (sourceFormat 'splat', bkz. createBimLayerForImport/syncIfcMeshLayer).
+  // Okunan veri modelin Y-yukarı yerel eksenine çevrilir: 3DGS .ply/.splat
+  // COLMAP düzeninde (sağ-aşağı-ileri) yazılır → (x, -y, -z); .spz zaten
+  // sağ-yukarı-geri (three.js) düzenindedir. Renksiz/ölçeksiz düz nokta
+  // bulutu .ply'leri (tarama çıktıları, Z-yukarı) küçük yuvarlak splat'lar
+  // olarak gösterilir.
+  var GSPLAT_SH_C0 = 0.28209479177387814;
+  var GSPLAT_MAX_COUNT = 8000000;
+  var GSPLAT_AXIS_RDF = [[1,0,0],[0,-1,0],[0,0,-1]];
+  var GSPLAT_AXIS_ZUP = [[1,0,0],[0,0,1],[0,-1,0]];
+
+  function isGaussianSplatName(name){ return /\.(ply|splat|spz)$/i.test(name || ''); }
+
+  function gsplatAlloc(n){
+    if (!(n > 0)) throw new Error('dosyada splat bulunamadı');
+    if (n > GSPLAT_MAX_COUNT) throw new Error(n.toLocaleString('tr-TR') + ' splat çok fazla (en çok ' + GSPLAT_MAX_COUNT.toLocaleString('tr-TR') + ')');
+    return { n: n, pos: new Float32Array(n * 3), cov: new Float32Array(n * 6), rgba: new Uint8Array(n * 4) };
+  }
+  // Ölçek (metre, üstel değil) + birim kuaterniyon (w,x,y,z) → Σ = R·S²·Rᵀ;
+  // axis (3×3 işaret/permütasyon matrisi) ile Σ' = A·Σ·Aᵀ, p' = A·p.
+  function gsplatSet(d, i, x, y, z, sx, sy, sz, qw, qx, qy, qz, r, g, b, a, axis){
+    var ql = Math.sqrt(qw*qw + qx*qx + qy*qy + qz*qz) || 1;
+    qw /= ql; qx /= ql; qy /= ql; qz /= ql;
+    var R = [
+      1 - 2*(qy*qy + qz*qz), 2*(qx*qy - qw*qz), 2*(qx*qz + qw*qy),
+      2*(qx*qy + qw*qz), 1 - 2*(qx*qx + qz*qz), 2*(qy*qz - qw*qx),
+      2*(qx*qz - qw*qy), 2*(qy*qz + qw*qx), 1 - 2*(qx*qx + qy*qy)
+    ];
+    var s2 = [sx*sx, sy*sy, sz*sz];
+    var S = [0,0,0, 0,0,0, 0,0,0];
+    for (var r0 = 0; r0 < 3; r0++) for (var c0 = r0; c0 < 3; c0++){
+      var v = R[r0*3]*R[c0*3]*s2[0] + R[r0*3+1]*R[c0*3+1]*s2[1] + R[r0*3+2]*R[c0*3+2]*s2[2];
+      S[r0*3+c0] = v; S[c0*3+r0] = v;
+    }
+    var p = [x, y, z];
+    var A = axis;
+    for (var k = 0; k < 3; k++) d.pos[i*3+k] = A[k][0]*p[0] + A[k][1]*p[1] + A[k][2]*p[2];
+    // Σ' = A Σ Aᵀ (A işaret/permütasyon matrisi olduğundan hesap ucuz)
+    var AS = [0,0,0, 0,0,0, 0,0,0];
+    for (var r1 = 0; r1 < 3; r1++) for (var c1 = 0; c1 < 3; c1++)
+      AS[r1*3+c1] = A[r1][0]*S[c1] + A[r1][1]*S[3+c1] + A[r1][2]*S[6+c1];
+    function cv(r2, c2){ return AS[r2*3]*A[c2][0] + AS[r2*3+1]*A[c2][1] + AS[r2*3+2]*A[c2][2]; }
+    var o = i * 6;
+    d.cov[o] = cv(0,0); d.cov[o+1] = cv(0,1); d.cov[o+2] = cv(0,2);
+    d.cov[o+3] = cv(1,1); d.cov[o+4] = cv(1,2); d.cov[o+5] = cv(2,2);
+    d.rgba[i*4] = r; d.rgba[i*4+1] = g; d.rgba[i*4+2] = b; d.rgba[i*4+3] = a;
+  }
+  function gsplatByte(v){ return v <= 0 ? 0 : v >= 1 ? 255 : Math.round(v * 255); }
+  function gsplatSigmoid(v){ return 1 / (1 + Math.exp(-v)); }
+
+  // PLY: binary_little_endian veya ascii; 'vertex' öğesi okunur. 3DGS
+  // özellikleri (f_dc_*, opacity, scale_*, rot_*) varsa Gaussian, yoksa düz
+  // nokta bulutu.
+  function parseGaussianPly(buf){
+    var bytes = new Uint8Array(buf);
+    var headEnd = -1;
+    var probe = new TextDecoder('latin1').decode(bytes.subarray(0, Math.min(bytes.length, 65536)));
+    var m = probe.match(/end_header\r?\n/);
+    if (probe.slice(0, 3) !== 'ply' || !m) throw new Error('geçerli bir PLY dosyası değil');
+    headEnd = m.index + m[0].length;
+    var lines = probe.slice(0, m.index).split(/\r?\n/);
+    var format = '', elements = [], cur = null;
+    lines.forEach(function(line){
+      var t = line.trim().split(/\s+/);
+      if (t[0] === 'format') format = t[1];
+      else if (t[0] === 'element'){ cur = { name: t[1], count: parseInt(t[2], 10), props: [] }; elements.push(cur); }
+      else if (t[0] === 'property' && cur){
+        if (t[1] === 'list') cur.props.push({ list: true, countType: t[2], type: t[3], name: t[4] });
+        else cur.props.push({ type: t[1], name: t[2] });
+      }
+    });
+    if (elements.some(function(e){ return e.name === 'chunk'; }) )
+      throw new Error('sıkıştırılmış (SuperSplat) PLY henüz desteklenmiyor — sıkıştırılmamış .ply veya .splat olarak dışa aktarın');
+    var vEl = elements.find(function(e){ return e.name === 'vertex'; });
+    if (!vEl || !vEl.count) throw new Error('PLY dosyasında köşe (vertex) yok');
+    var SIZES = { char:1, int8:1, uchar:1, uint8:1, short:2, int16:2, ushort:2, uint16:2, int:4, int32:4, uint:4, uint32:4, float:4, float32:4, double:8, float64:8 };
+    var idx = {};
+    vEl.props.forEach(function(p, k){ idx[p.name] = k; });
+    ['x','y','z'].forEach(function(k){ if (idx[k] === undefined) throw new Error('PLY köşelerinde ' + k + ' yok'); });
+    var n = vEl.count;
+    var vals = new Float64Array(vEl.props.length);
+    var readRow;
+    if (format === 'binary_little_endian'){
+      var before = 0;
+      for (var e = 0; e < elements.length && elements[e] !== vEl; e++){
+        if (elements[e].props.some(function(p){ return p.list; })) throw new Error('PLY: köşelerden önce değişken uzunlukta öğe var');
+        before += elements[e].count * elements[e].props.reduce(function(s, p){ return s + SIZES[p.type]; }, 0);
+      }
+      if (vEl.props.some(function(p){ return p.list; })) throw new Error('PLY: köşe öğesinde liste özelliği desteklenmiyor');
+      var offs = [], stride = 0;
+      vEl.props.forEach(function(p){
+        if (!SIZES[p.type]) throw new Error('PLY: bilinmeyen tür ' + p.type);
+        offs.push(stride); stride += SIZES[p.type];
+      });
+      var dv = new DataView(buf, headEnd + before);
+      if (dv.byteLength < stride * n) throw new Error('PLY dosyası eksik (kesilmiş) görünüyor');
+      var getters = vEl.props.map(function(p){
+        switch (p.type){
+          case 'char': case 'int8': return function(o){ return dv.getInt8(o); };
+          case 'uchar': case 'uint8': return function(o){ return dv.getUint8(o); };
+          case 'short': case 'int16': return function(o){ return dv.getInt16(o, true); };
+          case 'ushort': case 'uint16': return function(o){ return dv.getUint16(o, true); };
+          case 'int': case 'int32': return function(o){ return dv.getInt32(o, true); };
+          case 'uint': case 'uint32': return function(o){ return dv.getUint32(o, true); };
+          case 'double': case 'float64': return function(o){ return dv.getFloat64(o, true); };
+          default: return function(o){ return dv.getFloat32(o, true); };
+        }
+      });
+      readRow = function(i){ var base = i * stride; for (var k = 0; k < getters.length; k++) vals[k] = getters[k](base + offs[k]); };
+    } else if (format === 'ascii'){
+      var body = new TextDecoder('latin1').decode(bytes.subarray(headEnd)).split(/\r?\n/);
+      var skip = 0;
+      for (var e2 = 0; e2 < elements.length && elements[e2] !== vEl; e2++) skip += elements[e2].count;
+      readRow = function(i){
+        var t = body[skip + i].trim().split(/\s+/);
+        for (var k = 0; k < vals.length; k++) vals[k] = parseFloat(t[k]);
+      };
+    } else {
+      throw new Error('PLY biçimi desteklenmiyor: ' + format);
+    }
+
+    var d = gsplatAlloc(n);
+    var isGauss = idx.f_dc_0 !== undefined && idx.scale_0 !== undefined && idx.rot_0 !== undefined;
+    var X = idx.x, Y = idx.y, Z = idx.z;
+    if (isGauss){
+      var F0 = idx.f_dc_0, F1 = idx.f_dc_1, F2 = idx.f_dc_2, OP = idx.opacity;
+      var S0 = idx.scale_0, S1 = idx.scale_1, S2 = idx.scale_2;
+      var R0 = idx.rot_0, R1 = idx.rot_1, R2 = idx.rot_2, R3 = idx.rot_3;
+      for (var i = 0; i < n; i++){
+        readRow(i);
+        gsplatSet(d, i, vals[X], vals[Y], vals[Z],
+          Math.exp(vals[S0]), Math.exp(vals[S1]), Math.exp(vals[S2]),
+          vals[R0], vals[R1], vals[R2], vals[R3],
+          gsplatByte(0.5 + GSPLAT_SH_C0 * vals[F0]), gsplatByte(0.5 + GSPLAT_SH_C0 * vals[F1]), gsplatByte(0.5 + GSPLAT_SH_C0 * vals[F2]),
+          OP !== undefined ? gsplatByte(gsplatSigmoid(vals[OP])) : 255, GSPLAT_AXIS_RDF);
+      }
+      d.kind = 'gauss';
+      return d;
+    }
+    // Düz nokta bulutu: Z-yukarı varsayılır; nokta aralığı kadar yuvarlak splat.
+    var CR = idx.red !== undefined ? idx.red : idx.r, CG = idx.green !== undefined ? idx.green : idx.g, CB = idx.blue !== undefined ? idx.blue : idx.b;
+    var colorScale = (CR !== undefined && /float|double/.test(vEl.props[CR].type)) ? 255 : 1;
+    var xs = new Float64Array(n * 3), cols = new Uint8Array(n * 3);
+    for (var j = 0; j < n; j++){
+      readRow(j);
+      xs[j*3] = vals[X]; xs[j*3+1] = vals[Y]; xs[j*3+2] = vals[Z];
+      if (CR !== undefined){ cols[j*3] = vals[CR] * colorScale; cols[j*3+1] = vals[CG] * colorScale; cols[j*3+2] = vals[CB] * colorScale; }
+      else { cols[j*3] = cols[j*3+1] = cols[j*3+2] = 200; }
+    }
+    var ext = gsplatRobustExtent(xs, n, [0, 1]);
+    var spacing = Math.max(1e-4, Math.sqrt(Math.max(ext[0] * ext[1], 1e-8) / n) * 0.7);
+    for (var q = 0; q < n; q++){
+      gsplatSet(d, q, xs[q*3], xs[q*3+1], xs[q*3+2], spacing, spacing, spacing, 1, 0, 0, 0,
+        cols[q*3], cols[q*3+1], cols[q*3+2], 255, GSPLAT_AXIS_ZUP);
+    }
+    d.kind = 'points';
+    return d;
+  }
+  // Ham koordinat dizisinde (3'lü) verilen eksenlerin %2–%98 aralık genişliği.
+  function gsplatRobustExtent(arr, n, axes){
+    var step = Math.max(1, Math.floor(n / 50000));
+    return axes.map(function(ax){
+      var s = [];
+      for (var i = 0; i < n; i += step) s.push(arr[i*3+ax]);
+      s.sort(function(a, b){ return a - b; });
+      return s[Math.floor(s.length * 0.98)] - s[Math.floor(s.length * 0.02)];
+    });
+  }
+
+  // .splat (antimatter15): 32 bayt/öğe — konum f32×3, ölçek f32×3, RGBA u8×4,
+  // kuaterniyon u8×4 (w,x,y,z; (b-128)/128).
+  function parseGaussianSplatRaw(buf){
+    var n = Math.floor(buf.byteLength / 32);
+    if (n * 32 !== buf.byteLength) throw new Error('.splat dosya boyutu 32 baytın katı değil');
+    var d = gsplatAlloc(n);
+    var f = new Float32Array(buf, 0, n * 8), u = new Uint8Array(buf);
+    for (var i = 0; i < n; i++){
+      var o = i * 8, b = i * 32;
+      gsplatSet(d, i, f[o], f[o+1], f[o+2], f[o+3], f[o+4], f[o+5],
+        (u[b+28] - 128) / 128, (u[b+29] - 128) / 128, (u[b+30] - 128) / 128, (u[b+31] - 128) / 128,
+        u[b+24], u[b+25], u[b+26], u[b+27], GSPLAT_AXIS_RDF);
+    }
+    d.kind = 'gauss';
+    return d;
+  }
+
+  // .spz (Niantic, sürüm 2–3: gzip'li tek akış). Sürüm 4 (zstd) tarayıcının
+  // yerleşik açıcısında yok — anlaşılır bir hata verilir.
+  async function parseGaussianSpz(buf){
+    var head = new Uint8Array(buf, 0, 4);
+    if (head[0] === 0x4e && head[1] === 0x47 && head[2] === 0x53 && head[3] === 0x50)
+      throw new Error('SPZ sürüm 4 (zstd) henüz desteklenmiyor — .ply veya .splat olarak dışa aktarın');
+    if (head[0] !== 0x1f || head[1] !== 0x8b) throw new Error('geçerli bir SPZ dosyası değil');
+    var raw = await new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();
+    var dv = new DataView(raw);
+    if (dv.getUint32(0, true) !== 0x5053474e) throw new Error('SPZ başlığı tanınmadı');
+    var version = dv.getUint32(4, true), n = dv.getUint32(8, true);
+    var shDegree = dv.getUint8(12), fracBits = dv.getUint8(13);
+    if (version < 2 || version > 3) throw new Error('SPZ sürüm ' + version + ' desteklenmiyor');
+    var u = new Uint8Array(raw);
+    var shDim = [0, 3, 8, 15, 24][shDegree] || 0;
+    var rotBytes = version >= 3 ? 4 : 3;
+    var oPos = 16, oA = oPos + n * 9, oC = oA + n, oS = oC + n * 3, oR = oS + n * 3;
+    if (raw.byteLength < oR + n * rotBytes + n * shDim * 3) throw new Error('SPZ dosyası eksik (kesilmiş) görünüyor');
+    var d = gsplatAlloc(n);
+    var fs = 1 / (1 << fracBits), cs = 1 / 0.15;
+    var SQ = Math.SQRT1_2, MASK = 511;
+    var q = [0, 0, 0, 0];
+    function fixed24(o){ var v = u[o] | (u[o+1] << 8) | (u[o+2] << 16); if (v & 0x800000) v |= 0xff000000; return v * fs; }
+    for (var i = 0; i < n; i++){
+      var r = oR + i * rotBytes;
+      if (version >= 3){
+        var comp = (u[r] | (u[r+1] << 8) | (u[r+2] << 16) | (u[r+3] << 24)) >>> 0;
+        var largest = comp >>> 30, sum = 0;
+        for (var k = 3; k >= 0; k--){
+          if (k === largest) continue;
+          var mag = comp & MASK, neg = (comp >>> 9) & 1;
+          comp = comp >>> 10;
+          q[k] = SQ * mag / MASK * (neg ? -1 : 1);
+          sum += q[k] * q[k];
+        }
+        q[largest] = Math.sqrt(Math.max(0, 1 - sum));
+      } else {
+        q[0] = u[r] / 127.5 - 1; q[1] = u[r+1] / 127.5 - 1; q[2] = u[r+2] / 127.5 - 1;
+        q[3] = Math.sqrt(Math.max(0, 1 - q[0]*q[0] - q[1]*q[1] - q[2]*q[2]));
+      }
+      var c = oC + i * 3, s = oS + i * 3;
+      gsplatSet(d, i, fixed24(oPos + i * 9), fixed24(oPos + i * 9 + 3), fixed24(oPos + i * 9 + 6),
+        Math.exp(u[s] / 16 - 10), Math.exp(u[s+1] / 16 - 10), Math.exp(u[s+2] / 16 - 10),
+        q[3], q[0], q[1], q[2],
+        gsplatByte(0.5 + GSPLAT_SH_C0 * (u[c] / 255 - 0.5) * cs), gsplatByte(0.5 + GSPLAT_SH_C0 * (u[c+1] / 255 - 0.5) * cs), gsplatByte(0.5 + GSPLAT_SH_C0 * (u[c+2] / 255 - 0.5) * cs),
+        u[oA + i], [[1,0,0],[0,1,0],[0,0,1]]);
+    }
+    d.kind = 'gauss';
+    return d;
+  }
+
+  async function parseGaussianSplatBlob(blob, name){
+    var buf = await blob.arrayBuffer();
+    var data = /\.splat$/i.test(name) ? parseGaussianSplatRaw(buf)
+      : /\.spz$/i.test(name) ? await parseGaussianSpz(buf)
+      : parseGaussianPly(buf);
+    gsplatCenter(data);
+    return data;
+  }
+
+  // Sahneyi kendi taban-merkezine taşır: yatayda %2–%98 aralığının ortası,
+  // dikeyde %2'lik alt değer (uçuşan "floater" splat'lar kutuyu şişirmesin).
+  // Taban izdüşümü (doğu, kuzey) ve yükseklik de aynı sağlam aralıktan çıkar.
+  function gsplatCenter(d){
+    var n = d.n, step = Math.max(1, Math.floor(n / 60000));
+    var xs = [], ys = [], zs = [];
+    for (var i = 0; i < n; i += step){
+      if (d.rgba[i*4+3] < 40) continue;
+      xs.push(d.pos[i*3]); ys.push(d.pos[i*3+1]); zs.push(d.pos[i*3+2]);
+    }
+    if (xs.length < 3){ xs = [0]; ys = [0]; zs = [0]; }
+    function pct(arr, p){ var s = arr.slice().sort(function(a, b){ return a - b; }); return s[Math.min(s.length - 1, Math.floor(s.length * p))]; }
+    var x0 = pct(xs, 0.02), x1 = pct(xs, 0.98), z0 = pct(zs, 0.02), z1 = pct(zs, 0.98);
+    var y0 = pct(ys, 0.02), y1 = pct(ys, 0.98);
+    var cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
+    for (var j = 0; j < n; j++){ d.pos[j*3] -= cx; d.pos[j*3+1] -= y0; d.pos[j*3+2] -= cz; }
+    var pts = [];
+    for (var k = 0; k < xs.length; k++){
+      if (xs[k] < x0 || xs[k] > x1 || zs[k] < z0 || zs[k] > z1) continue;
+      pts.push([xs[k] - cx, -(zs[k] - cz)]); // model +Z güneye bakar → kuzey = -Z
+    }
+    d.footprint = convexHull2D(pts.length >= 3 ? pts : [[-1,-1],[1,-1],[1,1],[-1,1]]);
+    d.height = Math.max(0.1, y1 - y0);
+  }
+
+  // Derinlik sıralaması (arkadan öne) ayrı bir işçide: 16 bit sayma sıralaması.
+  // Anahtar = kameranın w satırı · konum (bakış doğrultusundaki derinlik);
+  // kamera yalnızca kaydığında sıra değişmez, döndüğünde yeniden sıralanır.
+  function gsplatSortCore(pos, n, dx, dy, dz, keys, out){
+    var mn = Infinity, mx = -Infinity, i, v;
+    var depth = new Float32Array(n);
+    for (i = 0; i < n; i++){
+      v = dx * pos[i*3] + dy * pos[i*3+1] + dz * pos[i*3+2];
+      depth[i] = v; if (v < mn) mn = v; if (v > mx) mx = v;
+    }
+    var sc = mx > mn ? 65535 / (mx - mn) : 0;
+    var counts = new Uint32Array(65536);
+    for (i = 0; i < n; i++){ v = ((mx - depth[i]) * sc) | 0; keys[i] = v; counts[v]++; }
+    var starts = new Uint32Array(65536), acc = 0;
+    for (i = 0; i < 65536; i++){ starts[i] = acc; acc += counts[i]; }
+    for (i = 0; i < n; i++) out[starts[keys[i]]++] = i;
+    return out;
+  }
+  var gsplatWorkerUrl = null;
+  var gsplatPendingData = {}; // layerId → içe aktarımda ayrıştırılmış veri (ilk kurulumda IndexedDB'den yeniden okunmaz)
+  function gsplatCreateSorter(pos, n){
+    var sorter = { busy: false, pending: null, onResult: null, worker: null };
+    try{
+      if (!gsplatWorkerUrl){
+        gsplatWorkerUrl = URL.createObjectURL(new Blob([
+          'var gsplatSortCore = ' + gsplatSortCore.toString() + ';\n' +
+          'var pos = null, n = 0, keys = null;\n' +
+          'self.onmessage = function(e){ var m = e.data;\n' +
+          '  if (m.pos){ pos = m.pos; n = m.n; keys = new Uint16Array(n); return; }\n' +
+          '  var out = gsplatSortCore(pos, n, m.dir[0], m.dir[1], m.dir[2], keys, new Float32Array(n));\n' +
+          '  self.postMessage({ order: out, dir: m.dir }, [out.buffer]); };'
+        ], { type: 'text/javascript' }));
+      }
+      sorter.worker = new Worker(gsplatWorkerUrl);
+      sorter.worker.postMessage({ pos: pos, n: n });
+      sorter.worker.onmessage = function(e){
+        sorter.busy = false;
+        if (sorter.onResult) sorter.onResult(e.data.order, e.data.dir);
+        if (sorter.pending){ var p = sorter.pending; sorter.pending = null; sorter.request(p); }
+      };
+    }catch(err){ sorter.worker = null; }
+    var keys = null;
+    sorter.request = function(dir){
+      if (sorter.busy){ sorter.pending = dir; return; }
+      if (sorter.worker){ sorter.busy = true; sorter.worker.postMessage({ dir: dir }); return; }
+      if (!keys) keys = new Uint16Array(n);
+      var out = gsplatSortCore(pos, n, dir[0], dir[1], dir[2], keys, new Float32Array(n));
+      if (sorter.onResult) sorter.onResult(out, dir);
+    };
+    sorter.dispose = function(){ if (sorter.worker) sorter.worker.terminate(); sorter.worker = null; sorter.onResult = null; };
+    return sorter;
+  }
+
+  // Ekran-uzayı splat çizimi: her öğe bir dörtgen; 3B kovaryans, tam
+  // MVP matrisinin (MapLibre mainMatrix × yerel dönüşüm — bkz.
+  // createIfcMeshMapLayer) Jacobian'ı ile piksel uzayına izdüşürülür. Ayrı
+  // görüş/projeksiyon matrisine gerek kalmaz; HUD'un yatay/dikey ölçeği de
+  // aynı matrise dahil olduğundan doğru şekilde uygulanır.
+  var GSPLAT_ROW = 1365; // satır başına öğe (her öğe 3 texel → 4095 genişlik)
+  var GSPLAT_VERT = [
+    'precision highp float;',
+    'precision highp sampler2D;',
+    'uniform sampler2D splatTex;',
+    'uniform vec2 viewport;',
+    'in float splatIndex;',
+    'out vec4 vColor;',
+    'out vec2 vPos;',
+    'void main(){',
+    '  int idx = int(splatIndex + 0.5);',
+    '  int row = idx / ' + GSPLAT_ROW + ';',
+    '  int col = (idx - row * ' + GSPLAT_ROW + ') * 3;',
+    '  vec4 t0 = texelFetch(splatTex, ivec2(col, row), 0);',
+    '  vec4 t1 = texelFetch(splatTex, ivec2(col + 1, row), 0);',
+    '  vec4 t2 = texelFetch(splatTex, ivec2(col + 2, row), 0);',
+    '  mat4 mvp = projectionMatrix * modelViewMatrix;',
+    '  vec4 clip = mvp * vec4(t0.xyz, 1.0);',
+    '  gl_Position = vec4(0.0, 0.0, 2.0, 1.0);',
+    '  if (clip.w <= 0.0 || t0.w < 0.004) return;',
+    '  vec3 ndc = clip.xyz / clip.w;',
+    '  if (abs(ndc.x) > 1.3 || abs(ndc.y) > 1.3 || ndc.z < -1.0 || ndc.z > 1.0) return;',
+    '  mat3 cov = mat3(t1.x, t1.y, t1.z, t1.y, t2.x, t2.y, t1.z, t2.y, t2.z);',
+    '  vec3 r0 = vec3(mvp[0][0], mvp[1][0], mvp[2][0]);',
+    '  vec3 r1 = vec3(mvp[0][1], mvp[1][1], mvp[2][1]);',
+    '  vec3 r3 = vec3(mvp[0][3], mvp[1][3], mvp[2][3]);',
+    '  vec3 jx = (r0 - ndc.x * r3) * (0.5 * viewport.x / clip.w);',
+    '  vec3 jy = (r1 - ndc.y * r3) * (0.5 * viewport.y / clip.w);',
+    '  vec3 cx = cov * jx;',
+    '  vec3 cy = cov * jy;',
+    '  float a = dot(jx, cx) + 0.3;',
+    '  float b = dot(jx, cy);',
+    '  float d = dot(jy, cy) + 0.3;',
+    '  float mid = 0.5 * (a + d);',
+    '  float rad = length(vec2(0.5 * (a - d), b));',
+    '  float l1 = mid + rad;',
+    '  float l2 = max(mid - rad, 0.05);',
+    '  vec2 dir1 = abs(b) < 1e-9 ? (a >= d ? vec2(1.0, 0.0) : vec2(0.0, 1.0)) : normalize(vec2(b, l1 - a));',
+    '  vec2 major = min(sqrt(2.0 * l1), 2048.0) * dir1;',
+    '  vec2 minor = min(sqrt(2.0 * l2), 2048.0) * vec2(dir1.y, -dir1.x);',
+    '  vPos = position.xy;',
+    '  vec2 offPx = position.x * major + position.y * minor;',
+    '  gl_Position = vec4(ndc.xy + offPx / (0.5 * viewport), ndc.z, 1.0);',
+    '  float p = t2.w;',
+    '  float cr = floor(p / 65536.0);',
+    '  float cg = floor((p - cr * 65536.0) / 256.0);',
+    '  float cb = p - cr * 65536.0 - cg * 256.0;',
+    '  vColor = vec4(cr / 255.0, cg / 255.0, cb / 255.0, t0.w);',
+    '}'
+  ].join('\n');
+  var GSPLAT_FRAG = [
+    'precision highp float;',
+    'in vec4 vColor;',
+    'in vec2 vPos;',
+    'out vec4 splatColor;',
+    'void main(){',
+    '  float A = -dot(vPos, vPos);',
+    '  if (A < -4.0) discard;',
+    '  float B = exp(A) * vColor.a;',
+    '  if (B < 0.004) discard;',
+    '  splatColor = vec4(B * vColor.rgb, B);',
+    '}'
+  ].join('\n');
+
+  // Splat verisinden (bkz. parseGaussianSplatBlob) haritaya eklenecek grup.
+  // Grup, ifc-mesh-layer'ın beklediği sözleşmeye uyar (positionGroupAtAnchor
+  // ile userData.bimAnchor alır); grup kaldırılınca GPU kaynakları ve işçi
+  // userData.disposeSplat ile bırakılır.
+  function buildGaussianSplatGroup(THREE, d){
+    var n = d.n;
+    var rows = Math.ceil(n / GSPLAT_ROW), W = GSPLAT_ROW * 3;
+    var texData = new Float32Array(W * rows * 4);
+    for (var i = 0; i < n; i++){
+      var o = (Math.floor(i / GSPLAT_ROW) * W + (i % GSPLAT_ROW) * 3) * 4, c = i * 6;
+      texData[o] = d.pos[i*3]; texData[o+1] = d.pos[i*3+1]; texData[o+2] = d.pos[i*3+2]; texData[o+3] = d.rgba[i*4+3] / 255;
+      texData[o+4] = d.cov[c]; texData[o+5] = d.cov[c+1]; texData[o+6] = d.cov[c+2]; texData[o+7] = 0;
+      texData[o+8] = d.cov[c+3]; texData[o+9] = d.cov[c+4]; texData[o+10] = d.cov[c+5];
+      texData[o+11] = d.rgba[i*4] * 65536 + d.rgba[i*4+1] * 256 + d.rgba[i*4+2];
+    }
+    var tex = new THREE.DataTexture(texData, W, rows, THREE.RGBAFormat, THREE.FloatType);
+    tex.minFilter = tex.magFilter = THREE.NearestFilter;
+    tex.generateMipmaps = false;
+    tex.needsUpdate = true;
+
+    var geo = new THREE.InstancedBufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array([-2,-2,0, 2,-2,0, 2,2,0, -2,2,0]), 3));
+    geo.setIndex([0, 1, 2, 0, 2, 3]);
+    var order = new THREE.InstancedBufferAttribute(new Float32Array(n), 1);
+    order.setUsage(THREE.DynamicDrawUsage);
+    geo.setAttribute('splatIndex', order);
+    geo.instanceCount = 0; // ilk sıralama gelene kadar çizilmez
+
+    var mat = new THREE.ShaderMaterial({
+      glslVersion: THREE.GLSL3,
+      uniforms: { splatTex: { value: tex }, viewport: { value: new THREE.Vector2(1, 1) } },
+      vertexShader: GSPLAT_VERT, fragmentShader: GSPLAT_FRAG,
+      transparent: true, depthWrite: false, depthTest: true, side: THREE.DoubleSide,
+      blending: THREE.CustomBlending,
+      blendSrc: THREE.OneFactor, blendDst: THREE.OneMinusSrcAlphaFactor,
+      blendSrcAlpha: THREE.OneFactor, blendDstAlpha: THREE.OneMinusSrcAlphaFactor
+    });
+    var mesh = new THREE.Mesh(geo, mat);
+    mesh.frustumCulled = false;
+
+    var sorter = gsplatCreateSorter(d.pos, n);
+    var lastDir = null, sizeVec = new THREE.Vector2();
+    sorter.onResult = function(out){
+      order.array.set(out);
+      order.needsUpdate = true;
+      geo.instanceCount = n;
+      map.triggerRepaint();
+    };
+    // camera.projectionMatrix, render turunda bu grubun tam MVP'sidir (bkz.
+    // createIfcMeshMapLayer); w satırı = bakış doğrultusundaki derinlik.
+    mesh.onBeforeRender = function(renderer, scene, camera){
+      renderer.getDrawingBufferSize(sizeVec);
+      mat.uniforms.viewport.value.copy(sizeVec);
+      var e = camera.projectionMatrix.elements;
+      var dx = e[3], dy = e[7], dz = e[11], len = Math.sqrt(dx*dx + dy*dy + dz*dz) || 1;
+      dx /= len; dy /= len; dz /= len;
+      if (!lastDir || dx * lastDir[0] + dy * lastDir[1] + dz * lastDir[2] < 0.9995){
+        lastDir = [dx, dy, dz];
+        sorter.request(lastDir);
+      }
+    };
+    var group = new THREE.Group();
+    group.add(mesh);
+    group.userData.splatCount = n;
+    group.userData.disposeSplat = function(){
+      sorter.dispose();
+      geo.dispose(); mat.dispose(); tex.dispose();
+    };
+    return group;
+  }
+
+  async function extractGaussianSplatGroupFromBlob(blob, name, THREE){
+    var data = await parseGaussianSplatBlob(blob, name || blob.name || '');
+    return buildGaussianSplatGroup(THREE, data);
+  }
+
+  // Dosya → BIM katmanı (sourceFormat 'splat') + taban izdüşümü poligonu.
+  // Ölçek 1: 3DGS sahneleri çoğunlukla metre ya da ona yakın birimdedir;
+  // gerekirse HUD'daki ⤢ ile ayarlanır.
+  async function importGaussianSplat(file){
+    var data = await parseGaussianSplatBlob(file, file.name);
+    var center = map.getCenter();
+    var latRad = center.lat * Math.PI / 180;
+    var ring = data.footprint.map(function(c){
+      return [center.lng + c[0] / (111320 * Math.cos(latRad)), center.lat + c[1] / 111320];
+    });
+    ring.push(ring[0]);
+    var newLayerId = createBimLayerForImport(file, 'splat', 1);
+    gsplatPendingData[newLayerId] = data;
+    var f = makeFeature('Polygon', [ring]);
+    f.properties.layerId = newLayerId;
+    f.properties.extrude = true;
+    f.properties.floors = 1;
+    f.properties.floorHeight = data.height;
+    f.properties.height = data.height;
+    f.properties.base = 0;
+    f.properties.splat_sayisi = data.n;
+    pushHistory();
+    features.push(f);
+    activeLayerId = newLayerId;
+    renderFeatures();
+    ensure3DView();
+    try{ var bbox = turf.bbox(f); map.fitBounds(bbox, { padding:80, duration:600, maxZoom:20, pitch: Math.max(map.getPitch(), 55) }); }catch(e){ /* yoksay */ }
+    return data;
   }
 
   // ---- IFC (BIM, STEP/EXPRESS metin formatı) -----------------------------
@@ -17599,6 +18106,16 @@
       importGeoreferencedImage(imageFile, worldFile)
         .then(function(){ showToast(imageFile.name + ' harita üzerine yerleştirildi (koordinatların WGS84 olduğu varsayıldı).'); })
         .catch(function(err){ showToast('Görüntü içe aktarılamadı: ' + err.message); })
+        .finally(function(){ hideLoading(); });
+      return;
+    }
+
+    var splatFile = files.find(function(f){ return isGaussianSplatName(f.name); });
+    if (splatFile){
+      showLoading('Gaussian splat içe aktarılıyor…');
+      importGaussianSplat(splatFile)
+        .then(function(d){ showToast(splatFile.name + ': ' + d.n.toLocaleString('tr-TR') + (d.kind === 'points' ? ' noktalık nokta bulutu' : ' splat') + ' 3B olarak haritanın ortasına yerleştirildi — konum/yön/ölçek için modeldeki halkayı kullanın.'); })
+        .catch(function(err){ console.error(err); showToast(splatFile.name + ' içe aktarılamadı: ' + err.message); })
         .finally(function(){ hideLoading(); });
       return;
     }
@@ -19274,8 +19791,14 @@
   }
 
   async function loadIfcMeshGroupForMap(lyr, THREE){
+    if (lyr.sourceFormat === 'splat' && gsplatPendingData[lyr.id]){
+      var pending = gsplatPendingData[lyr.id];
+      delete gsplatPendingData[lyr.id];
+      return buildGaussianSplatGroup(THREE, pending);
+    }
     var rec = await getBimFile(lyr.id);
     if (!rec || !rec.blob) return null;
+    if (rec.format === 'splat') return extractGaussianSplatGroupFromBlob(rec.blob, rec.name, THREE);
     var meshes = (rec.format === 'ifc')
       ? await extractIfcMeshesFromBlob(rec.blob, THREE)
       : (rec.format === 'gltf' || rec.format === 'glb')
@@ -19309,13 +19832,14 @@
     var scene = ifcMeshLayerCtx.scene;
     var wanted = {};
     layers.filter(function(l){
-      return (l.sourceFormat === 'ifc' || l.sourceFormat === 'gltf' || l.sourceFormat === 'glb') && l.mapId === activeMapId && l.visible !== false && l.bimAnchor;
+      return (l.sourceFormat === 'ifc' || l.sourceFormat === 'gltf' || l.sourceFormat === 'glb' || l.sourceFormat === 'splat') && l.mapId === activeMapId && l.visible !== false && l.bimAnchor;
     }).forEach(function(l){ wanted[l.id] = l; });
 
     Object.keys(ifcMeshCache).forEach(function(id){
       if (wanted[id]) return;
       var entry = ifcMeshCache[id];
       if (entry && entry !== 'loading' && entry.parent) entry.parent.remove(entry);
+      if (entry && entry !== 'loading' && entry.userData.disposeSplat) entry.userData.disposeSplat();
       delete ifcMeshCache[id];
     });
 
@@ -19332,9 +19856,12 @@
       ifcMeshCache[id] = 'loading';
       loadIfcMeshGroupForMap(lyr, THREE).then(function(centeredGroup){
         var stillWanted = layers.some(function(l){
-          return l.id === id && (l.sourceFormat === 'ifc' || l.sourceFormat === 'gltf' || l.sourceFormat === 'glb') && l.mapId === activeMapId && l.visible !== false;
+          return l.id === id && (l.sourceFormat === 'ifc' || l.sourceFormat === 'gltf' || l.sourceFormat === 'glb' || l.sourceFormat === 'splat') && l.mapId === activeMapId && l.visible !== false;
         });
-        if (!centeredGroup || !stillWanted){ delete ifcMeshCache[id]; return; }
+        if (!centeredGroup || !stillWanted){
+          if (centeredGroup && centeredGroup.userData.disposeSplat) centeredGroup.userData.disposeSplat();
+          delete ifcMeshCache[id]; return;
+        }
         // İlk yükleme: model sahnedeki yakın binaların ortalama kat
         // yüksekliğine göre otomatik ölçeklenir (bkz. autoFitBimScale) —
         // positionGroupAtAnchor'DAN ÖNCE, lyr.bimAnchor.scale bu çağrıyı
@@ -19448,7 +19975,7 @@
     ensureBimHudDom();
     var lyr = getLayer(activeLayerId);
     var show = lyr && lyr.mapId === activeMapId && lyr.bimAnchor &&
-      (lyr.sourceFormat === 'ifc' || lyr.sourceFormat === 'gltf' || lyr.sourceFormat === 'glb');
+      (lyr.sourceFormat === 'ifc' || lyr.sourceFormat === 'gltf' || lyr.sourceFormat === 'glb' || lyr.sourceFormat === 'splat');
     // X (İptal) ile kapatılmışsa, kullanıcı o modeli yeniden seçene/aktif yapana
     // kadar (bkz. bimHudDismissedLayerId) HUD görünmez; başka katmana geçilince bayrak sıfırlanır.
     if (bimHudDismissedLayerId && (!lyr || lyr.id !== bimHudDismissedLayerId)) bimHudDismissedLayerId = null;
@@ -20052,7 +20579,7 @@
     // glTF/GLB birimi spesifikasyon gereği METREdir — gerçek boyutta kalır;
     // yakındaki binaların kat yüksekliğine göre yeniden ölçeklemek (ör. 40 m'lik
     // bir modeli 3 m'ye küçültmek) modeli bozardı. Elle ayar: HUD'daki ⤢.
-    if (lyr.sourceFormat === 'gltf' || lyr.sourceFormat === 'glb') return;
+    if (lyr.sourceFormat === 'gltf' || lyr.sourceFormat === 'glb' || lyr.sourceFormat === 'splat') return;
     var box = new THREE.Box3().setFromObject(centeredGroup);
     var rawHeight = box.max.y - box.min.y; // BIM biriminde (scale=1 varsayımıyla), bkz. centerMeshesIntoGroup (Y tabanlı)
     if (!(rawHeight > 0)) return;
@@ -20177,6 +20704,7 @@
     if (doc.storeKey){
       var rec = await getBimFile(doc.storeKey);
       if (!rec || !rec.blob) return null;
+      if (rec.format === 'splat') return extractGaussianSplatGroupFromBlob(rec.blob, rec.name, THREE);
       var meshes = (rec.format === 'ifc')
         ? await extractIfcMeshesFromBlob(rec.blob, THREE)
         : await extractGltfMeshesFromBlob(rec.blob, THREE, rec.extraFiles);
