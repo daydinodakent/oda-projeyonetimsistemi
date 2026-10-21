@@ -11,7 +11,7 @@
 
 | Dosya | Ne tutuyor | Kullanılıyor mu? |
 |---|---|---|
-| `src/App.tsx` | Router yerine geçen tek dosya: sekme/görünüm state'i (`activeTab`, `centerTab`), aktif proje seçimi, üst çubuk, modül ızgarası, Dinamik KPI trend grafiği | Evet — kök bileşen |
+| `src/App.tsx` | Router yerine geçen tek dosya: sekme/görünüm state'i (`activeTab`, `centerTab`), aktif proje seçimi, üst çubuk, modül ızgarası, Göstergeler trend grafiği | Evet — kök bileşen |
 | `src/components/PlanView.tsx` | CEO özeti, KPI, ekip, WBS, doküman sekmeleri (Plan aşaması) | Evet |
 | `src/components/InsaatView.tsx` | Ruhsat takibi, 4D zaman çizelgesi, 5D maliyet, şantiye günlüğü | Evet |
 | `src/components/IsletmeView.tsx` | Varlık envanteri, bakım günlüğü, TCO simülasyonu | Evet |

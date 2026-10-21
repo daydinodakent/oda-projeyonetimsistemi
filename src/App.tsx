@@ -166,7 +166,7 @@ export default function App() {
   const [editProjectBudgetStatus, setEditProjectBudgetStatus] = useState<string>('TAMAM');
   const [editProjectStatus, setEditProjectStatus] = useState<'Planlama' | 'Devam Ediyor' | 'Tamamlandı' | 'Kritik'>('Devam Ediyor');
 
-  // Dinamik KPI Filter States & Historical Data Generator
+  // Göstergeler Filter States & Historical Data Generator
   const [kpiStartDate, setKpiStartDate] = useState<string>('2026-03-01');
   const [kpiEndDate, setKpiEndDate] = useState<string>('2026-08-31');
   const [kpiDepartment, setKpiDepartment] = useState<string>('all');
@@ -742,7 +742,7 @@ export default function App() {
             <div className="w-full">{renderProjectDropdown(false)}</div>
             <div className="flex gap-1.5 overflow-x-auto pt-2 pb-0.5 -mx-3 px-3" style={{ scrollbarWidth: 'none' }}>
               {([
-                { id: 'kpis', l: 'Dinamik KPI', i: <Activity className="w-3.5 h-3.5 text-amber-400" />, on: centerTab === 'kpis', go: () => setCenterTab('kpis') },
+                { id: 'kpis', l: 'Göstergeler', i: <Activity className="w-3.5 h-3.5 text-amber-400" />, on: centerTab === 'kpis', go: () => setCenterTab('kpis') },
                 { id: 'map', l: 'Harita', i: <Map className="w-3.5 h-3.5 text-sky-400" />, on: centerTab === 'map', go: () => setCenterTab(prev => prev === 'map' ? 'kpis' : 'map') },
                 { id: 'dashboard', l: 'Dashboard', i: <BarChart3 className="w-3.5 h-3.5 text-indigo-300" />, on: centerTab === 'dashboard', go: () => setCenterTab(prev => prev === 'dashboard' ? 'kpis' : 'dashboard') },
                 { id: 'gantt', l: 'Zaman Çizelgesi', i: <Clock className="w-3.5 h-3.5 text-emerald-300" />, on: centerTab === 'gantt', go: () => setCenterTab(prev => prev === 'gantt' ? 'kpis' : 'gantt') },
@@ -823,10 +823,10 @@ export default function App() {
               {renderProjectDropdown(false)}
             </div>
 
-            {/* Middle: Harita & Dinamik KPI (Centered) */}
+            {/* Middle: Harita & Göstergeler (Centered) */}
             <div className="flex items-center justify-center">
               <SegmentGroup>
-                <SegmentTab kind="kpis" id="center-tab-btn-kpis" label="Dinamik KPI" active={centerTab === 'kpis'} icon={<Activity className="w-3.5 h-3.5 text-amber-400" />} onClick={() => setCenterTab('kpis')} />
+                <SegmentTab kind="kpis" id="center-tab-btn-kpis" label="Göstergeler" active={centerTab === 'kpis'} icon={<Activity className="w-3.5 h-3.5 text-amber-400" />} onClick={() => setCenterTab('kpis')} />
                 <SegmentTab kind="map" id="center-tab-btn-map" label="Harita" active={centerTab === 'map'} icon={<Map className="w-3.5 h-3.5 text-sky-400" />} onClick={() => setCenterTab(prev => prev === 'map' ? 'kpis' : 'map')} />
               </SegmentGroup>
             </div>
@@ -1150,7 +1150,7 @@ export default function App() {
               
 
 
-              {/* HARİTA / 3D, İŞ-ZAMAN VEYA DİNAMİK KPI PROCESS VIEWS CONTAINER
+              {/* HARİTA / 3D, İŞ-ZAMAN VEYA GÖSTERGELER PROCESS VIEWS CONTAINER
                   flex-1 min-h-0 — üst panel küçültülüp büyütüldüğünde (gerçek
                   yüksekliği değişince) harita kartının sabit bir viewport
                   yüzdesi yerine `main`in (zaten flex flex-col h-full olan)
@@ -1235,7 +1235,7 @@ export default function App() {
                       <div className="flex-1">
                         <div className="flex flex-wrap items-center gap-3">
                           <h3 className="text-sm font-extrabold text-[var(--text-primary)] tracking-wide uppercase flex items-center gap-2">
-                            📈 DİNAMİK KPI & 6 AYLIK TARİHSEL TREND ANALİZİ
+                            📈 GÖSTERGELER & 6 AYLIK TARİHSEL TREND ANALİZİ
                           </h3>
                           <button
                             onClick={() => setKpiTrendCollapsed(!kpiTrendCollapsed)}

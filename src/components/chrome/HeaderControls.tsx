@@ -145,7 +145,7 @@ interface SegmentTabProps {
   id?: string;
 }
 
-/** "Dinamik KPI / Harita" segment düğmesi (alt satır ve daraltılmış üst çubuk). */
+/** "Göstergeler / Harita" segment düğmesi (alt satır ve daraltılmış üst çubuk). */
 export function SegmentTab({ kind, active, label, icon, onClick, compact, id }: SegmentTabProps) {
   const accent = kind === 'kpis' ? '#f59e0b' : '#38bdf8';
   const accentText = kind === 'kpis' ? '#fbbf24' : '#38bdf8';

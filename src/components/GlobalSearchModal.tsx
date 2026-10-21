@@ -187,7 +187,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
       },
       {
         id: 'nav-kpis',
-        title: 'Dinamik KPI ve Analitik Göstergeler',
+        title: 'Göstergeler ve Analitik',
         subtitle: 'Bütçe dağılımı, S-Eğrisi EVM performansı ve kritik yol analizleri',
         category: 'navigation',
         badge: 'Analiz',
