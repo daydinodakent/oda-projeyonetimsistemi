@@ -3340,7 +3340,7 @@
      sağ üstteki Analiz menüsünden "Görüntü Karşılaştırma" açılınca alttaki
      karşılaştırma çubuğuyla BİRLİKTE açılır/kapanır (bkz. setOrthoPanelOpen,
      compareSyncFromOg). ID'ler aynen korunduğu için og* mantığı değişmedi. -->
-<div id="orthoPanel" class="hidden">
+<div id="orthoPanel" class="hidden minimized">
   <div id="orthoPanelHeader">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M12 5v14"/><path d="M3 15l4-4 3 3"/><circle cx="16" cy="10" r="1.5"/></svg>
     <span class="op-title">Ortofoto — Zaman Serisi</span>
@@ -17139,8 +17139,11 @@
       document.getElementById('analizToolbarValue').textContent = OG_MODE_LABELS[mode] || '';
     }
   }
+  // Panel her açılışta küçültülmüş (yalnız başlık) gelir; başlıktaki okla büyütülür.
   function setOrthoPanelOpen(open){
-    document.getElementById('orthoPanel').classList.toggle('hidden', !open);
+    var panel = document.getElementById('orthoPanel');
+    if (open && panel.classList.contains('hidden')) panel.classList.add('minimized');
+    panel.classList.toggle('hidden', !open);
     if (open){
       ogOpenTab();
       compareSyncFromOg();
