@@ -867,6 +867,19 @@
   #orthoPanel.minimized #orthoPanelBody{display:none;}
   #orthoPanel.minimized #orthoPanelHeader{border-bottom:none;}
   #orthoPanelBody{overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:12px;}
+  /* Zaman serisi kartı (bkz. ogRenderAll) — 340 px'lik panele sığar. */
+  .og-row{display:flex;flex-direction:column;gap:5px;padding:7px 8px;border:1px solid var(--line);border-radius:2px;background:var(--bg-panel);}
+  .og-row-head{display:flex;align-items:center;gap:4px;min-width:0;}
+  .og-row-name{flex:1;min-width:0;font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .og-row-meta{font-size:10.5px;color:var(--text-dim);font-family:var(--font-mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .og-row-edit{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr) minmax(0,1fr);gap:5px;}
+  .og-row-edit label{display:flex;flex-direction:column;gap:2px;min-width:0;}
+  .og-row-edit label span{font-size:10px;color:var(--text-dim);}
+  .san-input.og-mini{padding:4px 6px;font-size:11.5px;min-width:0;}
+  .og-icon-btn{flex:0 0 auto;width:24px;height:24px;padding:0;display:flex;align-items:center;justify-content:center;background:var(--bg-panel-raise);border:1px solid var(--line);border-radius:3px;color:var(--text-dim);cursor:pointer;}
+  .og-icon-btn:hover{color:var(--text);border-color:var(--teal);}
+  .og-icon-btn.danger:hover{color:#ff5a4f;border-color:#ff5a4f;}
+  .og-icon-btn svg{width:13px;height:13px;}
   #analizToolbarIconWrap{flex:0 0 auto;display:flex;color:var(--teal);}
   #analizToolbarIconWrap svg{width:17px;height:17px;}
   #analizToolbarLabels{flex:0 0 auto;display:flex;flex-direction:column;line-height:1.3;width:82px;min-width:82px;}
@@ -9991,12 +10004,17 @@
     sa.innerHTML = opts; sb.innerHTML = opts;
     if (ogById(va)) sa.value = va; if (ogById(vb)) sb.value = vb;
     list.innerHTML = ogItems.length ? ogItems.map(function(it){
-      return '<div class="bm-row" style="flex-wrap:wrap;gap:4px;"><span style="flex:1;min-width:120px;"><b>' + santiyeEsc(it.tarih) + '</b> · ' + santiyeEsc(it.ad) +
-        '<br><span style="opacity:.65;font-size:11px;">tarih: ' + santiyeEsc(it.tarihKaynak || '') + ' · ' + it.w + '×' + it.h + ' px</span></span>' +
-        '<input type="date" class="san-input" style="width:128px;" data-og-date="' + it.id + '" value="' + it.tarih + '">' +
-        '<input type="number" class="san-input" style="width:74px;" title="Doğu öteleme (m)" placeholder="Doğu m" data-og-dx="' + it.id + '" value="' + it.dx + '" step="0.1">' +
-        '<input type="number" class="san-input" style="width:74px;" title="Kuzey öteleme (m)" placeholder="Kuzey m" data-og-dy="' + it.id + '" value="' + it.dy + '" step="0.1">' +
-        '<span class="btn" data-og-go="' + it.id + '">⌖</span><span class="btn" data-og-del="' + it.id + '">✕</span></div>';
+      // Dar panele sığan kart: üstte tarih + dosya adı ve simge düğmeler, altta tarih / doğu / kuzey öteleme
+      return '<div class="og-row">' +
+        '<div class="og-row-head"><div class="og-row-name" title="' + santiyeEsc(it.ad) + '"><b>' + santiyeEsc(it.tarih) + '</b> · ' + santiyeEsc(it.ad) + '</div>' +
+          '<button type="button" class="og-icon-btn" title="Görüntüye git" data-og-go="' + it.id + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="7"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg></button>' +
+          '<button type="button" class="og-icon-btn danger" title="Sil" data-og-del="' + it.id + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>' +
+        '<div class="og-row-meta">tarih: ' + santiyeEsc(it.tarihKaynak || '') + ' · ' + it.w + '×' + it.h + ' px</div>' +
+        '<div class="og-row-edit">' +
+          '<label><span>Tarih</span><input type="date" class="san-input og-mini" data-og-date="' + it.id + '" value="' + it.tarih + '"></label>' +
+          '<label title="Doğu öteleme (m)"><span>Doğu (m)</span><input type="number" class="san-input og-mini" data-og-dx="' + it.id + '" value="' + it.dx + '" step="0.1"></label>' +
+          '<label title="Kuzey öteleme (m)"><span>Kuzey (m)</span><input type="number" class="san-input og-mini" data-og-dy="' + it.id + '" value="' + it.dy + '" step="0.1"></label>' +
+        '</div></div>';
     }).join('') : '<div class="mj-info" style="margin:0;">Henüz görüntü yok.</div>';
     refreshCompareRasterOptions();
     function q(attr, fn){ Array.prototype.forEach.call(list.querySelectorAll('[' + attr + ']'), function(el){ fn(el, ogById(el.getAttribute(attr))); }); }
