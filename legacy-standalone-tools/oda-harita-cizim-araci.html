@@ -1213,6 +1213,7 @@
   .status-snap-btn.active{color:#ff5a4f;}
   .saha-toggle-btn.on{color:#2ee6c4;}
   .bim-view-toggle-btn.on{color:#2ee6c4;}
+  .status-panel-btn.on{color:#2ee6c4;}
   /* Durum çubuğundaki Saha (fotoğraf katmanı göster/gizle) düğmesi, diğer
      durum çubuğu simgelerinden biraz daha büyük gösterilir — sıkça
      kullanılan bir aç/kapa olduğundan tıklaması daha kolay olsun diye. */
@@ -1776,7 +1777,8 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s-7-6.5-7-11a7 7 0 0 1 14 0c0 4.5-7 11-7 11z"/><path d="M9.5 10.5h5M12 8v5"/></svg>
     <span>Şantiye</span>
   </button>
-  <button class="mod-btn" data-module="yerimi" data-tip="Yer İmleri">
+  <!-- Yer İmi ve Geçmiş sol çubukta gizli — durum çubuğunun en sağındaki ikonlardan açılır (bkz. statusBookmarkBtn / statusHistoryBtn). -->
+  <button class="mod-btn" data-module="yerimi" data-tip="Yer İmleri" style="display:none;">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h12v18l-6-4.5L6 21z"/></svg>
     <span>Yer İmi</span>
   </button>
@@ -1792,7 +1794,7 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M12 5v14"/><path d="M3 15l4-4 3 3"/><circle cx="16" cy="10" r="1.5"/></svg>
     <span>Ortofoto</span>
   </button>
-  <button class="mod-btn" data-module="gecmis" data-tip="Değişiklik geçmişi">
+  <button class="mod-btn" data-module="gecmis" data-tip="Değişiklik geçmişi" style="display:none;">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 7v5l3 2"/></svg>
     <span>Geçmiş</span>
   </button>
@@ -3463,6 +3465,10 @@
        Snap'e taşındı). Diğer butonların title'ları (yerel tarayıcı
        tooltip'i) korunuyor — hiçbiri kaldırılmadı. -->
   <span title="Yakınlaştırma"><svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><b id="stZoom">—</b></span>
+  <div class="div"></div>
+  <!-- Yer İmleri ve Değişiklik Geçmişi panelleri — sol çubuktan kaldırıldı, buradan açılır/kapanır. -->
+  <button id="statusBookmarkBtn" class="status-snap-btn status-panel-btn" data-module="yerimi" title="Yer İmleri"><svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3h12v18l-6-4.5L6 21z"/></svg></button>
+  <button id="statusHistoryBtn" class="status-snap-btn status-panel-btn" data-module="gecmis" title="Değişiklik Geçmişi"><svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 7v5l3 2"/></svg></button>
 </div>
 
 <div id="snapTolerancePopover">
@@ -11426,7 +11432,24 @@
     if (key === 'fourd' && typeof fdOpenTab === 'function') fdOpenTab();
     else if (typeof fdPickMode !== 'undefined' && fdPickMode && typeof fdSetPickMode === 'function') fdSetPickMode(false);
     if (key === 'gecmis' && typeof historyRequest === 'function') historyRequest();
+    syncStatusPanelButtons();
   }
+  // Durum çubuğundaki Yer İmi / Geçmiş ikonları: ilgili panel açıkken vurgulu.
+  var statusPanelButtons = Array.prototype.slice.call(document.querySelectorAll('.status-panel-btn[data-module]'));
+  function syncStatusPanelButtons(){
+    var open = !document.getElementById('panel').classList.contains('hidden');
+    statusPanelButtons.forEach(function(b){ b.classList.toggle('on', open && activeModule === b.getAttribute('data-module')); });
+  }
+  // Tıklama paneli o modülde açar; aynı panel zaten açıksa kenar çubuğunu kapatır.
+  statusPanelButtons.forEach(function(b){
+    b.addEventListener('click', function(){
+      var key = b.getAttribute('data-module');
+      var open = !document.getElementById('panel').classList.contains('hidden');
+      if (open && activeModule === key){ setSidebarOpen(false); return; }
+      setSidebarOpen(true);
+      setModule(key);
+    });
+  });
   moduleButtons.forEach(function(b){
     b.addEventListener('click', function(){
       var key = b.getAttribute('data-module');
@@ -11470,6 +11493,7 @@
     document.getElementById('moduleNav').classList.toggle('hidden', !open);
     document.getElementById('panel').classList.toggle('hidden', !open);
     document.getElementById('panelToggle').classList.toggle('hidden', open);
+    syncStatusPanelButtons();
   }
   document.getElementById('panelToggle').addEventListener('click', function(){ setSidebarOpen(true); });
   document.getElementById('panelCollapse').addEventListener('click', function(){ setSidebarOpen(false); });
