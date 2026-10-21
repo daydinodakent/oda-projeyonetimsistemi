@@ -276,6 +276,23 @@
   .layer-icon-btn:hover{background:#213e4e;color:var(--text);}
   .layer-icon-btn.del:hover{background:#3a1c18;color:var(--danger);}
   .layer-icon-btn svg{width:13px;height:13px;}
+  /* Harita > Kurumsal Altlık listesi ve ekleme penceresi (bkz. kurumsalRender/kaOpenModal) */
+  .ka-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+  .ka-list{display:flex;flex-direction:column;gap:5px;}
+  .ka-item .layer-row .layer-name{cursor:default;}
+  .ka-kind{flex:0 0 auto;font-family:var(--font-mono);font-size:9.5px;font-weight:700;letter-spacing:.3px;padding:1px 5px;border-radius:2px;background:#16313f;color:var(--teal);}
+  .ka-kind-kml,.ka-kind-geojson,.ka-kind-shp{background:#3a2a12;color:var(--amber);}
+  .ka-status{color:var(--text-dim);font-size:10.5px;}
+  .ka-op{display:flex;align-items:center;gap:8px;padding:4px 8px 2px 30px;font-size:10.5px;color:var(--text-dim);}
+  .ka-op input{flex:1;}
+  .ka-form{display:flex;flex-direction:column;gap:10px;}
+  .ka-form label{display:block;}
+  .ka-form .native-select{width:100%;}
+  .ka-row{display:flex;gap:8px;align-items:flex-end;}
+  .ka-row .native-select{flex:1;min-width:0;}
+  .ka-row .btn{flex:0 0 auto;white-space:nowrap;}
+  .ka-color{width:42px;height:30px;padding:0;border:1px solid var(--line);border-radius:2px;background:none;cursor:pointer;}
+  #kaStatus.warn{color:var(--amber);}
   /* Saha panelindeki "Yeni Klasör Ekle" — ağaç satırlarındaki küçük
      .layer-icon-btn'lerden farklı olarak, panel başlığında tek başına duran
      görünür bir eylem butonu olduğundan normal boyutlu (harita kümesi
@@ -1968,9 +1985,14 @@
     </div>
 
     <div class="subtabpage" data-subpage="kurumsal">
-      <div class="hint" style="border:1px dashed var(--line);border-radius:2px;padding:14px;margin-top:0;">
-        Kurumsal altlık entegrasyonu bu ortamda uygulanmadı.
+      <div class="ka-head">
+        <span class="field-label" style="margin:0;">Kurumsal Altlıklar</span>
+        <button type="button" class="layer-icon-btn" id="btnKurumsalAdd" title="Altlık ekle — WMS, WFS, XYZ, KML/KMZ, GeoJSON, SHP (süper kullanıcı)" style="display:none;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
       </div>
+      <div class="hint" style="border-top:none;padding-top:0;margin-bottom:8px;">Kurumun tüm kullanıcılarla paylaşılan altlıkları. İşaretleyerek kendi ekranınızda açıp kapatabilir, saydamlığını ayarlayabilirsiniz.</div>
+      <div id="kurumsalList" class="ka-list"></div>
     </div>
   </div>
 
@@ -3018,6 +3040,60 @@
 <!-- NetCAD (.ncz) içe aktarma: dosya ayrıştırıldıktan sonra açılır (bkz.
      openNczImportModal / importNczLayers). Seçilen her NetCAD katmanı,
      dosya adını taşıyan yeni bir klasörün altında ayrı bir katman olur. -->
+<!-- Harita > Kurumsal Altlık > + (süper kullanıcı): altlık ekle/düzenle — bkz. kaOpenModal/kaSubmit. -->
+<div class="modal-overlay" id="kurumsalModal">
+  <div class="modal-box tall" style="width:440px;max-width:calc(100vw - 40px);max-height:88vh;">
+    <div class="modal-header">
+      <div class="modal-title" id="kaModalTitle">Kurumsal Altlık Ekle</div>
+      <button type="button" class="modal-close-x" id="kaClose" title="Kapat">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body ka-form">
+      <label><span class="field-label">Ad</span><input type="text" id="kaName" class="native-select" maxlength="80" placeholder="ör. Kadastro parselleri"></label>
+      <label><span class="field-label">Tür</span>
+        <select id="kaKind" class="native-select">
+          <option value="wms">WMS — harita görüntü servisi</option>
+          <option value="wfs">WFS — vektör obje servisi</option>
+          <option value="xyz">XYZ — karo (tile) servisi</option>
+          <option value="kml">KML / KMZ dosyası</option>
+          <option value="geojson">GeoJSON dosyası</option>
+          <option value="shp">Shapefile (.zip ya da .shp + .dbf + .prj)</option>
+        </select>
+      </label>
+      <div id="kaServiceBox">
+        <label><span class="field-label" id="kaUrlLabel">Servis adresi</span><input type="url" id="kaUrl" class="native-select" placeholder="https://…/geoserver/wms"></label>
+        <div id="kaLayersRow" style="margin-top:10px;">
+          <span class="field-label">Katman</span>
+          <div class="ka-row">
+            <input type="text" id="kaLayers" class="native-select" placeholder="katman adı (WMS: virgülle birden çok)">
+            <div class="btn" id="kaFetchCaps" title="GetCapabilities ile katman listesini getir">Katmanları getir</div>
+          </div>
+          <select id="kaLayerPick" class="native-select" style="display:none;margin-top:6px;"></select>
+          <div class="ka-row" style="margin-top:6px;">
+            <label style="flex:1;"><span class="field-label">Sürüm</span><select id="kaVersion" class="native-select"><option>1.3.0</option><option>1.1.1</option></select></label>
+            <label style="flex:1;" id="kaFormatRow"><span class="field-label">Biçim</span><select id="kaFormat" class="native-select"><option value="image/png">PNG (saydam)</option><option value="image/jpeg">JPEG</option></select></label>
+          </div>
+        </div>
+      </div>
+      <div id="kaFileBox" style="display:none;">
+        <span class="field-label">Dosya</span>
+        <input type="file" id="kaFile" class="native-select" multiple>
+        <div class="geopdf-hint">KML/KMZ ve GeoJSON WGS84 olmalıdır (GeoJSON içinde "crs" varsa dönüştürülür). SHP, .prj ile birlikte seçilirse TM/UTM koordinatları otomatik dönüştürülür.</div>
+      </div>
+      <div class="ka-row">
+        <label style="flex:0 0 auto;" id="kaColorRow"><span class="field-label">Renk</span><input type="color" id="kaColor" value="#ff7a00" class="ka-color"></label>
+        <label style="flex:1;"><span class="field-label">Varsayılan saydamlık (%)</span><input type="range" id="kaOpacity" min="5" max="100" value="100" style="width:100%;"></label>
+      </div>
+      <div class="geopdf-hint" id="kaStatus"></div>
+    </div>
+    <div class="modal-actions">
+      <div class="btn" id="kaCancel">Vazgeç</div>
+      <div class="btn primary" id="kaSave">Kaydet</div>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="nczImportModal">
   <div class="modal-box tall" style="width:460px;max-width:calc(100vw - 40px);max-height:85vh;">
     <div class="modal-header">
@@ -4774,6 +4850,7 @@
 
   map.on('load', function(){
     setupLayers();
+    if (typeof kurumsalRedraw === 'function') kurumsalRedraw();
     document.getElementById('stZoom').textContent = Math.round(map.getZoom());
     refreshPanel();
     restoreSessionFromLocalStorage();
@@ -8899,6 +8976,503 @@
     }
   });
   bmRender();
+
+  // ---------------------------------------------------------------------
+  // KURUMSAL ALTLIK — kurumun tüm kullanıcılarla paylaşılan altlıkları
+  // (sunucu: tb_kurumsal_altliklar, üst uygulama OdaMapModule üzerinden).
+  // Servisler (WMS/WFS/XYZ) adresiyle, dosyalar (KML/KMZ, GeoJSON, SHP) ise
+  // tarayıcıda WGS84 GeoJSON'a çevrilip saklanır. Ekleme/düzenleme/silme
+  // yalnızca süper kullanıcıda (oda:user-meta) görünür; her kullanıcı
+  // altlıkları kendi ekranında açıp kapatır ve saydamlığını ayarlar
+  // (localStorage). Altlıklar temel haritanın hemen üstünde, çizimlerin
+  // altında çizilir (bkz. kurumsalRedraw — 'shadow-layer' öncesine eklenir).
+  // ---------------------------------------------------------------------
+  var kurumsalItems = [];
+  var odaUserRole = null;
+  var KA_VIEW_KEY = 'oda_kurumsal_gorunum';
+  var KA_KIND_LABEL = { wms:'WMS', wfs:'WFS', xyz:'XYZ', kml:'KML', geojson:'GeoJSON', shp:'SHP' };
+  var KA_FILE_KINDS = ['kml', 'geojson', 'shp'];
+  var kaWfsCache = {};          // id → { fc } | { loading } | { error }
+  var kaErrorShown = {};        // id → true (karo hatası bir kez bildirilir)
+  var kaEditingId = null;
+  var kaPendingData = null;     // seçilen dosyadan dönüştürülmüş FeatureCollection
+  var kaView = (function(){
+    try{ return JSON.parse(localStorage.getItem(KA_VIEW_KEY) || '{}') || {}; }catch(err){ return {}; }
+  })();
+  function kaSaveView(){ try{ localStorage.setItem(KA_VIEW_KEY, JSON.stringify(kaView)); }catch(err){ /* yoksay */ } }
+  function kaIsSuper(){ return odaUserRole === 'super_user'; }
+  function kaOn(it){ return !!(kaView[it.id] && kaView[it.id].on); }
+  function kaOpacity(it){
+    var v = kaView[it.id] && kaView[it.id].op;
+    return v != null ? v : (it.opacity != null ? it.opacity : 1);
+  }
+  function kaIsRaster(it){ return it.kind === 'wms' || it.kind === 'xyz'; }
+
+  // Servis adresindeki SERVICE/REQUEST vb. parametreler temizlenip yeniden eklenir.
+  function kaServiceUrl(base, params){
+    var u;
+    try{ u = new URL(base); }catch(err){ return null; }
+    var drop = {};
+    Object.keys(params).forEach(function(k){ drop[k.toLowerCase()] = true; });
+    Array.from(u.searchParams.keys()).forEach(function(k){ if (drop[k.toLowerCase()]) u.searchParams.delete(k); });
+    Object.keys(params).forEach(function(k){ if (params[k] != null) u.searchParams.set(k, params[k]); });
+    return u.toString();
+  }
+  function kaWmsTileUrl(it){
+    var v = it.version || '1.3.0';
+    var p = { SERVICE:'WMS', REQUEST:'GetMap', VERSION:v, LAYERS:it.layers, STYLES:'', FORMAT:it.format || 'image/png',
+      TRANSPARENT:'TRUE', WIDTH:'256', HEIGHT:'256' };
+    p[v === '1.3.0' ? 'CRS' : 'SRS'] = 'EPSG:3857';
+    var url = kaServiceUrl(it.url, p);
+    // {bbox-epsg-3857} MapLibre'nin karo başına doldurduğu yer tutucu — kodlanmamalı
+    return url ? url + '&BBOX={bbox-epsg-3857}' : null;
+  }
+  function kaWfsUrl(it){
+    var v = it.version || '2.0.0';
+    var p = { SERVICE:'WFS', REQUEST:'GetFeature', VERSION:v, OUTPUTFORMAT:'application/json', SRSNAME:'EPSG:4326' };
+    if (v.indexOf('2.') === 0){ p.TYPENAMES = it.layers; p.COUNT = '10000'; }
+    else { p.TYPENAME = it.layers; p.MAXFEATURES = '10000'; }
+    return kaServiceUrl(it.url, p);
+  }
+
+  // ---- koordinat dönüşümü (dosyalar ve WFS) ----
+  function kaEachCoord(fc, fn){
+    function walk(c){ if (typeof c[0] === 'number') return fn(c); return c.map(walk); }
+    fc.features.forEach(function(f){
+      if (!f.geometry) return;
+      if (f.geometry.type === 'GeometryCollection') (f.geometry.geometries || []).forEach(function(g){ g.coordinates = walk(g.coordinates); });
+      else f.geometry.coordinates = walk(f.geometry.coordinates);
+    });
+    return fc;
+  }
+  function kaSampleCoords(fc){
+    var out = [];
+    fc.features.some(function(f){
+      if (!f.geometry) return false;
+      var c = f.geometry.coordinates;
+      while (c && Array.isArray(c[0])) c = c[0];
+      if (c && typeof c[0] === 'number') out.push(c);
+      return out.length >= 50;
+    });
+    return out;
+  }
+  function kaLooksProjected(fc){
+    return kaSampleCoords(fc).some(function(c){ return Math.abs(c[0]) > 180 || Math.abs(c[1]) > 90; });
+  }
+  function kaReproject(fc, fromDef){
+    var conv = proj4(fromDef, 'EPSG:4326');
+    return kaEachCoord(fc, function(c){ var p = conv.forward([c[0], c[1]]); return c.length > 2 ? [p[0], p[1], c[2]] : [p[0], p[1]]; });
+  }
+  // WFS EPSG:4326 eksen sırası bazı sunucularda enlem,boylam döner — Türkiye
+  // gibi |boylam| > 90 olmayan yerlerde ayırt edilemez; yalnızca açık durumda çevrilir.
+  function kaFixAxisOrder(fc){
+    var s = kaSampleCoords(fc);
+    if (s.length && s.every(function(c){ return Math.abs(c[0]) <= 90; }) && s.some(function(c){ return Math.abs(c[1]) > 90; })){
+      kaEachCoord(fc, function(c){ var t = c.slice(); t[0] = c[1]; t[1] = c[0]; return t; });
+    }
+    return fc;
+  }
+  function kaFeatureCollection(feats){
+    var list = (feats || []).filter(function(f){ return f && f.geometry && f.geometry.coordinates; }).map(function(f){
+      return { type:'Feature', geometry: f.geometry, properties: f.properties || {} };
+    });
+    return { type:'FeatureCollection', features: list };
+  }
+  function kaBbox(fc){ try{ var b = turf.bbox(fc); return b.every(isFinite) ? b : null; }catch(err){ return null; } }
+
+  // Dosya(lar) → WGS84 FeatureCollection. SHP: .zip (shp+dbf+prj) ya da
+  // birlikte seçilen .shp/.dbf/.prj; .prj varsa proj4 ile dönüştürülür.
+  async function kaReadFiles(kind, files){
+    if (!files.length) throw new Error('Dosya seçin.');
+    var fc, crsDef = null;
+    if (kind === 'kml'){
+      var f = files[0];
+      fc = kaFeatureCollection(/\.kmz$/i.test(f.name) ? await parseKMZ(await f.arrayBuffer()) : parseKML(await f.text()));
+    } else if (kind === 'geojson'){
+      var gj = JSON.parse(await files[0].text());
+      fc = gj.type === 'FeatureCollection' ? kaFeatureCollection(gj.features) : gj.type === 'Feature' ? kaFeatureCollection([gj]) : kaFeatureCollection([{ geometry: gj }]);
+      var crsName = gj.crs && gj.crs.properties && gj.crs.properties.name;
+      var m = crsName && String(crsName).match(/EPSG:{1,2}(\d+)/i);
+      if (m && m[1] !== '4326' && m[1] !== '4979') crsDef = cityGmlProjDef(parseInt(m[1], 10));
+    } else {
+      var shpBuf = null, dbfBuf = null, prjText = null;
+      var zipFile = files.find(function(x){ return /\.zip$/i.test(x.name); });
+      if (zipFile){
+        var zip = await JSZip.loadAsync(await zipFile.arrayBuffer());
+        var entries = [];
+        zip.forEach(function(p, e){ entries.push([p, e]); });
+        for (var i = 0; i < entries.length; i++){
+          var p = entries[i][0], e = entries[i][1];
+          if (!shpBuf && /\.shp$/i.test(p)) shpBuf = await e.async('arraybuffer');
+          else if (!dbfBuf && /\.dbf$/i.test(p)) dbfBuf = await e.async('arraybuffer');
+          else if (!prjText && /\.prj$/i.test(p)) prjText = await e.async('string');
+        }
+      } else {
+        var shp = files.find(function(x){ return /\.shp$/i.test(x.name); });
+        var dbf = files.find(function(x){ return /\.dbf$/i.test(x.name); });
+        var prj = files.find(function(x){ return /\.prj$/i.test(x.name); });
+        if (shp) shpBuf = await shp.arrayBuffer();
+        if (dbf) dbfBuf = await dbf.arrayBuffer();
+        if (prj) prjText = await prj.text();
+      }
+      if (!shpBuf) throw new Error('.shp bulunamadı (.zip içinde ya da birlikte seçilmeli).');
+      var feats = parseSHP(shpBuf);
+      if (dbfBuf){
+        try{ var recs = parseDBF(dbfBuf); feats.forEach(function(ft, k){ if (recs[k]) ft.properties = recs[k]; }); }catch(err){ /* öznitelikler okunamadı */ }
+      }
+      fc = kaFeatureCollection(feats);
+      if (prjText && !/^\s*GEOGCS/i.test(prjText)) crsDef = prjText;
+    }
+    if (!fc.features.length) throw new Error('Dosyada gösterilebilir geometri bulunamadı.');
+    if (crsDef) fc = kaReproject(fc, crsDef);
+    else if (kaLooksProjected(fc)) throw new Error('Koordinatlar projeksiyonlu görünüyor ama koordinat sistemi bilgisi yok (SHP için .prj ekleyin, GeoJSON için WGS84 kullanın).');
+    return fc;
+  }
+
+  // ---- harita katmanları ----
+  function kaLayerIds(id){ return ['kurumsal-' + id + '-raster', 'kurumsal-' + id + '-fill', 'kurumsal-' + id + '-line', 'kurumsal-' + id + '-circle']; }
+  function kurumsalRedraw(){
+    if (!map || !map.getStyle || !map.getStyle()) return;
+    (map.getStyle().layers || []).forEach(function(l){ if (l.id.indexOf('kurumsal-') === 0) map.removeLayer(l.id); });
+    Object.keys(map.getStyle().sources || {}).forEach(function(s){ if (s.indexOf('kurumsal-') === 0) map.removeSource(s); });
+    var before = map.getLayer('shadow-layer') ? 'shadow-layer' : undefined;
+    // Listede üstteki altlık haritada da üstte: alttan üste doğru eklenir.
+    kurumsalItems.slice().reverse().forEach(function(it){ if (kaOn(it)) kaAddToMap(it, before); });
+  }
+  function kaAddToMap(it, before){
+    var src = 'kurumsal-' + it.id, op = kaOpacity(it);
+    try{
+      if (kaIsRaster(it)){
+        var tile = it.kind === 'wms' ? kaWmsTileUrl(it) : it.url;
+        if (!tile) return;
+        map.addSource(src, { type:'raster', tiles:[tile], tileSize:256 });
+        map.addLayer({ id: src + '-raster', type:'raster', source: src, paint:{ 'raster-opacity': op, 'raster-fade-duration': 0 } }, before);
+        return;
+      }
+      var data = it.kind === 'wfs' ? (kaWfsCache[it.id] && kaWfsCache[it.id].fc) : it.data;
+      map.addSource(src, { type:'geojson', data: data || { type:'FeatureCollection', features: [] } });
+      var color = it.color || '#ff7a00';
+      var POLY = ['in', ['geometry-type'], ['literal', ['Polygon', 'MultiPolygon']]];
+      var LINE = ['in', ['geometry-type'], ['literal', ['LineString', 'MultiLineString', 'Polygon', 'MultiPolygon']]];
+      var PT = ['in', ['geometry-type'], ['literal', ['Point', 'MultiPoint']]];
+      map.addLayer({ id: src + '-fill', type:'fill', source: src, filter: POLY, paint:{ 'fill-color': color, 'fill-opacity': 0.22 * op } }, before);
+      map.addLayer({ id: src + '-line', type:'line', source: src, filter: LINE, paint:{ 'line-color': color, 'line-width': 1.6, 'line-opacity': op } }, before);
+      map.addLayer({ id: src + '-circle', type:'circle', source: src, filter: PT, paint:{ 'circle-radius': 4, 'circle-color': color, 'circle-opacity': op, 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 1, 'circle-stroke-opacity': op } }, before);
+      if (it.kind === 'wfs' && !kaWfsCache[it.id]) kaLoadWfs(it);
+    }catch(err){ console.error('Kurumsal altlık eklenemedi (' + it.name + '):', err); }
+  }
+  function kaSetOpacity(it){
+    var op = kaOpacity(it), ids = kaLayerIds(it.id);
+    if (map.getLayer(ids[0])) map.setPaintProperty(ids[0], 'raster-opacity', op);
+    if (map.getLayer(ids[1])) map.setPaintProperty(ids[1], 'fill-opacity', 0.22 * op);
+    if (map.getLayer(ids[2])) map.setPaintProperty(ids[2], 'line-opacity', op);
+    if (map.getLayer(ids[3])){ map.setPaintProperty(ids[3], 'circle-opacity', op); map.setPaintProperty(ids[3], 'circle-stroke-opacity', op); }
+  }
+  function kaLoadWfs(it){
+    kaWfsCache[it.id] = { loading: true };
+    kurumsalRender();
+    var url = kaWfsUrl(it);
+    fetch(url).then(function(r){
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    }).then(function(gj){
+      var fc = kaFixAxisOrder(kaFeatureCollection(gj.features || []));
+      if (kaLooksProjected(fc)) throw new Error('sunucu WGS84 döndürmedi');
+      kaWfsCache[it.id] = { fc: fc };
+      var s = map.getSource('kurumsal-' + it.id);
+      if (s && s.setData) s.setData(fc);
+      kurumsalRender();
+    }).catch(function(err){
+      kaWfsCache[it.id] = { error: err.message || String(err) };
+      kurumsalRender();
+      showToast('"' + it.name + '" WFS verisi alınamadı: ' + (err.message || err) + ' (adres, katman adı ya da sunucunun tarayıcı erişim izni — CORS).');
+    });
+  }
+  // WMS/XYZ karoları yüklenemezse (yanlış adres, CORS) bir kez bildirilir.
+  map.on('error', function(e){
+    var sid = e && e.sourceId;
+    if (!sid || sid.indexOf('kurumsal-') !== 0) return;
+    var id = sid.slice('kurumsal-'.length);
+    if (kaErrorShown[id]) return;
+    kaErrorShown[id] = true;
+    var it = kurumsalItems.find(function(x){ return String(x.id) === id; });
+    showToast('"' + (it ? it.name : id) + '" altlığının karoları yüklenemedi — servis adresini/katman adını ya da sunucunun tarayıcı erişim iznini (CORS) kontrol edin.');
+  });
+  function kaZoomTo(it){
+    var b = it.bbox;
+    if (!b && it.kind === 'wfs' && kaWfsCache[it.id] && kaWfsCache[it.id].fc) b = kaBbox(kaWfsCache[it.id].fc);
+    if (!b && it.data) b = kaBbox(it.data);
+    if (!b){ showToast('Bu altlığın kapsama alanı bilinmiyor.'); return; }
+    map.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding: 40, duration: 600, maxZoom: 18 });
+  }
+
+  // ---- liste ----
+  function kurumsalRender(){
+    var list = document.getElementById('kurumsalList');
+    document.getElementById('btnKurumsalAdd').style.display = kaIsSuper() ? '' : 'none';
+    if (!kurumsalItems.length){
+      list.innerHTML = '<div class="hint" style="border-top:none;padding-top:0;">Henüz kurumsal altlık yok.' + (kaIsSuper() ? ' <b>+</b> ile WMS, WFS, XYZ servisi ya da KML/KMZ, GeoJSON, SHP dosyası ekleyebilirsiniz.' : '') + '</div>';
+      return;
+    }
+    list.innerHTML = kurumsalItems.map(function(it){
+      var on = kaOn(it), st = it.kind === 'wfs' ? kaWfsCache[it.id] : null;
+      var status = st && st.loading ? ' · yükleniyor…' : st && st.error ? ' · hata' : '';
+      var canZoom = !!(it.bbox || it.data || it.kind === 'wfs');
+      return '<div class="ka-item" data-ka="' + santiyeEsc(it.id) + '">' +
+        '<div class="layer-row">' +
+          '<input type="checkbox" class="ka-on"' + (on ? ' checked' : '') + ' title="Haritada göster">' +
+          '<span class="ka-kind ka-kind-' + it.kind + '">' + KA_KIND_LABEL[it.kind] + '</span>' +
+          '<span class="layer-name" title="' + santiyeEsc(it.name + (it.url ? ' — ' + it.url : '')) + '">' + santiyeEsc(it.name) + '<span class="ka-status">' + status + '</span></span>' +
+          (canZoom ? '<button type="button" class="layer-icon-btn ka-zoom" title="Yakınlaş"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3M11 8v6M8 11h6"/></svg></button>' : '') +
+          (kaIsSuper() ? '<button type="button" class="layer-icon-btn ka-edit" title="Düzenle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20l4-1 11-11-3-3L5 16l-1 4z"/></svg></button>' +
+            '<button type="button" class="layer-icon-btn del ka-del" title="Sil"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></button>' : '') +
+        '</div>' +
+        (on ? '<div class="ka-op"><span>Saydamlık</span><input type="range" class="ka-op-range" min="5" max="100" value="' + Math.round(kaOpacity(it) * 100) + '"></div>' : '') +
+      '</div>';
+    }).join('');
+  }
+  document.getElementById('kurumsalList').addEventListener('input', function(e){
+    if (!e.target.classList.contains('ka-op-range')) return;
+    var it = kaItemOf(e.target);
+    if (!it) return;
+    kaView[it.id] = kaView[it.id] || {};
+    kaView[it.id].op = parseInt(e.target.value, 10) / 100;
+    kaSaveView();
+    kaSetOpacity(it);
+  });
+  document.getElementById('kurumsalList').addEventListener('change', function(e){
+    if (!e.target.classList.contains('ka-on')) return;
+    var it = kaItemOf(e.target);
+    if (!it) return;
+    kaView[it.id] = kaView[it.id] || {};
+    kaView[it.id].on = e.target.checked;
+    kaSaveView();
+    if (e.target.checked && it.kind === 'wfs' && kaWfsCache[it.id] && kaWfsCache[it.id].error) delete kaWfsCache[it.id];
+    if (e.target.checked) delete kaErrorShown[it.id];
+    kurumsalRedraw();
+    kurumsalRender();
+  });
+  document.getElementById('kurumsalList').addEventListener('click', function(e){
+    var btn = e.target.closest('button');
+    if (!btn) return;
+    var it = kaItemOf(btn);
+    if (!it) return;
+    if (btn.classList.contains('ka-zoom')) kaZoomTo(it);
+    else if (btn.classList.contains('ka-edit')) kaOpenModal(it);
+    else if (btn.classList.contains('ka-del')){
+      showCustomDialog({ message: '"' + it.name + '" kurumsal altlığı tüm kullanıcılar için silinsin mi?', title: 'Kurumsal Altlık', okLabel: 'Sil', danger: true }).then(function(ok){
+        if (ok) window.parent.postMessage({ type: 'oda:kurumsal-delete', id: it.id }, '*');
+      });
+    }
+  });
+  function kaItemOf(el){
+    var row = el.closest('[data-ka]');
+    var id = row && row.getAttribute('data-ka');
+    return kurumsalItems.find(function(x){ return String(x.id) === id; }) || null;
+  }
+
+  // ---- ekle/düzenle penceresi ----
+  var KA_ACCEPT = { kml:'.kml,.kmz', geojson:'.geojson,.json', shp:'.zip,.shp,.dbf,.prj' };
+  function kaModalSync(){
+    var kind = document.getElementById('kaKind').value;
+    var isFile = KA_FILE_KINDS.indexOf(kind) >= 0;
+    document.getElementById('kaServiceBox').style.display = isFile ? 'none' : '';
+    document.getElementById('kaFileBox').style.display = isFile ? '' : 'none';
+    document.getElementById('kaLayersRow').style.display = (kind === 'wms' || kind === 'wfs') ? '' : 'none';
+    document.getElementById('kaFormatRow').style.display = kind === 'wms' ? '' : 'none';
+    document.getElementById('kaColorRow').style.display = kaIsRaster({ kind: kind }) ? 'none' : '';
+    document.getElementById('kaFile').setAttribute('accept', KA_ACCEPT[kind] || '');
+    var ver = document.getElementById('kaVersion'), want = kind === 'wfs' ? ['2.0.0', '1.1.0'] : ['1.3.0', '1.1.1'];
+    if (want.indexOf(ver.value) < 0){ ver.innerHTML = want.map(function(v){ return '<option>' + v + '</option>'; }).join(''); }
+    document.getElementById('kaUrl').placeholder = kind === 'xyz' ? 'https://…/{z}/{x}/{y}.png' : 'https://…/geoserver/wms';
+    document.getElementById('kaUrlLabel').textContent = kind === 'xyz' ? 'Karo adresi ({z}/{x}/{y})' : 'Servis adresi';
+  }
+  function kaOpenModal(it){
+    kaEditingId = it ? it.id : null;
+    kaPendingData = null;
+    document.getElementById('kaModalTitle').textContent = it ? 'Kurumsal Altlığı Düzenle' : 'Kurumsal Altlık Ekle';
+    document.getElementById('kaName').value = it ? it.name : '';
+    document.getElementById('kaKind').value = it ? it.kind : 'wms';
+    document.getElementById('kaKind').disabled = !!it;
+    document.getElementById('kaUrl').value = it && it.url ? it.url : '';
+    document.getElementById('kaLayers').value = it && it.layers ? it.layers : '';
+    document.getElementById('kaFormat').value = it && it.format ? it.format : 'image/png';
+    document.getElementById('kaColor').value = it && it.color ? it.color : '#ff7a00';
+    document.getElementById('kaOpacity').value = Math.round(((it && it.opacity) || 1) * 100);
+    document.getElementById('kaFile').value = '';
+    document.getElementById('kaLayerPick').innerHTML = '';
+    document.getElementById('kaLayerPick').style.display = 'none';
+    kaModalSync();
+    if (it && it.version) document.getElementById('kaVersion').value = it.version;
+    kaStatus(it && KA_FILE_KINDS.indexOf(it.kind) >= 0 ? 'Mevcut veri: ' + ((it.data && it.data.features) || []).length + ' obje. Değiştirmek için yeni dosya seçin.' : '');
+    document.getElementById('kurumsalModal').classList.add('show');
+    setTimeout(function(){ document.getElementById('kaName').focus(); }, 30);
+  }
+  function kaCloseModal(){ document.getElementById('kurumsalModal').classList.remove('show'); kaEditingId = null; kaPendingData = null; }
+  function kaStatus(text, warn){
+    var el = document.getElementById('kaStatus');
+    el.textContent = text || '';
+    el.classList.toggle('warn', !!warn);
+  }
+  // GetCapabilities: katman listesini ve (varsa) WGS84 kapsamını getirir.
+  var kaCapsBbox = {};
+  async function kaFetchCapabilities(){
+    var kind = document.getElementById('kaKind').value, base = document.getElementById('kaUrl').value.trim();
+    if (!/^https?:\/\//i.test(base)){ kaStatus('Önce geçerli bir servis adresi girin.', true); return; }
+    kaStatus('Katmanlar alınıyor…');
+    try{
+      var url = kaServiceUrl(base, { SERVICE: kind.toUpperCase(), REQUEST: 'GetCapabilities' });
+      var r = await fetch(url);
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      var xml = new DOMParser().parseFromString(await r.text(), 'text/xml');
+      if (xml.getElementsByTagName('parsererror').length) throw new Error('yanıt XML değil');
+      var ver = xml.documentElement.getAttribute('version');
+      if (ver && Array.prototype.some.call(document.getElementById('kaVersion').options, function(o){ return o.value === ver; })) document.getElementById('kaVersion').value = ver;
+      function child(el, name){ return Array.prototype.find.call(el.children, function(c){ return c.localName === name; }); }
+      var out = [];
+      kaCapsBbox = {};
+      var nodes = xml.getElementsByTagNameNS('*', kind === 'wms' ? 'Layer' : 'FeatureType');
+      Array.prototype.forEach.call(nodes, function(n){
+        var nm = child(n, 'Name'), tt = child(n, 'Title');
+        if (!nm || !nm.textContent.trim()) return;
+        var name = nm.textContent.trim();
+        out.push({ name: name, title: tt ? tt.textContent.trim() : name });
+        var gb = child(n, 'EX_GeographicBoundingBox');
+        if (gb){
+          var v = ['westBoundLongitude','southBoundLatitude','eastBoundLongitude','northBoundLatitude'].map(function(k){ var e = child(gb, k); return e ? parseFloat(e.textContent) : NaN; });
+          if (v.every(isFinite)) kaCapsBbox[name] = v;
+        }
+        var ll = child(n, 'LatLonBoundingBox');
+        if (ll){
+          var v2 = ['minx','miny','maxx','maxy'].map(function(k){ return parseFloat(ll.getAttribute(k)); });
+          if (v2.every(isFinite)) kaCapsBbox[name] = v2;
+        }
+        var wb = child(n, 'WGS84BoundingBox');
+        if (wb){
+          var lc = child(wb, 'LowerCorner'), uc = child(wb, 'UpperCorner');
+          if (lc && uc){
+            var a = lc.textContent.trim().split(/\s+/).map(Number), b = uc.textContent.trim().split(/\s+/).map(Number);
+            if (a.concat(b).every(isFinite)) kaCapsBbox[name] = [a[0], a[1], b[0], b[1]];
+          }
+        }
+      });
+      if (!out.length) throw new Error('adlandırılmış katman bulunamadı');
+      var pick = document.getElementById('kaLayerPick');
+      pick.innerHTML = '<option value="">— katman seçin (' + out.length + ') —</option>' + out.map(function(o){
+        return '<option value="' + santiyeEsc(o.name) + '">' + santiyeEsc(o.title === o.name ? o.name : o.title + ' (' + o.name + ')') + '</option>';
+      }).join('');
+      pick.style.display = '';
+      kaStatus(out.length + ' katman bulundu — listeden seçin ya da katman adını yazın.');
+    }catch(err){
+      kaStatus('Katmanlar alınamadı: ' + (err.message || err) + '. Adres doğruysa sunucu tarayıcı erişimine (CORS) kapalı olabilir; katman adını elle yazabilirsiniz.', true);
+    }
+  }
+  document.getElementById('kaLayerPick').addEventListener('change', function(){
+    if (!this.value) return;
+    var kind = document.getElementById('kaKind').value, inp = document.getElementById('kaLayers');
+    // WMS birden çok katmanı virgülle birleştirebilir; WFS tek tür adı alır.
+    if (kind === 'wms' && inp.value.trim() && inp.value.split(',').indexOf(this.value) < 0) inp.value = inp.value.trim() + ',' + this.value;
+    else inp.value = this.value;
+    if (!document.getElementById('kaName').value.trim()) document.getElementById('kaName').value = this.options[this.selectedIndex].textContent.replace(/\s*\([^)]*\)\s*$/, '');
+  });
+  document.getElementById('kaFile').addEventListener('change', async function(){
+    kaPendingData = null;
+    var files = Array.prototype.slice.call(this.files || []);
+    if (!files.length) return;
+    kaStatus('Dosya okunuyor…');
+    try{
+      kaPendingData = await kaReadFiles(document.getElementById('kaKind').value, files);
+      var size = JSON.stringify(kaPendingData).length;
+      if (size > 20 * 1024 * 1024) throw new Error('dönüştürülen veri ' + (size / 1048576).toFixed(1) + ' MB — en çok 20 MB olabilir; dosyayı sadeleştirin.');
+      if (!document.getElementById('kaName').value.trim()) document.getElementById('kaName').value = files[0].name.replace(/\.[^.]+$/, '');
+      kaStatus(kaPendingData.features.length.toLocaleString('tr-TR') + ' obje okundu (' + (size / 1048576).toFixed(2) + ' MB).');
+    }catch(err){
+      kaPendingData = null;
+      kaStatus('Dosya okunamadı: ' + (err.message || err), true);
+    }
+  });
+  function kaSubmit(){
+    var kind = document.getElementById('kaKind').value;
+    var old = kaEditingId ? kurumsalItems.find(function(x){ return x.id === kaEditingId; }) : null;
+    var item = {
+      id: kaEditingId || undefined,
+      name: document.getElementById('kaName').value.trim(),
+      kind: kind,
+      opacity: parseInt(document.getElementById('kaOpacity').value, 10) / 100,
+      sira: old ? old.sira : (kurumsalItems.reduce(function(m, x){ return Math.min(m, Number(x.sira) || 0); }, 0) - 1)
+    };
+    if (!item.name){ kaStatus('Altlık adı zorunludur.', true); return; }
+    if (KA_FILE_KINDS.indexOf(kind) >= 0){
+      var data = kaPendingData || (old && old.data);
+      if (!data){ kaStatus('Bir dosya seçin.', true); return; }
+      item.data = data;
+      item.bbox = kaBbox(data);
+      item.color = document.getElementById('kaColor').value;
+    } else {
+      item.url = document.getElementById('kaUrl').value.trim();
+      if (!/^https?:\/\//i.test(item.url)){ kaStatus('Geçerli bir http(s) adresi girin.', true); return; }
+      if (kind === 'xyz'){
+        if (!/\{z\}/.test(item.url) || !/\{x\}/.test(item.url) || !/\{y\}/.test(item.url)){ kaStatus('XYZ adresi {z}, {x} ve {y} içermelidir.', true); return; }
+      } else {
+        item.layers = document.getElementById('kaLayers').value.trim();
+        if (!item.layers){ kaStatus('Katman adı zorunludur — "Katmanları getir" ile seçebilirsiniz.', true); return; }
+        item.version = document.getElementById('kaVersion').value;
+        var names = item.layers.split(',');
+        var bbs = names.map(function(n){ return kaCapsBbox[n.trim()]; }).filter(Boolean);
+        item.bbox = bbs.length ? [Math.min.apply(null, bbs.map(function(b){ return b[0]; })), Math.min.apply(null, bbs.map(function(b){ return b[1]; })),
+          Math.max.apply(null, bbs.map(function(b){ return b[2]; })), Math.max.apply(null, bbs.map(function(b){ return b[3]; }))] : (old ? old.bbox : null);
+      }
+      if (kind === 'wms') item.format = document.getElementById('kaFormat').value;
+      if (kind === 'wfs') item.color = document.getElementById('kaColor').value;
+    }
+    kaStatus('Kaydediliyor…');
+    document.getElementById('kaSave').classList.add('disabled');
+    // Yeni eklenen altlık ekleyen kişide hemen açık gelir (sonuç gelince işaretlenir).
+    kaJustSaved = { name: item.name, id: kaEditingId };
+    window.parent.postMessage({ type: 'oda:kurumsal-save', item: item }, '*');
+  }
+  var kaJustSaved = null;       // { name, id } — kaydın sonucu liste güncellenince işlenir
+  document.getElementById('btnKurumsalAdd').addEventListener('click', function(){ kaOpenModal(null); });
+  document.getElementById('kaKind').addEventListener('change', function(){ kaPendingData = null; document.getElementById('kaFile').value = ''; kaStatus(''); kaModalSync(); });
+  document.getElementById('kaFetchCaps').addEventListener('click', kaFetchCapabilities);
+  document.getElementById('kaSave').addEventListener('click', kaSubmit);
+  document.getElementById('kaCancel').addEventListener('click', kaCloseModal);
+  document.getElementById('kaClose').addEventListener('click', kaCloseModal);
+
+  window.addEventListener('message', function(e){
+    var msg = e.data;
+    if (!msg) return;
+    if (msg.type === 'oda:user-meta'){
+      odaUserRole = msg.role || null;
+      kurumsalRender();
+    } else if (msg.type === 'oda:kurumsal-updated' && Array.isArray(msg.items)){
+      if (kaJustSaved){
+        if (kaJustSaved.id){
+          // Düzenlenen altlığın önbelleği tazelenir (adres/katman değişmiş olabilir).
+          delete kaWfsCache[kaJustSaved.id]; delete kaErrorShown[kaJustSaved.id];
+        } else {
+          var saved = kaJustSaved;
+          var hit = msg.items.find(function(x){ return x.name === saved.name && !kurumsalItems.some(function(o){ return o.id === x.id; }); });
+          if (hit){ kaView[hit.id] = { on: true }; kaSaveView(); }
+        }
+        kaJustSaved = null;
+      }
+      kurumsalItems = msg.items;
+      kurumsalRender();
+      kurumsalRedraw();
+    } else if (msg.type === 'oda:kurumsal-result'){
+      document.getElementById('kaSave').classList.remove('disabled');
+      if (msg.ok){
+        if (msg.op === 'oda:kurumsal-save'){ kaCloseModal(); showToast('Kurumsal altlık kaydedildi — tüm kullanıcılar görebilir.'); }
+        else showToast('Kurumsal altlık silindi.');
+      } else {
+        kaJustSaved = null;
+        if (document.getElementById('kurumsalModal').classList.contains('show')) kaStatus(msg.error || 'Kaydedilemedi.', true);
+        else showToast('Kurumsal altlık işlemi başarısız: ' + (msg.error || 'bilinmeyen hata'));
+      }
+    }
+  });
+  kurumsalRender();
 
   // ---------------------------------------------------------------------
   // PAFTA / YAZDIR — A3/A4 pafta: altlık görüntüsü (ekran dışı harita) + vektör
@@ -14238,6 +14812,7 @@
       if (typeof santiyeRedraw === 'function') santiyeRedraw();
       if (typeof hfRedraw === 'function') hfRedraw();
       if (typeof ogRedraw === 'function') ogRedraw();
+      if (typeof kurumsalRedraw === 'function') kurumsalRedraw();
       rasterOverlays.forEach(function(r){ addRasterLayer(r.id, r.url, r.coords); });
       // Saha fotoğrafı yuvarlakları: setStyle kaynak/katmanla birlikte
       // map.addImage ile eklenen simgeleri de siler — kayıt sıfırlanıp

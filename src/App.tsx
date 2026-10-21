@@ -46,6 +46,7 @@ import InsaatLeftPanel from './components/InsaatLeftPanel';
 import InsaatRightPanel from './components/InsaatRightPanel';
 import IsletmeLeftPanel from './components/IsletmeLeftPanel';
 import IsletmeRightPanel from './components/IsletmeRightPanel';
+import { CURRENT_USER } from './services/currentUser';
 
 interface AnimatedNumberProps {
   value: string | number;
@@ -756,7 +757,7 @@ export default function App() {
             </div>
           </div>
         </HeaderBar>
-        <ProfileMenu compact anchorEl={mobileProfileAnchor} open={showMobileProfileDropdown} onClose={() => setShowMobileProfileDropdown(false)} name="Ayhan Yılmaz" role="Süper Kullanıcı" items={buildProfileItems(() => setShowMobileProfileDropdown(false), true)} />
+        <ProfileMenu compact anchorEl={mobileProfileAnchor} open={showMobileProfileDropdown} onClose={() => setShowMobileProfileDropdown(false)} name={CURRENT_USER.name} role="Süper Kullanıcı" items={buildProfileItems(() => setShowMobileProfileDropdown(false), true)} />
       </div>
 
       {/* 1b. MASAÜSTÜ ÜST PANEL (≥lg) */}
@@ -803,7 +804,7 @@ export default function App() {
                   anchorEl={profileAnchor}
                   open={showProfileDropdown}
                   onClose={() => setShowProfileDropdown(false)}
-                  name="Ayhan Yılmaz"
+                  name={CURRENT_USER.name}
                   role="Süper Kullanıcı (Super User)"
                   items={buildProfileItems(() => setShowProfileDropdown(false), false)}
                 />
@@ -889,7 +890,7 @@ export default function App() {
                   anchorEl={compactProfileAnchor}
                   open={showCompactProfileDropdown}
                   onClose={() => setShowCompactProfileDropdown(false)}
-                  name="Ayhan Yılmaz"
+                  name={CURRENT_USER.name}
                   role="Süper Kullanıcı"
                   items={buildProfileItems(() => setShowCompactProfileDropdown(false), true)}
                 />

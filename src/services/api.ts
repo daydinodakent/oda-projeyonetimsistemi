@@ -14,6 +14,7 @@ import {
   DokumanRecord,
   SahaFotografRecord,
   HaritaYerImiRecord,
+  KurumsalAltlikRecord,
   VarlikRecord,
   BakimKaydiRecord,
   BildirimRecord,
@@ -1136,6 +1137,38 @@ export async function updateHaritaYerImi(id: number | string, patch: Partial<Har
 export async function deleteHaritaYerImi(id: number | string): Promise<boolean> {
   await ensureSeeded('tb_harita_yer_imleri', []);
   return apiSoftDelete('tb_harita_yer_imleri', id);
+}
+
+// 11e. TABLO ADI (tb_kurumsal_altliklar) — bkz. KurumsalAltlikRecord. Proje
+// bağımsız, tüm kullanıcılarla paylaşılır; kayıt her seferinde tam haliyle yazılır.
+export async function getKurumsalAltliklar(): Promise<KurumsalAltlikRecord[]> {
+  await ensureSeeded('tb_kurumsal_altliklar', []);
+  const all = await apiList<KurumsalAltlikRecord>('tb_kurumsal_altliklar');
+  return all
+    .filter((r) => r.row_status !== 0)
+    .sort((a, b) => (Number(a.sira) || 0) - (Number(b.sira) || 0) || String(a.name).localeCompare(String(b.name), 'tr'));
+}
+export async function saveKurumsalAltlik(item: Partial<KurumsalAltlikRecord>): Promise<KurumsalAltlikRecord> {
+  await ensureSeeded('tb_kurumsal_altliklar', []);
+  const now = new Date().toISOString();
+  const existing = item.id ? await apiGet<KurumsalAltlikRecord>('tb_kurumsal_altliklar', item.id) : null;
+  const record: KurumsalAltlikRecord = {
+    ...(existing || {}),
+    ...item,
+    id: item.id || `altlik-${Date.now()}`,
+    row_status: 1,
+    create_uid: existing?.create_uid ?? 1,
+    create_date: existing?.create_date || now,
+    write_uid: 1,
+    write_date: now,
+    name: String(item.name || existing?.name || 'Altlık'),
+    kind: (item.kind || existing?.kind) as KurumsalAltlikRecord['kind'],
+  };
+  return apiCreate('tb_kurumsal_altliklar', record);
+}
+export async function deleteKurumsalAltlik(id: number | string): Promise<boolean> {
+  await ensureSeeded('tb_kurumsal_altliklar', []);
+  return apiSoftDelete('tb_kurumsal_altliklar', id);
 }
 
 // Harita katmanı değişiklik geçmişi (sunucu: /api/gecmis — server/moduller/gecmis)

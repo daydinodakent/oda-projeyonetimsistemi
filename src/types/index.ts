@@ -226,6 +226,24 @@ export interface HaritaYerImiRecord extends BaseEntity {
   santiye?: { katman?: Record<string, boolean>; durum?: string; gun?: string } | null;
 }
 
+// Kurumsal altlık (tb_kurumsal_altliklar): kurumun tüm kullanıcılarla paylaşılan
+// harita altlıkları — servis (WMS/WFS/XYZ) adresi ya da dosyadan (KML/KMZ,
+// GeoJSON, SHP) dönüştürülmüş WGS84 GeoJSON. Yalnızca süper kullanıcı ekler/düzenler.
+export type KurumsalAltlikTuru = 'wms' | 'wfs' | 'xyz' | 'kml' | 'geojson' | 'shp';
+export interface KurumsalAltlikRecord extends BaseEntity {
+  name: string;
+  kind: KurumsalAltlikTuru;
+  url?: string | null;          // wms/wfs: servis adresi, xyz: {z}/{x}/{y} şablonu
+  layers?: string | null;       // wms: LAYERS, wfs: TYPENAMES
+  version?: string | null;      // wms: 1.3.0 | 1.1.1, wfs: 2.0.0 | 1.1.0
+  format?: string | null;       // wms: image/png | image/jpeg
+  data?: { type: 'FeatureCollection'; features: unknown[] } | null; // dosya türleri
+  bbox?: [number, number, number, number] | null;
+  color?: string | null;
+  opacity?: number | null;
+  sira?: number | null;
+}
+
 export interface SahaFotografRecord extends BaseEntity {
   project_id: string;
   name: string;

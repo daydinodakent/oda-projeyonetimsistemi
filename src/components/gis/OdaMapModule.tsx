@@ -11,6 +11,8 @@ import React, { useEffect, useRef, useState } from 'react';
 // @ts-ignore - .html?url için tip tanımı gerekmiyor, Vite bunu string olarak çözer.
 import odaHtmlUrl from '../../../legacy-standalone-tools/oda-harita-cizim-araci.html?url';
 import * as api from '../../services/api';
+import { CURRENT_USER, isSuperUser } from '../../services/currentUser';
+import type { KurumsalAltlikRecord } from '../../types/index';
 import * as santiye from '../../moduller/santiye/api';
 import { kisileriListele } from '../../moduller/_cekirdek/api';
 import { portfoy as maliyetPortfoy } from '../../moduller/maliyet/api';
@@ -130,6 +132,54 @@ async function sendBookmarksToIframe(iframeWindow: Window, projectId?: string) {
   } catch (err) {
     console.error('Yer imleri haritaya gönderilemedi:', err);
   }
+}
+
+// Harita > Kurumsal Altlık: proje bağımsız, tüm kullanıcılarla paylaşılan altlıklar.
+async function sendKurumsalAltliklarToIframe(iframeWindow: Window) {
+  try {
+    const items = await api.getKurumsalAltliklar();
+    iframeWindow.postMessage({ type: 'oda:kurumsal-updated', items }, '*');
+  } catch (err) {
+    console.error('Kurumsal altlıklar haritaya gönderilemedi:', err);
+  }
+}
+
+const KURUMSAL_TURLERI: KurumsalAltlikRecord['kind'][] = ['wms', 'wfs', 'xyz', 'kml', 'geojson', 'shp'];
+const KURUMSAL_MAX_JSON = 20 * 1024 * 1024;
+
+// İframe'den gelen altlık kaydını yalnızca bilinen alanlarla, doğrulayarak kurar.
+function kurumsalKaydiKur(raw: any): Partial<KurumsalAltlikRecord> {
+  const kind = String(raw?.kind || '') as KurumsalAltlikRecord['kind'];
+  if (!KURUMSAL_TURLERI.includes(kind)) throw new Error('Geçersiz altlık türü.');
+  const name = String(raw?.name || '').trim().slice(0, 80);
+  if (!name) throw new Error('Altlık adı zorunludur.');
+  const str = (v: unknown, max = 2000) => (v === undefined || v === null || v === '' ? null : String(v).slice(0, max));
+  const item: Partial<KurumsalAltlikRecord> = {
+    name, kind,
+    url: str(raw.url),
+    layers: str(raw.layers, 500),
+    version: str(raw.version, 10),
+    format: str(raw.format, 40),
+    color: /^#[0-9a-f]{6}$/i.test(String(raw.color || '')) ? String(raw.color) : null,
+    opacity: Number.isFinite(Number(raw.opacity)) ? Math.min(1, Math.max(0.05, Number(raw.opacity))) : 1,
+    sira: Number.isFinite(Number(raw.sira)) ? Number(raw.sira) : 0,
+    bbox: Array.isArray(raw.bbox) && raw.bbox.length === 4 && raw.bbox.every((n: unknown) => Number.isFinite(Number(n)))
+      ? (raw.bbox.map(Number) as [number, number, number, number]) : null,
+    data: null,
+  };
+  if (raw.id) item.id = String(raw.id);
+  if (kind === 'wms' || kind === 'wfs' || kind === 'xyz') {
+    if (!item.url || !/^https?:\/\//i.test(item.url)) throw new Error('Geçerli bir http(s) adresi girin.');
+    if (kind === 'xyz' && !(item.url.includes('{z}') && item.url.includes('{x}') && item.url.includes('{y}'))) throw new Error('XYZ adresi {z}, {x} ve {y} içermelidir.');
+    if (kind !== 'xyz' && !item.layers) throw new Error('Katman adı zorunludur.');
+  } else {
+    const data = raw.data;
+    if (!data || data.type !== 'FeatureCollection' || !Array.isArray(data.features) || !data.features.length) throw new Error('Dosyada gösterilebilir geometri yok.');
+    if (JSON.stringify(data).length > KURUMSAL_MAX_JSON) throw new Error('Dosya çok büyük (en çok 20 MB GeoJSON).');
+    item.data = data;
+    item.url = null;
+  }
+  return item;
 }
 
 // Harita > Geçmiş: aktif projenin son harita katmanı değişiklikleri (kim/ne zaman/ne değişti).
@@ -460,6 +510,8 @@ const OdaMapModule: React.FC<OdaMapModuleProps> = ({ activeProjectId, onSelectPr
 
       sendDocumentsToIframe(iframeWindow);
       sendSchemasToIframe(iframeWindow);
+      iframeWindow.postMessage({ type: 'oda:user-meta', name: CURRENT_USER.name, role: CURRENT_USER.role }, '*');
+      sendKurumsalAltliklarToIframe(iframeWindow);
     };
 
     // Editör > "Doküman" ile haritadaki bir objeye eklenen dosyalar buradan
@@ -740,6 +792,29 @@ const OdaMapModule: React.FC<OdaMapModuleProps> = ({ activeProjectId, onSelectPr
       }
     };
 
+    // Harita > Kurumsal Altlık: ekle/düzenle/sil — yalnızca süper kullanıcı.
+    // Kayıt proje bağımsızdır; değişiklikten sonra güncel liste geri gönderilir.
+    const handleKurumsalOp = async (event: MessageEvent) => {
+      const iframeWindow = iframeRef.current?.contentWindow;
+      if (!iframeWindow || event.source !== iframeWindow) return;
+      const msg = event.data;
+      if (!msg || (msg.type !== 'oda:kurumsal-save' && msg.type !== 'oda:kurumsal-delete')) return;
+      const reply = (ok: boolean, error?: string) => iframeWindow.postMessage({ type: 'oda:kurumsal-result', op: msg.type, ok, error }, '*');
+      try {
+        if (!isSuperUser()) throw new Error('Kurumsal altlıkları yalnızca süper kullanıcı değiştirebilir.');
+        if (msg.type === 'oda:kurumsal-save') {
+          await api.saveKurumsalAltlik(kurumsalKaydiKur(msg.item));
+        } else {
+          if (!msg.id) throw new Error('Geçersiz altlık.');
+          await api.deleteKurumsalAltlik(String(msg.id));
+        }
+        reply(true);
+        await sendKurumsalAltliklarToIframe(iframeWindow);
+      } catch (err) {
+        reply(false, err instanceof Error ? err.message : String(err));
+      }
+    };
+
     // Harita > Geçmiş: liste isteği ve "Geri al". Geri alma sunucuda yapılır
     // (kayıt önceki haline döner, GERI_AL olarak kaydedilir); ardından haritadaki
     // feature de güncel kayıttan yeniden kurulup iframe'e bildirilir — iframe
@@ -829,6 +904,7 @@ const OdaMapModule: React.FC<OdaMapModuleProps> = ({ activeProjectId, onSelectPr
     window.addEventListener('message', handleHistory);
     window.addEventListener('message', handlePortfolio);
     window.addEventListener('message', handleFourD);
+    window.addEventListener('message', handleKurumsalOp);
     return () => {
       window.removeEventListener('message', handleReady);
       window.removeEventListener('message', handleAddDocuments);
@@ -844,6 +920,7 @@ const OdaMapModule: React.FC<OdaMapModuleProps> = ({ activeProjectId, onSelectPr
       window.removeEventListener('message', handleHistory);
       window.removeEventListener('message', handlePortfolio);
       window.removeEventListener('message', handleFourD);
+      window.removeEventListener('message', handleKurumsalOp);
     };
   }, []);
 
