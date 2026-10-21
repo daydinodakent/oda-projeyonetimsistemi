@@ -279,12 +279,12 @@
   /* Harita > Kurumsal Altlık listesi ve ekleme penceresi (bkz. kurumsalRender/kaOpenModal) */
   .ka-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
   .ka-list{display:flex;flex-direction:column;gap:5px;}
-  .ka-item .layer-row .layer-name{cursor:default;}
+  .ka-opacity{margin-bottom:14px;}
+  .ka-opacity .field-label{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .ka-item .layer-row{cursor:pointer;}
   .ka-kind{flex:0 0 auto;font-family:var(--font-mono);font-size:9.5px;font-weight:700;letter-spacing:.3px;padding:1px 5px;border-radius:2px;background:#16313f;color:var(--teal);}
   .ka-kind-kml,.ka-kind-geojson,.ka-kind-shp{background:#3a2a12;color:var(--amber);}
   .ka-status{color:var(--text-dim);font-size:10.5px;}
-  .ka-op{display:flex;align-items:center;gap:8px;padding:4px 8px 2px 30px;font-size:10.5px;color:var(--text-dim);}
-  .ka-op input{flex:1;}
   .ka-form{display:flex;flex-direction:column;gap:10px;}
   .ka-form label{display:block;}
   .ka-form .native-select{width:100%;}
@@ -1985,13 +1985,16 @@
     </div>
 
     <div class="subtabpage" data-subpage="kurumsal">
+      <div class="ka-opacity">
+        <span class="field-label" id="kaOpacityLabel">Altlık opaklığı</span>
+        <input type="range" id="kaOpacitySlider" min="5" max="100" value="100" step="5" style="width:100%;" disabled>
+      </div>
       <div class="ka-head">
         <span class="field-label" style="margin:0;">Kurumsal Altlıklar</span>
         <button type="button" class="layer-icon-btn" id="btnKurumsalAdd" title="Altlık ekle — WMS, WFS, XYZ, KML/KMZ, GeoJSON, SHP (süper kullanıcı)" style="display:none;">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
         </button>
       </div>
-      <div class="hint" style="border-top:none;padding-top:0;margin-bottom:8px;">Kurumun tüm kullanıcılarla paylaşılan altlıkları. İşaretleyerek kendi ekranınızda açıp kapatabilir, saydamlığını ayarlayabilirsiniz.</div>
       <div id="kurumsalList" class="ka-list"></div>
     </div>
   </div>
@@ -9207,11 +9210,23 @@
   }
 
   // ---- liste ----
+  // Seçili altlık (satıra tıklanarak) üstteki opaklık kaydırıcısıyla ayarlanır —
+  // CBS sekmesindeki "Katman opaklığı" ile aynı düzen.
+  var kaSelectedId = null;
+  function kaSelected(){ return kurumsalItems.find(function(x){ return x.id === kaSelectedId; }) || null; }
+  function kaSyncOpacitySlider(){
+    var it = kaSelected(), slider = document.getElementById('kaOpacitySlider');
+    slider.disabled = !it;
+    slider.value = it ? Math.round(kaOpacity(it) * 100) : 100;
+    document.getElementById('kaOpacityLabel').textContent = it ? 'Altlık opaklığı — ' + it.name : 'Altlık opaklığı';
+  }
   function kurumsalRender(){
     var list = document.getElementById('kurumsalList');
     document.getElementById('btnKurumsalAdd').style.display = kaIsSuper() ? '' : 'none';
+    if (!kaSelected()) kaSelectedId = kurumsalItems.length ? kurumsalItems[0].id : null;
+    kaSyncOpacitySlider();
     if (!kurumsalItems.length){
-      list.innerHTML = '<div class="hint" style="border-top:none;padding-top:0;">Henüz kurumsal altlık yok.' + (kaIsSuper() ? ' <b>+</b> ile WMS, WFS, XYZ servisi ya da KML/KMZ, GeoJSON, SHP dosyası ekleyebilirsiniz.' : '') + '</div>';
+      list.innerHTML = '<div class="hint" style="border-top:none;padding-top:0;">Henüz kurumsal altlık yok.</div>';
       return;
     }
     list.innerHTML = kurumsalItems.map(function(it){
@@ -9219,7 +9234,7 @@
       var status = st && st.loading ? ' · yükleniyor…' : st && st.error ? ' · hata' : '';
       var canZoom = !!(it.bbox || it.data || it.kind === 'wfs');
       return '<div class="ka-item" data-ka="' + santiyeEsc(it.id) + '">' +
-        '<div class="layer-row">' +
+        '<div class="layer-row' + (it.id === kaSelectedId ? ' active-layer' : '') + '">' +
           '<input type="checkbox" class="ka-on"' + (on ? ' checked' : '') + ' title="Haritada göster">' +
           '<span class="ka-kind ka-kind-' + it.kind + '">' + KA_KIND_LABEL[it.kind] + '</span>' +
           '<span class="layer-name" title="' + santiyeEsc(it.name + (it.url ? ' — ' + it.url : '')) + '">' + santiyeEsc(it.name) + '<span class="ka-status">' + status + '</span></span>' +
@@ -9227,13 +9242,11 @@
           (kaIsSuper() ? '<button type="button" class="layer-icon-btn ka-edit" title="Düzenle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20l4-1 11-11-3-3L5 16l-1 4z"/></svg></button>' +
             '<button type="button" class="layer-icon-btn del ka-del" title="Sil"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></button>' : '') +
         '</div>' +
-        (on ? '<div class="ka-op"><span>Saydamlık</span><input type="range" class="ka-op-range" min="5" max="100" value="' + Math.round(kaOpacity(it) * 100) + '"></div>' : '') +
       '</div>';
     }).join('');
   }
-  document.getElementById('kurumsalList').addEventListener('input', function(e){
-    if (!e.target.classList.contains('ka-op-range')) return;
-    var it = kaItemOf(e.target);
+  document.getElementById('kaOpacitySlider').addEventListener('input', function(e){
+    var it = kaSelected();
     if (!it) return;
     kaView[it.id] = kaView[it.id] || {};
     kaView[it.id].op = parseInt(e.target.value, 10) / 100;
@@ -9244,6 +9257,7 @@
     if (!e.target.classList.contains('ka-on')) return;
     var it = kaItemOf(e.target);
     if (!it) return;
+    kaSelectedId = it.id;
     kaView[it.id] = kaView[it.id] || {};
     kaView[it.id].on = e.target.checked;
     kaSaveView();
@@ -9254,7 +9268,15 @@
   });
   document.getElementById('kurumsalList').addEventListener('click', function(e){
     var btn = e.target.closest('button');
-    if (!btn) return;
+    if (!btn){
+      // Satıra tıklama altlığı seçer (onay kutusu kendi 'change' olayıyla seçer).
+      var sel = e.target.closest('.ka-item');
+      if (sel && !e.target.classList.contains('ka-on')){
+        var picked = kaItemOf(sel);
+        if (picked && picked.id !== kaSelectedId){ kaSelectedId = picked.id; kurumsalRender(); }
+      }
+      return;
+    }
     var it = kaItemOf(btn);
     if (!it) return;
     if (btn.classList.contains('ka-zoom')) kaZoomTo(it);
