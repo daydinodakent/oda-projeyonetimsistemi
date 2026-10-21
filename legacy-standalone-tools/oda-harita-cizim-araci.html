@@ -848,6 +848,25 @@
     box-shadow:0 4px 18px rgba(0,0,0,.4);
   }
   #analizToolbar.hidden{display:none;}
+  /* Ortofoto zaman serisi paneli: Görüntü Karşılaştırma açıkken sağda, harita
+     araç kümesinin solunda; alttaki karşılaştırma çubuğunun üstünde biter. */
+  #orthoPanel{
+    position:absolute;right:62px;top:14px;z-index:6;width:340px;max-width:calc(100% - 90px);
+    max-height:calc(100% - 110px);display:flex;flex-direction:column;
+    background:rgba(10,22,32,.96);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:0 4px 18px rgba(0,0,0,.4);
+  }
+  #orthoPanel.hidden{display:none;}
+  #orthoPanelHeader{display:flex;align-items:center;gap:8px;padding:8px 8px 8px 12px;border-bottom:1px solid var(--line);color:var(--teal);flex:0 0 auto;}
+  #orthoPanelHeader > svg{width:16px;height:16px;flex:0 0 auto;}
+  #orthoPanelHeader .op-title{flex:1;color:var(--text);font-weight:600;font-size:12px;}
+  #orthoPanelMin{background:transparent;border:none;color:var(--text-dim);cursor:pointer;width:24px;height:24px;display:flex;align-items:center;justify-content:center;border-radius:4px;padding:0;}
+  #orthoPanelMin:hover{color:var(--text);background:rgba(255,255,255,.08);}
+  #orthoPanelMin svg{width:14px;height:14px;transition:transform .15s ease;}
+  #orthoPanel.minimized #orthoPanelMin svg{transform:rotate(180deg);}
+  #orthoPanel.minimized #orthoPanelBody{display:none;}
+  #orthoPanel.minimized #orthoPanelHeader{border-bottom:none;}
+  #orthoPanelBody{overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:12px;}
   #analizToolbarIconWrap{flex:0 0 auto;display:flex;color:var(--teal);}
   #analizToolbarIconWrap svg{width:17px;height:17px;}
   #analizToolbarLabels{flex:0 0 auto;display:flex;flex-direction:column;line-height:1.3;width:82px;min-width:82px;}
@@ -1790,7 +1809,8 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 15l5-6 4 4 4-7 5 9"/><path d="M3 19h18"/></svg>
     <span>Hafriyat</span>
   </button>
-  <button class="mod-btn" data-module="ortofoto" data-tip="Drone ortofoto zaman serisi">
+  <!-- Ortofoto: sağdaki Analiz > Görüntü Karşılaştırma ile birlikte açılan panele taşındı (bkz. #orthoPanel). -->
+  <button class="mod-btn" data-module="ortofoto" data-tip="Drone ortofoto zaman serisi" style="display:none;">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M12 5v14"/><path d="M3 15l4-4 3 3"/><circle cx="16" cy="10" r="1.5"/></svg>
     <span>Ortofoto</span>
   </button>
@@ -2526,63 +2546,6 @@
        Alt çubuktaki 4D zaman kaydırıcısı artık gerçek iş programından beslenebilir:
        aktiviteler binalara bağlanır; tarih ilerledikçe bina plana göre (veya
        gerçekleşen ilerlemeye göre) katlarını tamamlar. -->
-  <div class="module-page" data-module-page="ortofoto" style="display:none;">
-    <span class="field-label" style="margin-bottom:0;">Ortofoto — Zaman Serisi <span style="font-weight:400;">— drone görüntülerini tarihe göre karşılaştır</span></span>
-
-    <div class="san-form">
-      <span class="field-label" style="margin:0;">1 · İçe aktar</span>
-      <input type="file" id="ogFiles" multiple accept=".tif,.tiff,.jpg,.jpeg,.png,.jgw,.jpw,.pgw,.pngw,.wld,.tfw" class="san-input">
-      <div class="san-grid">
-        <div><span class="field-label">Koordinat sistemi</span>
-          <select class="san-input" id="ogCrs">
-            <option value="auto">Otomatik (GeoTIFF'ten)</option>
-            <option value="wgs84">WGS84 (boylam/enlem)</option>
-            <option value="utm35n">UTM 35N</option><option value="utm36n">UTM 36N</option><option value="utm37n">UTM 37N</option>
-            <option value="27">ITRF96 TM27</option><option value="30">ITRF96 TM30</option><option value="33">ITRF96 TM33</option>
-            <option value="36">ITRF96 TM36</option><option value="39">ITRF96 TM39</option><option value="42">ITRF96 TM42</option><option value="45">ITRF96 TM45</option>
-          </select></div>
-        <div><span class="field-label">Varsayılan tarih</span><input type="date" class="san-input" id="ogDate"></div>
-      </div>
-      <div class="btn" id="ogBtnImport">⬆ Görüntüleri ekle</div>
-      <div class="mj-info" style="margin:0;">GeoTIFF (EPSG kodu otomatik okunur) veya JPG/PNG + dünya dosyası (.jgw/.pgw/.wld) birlikte seçilir. Tarih önce dosya adından ("2025-03-14", "14.03.2025"), sonra TIFF etiketinden okunur; bulunamazsa yukarıdaki tarih kullanılır. Büyük dosyalar en fazla 4096 px'e örneklenir. Yalnızca kuzey-yukarı (dönük olmayan) GeoTIFF'ler desteklenir.</div>
-    </div>
-
-    <div class="san-form">
-      <span class="field-label" style="margin:0;">2 · Zaman serisi</span>
-      <div id="ogList" class="bm-list"></div>
-    </div>
-
-    <div class="san-form">
-      <span class="field-label" style="margin:0;">3 · Karşılaştır</span>
-      <div class="san-grid">
-        <div><span class="field-label">Eski (A)</span><select class="san-input" id="ogA"></select></div>
-        <div><span class="field-label">Yeni (B)</span><select class="san-input" id="ogB"></select></div>
-      </div>
-      <select class="san-input" id="ogMode">
-        <option value="tek">Yalnız A</option>
-        <option value="kaydir">Perde (kaydır)</option>
-        <option value="saydam">Saydamlık</option>
-        <option value="degisim">Değişim tespiti</option>
-      </select>
-      <div id="ogSwipeRow" style="display:none;"><span class="field-label">Perde konumu</span><input type="range" id="ogSwipe" min="0" max="100" value="50" style="width:100%;"></div>
-      <div id="ogOpacityRow" style="display:none;"><span class="field-label">B saydamlığı</span><input type="range" id="ogOpacity" min="0" max="100" value="50" style="width:100%;"></div>
-      <div id="ogDiffRow" style="display:none;">
-        <div class="san-grid">
-          <div><span class="field-label">Hassasiyet eşiği</span><input type="number" class="san-input" id="ogEsik" value="0.12" min="0.02" max="0.6" step="0.01"></div>
-          <div><span class="field-label">En küçük alan (m²)</span><input type="number" class="san-input" id="ogMinAlan" value="20" min="1" step="1"></div>
-        </div>
-        <div class="btn" id="ogBtnDiff" style="margin-top:6px;">▶ Değişimi hesapla</div>
-        <div class="pf-kpis" id="ogStats"></div>
-        <div id="ogClusters" class="bm-list"></div>
-        <div class="btn-row">
-          <div class="btn" id="ogBtnGeo" style="flex:1;">GeoJSON indir</div>
-          <div class="btn" id="ogBtnClear" style="flex:1;">Temizle</div>
-        </div>
-        <div class="mj-info warn" style="margin:0;">Piksel farkı yöntemidir: gölge, bitki örtüsü, su ve hizalama kayıklığı yanlış pozitif üretebilir; kırmızı alanlar "inceleme adayı"dır, metraj/hakediş ölçüsü değildir. Kayıklık varsa listeden görüntüye X/Y öteleme (m) verin.</div>
-      </div>
-    </div>
-  </div>
-
   <div class="module-page" data-module-page="fourd" style="display:none;">
     <span class="field-label" style="margin-bottom:0;">4D — İş Programı <span style="font-weight:400;">— zaman çubuğu haritanın altındadır</span></span>
     <div class="san-grid">
@@ -3360,6 +3323,72 @@
   </div>
 </div>
 
+<!-- Ortofoto zaman serisi paneli — sol çubuktaki Ortofoto sekmesi buraya taşındı;
+     sağ üstteki Analiz menüsünden "Görüntü Karşılaştırma" açılınca alttaki
+     karşılaştırma çubuğuyla BİRLİKTE açılır/kapanır (bkz. setOrthoPanelOpen,
+     compareSyncFromOg). ID'ler aynen korunduğu için og* mantığı değişmedi. -->
+<div id="orthoPanel" class="hidden">
+  <div id="orthoPanelHeader">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M12 5v14"/><path d="M3 15l4-4 3 3"/><circle cx="16" cy="10" r="1.5"/></svg>
+    <span class="op-title">Ortofoto — Zaman Serisi</span>
+    <button type="button" id="orthoPanelMin" title="Paneli küçült / büyüt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 15l6-6 6 6"/></svg></button>
+  </div>
+  <div id="orthoPanelBody">
+    <div class="san-form">
+      <span class="field-label" style="margin:0;">1 · İçe aktar</span>
+      <input type="file" id="ogFiles" multiple accept=".tif,.tiff,.jpg,.jpeg,.png,.jgw,.jpw,.pgw,.pngw,.wld,.tfw" class="san-input">
+      <div class="san-grid">
+        <div><span class="field-label">Koordinat sistemi</span>
+          <select class="san-input" id="ogCrs">
+            <option value="auto">Otomatik (GeoTIFF'ten)</option>
+            <option value="wgs84">WGS84 (boylam/enlem)</option>
+            <option value="utm35n">UTM 35N</option><option value="utm36n">UTM 36N</option><option value="utm37n">UTM 37N</option>
+            <option value="27">ITRF96 TM27</option><option value="30">ITRF96 TM30</option><option value="33">ITRF96 TM33</option>
+            <option value="36">ITRF96 TM36</option><option value="39">ITRF96 TM39</option><option value="42">ITRF96 TM42</option><option value="45">ITRF96 TM45</option>
+          </select></div>
+        <div><span class="field-label">Varsayılan tarih</span><input type="date" class="san-input" id="ogDate"></div>
+      </div>
+      <div class="btn" id="ogBtnImport">⬆ Görüntüleri ekle</div>
+      <div class="mj-info" style="margin:0;">GeoTIFF (EPSG kodu otomatik okunur) veya JPG/PNG + dünya dosyası (.jgw/.pgw/.wld) birlikte seçilir. Tarih önce dosya adından ("2025-03-14", "14.03.2025"), sonra TIFF etiketinden okunur; bulunamazsa yukarıdaki tarih kullanılır. Büyük dosyalar en fazla 4096 px'e örneklenir. Yalnızca kuzey-yukarı (dönük olmayan) GeoTIFF'ler desteklenir.</div>
+    </div>
+
+    <div class="san-form">
+      <span class="field-label" style="margin:0;">2 · Zaman serisi</span>
+      <div id="ogList" class="bm-list"></div>
+    </div>
+
+    <div class="san-form">
+      <span class="field-label" style="margin:0;">3 · Karşılaştır</span>
+      <div class="san-grid">
+        <div><span class="field-label">Eski (A)</span><select class="san-input" id="ogA"></select></div>
+        <div><span class="field-label">Yeni (B)</span><select class="san-input" id="ogB"></select></div>
+      </div>
+      <select class="san-input" id="ogMode">
+        <option value="tek">Yalnız A</option>
+        <option value="kaydir">Perde (kaydır)</option>
+        <option value="saydam">Saydamlık</option>
+        <option value="degisim">Değişim tespiti</option>
+      </select>
+      <div id="ogSwipeRow" style="display:none;"><span class="field-label">Perde konumu</span><input type="range" id="ogSwipe" min="0" max="100" value="50" style="width:100%;"></div>
+      <div id="ogOpacityRow" style="display:none;"><span class="field-label">B saydamlığı</span><input type="range" id="ogOpacity" min="0" max="100" value="50" style="width:100%;"></div>
+      <div id="ogDiffRow" style="display:none;">
+        <div class="san-grid">
+          <div><span class="field-label">Hassasiyet eşiği</span><input type="number" class="san-input" id="ogEsik" value="0.12" min="0.02" max="0.6" step="0.01"></div>
+          <div><span class="field-label">En küçük alan (m²)</span><input type="number" class="san-input" id="ogMinAlan" value="20" min="1" step="1"></div>
+        </div>
+        <div class="btn" id="ogBtnDiff" style="margin-top:6px;">▶ Değişimi hesapla</div>
+        <div class="pf-kpis" id="ogStats"></div>
+        <div id="ogClusters" class="bm-list"></div>
+        <div class="btn-row">
+          <div class="btn" id="ogBtnGeo" style="flex:1;">GeoJSON indir</div>
+          <div class="btn" id="ogBtnClear" style="flex:1;">Temizle</div>
+        </div>
+        <div class="mj-info warn" style="margin:0;">Piksel farkı yöntemidir: gölge, bitki örtüsü, su ve hizalama kayıklığı yanlış pozitif üretebilir; kırmızı alanlar "inceleme adayı"dır, metraj/hakediş ölçüsü değildir. Kayıklık varsa listeden görüntüye X/Y öteleme (m) verin.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Analiz araç çubuğu — sağ üstteki analiz split-butonundan (varsayılan 4D
      Analizi) bir analiz seçilince kanvasın alt kısmında, kapatılabilir bir
      araç çubuğu olarak açılır. İçeriği seçilen analize göre değişir (bkz.
@@ -4011,12 +4040,15 @@
     var valueEl = document.getElementById('analizToolbarValue');
     if (kind === 'shadow') document.getElementById('shadowHourSlider').dispatchEvent(new Event('input'));
     else if (kind === 'compare' || kind === 'solar') valueEl.textContent = '';
+    // Görüntü Karşılaştırma, Ortofoto zaman serisi paneliyle birlikte çalışır (bkz. #orthoPanel).
+    setOrthoPanelOpen(kind === 'compare');
   }
   function closeAnalizToolbar(){
     stopRunningAnalizEffects();
     analizActiveKind = null;
     document.getElementById('analizToolbar').classList.add('hidden');
     document.getElementById('btnAnaliz').classList.remove('active');
+    setOrthoPanelOpen(false);
   }
   document.getElementById('btnAnaliz').addEventListener('click', function(){
     var toolbar = document.getElementById('analizToolbar');
@@ -9846,6 +9878,7 @@
     var p = parseFloat(document.getElementById('ogSwipe').value) || 0;
     ogSwipeEl.firstChild.style.clipPath = 'inset(0 0 0 ' + p + '%)';
     document.getElementById('ogSwipeHandle').style.left = p + '%';
+    compareSyncFromOg();
   }
   function ogSwipeSet(it){
     if (!ogSwipeMap) return;
@@ -9859,6 +9892,8 @@
   }
   function ogApply(){
     if (!map.getStyle) return;
+    // Panel (Görüntü Karşılaştırma) kapalıyken ortofoto katmanları/perde gösterilmez.
+    if (document.getElementById('orthoPanel').classList.contains('hidden')){ ogHideAll(); return; }
     var mode = document.getElementById('ogMode').value;
     var a = ogById(document.getElementById('ogA').value), b = ogById(document.getElementById('ogB').value);
     document.getElementById('ogSwipeRow').style.display = mode === 'kaydir' ? '' : 'none';
@@ -9872,6 +9907,12 @@
     if (mode === 'kaydir' && b){ ogSwipeInit(); ogSwipeEl.style.display = ''; ogSwipeSet(b); ogSwipePos(); }
     else if (ogSwipeEl){ ogSwipeEl.style.display = 'none'; }
     ['og-diff-lyr'].forEach(function(id){ if (map.getLayer(id)) map.moveLayer(id); });
+    compareSyncFromOg();
+  }
+  function ogHideAll(){
+    ogItems.forEach(function(it){ ogSetVis('og-img-' + it.id, false); });
+    ogSetVis('og-diff-lyr', false);
+    if (ogSwipeEl) ogSwipeEl.style.display = 'none';
   }
 
   // ----- değişim tespiti -----
@@ -9957,6 +9998,7 @@
         '<input type="number" class="san-input" style="width:74px;" title="Kuzey öteleme (m)" placeholder="Kuzey m" data-og-dy="' + it.id + '" value="' + it.dy + '" step="0.1">' +
         '<span class="btn" data-og-go="' + it.id + '">⌖</span><span class="btn" data-og-del="' + it.id + '">✕</span></div>';
     }).join('') : '<div class="mj-info" style="margin:0;">Henüz görüntü yok.</div>';
+    refreshCompareRasterOptions();
     function q(attr, fn){ Array.prototype.forEach.call(list.querySelectorAll('[' + attr + ']'), function(el){ fn(el, ogById(el.getAttribute(attr))); }); }
     q('data-og-date', function(el, it){ el.addEventListener('change', function(){ if (!el.value) return; it.tarih = el.value; it.tarihKaynak = 'elle'; ogDbPut(it); ogSort(); ogRenderAll(); }); });
     function shiftChange(it){ it.dx = parseFloat(list.querySelector('[data-og-dx="' + it.id + '"]').value) || 0; it.dy = parseFloat(list.querySelector('[data-og-dy="' + it.id + '"]').value) || 0;
@@ -17016,45 +17058,124 @@
   })();
 
   // ---- Zamana bağlı (ör. drone) görüntü karşılaştırma ----
+  // Alt çubuktaki A/B listeleri iki kaynağı birlikte gösterir: Ortofoto zaman
+  // serisi ('og:' — sağdaki #orthoPanel ile eşzamanlı; kaydırıcı Perde
+  // modunda perdeyi, diğer modlarda B saydamlığını sürer) ve "Görüntü + Dünya
+  // Dosyası" ile içe aktarılan georeferanslı görüntüler ('r:' — A↔B saydamlık
+  // geçişi).
+  var OG_MODE_LABELS = { tek:'Yalnız A', kaydir:'Perde', saydam:'Saydamlık', degisim:'Değişim' };
+  function compareVal(id){
+    var v = document.getElementById(id).value || '';
+    return { kind: v.indexOf('og:') === 0 ? 'og' : v.indexOf('r:') === 0 ? 'r' : '', id: v.replace(/^(og|r):/, '') };
+  }
   function refreshCompareRasterOptions(){
     ['compareRasterA','compareRasterB'].forEach(function(id){
       var sel = document.getElementById(id);
       if (!sel) return;
       var prev = sel.value;
-      sel.innerHTML = '<option value="">— seçin —</option>';
-      rasterOverlays.forEach(function(r){
-        var opt = document.createElement('option');
-        opt.value = r.id; opt.textContent = r.name || r.id;
-        sel.appendChild(opt);
-      });
-      if (rasterOverlays.some(function(r){ return r.id === prev; })) sel.value = prev;
+      var html = '<option value="">— seçin —</option>';
+      if (typeof ogItems !== 'undefined' && ogItems.length){
+        html += '<optgroup label="Ortofoto zaman serisi">' + ogItems.map(function(it){
+          return '<option value="og:' + it.id + '">' + santiyeEsc(it.tarih + ' · ' + it.ad) + '</option>';
+        }).join('') + '</optgroup>';
+      }
+      if (rasterOverlays.length){
+        html += '<optgroup label="Georeferanslı görüntüler">' + rasterOverlays.map(function(r){
+          return '<option value="r:' + r.id + '">' + santiyeEsc(r.name || r.id) + '</option>';
+        }).join('') + '</optgroup>';
+      }
+      sel.innerHTML = html;
+      if (Array.prototype.some.call(sel.options, function(o){ return o.value === prev; })) sel.value = prev;
     });
   }
-  function setCompareOpacity(t){
-    var aId = document.getElementById('compareRasterA').value;
-    var bId = document.getElementById('compareRasterB').value;
-    if (aId && map.getLayer(aId)) map.setPaintProperty(aId, 'raster-opacity', 1 - t);
-    if (bId && map.getLayer(bId)) map.setPaintProperty(bId, 'raster-opacity', t);
+  // Ortofoto seçiliyken kaydırıcı: Perde → perde konumu, aksi halde B saydamlığı.
+  function compareApplyOg(t){
+    var mode = document.getElementById('ogMode');
+    if (mode.value === 'kaydir'){
+      document.getElementById('ogSwipe').value = t * 100;
+      ogSwipePos();
+      return;
+    }
+    if (mode.value !== 'saydam') mode.value = 'saydam';
+    document.getElementById('ogOpacity').value = t * 100;
+    ogApply();
   }
+  function setCompareOpacity(t){
+    var a = compareVal('compareRasterA'), b = compareVal('compareRasterB');
+    if (a.kind === 'og' || b.kind === 'og'){ compareApplyOg(t); return; }
+    if (a.id && map.getLayer(a.id)) map.setPaintProperty(a.id, 'raster-opacity', 1 - t);
+    if (b.id && map.getLayer(b.id)) map.setPaintProperty(b.id, 'raster-opacity', t);
+  }
+  // Ortofoto panelindeki A/B/mod/perde/saydamlık → alt çubuk (bkz. ogApply, ogSwipePos).
+  function compareSyncFromOg(){
+    if (document.getElementById('orthoPanel').classList.contains('hidden')) return;
+    var a = document.getElementById('ogA').value, b = document.getElementById('ogB').value;
+    var mode = document.getElementById('ogMode').value;
+    var selA = document.getElementById('compareRasterA'), selB = document.getElementById('compareRasterB');
+    if (a && selA.value !== 'og:' + a && compareVal('compareRasterA').kind !== 'r') selA.value = 'og:' + a;
+    if (b && selB.value !== 'og:' + b && compareVal('compareRasterB').kind !== 'r') selB.value = 'og:' + b;
+    if (compareVal('compareRasterA').kind === 'og' || compareVal('compareRasterB').kind === 'og'){
+      var slider = document.getElementById('compareSlider');
+      if (mode === 'kaydir') slider.value = document.getElementById('ogSwipe').value;
+      else if (mode === 'saydam' && !compareFlickerTimer) slider.value = document.getElementById('ogOpacity').value;
+      document.getElementById('analizToolbarValue').textContent = OG_MODE_LABELS[mode] || '';
+    }
+  }
+  function setOrthoPanelOpen(open){
+    document.getElementById('orthoPanel').classList.toggle('hidden', !open);
+    if (open){
+      ogOpenTab();
+      compareSyncFromOg();
+    } else {
+      ogHideAll();
+    }
+  }
+  document.getElementById('orthoPanelMin').addEventListener('click', function(){
+    document.getElementById('orthoPanel').classList.toggle('minimized');
+  });
   document.getElementById('compareSlider').addEventListener('input', function(e){
     setCompareOpacity(parseFloat(e.target.value) / 100);
   });
   ['compareRasterA','compareRasterB'].forEach(function(id){
     document.getElementById(id).addEventListener('change', function(){
+      var a = compareVal('compareRasterA'), b = compareVal('compareRasterB');
+      if (a.kind === 'og' || b.kind === 'og'){
+        if ((a.kind && a.kind !== 'og') || (b.kind && b.kind !== 'og')){
+          showToast('Ortofoto görüntüsü yalnızca başka bir ortofoto görüntüsüyle karşılaştırılabilir.');
+        }
+        if (a.kind === 'og') document.getElementById('ogA').value = a.id;
+        if (b.kind === 'og') document.getElementById('ogB').value = b.id;
+        var mode = document.getElementById('ogMode');
+        if (mode.value === 'tek' && b.kind === 'og') mode.value = 'saydam';
+        ogApply();
+      }
       setCompareOpacity(parseFloat(document.getElementById('compareSlider').value) / 100);
     });
   });
-  var compareFlickerTimer = null;
+  var compareFlickerTimer = null, compareFlickerRestore = null;
   document.getElementById('btnCompareFlicker').addEventListener('click', function(){
     var btn = this;
     if (compareFlickerTimer){
       clearInterval(compareFlickerTimer); compareFlickerTimer = null;
       btn.classList.remove('active');
+      if (compareFlickerRestore){
+        document.getElementById('ogMode').value = compareFlickerRestore.mode;
+        document.getElementById('ogOpacity').value = compareFlickerRestore.opacity;
+        document.getElementById('compareSlider').value = compareFlickerRestore.slider;
+        compareFlickerRestore = null;
+        ogApply();
+      }
       setCompareOpacity(parseFloat(document.getElementById('compareSlider').value) / 100);
       return;
     }
     if (!document.getElementById('compareRasterA').value || !document.getElementById('compareRasterB').value){
       showToast('Önce Görüntü A ve Görüntü B seçin.'); return;
+    }
+    // Ortofotoda yanıp sönme saydamlık üzerinden yapılır; bitince mod ve değerler geri yüklenir.
+    if (compareVal('compareRasterA').kind === 'og' || compareVal('compareRasterB').kind === 'og'){
+      var modeEl = document.getElementById('ogMode');
+      compareFlickerRestore = { mode: modeEl.value, opacity: document.getElementById('ogOpacity').value, slider: document.getElementById('compareSlider').value };
+      if (modeEl.value === 'kaydir') modeEl.value = 'saydam';
     }
     btn.classList.add('active');
     var state = 0;
