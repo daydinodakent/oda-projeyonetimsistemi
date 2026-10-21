@@ -3589,7 +3589,8 @@
   <div class="div"></div>
   <!-- Yer İmleri ve Değişiklik Geçmişi panelleri — sol çubuktan kaldırıldı, buradan açılır/kapanır. -->
   <button id="statusBookmarkBtn" class="status-snap-btn status-panel-btn" data-module="yerimi" title="Yer İmleri"><svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3h12v18l-6-4.5L6 21z"/></svg></button>
-  <button id="statusHistoryBtn" class="status-snap-btn status-panel-btn" data-module="gecmis" title="Değişiklik Geçmişi"><svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 7v5l3 2"/></svg></button>
+  <!-- Değişiklik Geçmişi yalnızca süper kullanıcıya görünür (bkz. oda:user-meta → syncHistoryButtonForRole). -->
+  <button id="statusHistoryBtn" class="status-snap-btn status-panel-btn" data-module="gecmis" title="Değişiklik Geçmişi" style="display:none;"><svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 7v5l3 2"/></svg></button>
 </div>
 
 <div id="snapTolerancePopover">
@@ -9293,6 +9294,13 @@
     return kurumsalItems.find(function(x){ return String(x.id) === id; }) || null;
   }
 
+  // Durum çubuğundaki Değişiklik Geçmişi düğmesi yalnızca süper kullanıcıda;
+  // rol değişip yetki kalkarsa açık Geçmiş paneli de Harita'ya döner.
+  function syncHistoryButtonForRole(){
+    document.getElementById('statusHistoryBtn').style.display = kaIsSuper() ? '' : 'none';
+    if (!kaIsSuper() && activeModule === 'gecmis') setModule('harita');
+  }
+
   // ---- ekle/düzenle penceresi ----
   var KA_ACCEPT = { kml:'.kml,.kmz', geojson:'.geojson,.json', shp:'.zip,.shp,.dbf,.prj' };
   function kaModalSync(){
@@ -9467,6 +9475,7 @@
     if (msg.type === 'oda:user-meta'){
       odaUserRole = msg.role || null;
       kurumsalRender();
+      syncHistoryButtonForRole();
     } else if (msg.type === 'oda:kurumsal-updated' && Array.isArray(msg.items)){
       if (kaJustSaved){
         if (kaJustSaved.id){

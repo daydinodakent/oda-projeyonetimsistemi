@@ -183,8 +183,9 @@ function kurumsalKaydiKur(raw: any): Partial<KurumsalAltlikRecord> {
 }
 
 // Harita > Geçmiş: aktif projenin son harita katmanı değişiklikleri (kim/ne zaman/ne değişti).
+// Değişiklik geçmişi yalnızca süper kullanıcıya gösterilir (durum çubuğu düğmesi de gizlidir).
 async function sendHistoryToIframe(iframeWindow: Window, projectId?: string) {
-  if (!projectId) { iframeWindow.postMessage({ type: 'oda:history-updated', items: [] }, '*'); return; }
+  if (!projectId || !isSuperUser()) { iframeWindow.postMessage({ type: 'oda:history-updated', items: [] }, '*'); return; }
   try {
     const items = await api.getHaritaGecmisi(projectId, 60);
     iframeWindow.postMessage({ type: 'oda:history-updated', items }, '*');
@@ -829,6 +830,7 @@ const OdaMapModule: React.FC<OdaMapModuleProps> = ({ activeProjectId, onSelectPr
       } else if (msg.type === 'oda:history-undo') {
         const reply = (ok: boolean, error?: string) => iframeWindow.postMessage({ type: 'oda:history-result', ok, error }, '*');
         try {
+          if (!isSuperUser()) throw new Error('Değişiklik geçmişini yalnızca süper kullanıcı geri alabilir.');
           const id = Number(msg.id);
           if (!Number.isInteger(id)) throw new Error('Geçersiz geçmiş kaydı.');
           const r = await api.geriAlHaritaDegisikligi(id);
