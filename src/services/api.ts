@@ -1189,6 +1189,35 @@ export async function getNoktaTipleri(): Promise<NoktaTipiRecord[]> {
   await ensureSeeded('tb_nokta_tipi', noktaTipleriSeed);
   return apiList<NoktaTipiRecord>('tb_nokta_tipi');
 }
+// Kod aynı zamanda kimliktir (node_type_code bu değeri tutar): büyük harf, boşluksuz
+export async function createNoktaTipi(item: Partial<NoktaTipiRecord>): Promise<NoktaTipiRecord> {
+  await ensureSeeded('tb_nokta_tipi', noktaTipleriSeed);
+  const code = String(item.code || `TIP_${Date.now()}`).trim().toLocaleUpperCase('tr-TR').replace(/\s+/g, '_');
+  const newItem: NoktaTipiRecord = {
+    id: code,
+    notes: item.notes || null,
+    row_status: 1,
+    create_uid: 1,
+    create_date: new Date().toISOString(),
+    write_uid: 1,
+    write_date: new Date().toISOString(),
+    code,
+    name: item.name || code,
+    networks: item.networks || 'icmesuyu',
+    category: item.category || 'Bağlantı Parçası'
+  };
+  return apiCreate('tb_nokta_tipi', newItem);
+}
+export async function updateNoktaTipi(id: number | string, item: Partial<NoktaTipiRecord>): Promise<NoktaTipiRecord> {
+  await ensureSeeded('tb_nokta_tipi', noktaTipleriSeed);
+  // Kod, noktaların node_type_code değeridir — değiştirilirse bağlı noktalar kopar; bu yüzden korunur
+  const { id: _id, code: _code, ...rest } = item;
+  return apiUpdate<NoktaTipiRecord>('tb_nokta_tipi', id, { ...rest, write_date: new Date().toISOString() });
+}
+export async function deleteNoktaTipi(id: number | string): Promise<boolean> {
+  await ensureSeeded('tb_nokta_tipi', noktaTipleriSeed);
+  return apiSoftDelete('tb_nokta_tipi', id);
+}
 
 // 7e. TABLO ADI (tb_icmesuyu_nokta / tb_atiksu_nokta / tb_yagmursuyu_nokta)
 export async function getNoktalar(sebeke: NoktaSebekesi): Promise<NoktaRecord[]> {

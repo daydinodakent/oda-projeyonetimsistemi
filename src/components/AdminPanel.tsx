@@ -141,6 +141,8 @@ export default function AdminPanel({ theme, onClose }: AdminPanelProps) {
         return api.getVeriDurumlari();
       case 'tb_kullanici_rolleri':
         return api.getKullaniciRolleri();
+      case 'tb_nokta_tipi':
+        return api.getNoktaTipleri();
       default:
         return api.getProjeler();
     }
@@ -230,7 +232,8 @@ export default function AdminPanel({ theme, onClose }: AdminPanelProps) {
     { key: 'tb_proje_durumlari', name: 'Proje Durumları', type: 'LISTE', icon: TableProperties, count: 4, badge: 'Sözel Liste' },
     { key: 'tb_risk_dereceleri', name: 'Risk Dereceleri', type: 'LISTE', icon: AlertCircle, count: 3, badge: 'Sözel Liste' },
     { key: 'tb_data_status', name: 'Veri Durumları', type: 'LISTE', icon: TableProperties, count: 4, badge: 'Sözel Liste' },
-    { key: 'tb_kullanici_rolleri', name: 'Kullanıcı Rolleri', type: 'LISTE', icon: Key, count: 3, badge: 'Sözel Liste' }
+    { key: 'tb_kullanici_rolleri', name: 'Kullanıcı Rolleri', type: 'LISTE', icon: Key, count: 3, badge: 'Sözel Liste' },
+    { key: 'tb_nokta_tipi', name: 'Şebeke Nokta Tipleri', type: 'LISTE', icon: MapPin, count: 18, badge: 'Sözel Liste' }
   ];
 
   // Role Change Handler
@@ -422,6 +425,13 @@ export default function AdminPanel({ theme, onClose }: AdminPanelProps) {
       initialObj.code = 'guest_user';
       initialObj.name = 'Misafir Kullanıcı';
       initialObj.description = 'Yalnızca genel izleme yapabilen rol';
+    } else if (selectedTableKey === 'tb_nokta_tipi') {
+      // networks: icmesuyu, atiksu, yagmursuyu (virgülle); category: Bağlantı Parçası, Vana, Pompa, Baca, Izgara, Hidrant, Bina Bağlantısı
+      initialObj.code = 'YENI_TIP';
+      initialObj.name = 'Yeni Nokta Tipi';
+      initialObj.networks = 'icmesuyu';
+      initialObj.category = 'Bağlantı Parçası';
+      initialObj.notes = 'Açıklama notu';
     } else {
       initialObj.notes = 'Yeni kayıt notu';
     }
@@ -480,6 +490,9 @@ export default function AdminPanel({ theme, onClose }: AdminPanelProps) {
           break;
         case 'tb_kullanici_rolleri':
           created = await api.createKullaniciRolu(newRowData);
+          break;
+        case 'tb_nokta_tipi':
+          created = await api.createNoktaTipi(newRowData);
           break;
         default:
           created = await api.createProje(newRowData);
@@ -552,6 +565,9 @@ export default function AdminPanel({ theme, onClose }: AdminPanelProps) {
         case 'tb_kullanici_rolleri':
           await api.updateKullaniciRolu(rowId, editingRow);
           break;
+        case 'tb_nokta_tipi':
+          await api.updateNoktaTipi(rowId, editingRow);
+          break;
         default:
           await api.updateProje(rowId, editingRow);
       }
@@ -614,6 +630,9 @@ export default function AdminPanel({ theme, onClose }: AdminPanelProps) {
           break;
         case 'tb_kullanici_rolleri':
           await api.deleteKullaniciRolu(rowId);
+          break;
+        case 'tb_nokta_tipi':
+          await api.deleteNoktaTipi(rowId);
           break;
         default:
           await api.deleteProje(rowId);

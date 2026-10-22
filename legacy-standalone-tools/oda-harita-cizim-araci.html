@@ -1279,6 +1279,10 @@
     font-family:var(--font-mono);font-size:11px;color:var(--text);white-space:nowrap;
   }
   #loupeWindow .loupe-lens{position:relative;}
+  /* Ana haritada merceğin gösterdiği alan (bkz. loupeFootprintUpdate) */
+  .loupe-footprint{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:3;overflow:visible;}
+  .loupe-footprint path{fill:rgba(46,230,196,.10);stroke:var(--teal);stroke-width:2;stroke-dasharray:6 4;}
+  .loupe-footprint circle{fill:var(--teal);stroke:#08161f;stroke-width:1;}
   #loupeWindow .loupe-ring{
     position:absolute;inset:0;border-radius:50%;pointer-events:none;
     box-shadow:0 0 0 3px var(--teal), 0 0 0 5px rgba(8,22,31,.85), 0 12px 36px rgba(0,0,0,.6);
@@ -1297,8 +1301,8 @@
   }
   #loupeWindow .loupe-head .status-icon{color:var(--teal);}
   #loupeWindow .loupe-title{flex:1;}
-  #loupeWindow .loupe-zoom, #loupeWindow .loupe-step{display:inline-flex;gap:3px;}
-  #loupeWindow .loupe-z{color:var(--text-dim);font-weight:500;margin-left:6px;}
+  #loupeWindow .loupe-step{display:inline-flex;gap:3px;}
+  #loupeWindow .loupe-z{color:var(--text-dim);font-weight:500;min-width:42px;}
   #loupeWindow .loupe-head button{
     background:var(--bg-panel-raise);border:1px solid var(--line);color:var(--text-dim);
     border-radius:3px;padding:3px 8px;font-size:11px;font-family:var(--font-mono);cursor:pointer;
@@ -3627,19 +3631,16 @@
   <div class="div"></div>
   <button id="statusBimViewToggleBtn" class="status-snap-btn bim-view-toggle-btn" title="Gerçek Dünya Görünümü — altyapı borularını gerçek kot, çap ve malzemeleriyle; işaretlenen binaları gerçek BIM modelleriyle göster/gizle"><svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21V8l9-5 9 5v13"/><path d="M9 21V12h6v9"/><path d="M3 8l9 5 9-5"/></svg></button>
   <div class="div"></div>
-  <!-- Zoom ölçeği artık EN SAĞDA — kullanıcı isteğiyle (önceden margin-left:
-       auto ile bu span'in kendisi sağa yaslanıyordu, o kural yukarı,
-       Snap'e taşındı). Diğer butonların title'ları (yerel tarayıcı
-       tooltip'i) korunuyor — hiçbiri kaldırılmadı. -->
-  <span title="Yakınlaştırma (zoom)"><b id="stZoom">—</b></span>
+  <!-- Büyüteç: seçilen daireyi ayrı bir mercekte yakınlaştırılmış gösterir — bkz. loupeStartSelect. -->
+  <button id="statusLoupeBtn" class="status-snap-btn" title="Büyüteç — haritada bir daire çizin, o alan ayrı bir mercekte yakınlaştırılmış gösterilsin"><svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="10" cy="10" r="6.5"/><path d="M20.5 20.5l-5.8-5.8M10 7v6M7 10h6"/></svg></button>
   <div class="div"></div>
   <!-- Yer İmleri ve Değişiklik Geçmişi panelleri — sol çubuktan kaldırıldı, buradan açılır/kapanır. -->
   <button id="statusBookmarkBtn" class="status-snap-btn status-panel-btn" data-module="yerimi" title="Yer İmleri"><svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3h12v18l-6-4.5L6 21z"/></svg></button>
   <!-- Değişiklik Geçmişi yalnızca süper kullanıcıya görünür (bkz. oda:user-meta → syncHistoryButtonForRole). -->
   <button id="statusHistoryBtn" class="status-snap-btn status-panel-btn" data-module="gecmis" title="Değişiklik Geçmişi" style="display:none;"><svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 7v5l3 2"/></svg></button>
   <div class="div"></div>
-  <!-- Büyüteç: seçilen bölgeyi ayrı pencerede ×2 / ×3 gösterir — bkz. loupeStartSelect. -->
-  <button id="statusLoupeBtn" class="status-snap-btn" title="Büyüteç — haritada bir bölge seçin, ayrı pencerede ×2 / ×3 büyütülmüş gösterilsin"><svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="10" cy="10" r="6.5"/><path d="M20.5 20.5l-5.8-5.8M10 7v6M7 10h6"/></svg></button>
+  <!-- Zoom ölçeği EN SAĞDA (kullanıcı isteğiyle; büyüteç düğmesiyle yer değiştirdi). -->
+  <span title="Yakınlaştırma (zoom)"><b id="stZoom">—</b></span>
 </div>
 
 <div id="snapTolerancePopover">
@@ -16561,7 +16562,26 @@
   };
   function nodeTypeOf(f){
     var code = f && f.properties && f.properties.node_type_code;
-    return code ? NODE_TYPES[String(code).toUpperCase()] || null : null;
+    if (!code) return null;
+    code = String(code).toUpperCase();
+    return NODE_TYPES[code] || nodeTypeFromList(code);
+  }
+  // Yönetim panelinden eklenen (yukarıdaki katalogda olmayan) tipler: adı tb_nokta_tipi
+  // listesinden (relationOptionsCache) gelir, türü kodundan/adından çıkarılır —
+  // VANA → vana, BACA → baca, diğerleri genel bağlantı parçası.
+  var nodeTypeExtra = {};
+  function nodeTypeFromList(code){
+    if (nodeTypeExtra[code]) return nodeTypeExtra[code];
+    var list = (typeof relationOptionsCache !== 'undefined' && relationOptionsCache && relationOptionsCache.tb_nokta_tipi) || [];
+    var row = list.find(function(o){ return String(o.id).toUpperCase() === code; });
+    if (!row) return null;
+    var txt = (code + ' ' + row.label).toLocaleUpperCase('tr-TR');
+    var t = /VANA/.test(txt) ? { kind: 'valve', valve: row.label, sym: 'nt-valve' }
+      : /BACA/.test(txt) ? { kind: 'manhole', sym: 'nt-manhole' }
+      : /IZGARA/.test(txt) ? { kind: 'fitting', sym: 'nt-grate', standalone: true }
+      : { kind: 'fitting', sym: 'circle' };
+    t.label = row.label;
+    return (nodeTypeExtra[code] = t);
   }
   function isParcelManhole(f){ return String((f && f.properties && f.properties.node_type_code) || '').toUpperCase() === 'PARSEL_BACASI'; }
   function isFittingFeature(f){
@@ -24160,9 +24180,6 @@
     var f = loupe.factor;
     loupeSetDiameter(Math.max(loupe.sel.w, loupe.sel.h) * f);
     loupe.map.jumpTo({ center: loupe.center, zoom: loupe.baseZoom + Math.log2(f), bearing: loupe.bearing, pitch: loupe.pitch });
-    loupe.el.querySelectorAll('.loupe-zoom button').forEach(function(b){
-      b.classList.toggle('active', +b.getAttribute('data-f') === f);
-    });
   }
 
   function loupeCreateWindow(){
@@ -24171,8 +24188,7 @@
     el.innerHTML =
       '<div class="loupe-head">' +
         '<svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="10" cy="10" r="6.5"/><path d="M20.5 20.5l-5.8-5.8M10 7v6M7 10h6"/></svg>' +
-        '<span class="loupe-title">Büyüteç <b class="loupe-z"></b></span>' +
-        '<span class="loupe-zoom"><button type="button" data-f="2" title="2 kat büyüt">×2</button><button type="button" data-f="3" title="3 kat büyüt">×3</button></span>' +
+        '<b class="loupe-z" title="Mercek zoomu"></b>' +
         '<span class="loupe-step"><button type="button" class="loupe-out" title="Uzaklaş">−</button><button type="button" class="loupe-in" title="Yakınlaş (en çok zoom ' + LOUPE_MAX_ZOOM + ')">+</button></span>' +
         '<button type="button" class="loupe-reselect" title="Yeni bölge seç">' +
           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg>' +
@@ -24208,6 +24224,9 @@
     // Pencerenin görüş alanı boru motorunun hücre seçimine katılır (daha yakında daha ayrıntılı model)
     rwExtraViews.push(loupe.map);
     loupe.map.on('move', rwOnMove);
+    loupe.map.on('move', loupeFootprintUpdate);
+    loupe.map.on('resize', loupeFootprintUpdate);
+    map.on('move', loupeFootprintUpdate);
     // Ana harita her çizildiğinde (yeni kurulan 3B hücre, BIM modeli vb.) pencere de tazelenir
     loupe.onMainRender = function(){ if (loupe && !loupe.repaintQueued){ loupe.repaintQueued = true; requestAnimationFrame(function(){ if (!loupe) return; loupe.repaintQueued = false; loupe.map.triggerRepaint(); }); } };
     map.on('render', loupe.onMainRender);
@@ -24219,9 +24238,6 @@
         var img = map.style.getImage(e.id);
         if (img && !loupe.map.hasImage(e.id)) loupe.map.addImage(e.id, img.data, { pixelRatio: img.pixelRatio, sdf: img.sdf });
       }catch(err){ /* yoksay */ }
-    });
-    el.querySelectorAll('.loupe-zoom button').forEach(function(b){
-      b.addEventListener('click', function(){ loupe.factor = +b.getAttribute('data-f'); loupeApply(); });
     });
     el.querySelector('.loupe-reselect').addEventListener('click', loupeStartSelect);
     el.querySelector('.loupe-close').addEventListener('click', loupeClose);
@@ -24297,10 +24313,44 @@
     });
   }
 
+  // Merceğin gösterdiği alan: mercek dairesinin kenarı (48 nokta) mercek haritasında
+  // coğrafi koordinata, oradan ana harita ekranına çevrilir ve SVG ile çizilir.
+  // Mercek ya da ana harita her hareket ettiğinde (kare başına en çok bir kez) yenilenir.
+  function loupeFootprintUpdate(){
+    if (!loupe || loupe.fpQueued) return;
+    loupe.fpQueued = true;
+    requestAnimationFrame(function(){
+      if (!loupe) return;
+      loupe.fpQueued = false;
+      var holder = document.getElementById('map');
+      if (!loupe.fp){
+        loupe.fp = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        loupe.fp.setAttribute('class', 'loupe-footprint');
+        loupe.fp.innerHTML = '<path/><circle r="3"/>';
+        holder.appendChild(loupe.fp);
+      }
+      var lc = loupe.map.getCanvas(), w = lc.clientWidth, h = lc.clientHeight;
+      if (!w || !h) return;
+      var cx = w / 2, cy = h / 2, r = Math.min(w, h) / 2, d = '';
+      for (var i = 0; i <= 48; i++){
+        var a = i / 48 * Math.PI * 2;
+        var ll = loupe.map.unproject([cx + Math.cos(a) * r, cy + Math.sin(a) * r]);
+        var p = map.project(ll);
+        d += (i ? 'L' : 'M') + p.x.toFixed(1) + ' ' + p.y.toFixed(1);
+      }
+      var c = map.project(loupe.map.getCenter());
+      loupe.fp.querySelector('path').setAttribute('d', d + 'Z');
+      var dot = loupe.fp.querySelector('circle');
+      dot.setAttribute('cx', c.x.toFixed(1)); dot.setAttribute('cy', c.y.toFixed(1));
+    });
+  }
+
   function loupeClose(){
     if (!loupe) return;
     clearTimeout(loupeSyncTimer);
     map.off('render', loupe.onMainRender);
+    map.off('move', loupeFootprintUpdate);
+    if (loupe.fp) loupe.fp.remove();
     rwExtraViews = rwExtraViews.filter(function(m){ return m !== loupe.map; });
     try{ loupe.map.remove(); }catch(err){ /* yoksay */ }
     loupe.el.remove();
