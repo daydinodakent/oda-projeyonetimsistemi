@@ -120,12 +120,21 @@ export interface AltyapiHattiRecord extends BaseEntity {
   line_type: 'icmesuyu' | 'atiksu' | 'yagmursuyu' | 'dogalgaz' | 'elektrik' | 'fiber';
   network_name: string;
   pipe_or_cable_spec: string;
-  depth_meters: number;
+  depth_meters: number;          // örtü derinliği: zeminden boru üstüne (m)
   voltage_or_pressure: string;
   total_length_meters: number;
   status: 'Faal' | 'İnşaat Halinde' | 'Planlanan';
   srid: number;
   veri_durumu?: 'Planlanan' | 'İnşaat' | 'İşletme' | 'İptal';
+  // Haritadaki gerçek 3B boru gösterimi için (boşsa malzeme/çap
+  // pipe_or_cable_spec metninden, et kalınlığı malzeme standardından çıkarılır).
+  material?: string | null;              // HDPE, PE, PVC, Beton, Çelik, Duktil, CTP, Kablo
+  outer_diameter_mm?: number | null;     // dış çap (mm)
+  wall_thickness_mm?: number | null;     // et kalınlığı (mm)
+  start_invert_elev?: number | null;     // başlangıç akar kotu (m) — boru içi tabanı
+  end_invert_elev?: number | null;       // bitiş akar kotu (m)
+  start_ground_elev?: number | null;     // başlangıç zemin kotu (m)
+  end_ground_elev?: number | null;       // bitiş zemin kotu (m)
   the_geom?: {
     tip: 'LineString';
     coordinates: [number, number][];

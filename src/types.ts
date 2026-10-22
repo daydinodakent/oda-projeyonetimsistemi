@@ -174,4 +174,12 @@ export interface GISInfrastructureRecord {
   status: 'Faal' | 'İnşaat Halinde' | 'Planlanan';
   coordinates: [number, number][];
   veri_durumu?: 'Planlanan' | 'İnşaat' | 'İşletme' | 'İptal';
+  // bkz. AltyapiHattiRecord (src/types/index.ts) — 3B boru gösterimi alanları
+  material?: string;
+  outer_diameter_mm?: number;
+  wall_thickness_mm?: number;
+  start_invert_elev?: number;
+  end_invert_elev?: number;
+  start_ground_elev?: number;
+  end_ground_elev?: number;
 }

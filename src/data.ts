@@ -712,14 +712,21 @@ export const gisBuildingRecords: GISBuildingRecord[] = initialProjects
 // rengiyle çizer (bkz. OdaMapModule.tsx'in eklediği 'line_color'
 // özniteliği ve oda-harita-cizim-araci.html'deki __layerColor override'ı).
 // ---------------------------------------------------------------------
-const INFRA_TYPES: { code: GISInfrastructureRecord['line_type']; label: string; spec: string; depth: number; voltageOrPressure: string }[] = [
-  { code: 'icmesuyu',   label: 'İçmesuyu',   spec: 'HDPE Ø110mm PE100',      depth: 1.2, voltageOrPressure: '10 bar' },
-  { code: 'atiksu',     label: 'Atıksu',     spec: 'PVC Ø200mm',             depth: 1.8, voltageOrPressure: '-' },
-  { code: 'yagmursuyu', label: 'Yağmursuyu', spec: 'Beton Muflu Ø300mm',     depth: 1.5, voltageOrPressure: '-' },
-  { code: 'dogalgaz',   label: 'Doğalgaz',   spec: 'PE Ø63mm',               depth: 0.9, voltageOrPressure: '4 bar' },
-  { code: 'elektrik',   label: 'Elektrik',   spec: 'NAYY 4x120mm² YG Kablo', depth: 0.7, voltageOrPressure: '0.4 kV' },
-  { code: 'fiber',      label: 'Fiber Hat',  spec: '48 Çekirdek F.O. Kablo', depth: 0.6, voltageOrPressure: '-' }
+// material/od/wall: 3B boru gösterimi (dış çap ve et kalınlığı mm; beton
+// için Ø300 iç çaptır → dış çap 390). slope: cazibeli hatların akar kotu
+// eğimi (m/m); yoksa hat zemine paralel, örtü derinliğinde döşenir.
+const INFRA_TYPES: { code: GISInfrastructureRecord['line_type']; label: string; spec: string; depth: number; voltageOrPressure: string; material: string; od: number; wall?: number; slope?: number }[] = [
+  { code: 'icmesuyu',   label: 'İçmesuyu',   spec: 'HDPE Ø110mm PE100',      depth: 1.2, voltageOrPressure: '10 bar', material: 'HDPE',  od: 110, wall: 10.0 },
+  { code: 'atiksu',     label: 'Atıksu',     spec: 'PVC Ø200mm',             depth: 1.8, voltageOrPressure: '-',      material: 'PVC',   od: 200, wall: 4.9, slope: 0.0035 },
+  { code: 'yagmursuyu', label: 'Yağmursuyu', spec: 'Beton Muflu Ø300mm',     depth: 1.5, voltageOrPressure: '-',      material: 'Beton', od: 390, wall: 45, slope: 0.0032 },
+  { code: 'dogalgaz',   label: 'Doğalgaz',   spec: 'PE Ø63mm',               depth: 0.9, voltageOrPressure: '4 bar',  material: 'PE',    od: 63,  wall: 5.8 },
+  { code: 'elektrik',   label: 'Elektrik',   spec: 'NAYY 4x120mm² YG Kablo', depth: 0.7, voltageOrPressure: '0.4 kV', material: 'Kablo', od: 48 },
+  { code: 'fiber',      label: 'Fiber Hat',  spec: '48 Çekirdek F.O. Kablo', depth: 0.6, voltageOrPressure: '-',      material: 'Kablo', od: 14 }
 ];
+// Örnek koridorun zemin kotları: başlangıç 92,40 m, ‰3 eğimle düşer (cazibeli
+// hatlar biraz daha dik döşenir; uzun hatta derinlik kademeli artar).
+const INFRA_GROUND_START = 92.4;
+const INFRA_GROUND_SLOPE = 0.003;
 
 // Bina merkezlerinden geçen bir "omurga" hattını, her noktada güzergaha
 // DİK yönde offsetM (metre) kadar kaydırarak paralel bir kopyasını üretir
@@ -761,6 +768,13 @@ function generateEtapInfrastructure(project: Project, etapLabel: string): GISInf
     // -12.5m .. +12.5m arası, 5m aralıklı 6 paralel hat (ortak altyapı koridoru).
     var offsetM = (idx - (INFRA_TYPES.length - 1) / 2) * 5;
     var line = offsetPolyline(centers, offsetM, midLat);
+    var length = polylineLengthMeters(line, midLat);
+    var r2 = (v: number) => Math.round(v * 100) / 100;
+    var g0 = INFRA_GROUND_START, g1 = g0 - INFRA_GROUND_SLOPE * length;
+    // Akar kotu = boru içi tabanı: zemin − örtü − dış çap + et kalınlığı (kabloda alt yüzey).
+    var bottomOffset = (t.od - (t.wall || 0)) / 1000;
+    var inv0 = g0 - t.depth - bottomOffset;
+    var inv1 = t.slope ? inv0 - t.slope * length : g1 - t.depth - bottomOffset;
     return {
       id: `altyapi-${project.id}-${t.code}`,
       table_name: 'tb_altyapi_hatlari',
@@ -770,10 +784,17 @@ function generateEtapInfrastructure(project: Project, etapLabel: string): GISInf
       pipe_or_cable_spec: t.spec,
       depth_meters: t.depth,
       voltage_or_pressure: t.voltageOrPressure,
-      total_length_meters: Math.round(polylineLengthMeters(line, midLat)),
+      total_length_meters: Math.round(length),
       status: 'Planlanan' as const,
       coordinates: line,
-      veri_durumu: 'Planlanan' as const
+      veri_durumu: 'Planlanan' as const,
+      material: t.material,
+      outer_diameter_mm: t.od,
+      wall_thickness_mm: t.wall,
+      start_invert_elev: r2(inv0),
+      end_invert_elev: r2(inv1),
+      start_ground_elev: r2(g0),
+      end_ground_elev: r2(g1)
     };
   });
 }

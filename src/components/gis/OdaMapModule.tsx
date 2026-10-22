@@ -351,6 +351,14 @@ const toAltyapiFeature = (r: any, colorByType: Record<string, string>) => ({
     status: r.status,
     total_length_meters: r.total_length_meters,
     veri_durumu: r.veri_durumu,
+    // 3B boru gösterimi (bkz. haritadaki pipe-mesh-layer)
+    material: r.material ?? null,
+    outer_diameter_mm: r.outer_diameter_mm ?? null,
+    wall_thickness_mm: r.wall_thickness_mm ?? null,
+    start_invert_elev: r.start_invert_elev ?? null,
+    end_invert_elev: r.end_invert_elev ?? null,
+    start_ground_elev: r.start_ground_elev ?? null,
+    end_ground_elev: r.end_ground_elev ?? null,
     line_color: colorByType[String(r.line_type)] || '#10b981',
   },
 });

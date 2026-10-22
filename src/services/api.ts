@@ -268,6 +268,13 @@ const altyapiSeed: AltyapiHattiRecord[] = gisInfrastructureRecords.map((a, idx) 
   status: a.status,
   srid: 5257,
   veri_durumu: (a as any).veri_durumu || 'Planlanan',
+  material: a.material ?? null,
+  outer_diameter_mm: a.outer_diameter_mm ?? null,
+  wall_thickness_mm: a.wall_thickness_mm ?? null,
+  start_invert_elev: a.start_invert_elev ?? null,
+  end_invert_elev: a.end_invert_elev ?? null,
+  start_ground_elev: a.start_ground_elev ?? null,
+  end_ground_elev: a.end_ground_elev ?? null,
   the_geom: {
     tip: 'LineString',
     coordinates: a.coordinates
@@ -521,7 +528,15 @@ const sutunlarSeed: TabloSutunRecord[] = [
   { table_name: 'tb_altyapi_hatlari', column_name: 'line_type', data_type: 'varchar(50)', is_nullable: false, description: 'Altyapı tipi — haritada bu tipe ait renkle çizilir', is_hidden: false, display_name: 'Altyapı Tipi', relation_table: 'tb_altyapi_tipi', relation_column: 'id', relation_display_column: 'name' },
   { table_name: 'tb_altyapi_hatlari', column_name: 'network_name', data_type: 'varchar(255)', is_nullable: false, description: 'Şebeke tanımı', is_hidden: false, display_name: 'Şebeke Adı' },
   { table_name: 'tb_altyapi_hatlari', column_name: 'pipe_or_cable_spec', data_type: 'varchar(255)', is_nullable: false, description: 'Kablo veya boru kesit spesifikasyonu', is_hidden: false, display_name: 'Kablo/Boru Özelliği' },
-  { table_name: 'tb_altyapi_hatlari', column_name: 'depth_meters', data_type: 'numeric(6,2)', is_nullable: false, description: 'Gömü derinliği (m)', is_hidden: false, display_name: 'Gömü Derinliği (m)' },
+  { table_name: 'tb_altyapi_hatlari', column_name: 'depth_meters', data_type: 'numeric(6,2)', is_nullable: false, description: 'Örtü derinliği — zeminden boru üstüne (m)', is_hidden: false, display_name: 'Gömü Derinliği (m)' },
+  // 3B boru gösterimi (boş bırakılırsa malzeme/çap "Kablo/Boru Özelliği" metninden, et kalınlığı malzeme standardından çıkarılır)
+  { table_name: 'tb_altyapi_hatlari', column_name: 'material', data_type: 'varchar(50)', is_nullable: true, description: 'HDPE, PE, PVC, Beton, Çelik, Duktil, CTP, Kablo', is_hidden: false, display_name: 'Malzeme' },
+  { table_name: 'tb_altyapi_hatlari', column_name: 'outer_diameter_mm', data_type: 'numeric(8,1)', is_nullable: true, description: 'Boru/kablo dış çapı (mm)', is_hidden: false, display_name: 'Dış Çap (mm)' },
+  { table_name: 'tb_altyapi_hatlari', column_name: 'wall_thickness_mm', data_type: 'numeric(6,1)', is_nullable: true, description: 'Boru et kalınlığı (mm) — kabloda boş', is_hidden: false, display_name: 'Et Kalınlığı (mm)' },
+  { table_name: 'tb_altyapi_hatlari', column_name: 'start_invert_elev', data_type: 'numeric(8,2)', is_nullable: true, description: 'Başlangıç akar kotu — boru içi tabanı (m)', is_hidden: false, display_name: 'Başlangıç Akar Kotu (m)' },
+  { table_name: 'tb_altyapi_hatlari', column_name: 'end_invert_elev', data_type: 'numeric(8,2)', is_nullable: true, description: 'Bitiş akar kotu — boru içi tabanı (m)', is_hidden: false, display_name: 'Bitiş Akar Kotu (m)' },
+  { table_name: 'tb_altyapi_hatlari', column_name: 'start_ground_elev', data_type: 'numeric(8,2)', is_nullable: true, description: 'Başlangıçtaki zemin (kapak) kotu (m)', is_hidden: false, display_name: 'Başlangıç Zemin Kotu (m)' },
+  { table_name: 'tb_altyapi_hatlari', column_name: 'end_ground_elev', data_type: 'numeric(8,2)', is_nullable: true, description: 'Bitişteki zemin (kapak) kotu (m)', is_hidden: false, display_name: 'Bitiş Zemin Kotu (m)' },
   { table_name: 'tb_altyapi_hatlari', column_name: 'voltage_or_pressure', data_type: 'varchar(100)', is_nullable: false, description: 'Gerilim veya işletme basıncı', is_hidden: false, display_name: 'Gerilim / Basınç' },
   { table_name: 'tb_altyapi_hatlari', column_name: 'total_length_meters', data_type: 'numeric(10,2)', is_nullable: false, description: 'Hat metrajı (m)', is_hidden: false, display_name: 'Toplam Uzunluk (m)' },
   { table_name: 'tb_altyapi_hatlari', column_name: 'status', data_type: 'varchar(50)', is_nullable: false, column_default: "'Faal'", description: 'İşletme durumu', is_hidden: false, display_name: 'İşletme Durumu' },
@@ -874,6 +889,13 @@ export async function createAltyapiHatti(item: Partial<AltyapiHattiRecord>): Pro
     total_length_meters: item.total_length_meters || 500,
     status: item.status || 'Faal',
     srid: 5257,
+    material: item.material ?? null,
+    outer_diameter_mm: item.outer_diameter_mm ?? null,
+    wall_thickness_mm: item.wall_thickness_mm ?? null,
+    start_invert_elev: item.start_invert_elev ?? null,
+    end_invert_elev: item.end_invert_elev ?? null,
+    start_ground_elev: item.start_ground_elev ?? null,
+    end_ground_elev: item.end_ground_elev ?? null,
     the_geom: item.the_geom
   };
   return apiCreate('tb_altyapi_hatlari', newItem);
@@ -1404,8 +1426,29 @@ export async function deleteYetki(id: number | string): Promise<boolean> {
 function sutunKey(tableName: string, columnName: string): string {
   return `${tableName}::${columnName}`;
 }
+// Sütun şeması tabloya yalnızca ilk kurulumda tohumlanır; sonradan koda eklenen
+// sütunlar (ör. tb_altyapi_hatlari'nın 3B boru alanları) mevcut kurulumlara bu
+// geçişle, oturum başına bir kez eklenir. Liste silinmişleri döndürmediği için
+// her eksik sütun ayrıca sorgulanır: kullanıcının sildiği (row_status 0 olarak
+// duran) bir sütun geri getirilmez, yalnızca hiç kaydı olmayanlar eklenir.
+let sutunGecisi: Promise<void> | null = null;
+function eksikSutunlariEkle(): Promise<void> {
+  if (!sutunGecisi) {
+    sutunGecisi = apiList<TabloSutunRecord & { id: string }>('tb_tablo_sutunlari').then(async (mevcut) => {
+      const var_ = new Set(mevcut.map((c) => String(c.id)));
+      const aday = sutunlarSeed.filter((c) => !var_.has(sutunKey(c.table_name, c.column_name)));
+      for (const c of aday) {
+        const id = sutunKey(c.table_name, c.column_name);
+        if (await apiGet('tb_tablo_sutunlari', id)) continue;
+        await apiCreate('tb_tablo_sutunlari', { ...c, id });
+      }
+    }).catch((err) => { console.error('Sütun şeması güncellenemedi:', err); });
+  }
+  return sutunGecisi;
+}
 export async function getTabloSutunlari(tableName?: string): Promise<TabloSutunRecord[]> {
   await ensureSeeded('tb_tablo_sutunlari', sutunlarSeed.map(c => ({ ...c, id: sutunKey(c.table_name, c.column_name) })));
+  await eksikSutunlariEkle();
   const all = await apiList<TabloSutunRecord>('tb_tablo_sutunlari');
   return tableName ? all.filter(c => c.table_name === tableName) : all;
 }
