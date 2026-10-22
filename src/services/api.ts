@@ -16,6 +16,7 @@ import {
   HaritaYerImiRecord,
   KurumsalAltlikRecord,
   AltyapiBacasiRecord,
+  AltyapiVanasiRecord,
   VarlikRecord,
   BakimKaydiRecord,
   BildirimRecord,
@@ -30,6 +31,7 @@ import {
   gisBuildingRecords,
   gisInfrastructureRecords,
   gisManholeRecords,
+  gisValveRecords,
   initialWbsTasks,
   initialDocuments,
   initialAssets,
@@ -306,6 +308,30 @@ const bacalarSeed: AltyapiBacasiRecord[] = gisManholeRecords.map((m) => ({
   srid: 5257,
   veri_durumu: m.veri_durumu || 'Planlanan',
   the_geom: { tip: 'Point', coordinates: m.coordinates }
+}));
+
+// İçmesuyu/doğalgaz vanaları (tb_altyapi_vanalari) — hatlar boyunca 300 m arayla.
+const vanalarSeed: AltyapiVanasiRecord[] = gisValveRecords.map((v) => ({
+  id: v.id,
+  name: v.name,
+  notes: null,
+  row_status: 1,
+  create_uid: 1,
+  create_date: '2026-02-15 14:00:00',
+  write_uid: 1,
+  write_date: '2026-08-27 12:00:00',
+  project_id: v.project_id,
+  line_type: v.line_type,
+  valve_type: v.valve_type,
+  line_id: v.line_id,
+  dn_mm: v.dn_mm,
+  pressure_class: v.pressure_class,
+  material: v.material,
+  actuation: v.actuation,
+  valve_state: v.valve_state,
+  srid: 5257,
+  veri_durumu: v.veri_durumu || 'Planlanan',
+  the_geom: { tip: 'Point', coordinates: v.coordinates }
 }));
 
 const bloklarSeed: BlokRecord[] = initialProjects.flatMap((p) =>
@@ -591,6 +617,27 @@ const sutunlarSeed: TabloSutunRecord[] = [
   { table_name: 'tb_altyapi_bacalari', column_name: 'cover_type', data_type: 'varchar(50)', is_nullable: true, description: 'ör. Döküm D400', is_hidden: false, display_name: 'Kapak Tipi' },
   { table_name: 'tb_altyapi_bacalari', column_name: 'veri_durumu', data_type: 'varchar(50)', is_nullable: false, column_default: "'Planlanan'", is_hidden: false, display_name: 'Veri Durumu', relation_table: 'tb_data_status', relation_column: 'id', relation_display_column: 'name' },
   { table_name: 'tb_altyapi_bacalari', column_name: 'the_geom', data_type: 'geometry(Point,5257)', is_nullable: true, description: 'PostGIS Nokta Geometrisi', is_hidden: true, display_name: 'Geometri' },
+
+  // tb_altyapi_vanalari (içmesuyu/doğalgaz vanaları)
+  { table_name: 'tb_altyapi_vanalari', column_name: 'id', data_type: 'serial', is_nullable: false, is_standard: true, is_hidden: true, display_name: 'Id' },
+  { table_name: 'tb_altyapi_vanalari', column_name: 'notes', data_type: 'text', is_nullable: true, is_standard: true, is_hidden: true, display_name: 'Notlar' },
+  { table_name: 'tb_altyapi_vanalari', column_name: 'row_status', data_type: 'integer', is_nullable: false, column_default: '1', is_standard: true, is_hidden: true, display_name: 'Kayıt Durumu' },
+  { table_name: 'tb_altyapi_vanalari', column_name: 'create_uid', data_type: 'integer', is_nullable: true, is_standard: true, is_hidden: true, display_name: 'Oluşturan Kullanıcı' },
+  { table_name: 'tb_altyapi_vanalari', column_name: 'create_date', data_type: 'timestamp', is_nullable: false, column_default: 'current_timestamp', is_standard: true, is_hidden: true, display_name: 'Oluşturma Tarihi' },
+  { table_name: 'tb_altyapi_vanalari', column_name: 'write_uid', data_type: 'integer', is_nullable: true, is_standard: true, is_hidden: true, display_name: 'Güncelleyen Kullanıcı' },
+  { table_name: 'tb_altyapi_vanalari', column_name: 'write_date', data_type: 'timestamp', is_nullable: true, is_standard: true, is_hidden: true, display_name: 'Güncelleme Tarihi' },
+  { table_name: 'tb_altyapi_vanalari', column_name: 'name', data_type: 'varchar(255)', is_nullable: false, description: 'Vana adı/numarası (ör. SV-3)', is_hidden: false, display_name: 'Vana Adı' },
+  { table_name: 'tb_altyapi_vanalari', column_name: 'project_id', data_type: 'varchar(50)', is_nullable: false, description: 'Proje ID', relation_table: 'tb_projeler', relation_column: 'id', relation_display_column: 'name', is_hidden: false, display_name: 'Proje' },
+  { table_name: 'tb_altyapi_vanalari', column_name: 'line_type', data_type: 'varchar(50)', is_nullable: false, description: 'İçmesuyu ya da doğalgaz', is_hidden: false, display_name: 'Altyapı Tipi', relation_table: 'tb_altyapi_tipi', relation_column: 'id', relation_display_column: 'name' },
+  { table_name: 'tb_altyapi_vanalari', column_name: 'valve_type', data_type: 'varchar(50)', is_nullable: false, description: 'Sürgülü, Kelebek, Küresel, Hava tahliye, Çekvalf', is_hidden: false, display_name: 'Vana Tipi' },
+  { table_name: 'tb_altyapi_vanalari', column_name: 'line_id', data_type: 'varchar(100)', is_nullable: true, description: 'Bağlı altyapı hattı', is_hidden: false, display_name: 'Bağlı Hat', relation_table: 'tb_altyapi_hatlari', relation_column: 'id', relation_display_column: 'network_name' },
+  { table_name: 'tb_altyapi_vanalari', column_name: 'dn_mm', data_type: 'numeric(8,1)', is_nullable: true, description: 'Anma çapı (mm)', is_hidden: false, display_name: 'Anma Çapı DN (mm)' },
+  { table_name: 'tb_altyapi_vanalari', column_name: 'pressure_class', data_type: 'varchar(30)', is_nullable: true, description: 'Basınç sınıfı (ör. PN16)', is_hidden: false, display_name: 'Basınç Sınıfı' },
+  { table_name: 'tb_altyapi_vanalari', column_name: 'material', data_type: 'varchar(100)', is_nullable: true, description: 'ör. Duktil döküm (GGG-50) epoksi kaplı, PE100, Çelik, Pirinç', is_hidden: false, display_name: 'Malzeme' },
+  { table_name: 'tb_altyapi_vanalari', column_name: 'actuation', data_type: 'varchar(100)', is_nullable: true, description: 'ör. Kare başlık + uzatma mili, Redüktör, El çarkı', is_hidden: false, display_name: 'Tahrik' },
+  { table_name: 'tb_altyapi_vanalari', column_name: 'valve_state', data_type: 'varchar(20)', is_nullable: true, description: 'Açık / Kapalı', is_hidden: false, display_name: 'Konum (Açık/Kapalı)' },
+  { table_name: 'tb_altyapi_vanalari', column_name: 'veri_durumu', data_type: 'varchar(50)', is_nullable: false, column_default: "'Planlanan'", is_hidden: false, display_name: 'Veri Durumu', relation_table: 'tb_data_status', relation_column: 'id', relation_display_column: 'name' },
+  { table_name: 'tb_altyapi_vanalari', column_name: 'the_geom', data_type: 'geometry(Point,5257)', is_nullable: true, description: 'PostGIS Nokta Geometrisi', is_hidden: true, display_name: 'Geometri' },
 
   // tb_proje_sinirlari
   { table_name: 'tb_proje_sinirlari', column_name: 'id', data_type: 'serial', is_nullable: false, is_standard: true, is_hidden: true, display_name: 'Id' },
@@ -970,6 +1017,20 @@ export async function updateAltyapiBacasi(id: number | string, item: Partial<Alt
 export async function deleteAltyapiBacasi(id: number | string): Promise<boolean> {
   await ensureSeeded('tb_altyapi_bacalari', bacalarSeed);
   return apiSoftDelete('tb_altyapi_bacalari', id);
+}
+
+// 7c. TABLO ADI (tb_altyapi_vanalari)
+export async function getAltyapiVanalari(): Promise<AltyapiVanasiRecord[]> {
+  await ensureSeeded('tb_altyapi_vanalari', vanalarSeed);
+  return apiList<AltyapiVanasiRecord>('tb_altyapi_vanalari');
+}
+export async function updateAltyapiVanasi(id: number | string, item: Partial<AltyapiVanasiRecord>): Promise<AltyapiVanasiRecord> {
+  await ensureSeeded('tb_altyapi_vanalari', vanalarSeed);
+  return apiUpdate<AltyapiVanasiRecord>('tb_altyapi_vanalari', id, { ...item, write_date: new Date().toISOString() });
+}
+export async function deleteAltyapiVanasi(id: number | string): Promise<boolean> {
+  await ensureSeeded('tb_altyapi_vanalari', vanalarSeed);
+  return apiSoftDelete('tb_altyapi_vanalari', id);
 }
 
 // 8. TABLO ADI (tb_bloklar)

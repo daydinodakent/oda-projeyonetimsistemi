@@ -135,6 +135,10 @@ const GPKG_LAYERS = [
     columns: ['name', 'project_id', 'line_type', 'manhole_no', 'line_id', 'cover_elev', 'invert_elev', 'inner_diameter_mm', 'wall_thickness_mm', 'material', 'cover_type', 'veri_durumu'],
   },
   {
+    tableName: 'tb_altyapi_vanalari', description: 'Altyapı Vanaları', geomType: 'POINT',
+    columns: ['name', 'project_id', 'line_type', 'valve_type', 'line_id', 'dn_mm', 'pressure_class', 'material', 'actuation', 'valve_state', 'veri_durumu'],
+  },
+  {
     tableName: 'tb_saha_fotograflari', description: 'Saha Dosyaları', geomType: 'POINT',
     columns: ['name', 'project_id', 'notes', 'upload_date', 'doc_type'],
   },

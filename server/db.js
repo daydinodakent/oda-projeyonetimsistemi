@@ -88,6 +88,8 @@ const SPATIAL_TABLES = {
   tb_altyapi_hatlari: { geomType: 'LINESTRING', description: 'Altyapı Hatları' },
   // Atıksu/yağmursuyu bacaları (muayene bacası) — nokta katmanı, kapak/akar kotlarıyla
   tb_altyapi_bacalari: { geomType: 'POINT', description: 'Altyapı Bacaları' },
+  // İçmesuyu/doğalgaz vanaları (sürgülü, kelebek, küresel, hava tahliye…) — nokta katmanı
+  tb_altyapi_vanalari: { geomType: 'POINT', description: 'Altyapı Vanaları' },
   // Harita > Saha sekmesinden eklenen konumlu galeri fotoğrafları — gerçek
   // bir GeoPackage nokta katmanı (bkz. src/types/index.ts SahaFotografRecord).
   tb_saha_fotograflari: { geomType: 'POINT', description: 'Saha Fotoğrafları' },

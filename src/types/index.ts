@@ -165,6 +165,28 @@ export interface AltyapiBacasiRecord extends BaseEntity {
   };
 }
 
+// 7c. Altyapı Vanaları (GEOMETRI - POINT) — içmesuyu/doğalgaz vanaları. Haritada
+// nokta; "Gerçek Dünya Görünümü"nde bağlı borunun ekseninde, boru yönünde ve
+// tipine/malzemesine göre (sürgülü, kelebek, küresel, hava tahliye, çekvalf) 3B.
+export interface AltyapiVanasiRecord extends BaseEntity {
+  name: string;
+  project_id: string;
+  line_type: 'icmesuyu' | 'dogalgaz';
+  valve_type: string;                   // Sürgülü, Kelebek, Küresel, Hava tahliye, Çekvalf
+  line_id?: string | null;              // bağlı altyapı hattı (tb_altyapi_hatlari.id)
+  dn_mm?: number | null;                // anma çapı (mm)
+  pressure_class?: string | null;       // ör. PN16
+  material?: string | null;             // ör. Duktil döküm (GGG-50) epoksi kaplı, PE100
+  actuation?: string | null;            // ör. Kare başlık + uzatma mili, Redüktör
+  valve_state?: string | null;          // Açık / Kapalı
+  srid: number;
+  veri_durumu?: 'Planlanan' | 'İnşaat' | 'İşletme' | 'İptal';
+  the_geom?: {
+    tip: 'Point';
+    coordinates: [number, number];
+  };
+}
+
 // 8. Bloklar (GEOMETRI - POLYGON)
 export interface BlokRecord extends BaseEntity {
   project_id: string;

@@ -5638,6 +5638,7 @@
     }
     if (isPipeFeature(f)) body += pipeInfoHtml(f);
     else if (isManholeFeature(f)) body += manholeInfoHtml(f);
+    else if (isValveFeature(f)) body += valveInfoHtml(f);
     main.innerHTML = '<div style="display:flex;align-items:center;gap:8px;">' +
         '<span style="width:18px;height:18px;flex:0 0 auto;color:var(--gold);">' + iconFor(f) + '</span>' +
         '<b>' + (lyrLabel ? escapeAttrHtml(lyrLabel) : typeLabel(f)) + '</b></div>' + body;
@@ -9724,7 +9725,7 @@
   // (ve localStorage oturum kopyasındaki) feature güncel kayıttan yenilenir.
   // ---------------------------------------------------------------------
   var historyItems = [];
-  var HS_TABLO_AD = { tb_proje_sinirlari:'Proje sınırı', tb_binalar_3d:'Bina', tb_altyapi_hatlari:'Altyapı hattı', tb_altyapi_bacalari:'Baca' };
+  var HS_TABLO_AD = { tb_proje_sinirlari:'Proje sınırı', tb_binalar_3d:'Bina', tb_altyapi_hatlari:'Altyapı hattı', tb_altyapi_bacalari:'Baca', tb_altyapi_vanalari:'Vana' };
   var HS_EYLEM_AD = { OLUSTUR:'Oluşturuldu', GUNCELLE:'Güncellendi', SIL:'Silindi', GERI_AL:'Geri alındı' };
   function historyRequest(){ window.parent.postMessage({ type:'oda:history-request' }, '*'); }
   function hsWhen(iso){
@@ -16453,7 +16454,8 @@
     if (k != null) c.multiplyScalar(k);
     return c;
   }
-  function buildPipeGroup(THREE, feats, manholes){
+  function buildPipeGroup(THREE, feats, manholes, valves){
+    var valveItems = [];
     var group = new THREE.Group();
     var a0 = feats.length ? feats[0].geometry.coordinates[0] : manholes[0].geometry.coordinates;
     var anchor = { lng: a0[0], lat: a0[1] };
@@ -16482,7 +16484,16 @@
       group.add(buildPipeMesh(THREE, P, sp, typeColor));
       // Yer altı ile yer üstünü ayıran açık hendek kesiti (bkz. buildTrenchMesh)
       group.add(buildTrenchMesh(THREE, P, ground, sp));
+      // Bu hattın vanaları: borunun ekseninde, boru yönünde (bkz. buildValveMeshes)
+      pipeValveStations(f, valves).forEach(function(vs){
+        var sAt = vs.t * L, j = 1;
+        while (j < cum.length - 1 && cum[j] < sAt) j++;
+        var u = cum[j] > cum[j - 1] ? (sAt - cum[j - 1]) / (cum[j] - cum[j - 1]) : 0;
+        valveItems.push({ c: P[j - 1].clone().lerp(P[j], u), T: new THREE.Vector3().subVectors(P[j], P[j - 1]),
+          gz: ground[j - 1] + (ground[j] - ground[j - 1]) * u, rPipe: sp.od / 2000, spec: valveSpecOf(vs.feature.properties, sp.od) });
+      });
     });
+    if (valveItems.length) group.add(buildValveMeshes(THREE, valveItems));
     if (manholes.length){
       group.add(buildManholeMeshes(THREE, manholes.map(function(m){
         var c = m.geometry.coordinates, mc = maplibregl.MercatorCoordinate.fromLngLat([c[0], c[1]], 0);
@@ -16494,6 +16505,226 @@
     group.userData.anchorElev = anchorElev;
     return group;
   }
+  // ---- vanalar (içmesuyu/doğalgaz) ----
+  // Vana, bağlı borunun ekseninde ve boru yönünde, tipine ve malzemesine göre
+  // çizilir; gövde ölçüleri anma çapına (DN) / boru dış çapına göre ölçeklenir.
+  // Gömülü vanalarda üstteki tahrikten zemine paslanmaz uzatma mili ve zeminde
+  // döküm vana muhafaza (sokak) kutusu vardır.
+  var VALVE_MATERIALS = {
+    duktil: { label: 'Duktil döküm, epoksi kaplı', color: '#1f4fa3', rough: 0.45, metal: 0.1 },
+    pe:     { label: 'PE100',                     color: '#e0b01a', rough: 0.4,  metal: 0 },
+    celik:  { label: 'Çelik',                     color: '#7d8790', rough: 0.35, metal: 0.7 },
+    pirinc: { label: 'Pirinç',                    color: '#b8913a', rough: 0.3,  metal: 0.8 }
+  };
+  var VALVE_TYPES = { surgulu: 'Sürgülü (sürgü) vana', kelebek: 'Kelebek vana', kuresel: 'Küresel vana', hava: 'Hava tahliye vanası', cekvalf: 'Çekvalf' };
+  function isValveFeature(f){
+    return !!(f && f.geometry && f.geometry.type === 'Point' && f.properties &&
+      (f.properties.layerId === 'db-layer-vanalar' || (f.properties.valve_type && f.properties.line_type)));
+  }
+  function valveTypeKey(t){
+    var s = String(t || '').toLowerCase();
+    if (/kelebek|butterfly/.test(s)) return 'kelebek';
+    if (/küresel|kuresel|ball/.test(s)) return 'kuresel';
+    if (/hava|vantuz|air/.test(s)) return 'hava';
+    if (/çek|cek|check/.test(s)) return 'cekvalf';
+    return 'surgulu';
+  }
+  function valveMaterialKey(m, lineType){
+    var s = String(m || '').toLowerCase();
+    if (/\bpe\s?100\b|\bpe\b|polietilen/.test(s)) return 'pe';
+    if (/çelik|celik|steel/.test(s)) return 'celik';
+    if (/pirinç|pirinc|bronz|brass/.test(s)) return 'pirinc';
+    if (/duktil|döküm|dokum|ggg/.test(s)) return 'duktil';
+    return lineType === 'dogalgaz' ? 'pe' : 'duktil';
+  }
+  function valveSpecOf(p, pipeOdMm){
+    var dn = pipeNum(p.dn_mm); if (!(dn > 0)) dn = pipeOdMm || 100;
+    var mk = valveMaterialKey(p.material, p.line_type);
+    return { type: valveTypeKey(p.valve_type), matKey: mk, mat: VALVE_MATERIALS[mk], dn: dn,
+      closed: /kapal/i.test(String(p.valve_state || '')) };
+  }
+  // Bir borunun vanaları (line_id ile bağlı ya da bağsız/aynı tip/2 m içinde) → [{ feature, t }]
+  function pipeValveStations(pipe, valves){
+    if (!valves.length) return [];
+    var L = turf.length(pipe, { units: 'meters' });
+    if (!(L > 0)) return [];
+    var out = [];
+    valves.forEach(function(v){
+      var p = v.properties;
+      var linked = p.line_id != null && String(p.line_id) === String(pipe.id);
+      if (!linked && (p.line_id || p.line_type !== pipe.properties.line_type)) return;
+      var np = turf.nearestPointOnLine(pipe, v, { units: 'meters' });
+      if (!linked && np.properties.dist > 2) return;
+      out.push({ feature: v, t: Math.min(1, Math.max(0, np.properties.location / L)) });
+    });
+    return out;
+  }
+  // Tüm vanaları tek geometride kurar. items: [{ c (eksen merkezi), T (boru yönü), gz (zemin), rPipe, spec }]
+  function buildValveMeshes(THREE, items){
+    var pos = [], nor = [], col = [], idx = [];
+    var N = 16;
+    var steel = new THREE.Color('#a9b1b8'), iron = new THREE.Color('#2a2c2f'), ironLid = new THREE.Color('#3d4045');
+    var closedCap = new THREE.Color('#c0392b');
+    function push(p, n, c){ pos.push(p.x, p.y, p.z); nor.push(n.x, n.y, n.z); col.push(c.r, c.g, c.b); return pos.length / 3 - 1; }
+    function frameOf(axis){
+      var a = axis.clone().normalize();
+      var ref = Math.abs(a.z) > 0.9 ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 0, 1);
+      var u = new THREE.Vector3().crossVectors(a, ref).normalize();
+      var v = new THREE.Vector3().crossVectors(u, a).normalize();
+      return { a: a, u: u, v: v };
+    }
+    // Eksen boyunca kapaklı silindir (merkez c, uzunluk len, yarıçap r)
+    function cyl(c, axis, len, r, color, r2){
+      var fr = frameOf(axis), rt = r2 != null ? r2 : r;
+      var p0 = c.clone().addScaledVector(fr.a, -len / 2), p1 = c.clone().addScaledVector(fr.a, len / 2);
+      var s0 = pos.length / 3;
+      for (var k = 0; k < N; k++){
+        var th = k / N * Math.PI * 2, d = new THREE.Vector3().addScaledVector(fr.u, Math.cos(th)).addScaledVector(fr.v, Math.sin(th));
+        push(p0.clone().addScaledVector(d, r), d, color);
+        push(p1.clone().addScaledVector(d, rt), d, color);
+      }
+      for (var k2 = 0; k2 < N; k2++){
+        var a0 = s0 + k2 * 2, b0 = a0 + 1, a1 = s0 + ((k2 + 1) % N) * 2, b1 = a1 + 1;
+        idx.push(a0, a1, b0, b0, a1, b1);
+      }
+      [[p0, r, -1], [p1, rt, 1]].forEach(function(e){
+        var n = fr.a.clone().multiplyScalar(e[2]), ci = push(e[0], n, color), s1 = pos.length / 3;
+        for (var k3 = 0; k3 < N; k3++){
+          var th3 = k3 / N * Math.PI * 2, d3 = new THREE.Vector3().addScaledVector(fr.u, Math.cos(th3)).addScaledVector(fr.v, Math.sin(th3));
+          push(e[0].clone().addScaledVector(d3, e[1]), n, color);
+        }
+        for (var k4 = 0; k4 < N; k4++) idx.push(ci, s1 + k4, s1 + (k4 + 1) % N);
+      });
+    }
+    // Yönlü kutu: merkez c, eksenler (ax, ay, az) ve yarı boyutlar (hx, hy, hz)
+    function box(c, ax, ay, az, hx, hy, hz, color){
+      [[ax, hx, ay, hy, az, hz], [ay, hy, az, hz, ax, hx], [az, hz, ax, hx, ay, hy]].forEach(function(f){
+        [1, -1].forEach(function(sg){
+          var n = f[0].clone().multiplyScalar(sg), cc = c.clone().addScaledVector(f[0], f[1] * sg), s0 = pos.length / 3;
+          [[-1, -1], [1, -1], [1, 1], [-1, 1]].forEach(function(q){
+            push(cc.clone().addScaledVector(f[2], f[3] * q[0]).addScaledVector(f[4], f[5] * q[1]), n, color);
+          });
+          idx.push(s0, s0 + 1, s0 + 2, s0, s0 + 2, s0 + 3);
+        });
+      });
+    }
+    function sphere(c, r, color){
+      var LAT = 8, s0 = pos.length / 3;
+      for (var i = 0; i <= LAT; i++){
+        var ph = i / LAT * Math.PI;
+        for (var k = 0; k <= N; k++){
+          var th = k / N * Math.PI * 2;
+          var n = new THREE.Vector3(Math.sin(ph) * Math.cos(th), Math.sin(ph) * Math.sin(th), Math.cos(ph));
+          push(c.clone().addScaledVector(n, r), n, color);
+        }
+      }
+      for (var i2 = 0; i2 < LAT; i2++) for (var k2 = 0; k2 < N; k2++){
+        var a = s0 + i2 * (N + 1) + k2, b = a + N + 1;
+        idx.push(a, b, a + 1, a + 1, b, b + 1);
+      }
+    }
+    var up = new THREE.Vector3(0, 0, 1);
+    items.forEach(function(it){
+      var sp = it.spec, c = it.c, T = it.T.clone().normalize();
+      var side = new THREE.Vector3().crossVectors(T, up); if (side.lengthSq() < 1e-8) side.set(1, 0, 0); side.normalize();
+      var U = new THREE.Vector3().crossVectors(side, T).normalize();
+      var body = new THREE.Color(sp.mat.color), dark = body.clone().multiplyScalar(0.7);
+      var r = Math.max(it.rPipe, sp.dn / 2000);
+      var topZ; // tahrikin üst noktası (uzatma mili buradan zemine çıkar)
+      if (sp.type === 'kelebek'){
+        cyl(c, T, Math.max(0.05, r * 0.9), r * 1.9, body);                       // gövde (lug/wafer)
+        cyl(c.clone().addScaledVector(T, r * 0.7), T, 0.02, r * 2.0, dark);       // boru flanşları
+        cyl(c.clone().addScaledVector(T, -r * 0.7), T, 0.02, r * 2.0, dark);
+        cyl(c.clone().addScaledVector(U, r * 1.9 + 0.02), U, 0.04, r * 0.35, body); // boyun
+        var gb = c.clone().addScaledVector(U, r * 1.9 + 0.04 + 0.06);
+        box(gb, T, side, U, 0.06, 0.08, 0.06, dark);                               // redüktör
+        topZ = gb.z + 0.06;
+      } else if (sp.type === 'kuresel'){
+        sphere(c, r * 1.55, body);                                                // küre gövde
+        cyl(c.clone().addScaledVector(T, r * 1.55 + 0.06), T, 0.12, r, body);      // uçlar (spigot)
+        cyl(c.clone().addScaledVector(T, -(r * 1.55 + 0.06)), T, 0.12, r, body);
+        var st = c.clone().addScaledVector(U, r * 1.55 + r * 0.6);
+        cyl(st, U, r * 1.2, r * 0.38, body);                                      // mil boynu
+        var cap = st.clone().addScaledVector(U, r * 0.6 + 0.02);
+        box(cap, T, side, U, 0.022, 0.022, 0.02, sp.closed ? closedCap : steel);  // kare başlık
+        topZ = cap.z + 0.02;
+      } else if (sp.type === 'hava'){
+        cyl(c.clone().addScaledVector(U, r + 0.04), U, 0.08, r * 0.7, body);       // T çıkışı
+        cyl(c.clone().addScaledVector(U, r + 0.1), U, 0.025, r * 1.3, dark);       // flanş
+        var hb = c.clone().addScaledVector(U, r + 0.1 + 0.14);
+        cyl(hb, U, 0.26, 0.075, body);                                            // gövde
+        sphere(hb.clone().addScaledVector(U, 0.13), 0.075, body);                  // kubbe
+        topZ = hb.z + 0.2;
+      } else {
+        var len = Math.max(0.18, r * 3.4);
+        cyl(c, T, len * 0.75, r * 1.35, body);                                    // gövde
+        cyl(c.clone().addScaledVector(T, len / 2 - 0.0125), T, 0.025, r * 2.0, body); // flanşlar
+        cyl(c.clone().addScaledVector(T, -(len / 2 - 0.0125)), T, 0.025, r * 2.0, body);
+        if (sp.type === 'cekvalf'){
+          sphere(c.clone().addScaledVector(U, r * 1.2), r * 0.9, body);            // klape kubbesi
+          topZ = c.z + r * 2.1;
+        } else {
+          var bonH = r * 3.2, bon = c.clone().addScaledVector(U, r * 1.2 + bonH / 2);
+          box(bon, T, side, U, r * 0.85, r * 1.0, bonH / 2, body);                 // kapak (bonnet)
+          var head = bon.clone().addScaledVector(U, bonH / 2 + 0.02);
+          box(head, T, side, U, 0.022, 0.022, 0.02, sp.closed ? closedCap : steel); // kare başlık
+          topZ = head.z + 0.02;
+        }
+      }
+      // Uzatma mili ve sokak kutusu (vana zeminden yeterince derindeyse)
+      var boxBottom = it.gz - 0.28;
+      if (sp.type !== 'cekvalf' && topZ < boxBottom){
+        var mid = new THREE.Vector3(c.x, c.y, (topZ + boxBottom) / 2);
+        cyl(mid, up, boxBottom - topZ, 0.012, steel);
+      }
+      cyl(new THREE.Vector3(c.x, c.y, it.gz - 0.14), up, 0.28, 0.085, iron, 0.075); // döküm muhafaza
+      cyl(new THREE.Vector3(c.x, c.y, it.gz + 0.004), up, 0.008, 0.095, ironLid);   // kapak
+    });
+    var geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    geo.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+    geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+    geo.setIndex(idx);
+    var solid = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.45, metalness: 0.2, side: THREE.DoubleSide }));
+    solid.frustumCulled = false;
+    var ghost = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.45, metalness: 0.2, side: THREE.DoubleSide,
+      transparent: true, opacity: 0.6, depthWrite: false, depthFunc: THREE.GreaterDepth, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -8 }));
+    ghost.frustumCulled = false;
+    ghost.renderOrder = 1;
+    var g = new THREE.Group();
+    g.add(solid, ghost);
+    return g;
+  }
+  // Bilgi balonu: vana özeti (+ bağlı borudaki eksen derinliği)
+  function valveInfoHtml(f){
+    var p = f.properties;
+    var line = p.line_id ? features.find(function(x){ return String(x.id) === String(p.line_id); }) : null;
+    var lineSpec = line ? pipeSpecOf(line.properties) : null;
+    var sp = valveSpecOf(p, lineSpec ? lineSpec.od : null);
+    function fmt(v, d){ return Number(v).toLocaleString('tr-TR', { minimumFractionDigits: d, maximumFractionDigits: d }); }
+    function row(label, value){
+      return '<div style="display:flex;gap:10px;justify-content:space-between;margin-top:3px;"><span style="color:var(--text-dim);white-space:nowrap;">' + label + '</span><span style="color:var(--text);text-align:right;">' + value + '</span></div>';
+    }
+    var depthRow = '';
+    if (line){
+      try{
+        var np = turf.nearestPointOnLine(line, f, { units: 'meters' }), L = turf.length(line, { units: 'meters' });
+        var prof = pipeProfileOf(line.properties, lineSpec, pipeManholeStations(line));
+        if (L > 0) depthRow = row('Eksen derinliği', fmt(-prof.z(np.properties.location / L), 2) + ' m');
+      }catch(err){ /* yoksay */ }
+    }
+    return '<div style="margin-top:8px;padding-top:6px;border-top:1px solid var(--line-soft);">' +
+      '<div style="color:var(--gold);font-weight:600;margin-bottom:2px;">Vana (3B)</div>' +
+      row('Tip', escapeAttrHtml(VALVE_TYPES[sp.type])) +
+      row('Gövde malzemesi', escapeAttrHtml(sp.mat.label)) +
+      row('Anma çapı', 'DN' + fmt(sp.dn, 0)) +
+      (p.pressure_class ? row('Basınç sınıfı', escapeAttrHtml(p.pressure_class)) : '') +
+      (p.valve_state ? row('Konum', '<span style="color:' + (sp.closed ? '#e5534b' : '#2ee6c4') + ';">' + escapeAttrHtml(p.valve_state) + '</span>') : '') +
+      depthRow +
+      (line ? row('Bağlı hat', escapeAttrHtml(line.properties.network_name || line.properties.name || String(line.id))) : '') +
+    '</div>';
+  }
+
   // Baca ölçüleri (m): derinlik = kapak − akar kotu (yoksa 2 m), iç çap/et (yoksa Ø1000/120 mm)
   function manholeSpecOf(p){
     var cover = pipeNum(p.cover_elev), inv = pipeNum(p.invert_elev);
@@ -16783,29 +17014,35 @@
   // 3B bacalar yalnızca yakından (zoom ≥ 15) ve harita merkezine ~1,5 km içinde
   // kurulur — örnek veride yüzlerce baca var; uzaktan zaten piksel altında kalırlar.
   var MANHOLE_MIN_ZOOM = 15, MANHOLE_RADIUS_M = 1500;
-  function manholesForMesh(){
+  function nearPointsForMesh(test){
     if (map.getZoom() < MANHOLE_MIN_ZOOM) return [];
     var c = map.getCenter(), kx = 111320 * Math.cos(c.lat * Math.PI / 180), ky = 110540;
     return visibleFeaturesForRender().filter(function(f){
-      if (!isManholeFeature(f)) return false;
+      if (!test(f)) return false;
       var p = f.geometry.coordinates;
       return Math.hypot((p[0] - c.lng) * kx, (p[1] - c.lat) * ky) <= MANHOLE_RADIUS_M;
     });
   }
+  function manholesForMesh(){ return nearPointsForMesh(isManholeFeature); }
+  function valvesForMesh(){ return nearPointsForMesh(isValveFeature); }
   // Tüm bacaların (borunun profilini etkiler) ucuz sayısal özeti
   function manholeDataHash(){
     var h = 0;
     function add(v){ var str = String(v); for (var i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) | 0; }
     features.forEach(function(f){
-      if (!isManholeFeature(f)) return;
-      var p = f.properties, c = f.geometry.coordinates;
-      add(f.id); add(c[0]); add(c[1]); add(p.cover_elev); add(p.invert_elev); add(p.line_id); add(p.inner_diameter_mm); add(p.wall_thickness_mm);
+      if (isManholeFeature(f)){
+        var p = f.properties, c = f.geometry.coordinates;
+        add(f.id); add(c[0]); add(c[1]); add(p.cover_elev); add(p.invert_elev); add(p.line_id); add(p.inner_diameter_mm); add(p.wall_thickness_mm);
+      } else if (isValveFeature(f)){
+        var q = f.properties, cv = f.geometry.coordinates;
+        add(f.id); add(cv[0]); add(cv[1]); add(q.valve_type); add(q.dn_mm); add(q.material); add(q.valve_state); add(q.line_id);
+      }
     });
     return h;
   }
-  function pipeMeshKeyOf(feats, manholes){
+  function pipeMeshKeyOf(feats, manholes, valves){
     var terrainOn = !!(map.getTerrain && map.getTerrain());
-    return (terrainOn ? 'T' : 'F') + manholeDataHash() + '|' + manholes.map(function(m){ return m.id; }).join(',') + '|' + JSON.stringify(feats.map(function(f){
+    return (terrainOn ? 'T' : 'F') + manholeDataHash() + '|' + manholes.map(function(m){ return m.id; }).join(',') + '|' + valves.map(function(v){ return v.id; }).join(',') + '|' + JSON.stringify(feats.map(function(f){
       var p = f.properties, c = f.geometry.coordinates;
       return [f.id, c.length, c[0], c[c.length - 1], p.material, p.outer_diameter_mm, p.wall_thickness_mm, p.start_invert_elev, p.end_invert_elev,
         p.start_ground_elev, p.end_ground_elev, p.depth_meters, p.pipe_or_cable_spec, p.line_color || p.__layerColor];
@@ -16816,7 +17053,8 @@
     if (!pipeMeshCtx) return;
     var feats = bimViewGlobalOn ? pipeFeaturesForMesh() : [];
     var manholes = bimViewGlobalOn ? manholesForMesh() : [];
-    var key = pipeMeshKeyOf(feats, manholes);
+    var valves = bimViewGlobalOn ? valvesForMesh() : [];
+    var key = pipeMeshKeyOf(feats, manholes, valves);
     if (!force && key === pipeMeshKey) return;
     pipeMeshKey = key;
     if (pipeMeshGroup){
@@ -16829,7 +17067,7 @@
     }
     if (feats.length || manholes.length){
       try{
-        pipeMeshGroup = buildPipeGroup(pipeMeshCtx.THREE, feats, manholes);
+        pipeMeshGroup = buildPipeGroup(pipeMeshCtx.THREE, feats, manholes, valves);
         pipeMeshCtx.scene.add(pipeMeshGroup);
       }catch(err){ console.error('Altyapı boruları 3B olarak kurulamadı:', err); }
     }

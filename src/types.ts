@@ -201,3 +201,20 @@ export interface GISManholeRecord {
   coordinates: [number, number];
   veri_durumu?: 'Planlanan' | 'İnşaat' | 'İşletme' | 'İptal';
 }
+
+// İçmesuyu/doğalgaz vanası (tb_altyapi_vanalari, nokta) — bkz. AltyapiVanasiRecord
+export interface GISValveRecord {
+  id: string;
+  project_id: string;
+  line_type: 'icmesuyu' | 'dogalgaz';
+  name: string;
+  valve_type: string;
+  line_id: string;
+  dn_mm: number;
+  pressure_class: string;
+  material: string;
+  actuation: string;
+  valve_state: string;
+  coordinates: [number, number];
+  veri_durumu?: 'Planlanan' | 'İnşaat' | 'İşletme' | 'İptal';
+}

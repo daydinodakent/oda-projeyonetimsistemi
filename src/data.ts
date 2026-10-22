@@ -1,6 +1,6 @@
 import { 
   Project, WBSTask, ProjectDocument, Asset, MaintenanceLog, Notification,
-  GISBoundaryRecord, GISBuildingRecord, GISInfrastructureRecord, GISManholeRecord
+  GISBoundaryRecord, GISBuildingRecord, GISInfrastructureRecord, GISManholeRecord, GISValveRecord
 } from './types';
 
 export const initialProjects: Project[] = [
@@ -850,6 +850,56 @@ function generateManholes(line: GISInfrastructureRecord): GISManholeRecord[] {
   });
 }
 export const gisManholeRecords: GISManholeRecord[] = gisInfrastructureRecords.flatMap(generateManholes);
+
+// İçmesuyu ve doğalgaz hatları üzerinde vanalar: hat başından 25 m sonra ve her
+// 300 m'de. İçmesuyunda sürgülü/kelebek/hava tahliye sırayla (duktil, epoksi
+// kaplı); doğalgazda PE küresel vana.
+const VALVE_SPACING_M = 300;
+const WATER_VALVES = [
+  { valve_type: 'Sürgülü', actuation: 'Kare başlık + teleskopik uzatma mili' },
+  { valve_type: 'Sürgülü', actuation: 'Kare başlık + teleskopik uzatma mili' },
+  { valve_type: 'Kelebek', actuation: 'Redüktör + uzatma mili' },
+  { valve_type: 'Hava tahliye', actuation: 'Otomatik (şamandıralı)' }
+];
+function generateValves(line: GISInfrastructureRecord): GISValveRecord[] {
+  if (line.line_type !== 'icmesuyu' && line.line_type !== 'dogalgaz') return [];
+  const pts = line.coordinates;
+  if (pts.length < 2) return [];
+  const lats = pts.map((c) => c[1]);
+  const midLat = (Math.min(...lats) + Math.max(...lats)) / 2;
+  const kx = 111320 * Math.cos((midLat * Math.PI) / 180), ky = 110540;
+  const cum = [0];
+  for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot((pts[i][0] - pts[i - 1][0]) * kx, (pts[i][1] - pts[i - 1][1]) * ky));
+  const L = cum[cum.length - 1];
+  const at = (s: number): [number, number] => {
+    let i = 1;
+    while (i < cum.length - 1 && cum[i] < s) i++;
+    const t = cum[i] > cum[i - 1] ? (s - cum[i - 1]) / (cum[i] - cum[i - 1]) : 0;
+    return [pts[i - 1][0] + (pts[i][0] - pts[i - 1][0]) * t, pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * t];
+  };
+  const gas = line.line_type === 'dogalgaz';
+  const out: GISValveRecord[] = [];
+  for (let s = 25, k = 0; s < L; s += VALVE_SPACING_M, k++) {
+    const w = WATER_VALVES[k % WATER_VALVES.length];
+    out.push({
+      id: `vana-${line.id}-${k + 1}`,
+      project_id: line.project_id,
+      line_type: line.line_type as GISValveRecord['line_type'],
+      name: `${gas ? 'GV' : 'SV'}-${k + 1}`,
+      valve_type: gas ? 'Küresel' : w.valve_type,
+      line_id: line.id,
+      dn_mm: gas ? 63 : 100,
+      pressure_class: gas ? 'PN4 (4 bar)' : 'PN16',
+      material: gas ? 'PE100 gövde, paslanmaz mil' : 'Duktil döküm (GGG-50), epoksi kaplı',
+      actuation: gas ? 'Uzatma mili + kare başlık' : w.actuation,
+      valve_state: 'Açık',
+      coordinates: at(s),
+      veri_durumu: 'Planlanan' as const
+    });
+  }
+  return out;
+}
+export const gisValveRecords: GISValveRecord[] = gisInfrastructureRecords.flatMap(generateValves);
 
 export const initialWbsTasks: Record<string, WBSTask[]> = {
   'IGA-ETAP-1': [
