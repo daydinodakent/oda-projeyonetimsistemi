@@ -16323,9 +16323,9 @@
   //  - hiçbiri yoksa örtü derinliğinde (depth_meters = zeminden boru üstüne).
   // DEM açıksa derinlik o noktadaki arazi yüksekliğinden aşağı ölçülür.
   var PIPE_MATERIALS = {
-    hdpe:   { label:'HDPE (PE100)',   color:'#1d1f22', rough:0.55, metal:0,    stripes:true,  dnInner:false, wall:function(d){ return d / 11; } },
-    pe:     { label:'PE',             color:'#24262a', rough:0.55, metal:0,    stripes:true,  dnInner:false, wall:function(d){ return d / 11; } },
-    pvc:    { label:'PVC',            color:'#b45a2c', rough:0.45, metal:0,    stripes:false, dnInner:false, wall:function(d){ return Math.max(3.2, d / 41); } },
+    hdpe:   { label:'HDPE (PE100)',   color:'#1d1f22', rough:0.38, metal:0,    stripes:true,  dnInner:false, wall:function(d){ return d / 11; } },
+    pe:     { label:'PE',             color:'#24262a', rough:0.38, metal:0,    stripes:true,  dnInner:false, wall:function(d){ return d / 11; } },
+    pvc:    { label:'PVC',            color:'#b45a2c', rough:0.32, metal:0,    stripes:false, dnInner:false, wall:function(d){ return Math.max(3.2, d / 41); } },
     beton:  { label:'Beton',          color:'#a19d94', rough:0.95, metal:0,    stripes:false, dnInner:true,  wall:function(d){ return Math.max(40, d * 0.15); } },
     celik:  { label:'Çelik',          color:'#76818b', rough:0.35, metal:0.7,  stripes:false, dnInner:false, wall:function(d){ return Math.max(3.2, d / 50); } },
     duktil: { label:'Duktil döküm',   color:'#33373d', rough:0.6,  metal:0.3,  stripes:false, dnInner:true,  wall:function(d){ return 9 * (0.5 + 0.001 * d); } },
@@ -16450,7 +16450,7 @@
       if (seg.length){
         var lg = new THREE.BufferGeometry();
         lg.setAttribute('position', new THREE.Float32BufferAttribute(seg, 3));
-        var lines = new THREE.LineSegments(lg, new THREE.LineBasicMaterial({ color: new THREE.Color(typeColor), transparent: true, opacity: 0.55 }));
+        var lines = new THREE.LineSegments(lg, new THREE.LineBasicMaterial({ color: new THREE.Color(typeColor), transparent: true, opacity: 0.55, depthTest: false }));
         lines.frustumCulled = false;
         group.add(lines);
       }
@@ -16497,7 +16497,11 @@
     }
     // PE/HDPE: dört boyuna şerit (tip rengi — su mavi, gaz sarı…), şerit 90°'lik aralıklarla
     surface(rOut, false, function(k){ return mat.stripes && k % (N / 4) === N / 8 ? stripe : base; });
-    if (!sp.solid) surface(rIn, true, function(){ return innerCol; });
+    var nOuter = idx.length;
+    // İç yüzey dış yüzeyle aynı sarımda; yalnızca ARKA yüzleriyle çizilir (bkz. aşağıdaki
+    // malzemeler) ve normalleri dışa verilir — three arka yüzde normali içe çevirir.
+    if (!sp.solid) surface(rIn, false, function(){ return innerCol; });
+    var nInner = idx.length - nOuter;
     // Uç kesitleri: borularda et kalınlığını gösteren halka, kabloda dolu daire
     [0, P.length - 1].forEach(function(i){
       var fr = frames[i], n = fr.T.clone().multiplyScalar(i === 0 ? -1 : 1), p = P[i];
@@ -16517,10 +16521,30 @@
     geo.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
     geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
     geo.setIndex(idx);
-    var m3 = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: mat.rough, metalness: mat.metal, side: THREE.DoubleSide });
-    var mesh = new THREE.Mesh(geo, m3);
+    // Gruplar: 0 = dış yüzey, 1 = iç yüzey, 2 = uç kesitleri. Et kalınlığı birkaç mm
+    // olduğundan iç ve dış yüzey haritanın derinlik hassasiyetinde çakışırdı (koyu iç
+    // yüzey dışarı sızar, boru "boncuklu" görünürdü): dış yüzey yalnızca ön yüzle, iç
+    // yüzey yalnızca arka yüzle çizilir — dışarıdan görünen iç yüzey hep bir çap geride kalır.
+    geo.addGroup(0, nOuter, 0);
+    if (nInner) geo.addGroup(nOuter, nInner, 1);
+    geo.addGroup(nOuter + nInner, idx.length - nOuter - nInner, 2);
+    function stdMat(side, extra){
+      return new THREE.MeshStandardMaterial(Object.assign({ vertexColors: true, roughness: mat.rough, metalness: mat.metal, side: side }, extra || {}));
+    }
+    var mesh = new THREE.Mesh(geo, [stdMat(THREE.FrontSide), stdMat(THREE.BackSide), stdMat(THREE.DoubleSide)]);
     mesh.frustumCulled = false;
-    return mesh;
+    // "Röntgen" geçişi: borunun arazi (DEM), bina ya da başka bir yüzeyin
+    // ARKASINDA kalan kısmı (derinlik testi GREATER) yarı saydam çizilir —
+    // DEM açıkken yer altındaki borular arazinin içinden de görünür. Kendi
+    // yüzeyiyle çakışmasın diye kameraya doğru hafifçe kaydırılır (polygonOffset).
+    var ghostExtra = { transparent: true, opacity: 0.65, depthWrite: false, depthFunc: THREE.GreaterDepth,
+      polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -8 };
+    var ghost = new THREE.Mesh(geo, [stdMat(THREE.FrontSide, ghostExtra), new THREE.MeshBasicMaterial({ visible: false }), stdMat(THREE.DoubleSide, ghostExtra)]);
+    ghost.frustumCulled = false;
+    ghost.renderOrder = 1;
+    var both = new THREE.Group();
+    both.add(mesh, ghost);
+    return both;
   }
   function pipeFeaturesForMesh(){
     return visibleFeaturesForRender().filter(isPipeFeature);
@@ -16544,7 +16568,10 @@
     pipeMeshKey = key;
     if (pipeMeshGroup){
       pipeMeshCtx.scene.remove(pipeMeshGroup);
-      pipeMeshGroup.traverse(function(o){ if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); });
+      pipeMeshGroup.traverse(function(o){
+        if (o.geometry) o.geometry.dispose();
+        [].concat(o.material || []).forEach(function(m){ m.dispose(); });
+      });
       pipeMeshGroup = null;
     }
     if (feats.length){
@@ -16570,12 +16597,16 @@
       onAdd: async function(mapRef, gl){
         var THREE = await import('three');
         var scene = new THREE.Scene();
-        var hemi = new THREE.HemisphereLight(0xffffff, 0x6b6257, 1.4);
+        // Silindir hissi için kontrastlı ışık: zayıf ortam + güçlü eğik güneş + karşıdan dolgu
+        var hemi = new THREE.HemisphereLight(0xffffff, 0x3a332c, 0.75);
         hemi.position.set(0, 0, 1);
         scene.add(hemi);
-        var sun = new THREE.DirectionalLight(0xffffff, 1.5);
-        sun.position.set(0.45, -0.4, 0.8);
+        var sun = new THREE.DirectionalLight(0xffffff, 2.4);
+        sun.position.set(0.5, -0.45, 0.75);
         scene.add(sun);
+        var fill = new THREE.DirectionalLight(0xbfd4ff, 0.6);
+        fill.position.set(-0.6, 0.5, 0.3);
+        scene.add(fill);
         var renderer = new THREE.WebGLRenderer({ canvas: mapRef.getCanvas(), context: gl, antialias: true });
         renderer.autoClear = false;
         renderer.setPixelRatio(window.devicePixelRatio || 1);
