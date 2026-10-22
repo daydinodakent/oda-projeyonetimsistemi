@@ -1228,7 +1228,7 @@
      (bkz. setSplitCount). */
   #statusbar.split-active{ background:var(--amber-dim); border-top-color:var(--amber); }
   /* İkon aktifken (bölünmüş görünüm açıkken) yeşile (teal — diğer "açık"
-     durum çubuğu ikonlarıyla — Saha/BIM Görünümü — AYNI renk) döner; sayı
+     durum çubuğu ikonlarıyla — Saha/Gerçek Dünya Görünümü — AYNI renk) döner; sayı
      (2/3/4) ikonun sağ-üst köşesine bindirilmiş küçük bir rozet olarak
      yazılır — kullanıcı isteğiyle. #statusSplitViewBtn ID selector'ı,
      .status-snap-btn.active{color:#e02424} genel kuralını (Snap için)
@@ -3579,7 +3579,7 @@
   <div class="div"></div>
   <button id="statusSahaToggleBtn" class="status-snap-btn saha-toggle-btn on" title="Saha fotoğraflarını göster/gizle"><svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M21 15l-5-4-4 3-3-2-5 4"/></svg></button>
   <div class="div"></div>
-  <button id="statusBimViewToggleBtn" class="status-snap-btn bim-view-toggle-btn" title="BIM Görünümü — işaretlenen binaları gerçek BIM modelleriyle göster/gizle"><svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21V8l9-5 9 5v13"/><path d="M9 21V12h6v9"/><path d="M3 8l9 5 9-5"/></svg></button>
+  <button id="statusBimViewToggleBtn" class="status-snap-btn bim-view-toggle-btn" title="Gerçek Dünya Görünümü — altyapı borularını gerçek kot, çap ve malzemeleriyle; işaretlenen binaları gerçek BIM modelleriyle göster/gizle"><svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21V8l9-5 9 5v13"/><path d="M9 21V12h6v9"/><path d="M3 8l9 5 9-5"/></svg></button>
   <div class="div"></div>
   <!-- Zoom ölçeği artık EN SAĞDA — kullanıcı isteğiyle (önceden margin-left:
        auto ile bu span'in kendisi sağa yaslanıyordu, o kural yukarı,
@@ -6062,7 +6062,7 @@
       '<button type="button" class="info-model-btn danger" data-act="remove">Objeden kaldır</button>';
     previewEl.querySelector('[data-act="show"]').addEventListener('click', function(){
       if (!bimViewGlobalOn) document.getElementById('statusBimViewToggleBtn').click();
-      else showToast('BIM Görünümü zaten açık — model canvasta gösteriliyor.');
+      else showToast('Gerçek Dünya Görünümü zaten açık — model canvasta gösteriliyor.');
     });
     previewEl.querySelector('[data-act="remove"]').addEventListener('click', function(){ removeBimModelFromFeature(featureId); });
   }
@@ -12346,7 +12346,7 @@
       // ifc-mesh-layer / syncIfcMeshLayer) gösteriliyor — burada dışarıda
       // bırakılmazsa aynı eleman hem kutu hem gerçek mesh olarak çakışırdı.
       if (lyr.sourceFormat === 'ifc' || lyr.sourceFormat === 'gltf' || lyr.sourceFormat === 'glb' || lyr.sourceFormat === 'splat') return false;
-      // "BIM Görünümü" açıkken ve bu bina için bir BIM dosyası işaretliyse
+      // "Gerçek Dünya Görünümü" açıkken ve bu bina için bir BIM dosyası işaretliyse
       // (bkz. enableBimViewForFeature), kaba ekstrüzyon kutusu yerine
       // syncFeatureBimMeshes()'in eklediği gerçek mesh gösterilir.
       if (bimViewGlobalOn && bimViewFeatures[f.id]) return false;
@@ -16535,9 +16535,10 @@
         p.start_ground_elev, p.end_ground_elev, p.depth_meters, p.pipe_or_cable_spec, p.line_color || p.__layerColor];
     }));
   }
+  // Borular yalnızca durum çubuğundaki "Gerçek Dünya Görünümü" (bimViewGlobalOn) açıkken çizilir.
   function syncPipeMeshes(force){
     if (!pipeMeshCtx) return;
-    var feats = pipeFeaturesForMesh();
+    var feats = bimViewGlobalOn ? pipeFeaturesForMesh() : [];
     var key = pipeMeshKeyOf(feats);
     if (!force && key === pipeMeshKey) return;
     pipeMeshKey = key;
@@ -21985,7 +21986,7 @@
   // =========================================================================
   // Bina (feature) dokümanı olarak eklenmiş BIM dosyasını haritada gösterme —
   // "Kanvasta 3B Bina Yerine Göster" (bkz. renderInfoDocsPanel'deki sağ klik)
-  // ile İŞARETLENEN binalar, durum çubuğundaki "BIM Görünümü" (bkz.
+  // ile İŞARETLENEN binalar, durum çubuğundaki "Gerçek Dünya Görünümü" (bkz.
   // #statusBimViewToggleBtn) AÇIKKEN kaba ekstrüzyon kutusu yerine GERÇEK
   // mesh'leriyle gösterilir. sourceFormat==='ifc' katman akışından (yukarıda)
   // TAMAMEN AYRI: burada anchor, katmanın import anındaki harita merkezi
@@ -21997,7 +21998,7 @@
   var featureBimMeshCache = {};  // featureId -> 'loading' | THREE.Group
 
   // Oturumdan dönen feature'larda "3D model olarak eklenmiş" olanlar (bkz.
-  // attachModelToFeature) yeniden işaretlenir — model, BIM Görünümü düğmesi
+  // attachModelToFeature) yeniden işaretlenir — model, Gerçek Dünya Görünümü düğmesi
   // açılınca yüklenir.
   function rehydrateFeatureBimModels(){
     features.forEach(function(f){
@@ -22012,7 +22013,7 @@
   // (.bin/dokular dahil) objeye özel bir anahtarla IndexedDB'ye KOPYALANIR —
   // kaynak katman silinse de obje modeli tutar. Ölçek/yön/yükseklik, katmanın
   // HUD'da son ayarlanan (Kaydet ile saklanan) değerleridir; konum objenin
-  // merkezidir. Gösterim: durum çubuğundaki "BIM Görünümü" düğmesi.
+  // merkezidir. Gösterim: durum çubuğundaki "Gerçek Dünya Görünümü" düğmesi.
   var bimAttachSourceLayerId = null;
   function startBimAttachMode(layerId){
     var lyr = getLayer(layerId);
@@ -22078,7 +22079,7 @@
     renderFeatures();
     saveSessionToLocalStorage();
     if (activeInfoFeatureId === f.id) renderInfoDocsPanel(f.id); // Bilgi formu açıksa 3B model satırı hemen görünsün
-    showToast('"' + name + '" objeye 3D model olarak eklendi — durum çubuğundaki "BIM Görünümü" düğmesiyle canvasta görebilirsiniz.');
+    showToast('"' + name + '" objeye 3D model olarak eklendi — durum çubuğundaki "Gerçek Dünya Görünümü" düğmesiyle canvasta görebilirsiniz.');
   }
 
   // doc.transform (bkz. attachModelToFeature): modelin katmandaki son ölçek/
@@ -22114,7 +22115,7 @@
       if (stale.parent) stale.parent.remove(stale);
       delete featureBimMeshCache[featureId];
     }
-    showToast('"' + (docRecord.name || 'BIM dosyası') + '" bu bina için BIM görünümüne işaretlendi — durum çubuğundaki "BIM Görünümü" ile açabilirsiniz.');
+    showToast('"' + (docRecord.name || 'BIM dosyası') + '" bu bina için Gerçek Dünya Görünümüne işaretlendi — durum çubuğundaki "Gerçek Dünya Görünümü" ile açabilirsiniz.');
     syncFeatureBimMeshes();
     renderFeatures();
   }
@@ -22176,10 +22177,11 @@
     bimViewGlobalOn = !bimViewGlobalOn;
     this.classList.toggle('on', bimViewGlobalOn);
     syncFeatureBimMeshes();
+    if (typeof syncPipeMeshes === 'function') syncPipeMeshes();
     renderFeatures();
     showToast(bimViewGlobalOn
-      ? 'BIM Görünümü açık — işaretlenen binalar gerçek modelleriyle gösteriliyor.'
-      : 'BIM Görünümü kapalı — binalar normal 3B kutu olarak gösteriliyor.');
+      ? 'Gerçek Dünya Görünümü açık — altyapı boruları gerçek kot ve ölçüleriyle, işaretlenen binalar gerçek modelleriyle gösteriliyor.'
+      : 'Gerçek Dünya Görünümü kapalı — borular gizlendi, binalar normal 3B kutu olarak gösteriliyor.');
   });
 
 
