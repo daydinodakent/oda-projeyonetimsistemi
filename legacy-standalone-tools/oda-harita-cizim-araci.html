@@ -16439,25 +16439,114 @@
       });
       var typeColor = f.properties.line_color || f.properties.__layerColor || '#3b82f6';
       group.add(buildPipeMesh(THREE, P, sp, typeColor));
-      // Derinlik çizgileri: uçlarda ve ~50 m'de bir zeminden boru üstüne inen ince düşey çizgi
-      var seg = [], lastAt = -Infinity, rTop = sp.od / 2000;
-      P.forEach(function(q, i){
-        if (i !== 0 && i !== P.length - 1 && cum[i] - lastAt < 50) return;
-        lastAt = cum[i];
-        if (ground[i] - (q.z + rTop) < 0.05) return;
-        seg.push(q.x, q.y, ground[i], q.x, q.y, q.z + rTop);
-      });
-      if (seg.length){
-        var lg = new THREE.BufferGeometry();
-        lg.setAttribute('position', new THREE.Float32BufferAttribute(seg, 3));
-        var lines = new THREE.LineSegments(lg, new THREE.LineBasicMaterial({ color: new THREE.Color(typeColor), transparent: true, opacity: 0.55, depthTest: false }));
-        lines.frustumCulled = false;
-        group.add(lines);
-      }
+      // Yer altı ile yer üstünü ayıran açık hendek kesiti (bkz. buildTrenchMesh)
+      group.add(buildTrenchMesh(THREE, P, ground, sp));
     });
     group.userData.pipeAnchor = anchor;
     group.userData.anchorElev = anchorElev;
     return group;
+  }
+  // Açık hendek kesiti: yer altını yer üstünden ayıran görselleştirme. Borunun
+  // çevresinde zeminden boru altına (+15 cm yatak) inen, boru dış çapı + 2×35 cm
+  // genişliğinde bir kazı çizilir. Duvar/taban yüzlerinin normalleri hendeğin
+  // İÇİNE bakar ve yalnızca ön yüzler çizilir: kameraya yakın duvar kendiliğinden
+  // gizlenir, uzak duvar ve taban görünür — boru "toprağın içinde" algılanır.
+  // Duvarlar 0,5 m'lik toprak katmanlarıyla tonlanır (derinlik cetveli); üst
+  // kenarlarda açık renkli zemin hattı vardır.
+  var TRENCH_BAND = 0.5;          // m — katman (cetvel) aralığı
+  var TRENCH_MARGIN = 0.35;       // m — boru yanlarında çalışma boşluğu
+  var TRENCH_BEDDING = 0.15;      // m — boru altı yatak
+  // Toprak tonu derine indikçe koyulaşır; katmanlar dönüşümlü açık/koyu (her 0,5 m bir çizgi gibi okunur)
+  var TRENCH_SOIL_TOP = '#a7825a', TRENCH_SOIL_DEEP = '#4a3523', TRENCH_SOIL_DEPTH = 4; // m — en koyu tona ulaşılan derinlik
+  function buildTrenchMesh(THREE, P, ground, sp){
+    var half = sp.od / 2000 + TRENCH_MARGIN, rOut = sp.od / 2000;
+    var up = new THREE.Vector3(0, 0, 1);
+    var sides = P.map(function(p, i){
+      var a = P[Math.max(0, i - 1)], b = P[Math.min(P.length - 1, i + 1)];
+      var t = new THREE.Vector3(b.x - a.x, b.y - a.y, 0).normalize();
+      return new THREE.Vector3().crossVectors(t, up).normalize();
+    });
+    var floor = P.map(function(p){ return p.z - rOut - TRENCH_BEDDING; });
+    var pos = [], nor = [], col = [], idx = [];
+    var soilTop = new THREE.Color(TRENCH_SOIL_TOP), soilDeep = new THREE.Color(TRENCH_SOIL_DEEP);
+    function soilAt(k){
+      var c = soilTop.clone().lerp(soilDeep, Math.min(1, (k + 0.5) * TRENCH_BAND / TRENCH_SOIL_DEPTH));
+      return k % 2 ? c.multiplyScalar(0.72) : c;
+    }
+    var floorCol = new THREE.Color('#463322');
+    function v(x, y, z){ return new THREE.Vector3(x, y, z); }
+    // Dörtgen: n yönüne bakan ön yüz olacak şekilde sarım otomatik seçilir.
+    function quad(a, b, c, d, n, color){
+      var s = pos.length / 3;
+      [a, b, c, d].forEach(function(p){ pos.push(p.x, p.y, p.z); nor.push(n.x, n.y, n.z); col.push(color.r, color.g, color.b); });
+      var cr = new THREE.Vector3().subVectors(b, a).cross(new THREE.Vector3().subVectors(c, a));
+      if (cr.dot(n) >= 0) idx.push(s, s + 1, s + 2, s, s + 2, s + 3);
+      else idx.push(s, s + 2, s + 1, s, s + 3, s + 2);
+    }
+    // Duvar şeridi: i → i+1 arasında, zeminden tabana 0,5 m'lik katmanlar
+    function wallStrip(edgeAt, normalAt){
+      for (var i = 0; i < P.length - 1; i++){
+        var e0 = edgeAt(i), e1 = edgeAt(i + 1);
+        var d0 = Math.max(0, ground[i] - floor[i]), d1 = Math.max(0, ground[i + 1] - floor[i + 1]);
+        var bands = Math.ceil(Math.max(d0, d1) / TRENCH_BAND);
+        var n = normalAt(i);
+        for (var k = 0; k < bands; k++){
+          var t0a = Math.min(k * TRENCH_BAND, d0), t1a = Math.min((k + 1) * TRENCH_BAND, d0);
+          var t0b = Math.min(k * TRENCH_BAND, d1), t1b = Math.min((k + 1) * TRENCH_BAND, d1);
+          if (t1a - t0a < 1e-4 && t1b - t0b < 1e-4) continue;
+          quad(v(e0.x, e0.y, ground[i] - t0a), v(e1.x, e1.y, ground[i + 1] - t0b),
+               v(e1.x, e1.y, ground[i + 1] - t1b), v(e0.x, e0.y, ground[i] - t1a), n, soilAt(k));
+        }
+      }
+    }
+    function edge(sign){ return function(i){ return new THREE.Vector3().copy(P[i]).addScaledVector(sides[i], sign * half); }; }
+    wallStrip(edge(1), function(i){ return sides[i].clone().negate(); });   // sol duvar → içe bakar
+    wallStrip(edge(-1), function(i){ return sides[i].clone(); });           // sağ duvar → içe bakar
+    // Taban
+    for (var i = 0; i < P.length - 1; i++){
+      var l0 = edge(1)(i), l1 = edge(1)(i + 1), r0 = edge(-1)(i), r1 = edge(-1)(i + 1);
+      quad(v(l0.x, l0.y, floor[i]), v(l1.x, l1.y, floor[i + 1]), v(r1.x, r1.y, floor[i + 1]), v(r0.x, r0.y, floor[i]), up, floorCol);
+    }
+    // Uç duvarları (hendeğin başı ve sonu), katmanlı
+    [0, P.length - 1].forEach(function(i){
+      var a = P[Math.max(0, i - 1)], b = P[Math.min(P.length - 1, i + 1)];
+      var T = new THREE.Vector3(b.x - a.x, b.y - a.y, 0).normalize();
+      var n = i === 0 ? T : T.clone().negate();
+      var L = edge(1)(i), R = edge(-1)(i), dep = Math.max(0, ground[i] - floor[i]);
+      for (var k = 0; k * TRENCH_BAND < dep; k++){
+        var z0 = ground[i] - k * TRENCH_BAND, z1 = ground[i] - Math.min((k + 1) * TRENCH_BAND, dep);
+        quad(v(L.x, L.y, z0), v(R.x, R.y, z0), v(R.x, R.y, z1), v(L.x, L.y, z1), n, soilAt(k));
+      }
+    });
+    var geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    geo.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+    geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+    geo.setIndex(idx);
+    var g = new THREE.Group();
+    var solid = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, metalness: 0, side: THREE.FrontSide }));
+    solid.frustumCulled = false;
+    // DEM/bina arkasında kalan hendek de soluk görünsün (borunun röntgen geçişiyle aynı)
+    var ghost = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, metalness: 0, side: THREE.FrontSide,
+      transparent: true, opacity: 0.3, depthWrite: false, depthFunc: THREE.GreaterDepth, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -8 }));
+    ghost.frustumCulled = false;
+    ghost.renderOrder = 1;
+    g.add(solid, ghost);
+    // Zemin hattı: hendeğin iki üst kenarı
+    var rim = [];
+    [1, -1].forEach(function(sign){
+      var e = edge(sign);
+      for (var j = 0; j < P.length - 1; j++){
+        var a0 = e(j), a1 = e(j + 1);
+        rim.push(a0.x, a0.y, ground[j], a1.x, a1.y, ground[j + 1]);
+      }
+    });
+    var rg = new THREE.BufferGeometry();
+    rg.setAttribute('position', new THREE.Float32BufferAttribute(rim, 3));
+    var rimLines = new THREE.LineSegments(rg, new THREE.LineBasicMaterial({ color: new THREE.Color('#f3e7cf'), transparent: true, opacity: 0.9 }));
+    rimLines.frustumCulled = false;
+    g.add(rimLines);
+    return g;
   }
   function buildPipeMesh(THREE, P, sp, typeColor){
     var mat = sp.mat, rOut = sp.od / 2000, rIn = sp.solid ? 0 : sp.inner / 2000;
