@@ -17,6 +17,8 @@ import {
   KurumsalAltlikRecord,
   AltyapiBacasiRecord,
   AltyapiVanasiRecord,
+  NoktaRecord,
+  NoktaTipiRecord,
   VarlikRecord,
   BakimKaydiRecord,
   BildirimRecord,
@@ -32,6 +34,7 @@ import {
   gisInfrastructureRecords,
   gisManholeRecords,
   gisValveRecords,
+  gisNodeRecords,
   initialWbsTasks,
   initialDocuments,
   initialAssets,
@@ -166,6 +169,29 @@ const altyapiTipleriSeed: AltyapiTipiRecord[] = [
   { id: 'dogalgaz', notes: 'Doğalgaz dağıtım hattı', row_status: 1, create_uid: 1, create_date: '2026-01-01', write_uid: 1, write_date: '2026-08-27', code: 'dogalgaz', name: 'Doğalgaz', color: '#eab308' },
   { id: 'elektrik', notes: 'Elektrik (AG/OG) kablo hattı', row_status: 1, create_uid: 1, create_date: '2026-01-01', write_uid: 1, write_date: '2026-08-27', code: 'elektrik', name: 'Elektrik', color: '#ef4444' },
   { id: 'fiber', notes: 'Fiber optik / telekom hattı', row_status: 1, create_uid: 1, create_date: '2026-01-01', write_uid: 1, write_date: '2026-08-27', code: 'fiber', name: 'Fiber Hat', color: '#a855f7' }
+];
+
+// Şebeke Nokta Tipleri (tb_nokta_tipi) — İçmesuyu/Atıksu/Yağmursuyu Nokta
+// katmanlarının node_type_code sütununun FK ile bağlandığı liste (ODAGIS+ düzeni).
+const noktaTipleriSeed: NoktaTipiRecord[] = [
+  { id: 'T_PARCASI', notes: null, row_status: 1, create_uid: 1, create_date: '2026-01-01', write_uid: 1, write_date: '2026-10-22', code: 'T_PARCASI', name: 'T Parçası', networks: 'icmesuyu', category: 'Bağlantı Parçası' },
+  { id: 'REDUKSIYON', notes: null, row_status: 1, create_uid: 1, create_date: '2026-01-01', write_uid: 1, write_date: '2026-10-22', code: 'REDUKSIYON', name: 'Redüksiyon', networks: 'icmesuyu', category: 'Bağlantı Parçası' },
+  { id: 'BORU_SONU', notes: null, row_status: 1, create_uid: 1, create_date: '2026-01-01', write_uid: 1, write_date: '2026-10-22', code: 'BORU_SONU', name: 'Boru Sonu (Kör Tapa)', networks: 'icmesuyu', category: 'Bağlantı Parçası' },
+  { id: 'HIDRANT', notes: null, row_status: 1, create_uid: 1, create_date: '2026-01-01', write_uid: 1, write_date: '2026-10-22', code: 'HIDRANT', name: 'Yangın Hidrantı', networks: 'icmesuyu', category: 'Hidrant' },
+  { id: 'VANA_SURGULU', notes: null, row_status: 1, create_uid: 1, create_date: '2026-01-01', write_uid: 1, write_date: '2026-10-22', code: 'VANA_SURGULU', name: 'Vana — Sürgülü', networks: 'icmesuyu', category: 'Vana' },
+  { id: 'VANA_KELEBEK', notes: null, row_status: 1, create_uid: 1, create_date: '2026-01-01', write_uid: 1, write_date: '2026-10-22', code: 'VANA_KELEBEK', name: 'Vana — Kelebek', networks: 'icmesuyu', category: 'Vana' },
+  { id: 'VANA_KURESEL', notes: null, row_status: 1, create_uid: 1, create_date: '2026-01-01', write_uid: 1, write_date: '2026-10-22', code: 'VANA_KURESEL', name: 'Vana — Küresel', networks: 'icmesuyu', category: 'Vana' },
+  { id: 'VANA_HAVA', notes: null, row_status: 1, create_uid: 1, create_date: '2026-01-01', write_uid: 1, write_date: '2026-10-22', code: 'VANA_HAVA', name: 'Vana — Hava Tahliye (Vantuz)', networks: 'icmesuyu', category: 'Vana' },
+  { id: 'VANA_CEKVALF', notes: null, row_status: 1, create_uid: 1, create_date: '2026-01-01', write_uid: 1, write_date: '2026-10-22', code: 'VANA_CEKVALF', name: 'Vana — Çekvalf', networks: 'icmesuyu', category: 'Vana' },
+  { id: 'POMPA_DONER', notes: null, row_status: 1, create_uid: 1, create_date: '2026-01-01', write_uid: 1, write_date: '2026-10-22', code: 'POMPA_DONER', name: 'Pompa — Döner (Santrifüj)', networks: 'icmesuyu', category: 'Pompa' },
+  { id: 'POMPA_PISTONLU', notes: null, row_status: 1, create_uid: 1, create_date: '2026-01-01', write_uid: 1, write_date: '2026-10-22', code: 'POMPA_PISTONLU', name: 'Pompa — Pistonlu', networks: 'icmesuyu', category: 'Pompa' },
+  { id: 'PRIZ_KOLYE', notes: null, row_status: 1, create_uid: 1, create_date: '2026-01-01', write_uid: 1, write_date: '2026-10-22', code: 'PRIZ_KOLYE', name: 'Priz / Kolye', networks: 'icmesuyu', category: 'Bina Bağlantısı' },
+  { id: 'BINA_BAGLANTI', notes: null, row_status: 1, create_uid: 1, create_date: '2026-01-01', write_uid: 1, write_date: '2026-10-22', code: 'BINA_BAGLANTI', name: 'Bina Bağlantı Noktası', networks: 'icmesuyu', category: 'Bina Bağlantısı' },
+  { id: 'BACA', notes: null, row_status: 1, create_uid: 1, create_date: '2026-01-01', write_uid: 1, write_date: '2026-10-22', code: 'BACA', name: 'Baca (Muayene Bacası)', networks: 'atiksu,yagmursuyu', category: 'Baca' },
+  { id: 'DESARJ_BACASI', notes: null, row_status: 1, create_uid: 1, create_date: '2026-01-01', write_uid: 1, write_date: '2026-10-22', code: 'DESARJ_BACASI', name: 'Deşarj Bacası', networks: 'atiksu,yagmursuyu', category: 'Baca' },
+  { id: 'PARSEL_BACASI', notes: null, row_status: 1, create_uid: 1, create_date: '2026-01-01', write_uid: 1, write_date: '2026-10-22', code: 'PARSEL_BACASI', name: 'Parsel Bacası', networks: 'atiksu', category: 'Baca' },
+  { id: 'IZGARA', notes: null, row_status: 1, create_uid: 1, create_date: '2026-01-01', write_uid: 1, write_date: '2026-10-22', code: 'IZGARA', name: 'Izgara (Yağmur Ağzı)', networks: 'yagmursuyu', category: 'Izgara' },
+  { id: 'C_PARCASI', notes: null, row_status: 1, create_uid: 1, create_date: '2026-01-01', write_uid: 1, write_date: '2026-10-22', code: 'C_PARCASI', name: 'C Parçası (Yan Bağlantı)', networks: 'atiksu,yagmursuyu', category: 'Bağlantı Parçası' }
 ];
 
 const rollerSeed: RolRecord[] = [
@@ -333,6 +359,47 @@ const vanalarSeed: AltyapiVanasiRecord[] = gisValveRecords.map((v) => ({
   veri_durumu: v.veri_durumu || 'Planlanan',
   the_geom: { tip: 'Point', coordinates: v.coordinates }
 }));
+
+// Şebeke noktaları (tb_icmesuyu_nokta / tb_atiksu_nokta / tb_yagmursuyu_nokta)
+const noktaSeedOf = (lineType: NoktaRecord['line_type']): NoktaRecord[] => gisNodeRecords
+  .filter((n) => n.line_type === lineType)
+  .map((n) => ({
+    id: n.id,
+    name: n.name,
+    notes: null,
+    row_status: 1,
+    create_uid: 1,
+    create_date: '2026-02-15 14:00:00',
+    write_uid: 1,
+    write_date: '2026-10-22 12:00:00',
+    project_id: n.project_id,
+    line_type: n.line_type,
+    node_type_code: n.node_type_code,
+    line_id: n.line_id,
+    cover_elev: n.cover_elev ?? null,
+    invert_elev: n.invert_elev ?? null,
+    depth_m: n.depth_m ?? null,
+    dn_mm: n.dn_mm ?? null,
+    dn2_mm: n.dn2_mm ?? null,
+    inner_diameter_mm: n.inner_diameter_mm ?? null,
+    wall_thickness_mm: n.wall_thickness_mm ?? null,
+    material: n.material ?? null,
+    cover_type: n.cover_type ?? null,
+    pressure_class: n.pressure_class ?? null,
+    actuation: n.actuation ?? null,
+    valve_state: n.valve_state ?? null,
+    building_id: n.building_id ?? null,
+    srid: 5257,
+    veri_durumu: n.veri_durumu || 'Planlanan',
+    the_geom: { tip: 'Point', coordinates: n.coordinates }
+  }));
+// Nokta katmanı tabloları (şebeke → tablo)
+export const NOKTA_TABLOLARI = {
+  icmesuyu: 'tb_icmesuyu_nokta',
+  atiksu: 'tb_atiksu_nokta',
+  yagmursuyu: 'tb_yagmursuyu_nokta'
+} as const;
+export type NoktaSebekesi = keyof typeof NOKTA_TABLOLARI;
 
 const bloklarSeed: BlokRecord[] = initialProjects.flatMap((p) =>
   p.blocks.map((b) => ({
@@ -638,6 +705,90 @@ const sutunlarSeed: TabloSutunRecord[] = [
   { table_name: 'tb_altyapi_vanalari', column_name: 'valve_state', data_type: 'varchar(20)', is_nullable: true, description: 'Açık / Kapalı', is_hidden: false, display_name: 'Konum (Açık/Kapalı)' },
   { table_name: 'tb_altyapi_vanalari', column_name: 'veri_durumu', data_type: 'varchar(50)', is_nullable: false, column_default: "'Planlanan'", is_hidden: false, display_name: 'Veri Durumu', relation_table: 'tb_data_status', relation_column: 'id', relation_display_column: 'name' },
   { table_name: 'tb_altyapi_vanalari', column_name: 'the_geom', data_type: 'geometry(Point,5257)', is_nullable: true, description: 'PostGIS Nokta Geometrisi', is_hidden: true, display_name: 'Geometri' },
+
+  // tb_nokta_tipi (şebeke nokta tipleri — node_type_code FK listesi)
+  { table_name: 'tb_nokta_tipi', column_name: 'id', data_type: 'serial', is_nullable: false, is_standard: true, is_hidden: true, display_name: 'Id' },
+  { table_name: 'tb_nokta_tipi', column_name: 'notes', data_type: 'text', is_nullable: true, is_standard: true, is_hidden: true, display_name: 'Notlar' },
+  { table_name: 'tb_nokta_tipi', column_name: 'row_status', data_type: 'integer', is_nullable: false, column_default: '1', is_standard: true, is_hidden: true, display_name: 'Kayıt Durumu' },
+  { table_name: 'tb_nokta_tipi', column_name: 'create_uid', data_type: 'integer', is_nullable: true, is_standard: true, is_hidden: true, display_name: 'Oluşturan Kullanıcı' },
+  { table_name: 'tb_nokta_tipi', column_name: 'create_date', data_type: 'timestamp', is_nullable: false, column_default: 'current_timestamp', is_standard: true, is_hidden: true, display_name: 'Oluşturma Tarihi' },
+  { table_name: 'tb_nokta_tipi', column_name: 'write_uid', data_type: 'integer', is_nullable: true, is_standard: true, is_hidden: true, display_name: 'Güncelleyen Kullanıcı' },
+  { table_name: 'tb_nokta_tipi', column_name: 'write_date', data_type: 'timestamp', is_nullable: true, is_standard: true, is_hidden: true, display_name: 'Güncelleme Tarihi' },
+  { table_name: 'tb_nokta_tipi', column_name: 'code', data_type: 'varchar(50)', is_nullable: false, description: 'Tip kodu (ör. VANA_SURGULU)', is_hidden: false, display_name: 'Kod' },
+  { table_name: 'tb_nokta_tipi', column_name: 'name', data_type: 'varchar(100)', is_nullable: false, description: 'Tip adı', is_hidden: false, display_name: 'Nokta Tipi' },
+  { table_name: 'tb_nokta_tipi', column_name: 'networks', data_type: 'varchar(100)', is_nullable: false, description: 'Geçerli şebekeler (virgülle)', is_hidden: false, display_name: 'Şebekeler' },
+  { table_name: 'tb_nokta_tipi', column_name: 'category', data_type: 'varchar(50)', is_nullable: true, description: 'Bağlantı Parçası, Vana, Pompa, Baca…', is_hidden: false, display_name: 'Kategori' },
+
+  // tb_icmesuyu_nokta (İçmesuyu Nokta — tipi node_type_code; ODAGIS+ düzeni)
+  { table_name: 'tb_icmesuyu_nokta', column_name: 'id', data_type: 'serial', is_nullable: false, is_standard: true, is_hidden: true, display_name: 'Id' },
+  { table_name: 'tb_icmesuyu_nokta', column_name: 'notes', data_type: 'text', is_nullable: true, is_standard: true, is_hidden: true, display_name: 'Notlar' },
+  { table_name: 'tb_icmesuyu_nokta', column_name: 'row_status', data_type: 'integer', is_nullable: false, column_default: '1', is_standard: true, is_hidden: true, display_name: 'Kayıt Durumu' },
+  { table_name: 'tb_icmesuyu_nokta', column_name: 'create_uid', data_type: 'integer', is_nullable: true, is_standard: true, is_hidden: true, display_name: 'Oluşturan Kullanıcı' },
+  { table_name: 'tb_icmesuyu_nokta', column_name: 'create_date', data_type: 'timestamp', is_nullable: false, column_default: 'current_timestamp', is_standard: true, is_hidden: true, display_name: 'Oluşturma Tarihi' },
+  { table_name: 'tb_icmesuyu_nokta', column_name: 'write_uid', data_type: 'integer', is_nullable: true, is_standard: true, is_hidden: true, display_name: 'Güncelleyen Kullanıcı' },
+  { table_name: 'tb_icmesuyu_nokta', column_name: 'write_date', data_type: 'timestamp', is_nullable: true, is_standard: true, is_hidden: true, display_name: 'Güncelleme Tarihi' },
+  { table_name: 'tb_icmesuyu_nokta', column_name: 'name', data_type: 'varchar(255)', is_nullable: false, description: 'Nokta adı/numarası', is_hidden: false, display_name: 'Nokta Adı' },
+  { table_name: 'tb_icmesuyu_nokta', column_name: 'project_id', data_type: 'varchar(50)', is_nullable: false, description: 'Proje ID', is_hidden: false, display_name: 'Proje', relation_table: 'tb_projeler', relation_column: 'id', relation_display_column: 'name' },
+  { table_name: 'tb_icmesuyu_nokta', column_name: 'line_type', data_type: 'varchar(50)', is_nullable: false, description: 'Şebeke tipi', is_hidden: false, display_name: 'Altyapı Tipi', relation_table: 'tb_altyapi_tipi', relation_column: 'id', relation_display_column: 'name' },
+  { table_name: 'tb_icmesuyu_nokta', column_name: 'node_type_code', data_type: 'varchar(50)', is_nullable: false, description: 'Nokta tipi (tb_nokta_tipi)', is_hidden: false, display_name: 'Nokta Tipi', relation_table: 'tb_nokta_tipi', relation_column: 'id', relation_display_column: 'name' },
+  { table_name: 'tb_icmesuyu_nokta', column_name: 'line_id', data_type: 'varchar(100)', is_nullable: true, description: 'Bağlı altyapı hattı', is_hidden: false, display_name: 'Bağlı Hat', relation_table: 'tb_altyapi_hatlari', relation_column: 'id', relation_display_column: 'network_name' },
+  { table_name: 'tb_icmesuyu_nokta', column_name: 'cover_elev', data_type: 'numeric(8,2)', is_nullable: true, description: 'Zemin kotu (m)', is_hidden: false, display_name: 'Zemin Kotu (m)' },
+  { table_name: 'tb_icmesuyu_nokta', column_name: 'dn_mm', data_type: 'numeric(8,1)', is_nullable: true, description: 'Anma çapı (mm)', is_hidden: false, display_name: 'Anma Çapı DN (mm)' },
+  { table_name: 'tb_icmesuyu_nokta', column_name: 'dn2_mm', data_type: 'numeric(8,1)', is_nullable: true, description: 'Çıkış/küçük çap (mm) — redüksiyon, T, priz', is_hidden: false, display_name: 'Çıkış Çapı (mm)' },
+  { table_name: 'tb_icmesuyu_nokta', column_name: 'depth_m', data_type: 'numeric(6,2)', is_nullable: true, description: 'Servis hattı derinliği (m) — bina bağlantısı', is_hidden: false, display_name: 'Derinlik (m)' },
+  { table_name: 'tb_icmesuyu_nokta', column_name: 'pressure_class', data_type: 'varchar(30)', is_nullable: true, description: 'Basınç sınıfı (ör. PN16)', is_hidden: false, display_name: 'Basınç Sınıfı' },
+  { table_name: 'tb_icmesuyu_nokta', column_name: 'actuation', data_type: 'varchar(100)', is_nullable: true, description: 'Vana tahriki (ör. Kare başlık + uzatma mili)', is_hidden: false, display_name: 'Tahrik' },
+  { table_name: 'tb_icmesuyu_nokta', column_name: 'valve_state', data_type: 'varchar(20)', is_nullable: true, description: 'Açık / Kapalı', is_hidden: false, display_name: 'Konum (Açık/Kapalı)' },
+  { table_name: 'tb_icmesuyu_nokta', column_name: 'material', data_type: 'varchar(100)', is_nullable: true, description: 'Malzeme', is_hidden: false, display_name: 'Malzeme' },
+  { table_name: 'tb_icmesuyu_nokta', column_name: 'building_id', data_type: 'varchar(100)', is_nullable: true, description: 'Bağlı bina', is_hidden: false, display_name: 'Bağlı Bina', relation_table: 'tb_binalar_3d', relation_column: 'id', relation_display_column: 'block_name' },
+  { table_name: 'tb_icmesuyu_nokta', column_name: 'veri_durumu', data_type: 'varchar(50)', is_nullable: false, column_default: "'Planlanan'", is_hidden: false, display_name: 'Veri Durumu', relation_table: 'tb_data_status', relation_column: 'id', relation_display_column: 'name' },
+  { table_name: 'tb_icmesuyu_nokta', column_name: 'the_geom', data_type: 'geometry(Point,5257)', is_nullable: true, description: 'PostGIS Nokta Geometrisi', is_hidden: true, display_name: 'Geometri' },
+
+  // tb_atiksu_nokta (Atıksu Nokta — tipi node_type_code; ODAGIS+ düzeni)
+  { table_name: 'tb_atiksu_nokta', column_name: 'id', data_type: 'serial', is_nullable: false, is_standard: true, is_hidden: true, display_name: 'Id' },
+  { table_name: 'tb_atiksu_nokta', column_name: 'notes', data_type: 'text', is_nullable: true, is_standard: true, is_hidden: true, display_name: 'Notlar' },
+  { table_name: 'tb_atiksu_nokta', column_name: 'row_status', data_type: 'integer', is_nullable: false, column_default: '1', is_standard: true, is_hidden: true, display_name: 'Kayıt Durumu' },
+  { table_name: 'tb_atiksu_nokta', column_name: 'create_uid', data_type: 'integer', is_nullable: true, is_standard: true, is_hidden: true, display_name: 'Oluşturan Kullanıcı' },
+  { table_name: 'tb_atiksu_nokta', column_name: 'create_date', data_type: 'timestamp', is_nullable: false, column_default: 'current_timestamp', is_standard: true, is_hidden: true, display_name: 'Oluşturma Tarihi' },
+  { table_name: 'tb_atiksu_nokta', column_name: 'write_uid', data_type: 'integer', is_nullable: true, is_standard: true, is_hidden: true, display_name: 'Güncelleyen Kullanıcı' },
+  { table_name: 'tb_atiksu_nokta', column_name: 'write_date', data_type: 'timestamp', is_nullable: true, is_standard: true, is_hidden: true, display_name: 'Güncelleme Tarihi' },
+  { table_name: 'tb_atiksu_nokta', column_name: 'name', data_type: 'varchar(255)', is_nullable: false, description: 'Nokta adı/numarası', is_hidden: false, display_name: 'Nokta Adı' },
+  { table_name: 'tb_atiksu_nokta', column_name: 'project_id', data_type: 'varchar(50)', is_nullable: false, description: 'Proje ID', is_hidden: false, display_name: 'Proje', relation_table: 'tb_projeler', relation_column: 'id', relation_display_column: 'name' },
+  { table_name: 'tb_atiksu_nokta', column_name: 'line_type', data_type: 'varchar(50)', is_nullable: false, description: 'Şebeke tipi', is_hidden: false, display_name: 'Altyapı Tipi', relation_table: 'tb_altyapi_tipi', relation_column: 'id', relation_display_column: 'name' },
+  { table_name: 'tb_atiksu_nokta', column_name: 'node_type_code', data_type: 'varchar(50)', is_nullable: false, description: 'Nokta tipi (tb_nokta_tipi)', is_hidden: false, display_name: 'Nokta Tipi', relation_table: 'tb_nokta_tipi', relation_column: 'id', relation_display_column: 'name' },
+  { table_name: 'tb_atiksu_nokta', column_name: 'line_id', data_type: 'varchar(100)', is_nullable: true, description: 'Bağlı altyapı hattı', is_hidden: false, display_name: 'Bağlı Hat', relation_table: 'tb_altyapi_hatlari', relation_column: 'id', relation_display_column: 'network_name' },
+  { table_name: 'tb_atiksu_nokta', column_name: 'cover_elev', data_type: 'numeric(8,2)', is_nullable: true, description: 'Kapak (zemin) kotu (m)', is_hidden: false, display_name: 'Kapak Kotu (m)' },
+  { table_name: 'tb_atiksu_nokta', column_name: 'invert_elev', data_type: 'numeric(8,2)', is_nullable: true, description: 'Akar kotu (m)', is_hidden: false, display_name: 'Akar Kotu (m)' },
+  { table_name: 'tb_atiksu_nokta', column_name: 'inner_diameter_mm', data_type: 'numeric(8,1)', is_nullable: true, description: 'İç çap / iç ölçü (mm)', is_hidden: false, display_name: 'İç Çap (mm)' },
+  { table_name: 'tb_atiksu_nokta', column_name: 'wall_thickness_mm', data_type: 'numeric(6,1)', is_nullable: true, description: 'Et kalınlığı (mm)', is_hidden: false, display_name: 'Et Kalınlığı (mm)' },
+  { table_name: 'tb_atiksu_nokta', column_name: 'cover_type', data_type: 'varchar(50)', is_nullable: true, description: 'ör. Döküm D400, Döküm ızgara C250', is_hidden: false, display_name: 'Kapak Tipi' },
+  { table_name: 'tb_atiksu_nokta', column_name: 'material', data_type: 'varchar(100)', is_nullable: true, description: 'Malzeme', is_hidden: false, display_name: 'Malzeme' },
+  { table_name: 'tb_atiksu_nokta', column_name: 'building_id', data_type: 'varchar(100)', is_nullable: true, description: 'Bağlı bina', is_hidden: false, display_name: 'Bağlı Bina', relation_table: 'tb_binalar_3d', relation_column: 'id', relation_display_column: 'block_name' },
+  { table_name: 'tb_atiksu_nokta', column_name: 'veri_durumu', data_type: 'varchar(50)', is_nullable: false, column_default: "'Planlanan'", is_hidden: false, display_name: 'Veri Durumu', relation_table: 'tb_data_status', relation_column: 'id', relation_display_column: 'name' },
+  { table_name: 'tb_atiksu_nokta', column_name: 'the_geom', data_type: 'geometry(Point,5257)', is_nullable: true, description: 'PostGIS Nokta Geometrisi', is_hidden: true, display_name: 'Geometri' },
+
+  // tb_yagmursuyu_nokta (Yağmursuyu Nokta — tipi node_type_code; ODAGIS+ düzeni)
+  { table_name: 'tb_yagmursuyu_nokta', column_name: 'id', data_type: 'serial', is_nullable: false, is_standard: true, is_hidden: true, display_name: 'Id' },
+  { table_name: 'tb_yagmursuyu_nokta', column_name: 'notes', data_type: 'text', is_nullable: true, is_standard: true, is_hidden: true, display_name: 'Notlar' },
+  { table_name: 'tb_yagmursuyu_nokta', column_name: 'row_status', data_type: 'integer', is_nullable: false, column_default: '1', is_standard: true, is_hidden: true, display_name: 'Kayıt Durumu' },
+  { table_name: 'tb_yagmursuyu_nokta', column_name: 'create_uid', data_type: 'integer', is_nullable: true, is_standard: true, is_hidden: true, display_name: 'Oluşturan Kullanıcı' },
+  { table_name: 'tb_yagmursuyu_nokta', column_name: 'create_date', data_type: 'timestamp', is_nullable: false, column_default: 'current_timestamp', is_standard: true, is_hidden: true, display_name: 'Oluşturma Tarihi' },
+  { table_name: 'tb_yagmursuyu_nokta', column_name: 'write_uid', data_type: 'integer', is_nullable: true, is_standard: true, is_hidden: true, display_name: 'Güncelleyen Kullanıcı' },
+  { table_name: 'tb_yagmursuyu_nokta', column_name: 'write_date', data_type: 'timestamp', is_nullable: true, is_standard: true, is_hidden: true, display_name: 'Güncelleme Tarihi' },
+  { table_name: 'tb_yagmursuyu_nokta', column_name: 'name', data_type: 'varchar(255)', is_nullable: false, description: 'Nokta adı/numarası', is_hidden: false, display_name: 'Nokta Adı' },
+  { table_name: 'tb_yagmursuyu_nokta', column_name: 'project_id', data_type: 'varchar(50)', is_nullable: false, description: 'Proje ID', is_hidden: false, display_name: 'Proje', relation_table: 'tb_projeler', relation_column: 'id', relation_display_column: 'name' },
+  { table_name: 'tb_yagmursuyu_nokta', column_name: 'line_type', data_type: 'varchar(50)', is_nullable: false, description: 'Şebeke tipi', is_hidden: false, display_name: 'Altyapı Tipi', relation_table: 'tb_altyapi_tipi', relation_column: 'id', relation_display_column: 'name' },
+  { table_name: 'tb_yagmursuyu_nokta', column_name: 'node_type_code', data_type: 'varchar(50)', is_nullable: false, description: 'Nokta tipi (tb_nokta_tipi)', is_hidden: false, display_name: 'Nokta Tipi', relation_table: 'tb_nokta_tipi', relation_column: 'id', relation_display_column: 'name' },
+  { table_name: 'tb_yagmursuyu_nokta', column_name: 'line_id', data_type: 'varchar(100)', is_nullable: true, description: 'Bağlı altyapı hattı', is_hidden: false, display_name: 'Bağlı Hat', relation_table: 'tb_altyapi_hatlari', relation_column: 'id', relation_display_column: 'network_name' },
+  { table_name: 'tb_yagmursuyu_nokta', column_name: 'cover_elev', data_type: 'numeric(8,2)', is_nullable: true, description: 'Kapak (zemin) kotu (m)', is_hidden: false, display_name: 'Kapak Kotu (m)' },
+  { table_name: 'tb_yagmursuyu_nokta', column_name: 'invert_elev', data_type: 'numeric(8,2)', is_nullable: true, description: 'Akar kotu (m)', is_hidden: false, display_name: 'Akar Kotu (m)' },
+  { table_name: 'tb_yagmursuyu_nokta', column_name: 'inner_diameter_mm', data_type: 'numeric(8,1)', is_nullable: true, description: 'İç çap / iç ölçü (mm)', is_hidden: false, display_name: 'İç Çap (mm)' },
+  { table_name: 'tb_yagmursuyu_nokta', column_name: 'wall_thickness_mm', data_type: 'numeric(6,1)', is_nullable: true, description: 'Et kalınlığı (mm)', is_hidden: false, display_name: 'Et Kalınlığı (mm)' },
+  { table_name: 'tb_yagmursuyu_nokta', column_name: 'cover_type', data_type: 'varchar(50)', is_nullable: true, description: 'ör. Döküm D400, Döküm ızgara C250', is_hidden: false, display_name: 'Kapak Tipi' },
+  { table_name: 'tb_yagmursuyu_nokta', column_name: 'material', data_type: 'varchar(100)', is_nullable: true, description: 'Malzeme', is_hidden: false, display_name: 'Malzeme' },
+  { table_name: 'tb_yagmursuyu_nokta', column_name: 'building_id', data_type: 'varchar(100)', is_nullable: true, description: 'Bağlı bina', is_hidden: false, display_name: 'Bağlı Bina', relation_table: 'tb_binalar_3d', relation_column: 'id', relation_display_column: 'block_name' },
+  { table_name: 'tb_yagmursuyu_nokta', column_name: 'veri_durumu', data_type: 'varchar(50)', is_nullable: false, column_default: "'Planlanan'", is_hidden: false, display_name: 'Veri Durumu', relation_table: 'tb_data_status', relation_column: 'id', relation_display_column: 'name' },
+  { table_name: 'tb_yagmursuyu_nokta', column_name: 'the_geom', data_type: 'geometry(Point,5257)', is_nullable: true, description: 'PostGIS Nokta Geometrisi', is_hidden: true, display_name: 'Geometri' },
 
   // tb_proje_sinirlari
   { table_name: 'tb_proje_sinirlari', column_name: 'id', data_type: 'serial', is_nullable: false, is_standard: true, is_hidden: true, display_name: 'Id' },
@@ -1031,6 +1182,26 @@ export async function updateAltyapiVanasi(id: number | string, item: Partial<Alt
 export async function deleteAltyapiVanasi(id: number | string): Promise<boolean> {
   await ensureSeeded('tb_altyapi_vanalari', vanalarSeed);
   return apiSoftDelete('tb_altyapi_vanalari', id);
+}
+
+// 7d. TABLO ADI (tb_nokta_tipi)
+export async function getNoktaTipleri(): Promise<NoktaTipiRecord[]> {
+  await ensureSeeded('tb_nokta_tipi', noktaTipleriSeed);
+  return apiList<NoktaTipiRecord>('tb_nokta_tipi');
+}
+
+// 7e. TABLO ADI (tb_icmesuyu_nokta / tb_atiksu_nokta / tb_yagmursuyu_nokta)
+export async function getNoktalar(sebeke: NoktaSebekesi): Promise<NoktaRecord[]> {
+  await ensureSeeded(NOKTA_TABLOLARI[sebeke], noktaSeedOf(sebeke));
+  return apiList<NoktaRecord>(NOKTA_TABLOLARI[sebeke]);
+}
+export async function updateNokta(sebeke: NoktaSebekesi, id: number | string, item: Partial<NoktaRecord>): Promise<NoktaRecord> {
+  await ensureSeeded(NOKTA_TABLOLARI[sebeke], noktaSeedOf(sebeke));
+  return apiUpdate<NoktaRecord>(NOKTA_TABLOLARI[sebeke], id, { ...item, write_date: new Date().toISOString() });
+}
+export async function deleteNokta(sebeke: NoktaSebekesi, id: number | string): Promise<boolean> {
+  await ensureSeeded(NOKTA_TABLOLARI[sebeke], noktaSeedOf(sebeke));
+  return apiSoftDelete(NOKTA_TABLOLARI[sebeke], id);
 }
 
 // 8. TABLO ADI (tb_bloklar)

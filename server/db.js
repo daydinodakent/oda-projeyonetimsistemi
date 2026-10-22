@@ -90,6 +90,10 @@ const SPATIAL_TABLES = {
   tb_altyapi_bacalari: { geomType: 'POINT', description: 'Altyapı Bacaları' },
   // İçmesuyu/doğalgaz vanaları (sürgülü, kelebek, küresel, hava tahliye…) — nokta katmanı
   tb_altyapi_vanalari: { geomType: 'POINT', description: 'Altyapı Vanaları' },
+  // Şebeke noktaları (ODAGIS+ düzeni) — nokta tipi node_type_code sütununda (tb_nokta_tipi)
+  tb_icmesuyu_nokta: { geomType: 'POINT', description: 'İçmesuyu Nokta' },
+  tb_atiksu_nokta: { geomType: 'POINT', description: 'Atıksu Nokta' },
+  tb_yagmursuyu_nokta: { geomType: 'POINT', description: 'Yağmursuyu Nokta' },
   // Harita > Saha sekmesinden eklenen konumlu galeri fotoğrafları — gerçek
   // bir GeoPackage nokta katmanı (bkz. src/types/index.ts SahaFotografRecord).
   tb_saha_fotograflari: { geomType: 'POINT', description: 'Saha Fotoğrafları' },

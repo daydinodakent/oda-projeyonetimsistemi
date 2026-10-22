@@ -218,3 +218,29 @@ export interface GISValveRecord {
   coordinates: [number, number];
   veri_durumu?: 'Planlanan' | 'İnşaat' | 'İşletme' | 'İptal';
 }
+
+// Şebeke noktası (İçmesuyu/Atıksu/Yağmursuyu Nokta) — tipi node_type_code'da
+// (tb_nokta_tipi'ne FK). Alanların hangileri dolu olduğu tipe göre değişir.
+export interface GISNodeRecord {
+  id: string;
+  project_id: string;
+  line_type: 'icmesuyu' | 'atiksu' | 'yagmursuyu';
+  node_type_code: string;
+  name: string;
+  line_id: string | null;
+  coordinates: [number, number];
+  cover_elev?: number;          // zemin/kapak kotu (m)
+  invert_elev?: number;         // akar kotu (m) — baca, ızgara
+  depth_m?: number;             // bina bağlantısında servis hattı derinliği (m)
+  dn_mm?: number;               // anma çapı (mm)
+  dn2_mm?: number;              // redüksiyon/T/priz çıkış çapı (mm)
+  inner_diameter_mm?: number;   // baca/ızgara iç ölçüsü (mm)
+  wall_thickness_mm?: number;
+  material?: string;
+  cover_type?: string;
+  pressure_class?: string;
+  actuation?: string;
+  valve_state?: string;
+  building_id?: string | null;  // bağlı bina (tb_binalar_3d.id)
+  veri_durumu?: 'Planlanan' | 'İnşaat' | 'İşletme' | 'İptal';
+}

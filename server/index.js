@@ -139,6 +139,18 @@ const GPKG_LAYERS = [
     columns: ['name', 'project_id', 'line_type', 'valve_type', 'line_id', 'dn_mm', 'pressure_class', 'material', 'actuation', 'valve_state', 'veri_durumu'],
   },
   {
+    tableName: 'tb_icmesuyu_nokta', description: 'İçmesuyu Nokta', geomType: 'POINT',
+    columns: ['name', 'project_id', 'line_type', 'node_type_code', 'line_id', 'cover_elev', 'dn_mm', 'dn2_mm', 'depth_m', 'pressure_class', 'actuation', 'valve_state', 'material', 'building_id', 'veri_durumu'],
+  },
+  {
+    tableName: 'tb_atiksu_nokta', description: 'Atıksu Nokta', geomType: 'POINT',
+    columns: ['name', 'project_id', 'line_type', 'node_type_code', 'line_id', 'cover_elev', 'invert_elev', 'inner_diameter_mm', 'wall_thickness_mm', 'cover_type', 'material', 'building_id', 'veri_durumu'],
+  },
+  {
+    tableName: 'tb_yagmursuyu_nokta', description: 'Yağmursuyu Nokta', geomType: 'POINT',
+    columns: ['name', 'project_id', 'line_type', 'node_type_code', 'line_id', 'cover_elev', 'invert_elev', 'inner_diameter_mm', 'wall_thickness_mm', 'cover_type', 'material', 'building_id', 'veri_durumu'],
+  },
+  {
     tableName: 'tb_saha_fotograflari', description: 'Saha Dosyaları', geomType: 'POINT',
     columns: ['name', 'project_id', 'notes', 'upload_date', 'doc_type'],
   },

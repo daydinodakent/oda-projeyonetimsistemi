@@ -1,6 +1,6 @@
 import { 
   Project, WBSTask, ProjectDocument, Asset, MaintenanceLog, Notification,
-  GISBoundaryRecord, GISBuildingRecord, GISInfrastructureRecord, GISManholeRecord, GISValveRecord
+  GISBoundaryRecord, GISBuildingRecord, GISInfrastructureRecord, GISManholeRecord, GISValveRecord, GISNodeRecord
 } from './types';
 
 export const initialProjects: Project[] = [
@@ -900,6 +900,178 @@ function generateValves(line: GISInfrastructureRecord): GISValveRecord[] {
   return out;
 }
 export const gisValveRecords: GISValveRecord[] = gisInfrastructureRecords.flatMap(generateValves);
+
+// ---------------------------------------------------------------------
+// Şebeke noktaları (ODAGIS+ düzeni) — İçmesuyu / Atıksu / Yağmursuyu Nokta
+// katmanları. Her noktanın tipi node_type_code sütununda tutulur
+// (tb_nokta_tipi liste tablosuna FK; bkz. api.ts noktaTipleriSeed).
+// İçmesuyu: pompa (hat başı), vanalar, T parçası, hidrant, priz/kolye +
+//   bina bağlantı noktası (her binaya), redüksiyon ve boru sonu (hat sonu).
+// Atıksu: muayene bacaları (50 m), deşarj bacası (hat sonu), parsel bacası
+//   (bina önü) ve parsel bağlantısının ana hatta girdiği C parçası.
+// Yağmursuyu: bacalar, deşarj bacası, yol kenarı ızgaraları (yağmur ağzı)
+//   ve ızgara bağlantılarının C parçaları.
+// ---------------------------------------------------------------------
+type NodeLine = {
+  pts: [number, number][];
+  kx: number;
+  ky: number;
+  cum: number[];
+  L: number;
+  at: (s: number) => [number, number];
+  nearest: (p: [number, number]) => { s: number; pt: [number, number]; dist: number };
+};
+function nodeLineOf(line: GISInfrastructureRecord): NodeLine | null {
+  const pts = line.coordinates;
+  if (pts.length < 2) return null;
+  const lats = pts.map((c) => c[1]);
+  const midLat = (Math.min(...lats) + Math.max(...lats)) / 2;
+  const kx = 111320 * Math.cos((midLat * Math.PI) / 180), ky = 110540;
+  const cum = [0];
+  for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot((pts[i][0] - pts[i - 1][0]) * kx, (pts[i][1] - pts[i - 1][1]) * ky));
+  const L = cum[cum.length - 1];
+  const at = (s: number): [number, number] => {
+    let i = 1;
+    while (i < cum.length - 1 && cum[i] < s) i++;
+    const t = cum[i] > cum[i - 1] ? (s - cum[i - 1]) / (cum[i] - cum[i - 1]) : 0;
+    return [pts[i - 1][0] + (pts[i][0] - pts[i - 1][0]) * t, pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * t];
+  };
+  const nearest = (p: [number, number]) => {
+    let best = { s: 0, pt: pts[0], dist: Infinity };
+    for (let i = 0; i < pts.length - 1; i++) {
+      const ax = pts[i][0] * kx, ay = pts[i][1] * ky, dx = pts[i + 1][0] * kx - ax, dy = pts[i + 1][1] * ky - ay;
+      const l2 = dx * dx + dy * dy;
+      const t = l2 > 0 ? Math.max(0, Math.min(1, ((p[0] * kx - ax) * dx + (p[1] * ky - ay) * dy) / l2)) : 0;
+      const qx = ax + dx * t, qy = ay + dy * t, d = Math.hypot(qx - p[0] * kx, qy - p[1] * ky);
+      if (d < best.dist) best = { s: cum[i] + (cum[i + 1] - cum[i]) * t, pt: [qx / kx, qy / ky], dist: d };
+    }
+    return best;
+  };
+  return { pts, kx, ky, cum, L, at, nearest };
+}
+// Bina tabanının (halka) verilen noktaya en yakın kenar noktası
+function nearestOnRing(ring: [number, number][], p: [number, number], kx: number, ky: number): [number, number] {
+  let best: [number, number] = ring[0], bd = Infinity;
+  for (let i = 0; i < ring.length - 1; i++) {
+    const ax = ring[i][0] * kx, ay = ring[i][1] * ky, dx = ring[i + 1][0] * kx - ax, dy = ring[i + 1][1] * ky - ay;
+    const l2 = dx * dx + dy * dy;
+    const t = l2 > 0 ? Math.max(0, Math.min(1, ((p[0] * kx - ax) * dx + (p[1] * ky - ay) * dy) / l2)) : 0;
+    const qx = ax + dx * t, qy = ay + dy * t, d = Math.hypot(qx - p[0] * kx, qy - p[1] * ky);
+    if (d < bd) { bd = d; best = [qx / kx, qy / ky]; }
+  }
+  return best;
+}
+// a'dan b yönünde d metre ilerideki nokta
+function stepToward(a: [number, number], b: [number, number], d: number, kx: number, ky: number): [number, number] {
+  const dx = (b[0] - a[0]) * kx, dy = (b[1] - a[1]) * ky, l = Math.hypot(dx, dy) || 1;
+  return [a[0] + (dx / l) * d / kx, a[1] + (dy / l) * d / ky];
+}
+// Hattın s mesafesinde, hatta dik yönde off metre kaydırılmış nokta
+function offsetAt(nl: NodeLine, s: number, off: number): [number, number] {
+  const a = nl.at(Math.max(0, s - 1)), b = nl.at(Math.min(nl.L, s + 1)), c = nl.at(s);
+  const dx = (b[0] - a[0]) * nl.kx, dy = (b[1] - a[1]) * nl.ky, l = Math.hypot(dx, dy) || 1;
+  return [c[0] + (-dy / l) * off / nl.kx, c[1] + (dx / l) * off / nl.ky];
+}
+const NODE_BUILDING_MAX_DIST_M = 40; // bu mesafeden yakın binalar hatta bağlanır
+function generateNetworkNodes(line: GISInfrastructureRecord): GISNodeRecord[] {
+  if (line.line_type !== 'icmesuyu' && line.line_type !== 'atiksu' && line.line_type !== 'yagmursuyu') return [];
+  const nl = nodeLineOf(line);
+  if (!nl) return [];
+  const lt = line.line_type;
+  const r2 = (v: number) => Math.round(v * 100) / 100;
+  const groundAt = (s: number) => r2((line.start_ground_elev ?? 0) + ((line.end_ground_elev ?? line.start_ground_elev ?? 0) - (line.start_ground_elev ?? 0)) * (nl.L > 0 ? s / nl.L : 0));
+  const invertAt = (s: number) => r2((line.start_invert_elev ?? 0) + ((line.end_invert_elev ?? line.start_invert_elev ?? 0) - (line.start_invert_elev ?? 0)) * (nl.L > 0 ? s / nl.L : 0));
+  const out: GISNodeRecord[] = [];
+  const counters: Record<string, number> = {};
+  const add = (code: string, prefix: string, coordinates: [number, number], onLine: boolean, extra: Partial<GISNodeRecord>) => {
+    counters[prefix] = (counters[prefix] || 0) + 1;
+    out.push({
+      id: `nokta-${line.id}-${prefix.toLowerCase()}-${counters[prefix]}`,
+      project_id: line.project_id,
+      line_type: lt,
+      node_type_code: code,
+      name: `${prefix}-${counters[prefix]}`,
+      line_id: onLine ? line.id : null,
+      coordinates,
+      veri_durumu: 'Planlanan',
+      ...extra
+    });
+  };
+  const buildings = gisBuildingRecords.filter((b) => b.project_id === line.project_id);
+
+  if (lt === 'icmesuyu') {
+    const dn = line.outer_diameter_mm || 110;
+    add('POMPA_DONER', 'PM', nl.at(Math.min(6, nl.L / 2)), true, { cover_elev: groundAt(6), dn_mm: dn, material: 'Paslanmaz gövde, santrifüj (döner) pompa', pressure_class: 'PN16' });
+    // Vanalar: hat başından 25 m sonra ve her 300 m'de (sürgülü, sürgülü, kelebek, hava tahliye, küresel)
+    const VANALAR: [string, string, string][] = [
+      ['VANA_SURGULU', 'Duktil döküm (GGG-50), epoksi kaplı', 'Kare başlık + teleskopik uzatma mili'],
+      ['VANA_SURGULU', 'Duktil döküm (GGG-50), epoksi kaplı', 'Kare başlık + teleskopik uzatma mili'],
+      ['VANA_KELEBEK', 'Duktil döküm (GGG-50), epoksi kaplı', 'Redüktör + uzatma mili'],
+      ['VANA_HAVA', 'Duktil döküm (GGG-50), epoksi kaplı', 'Otomatik (şamandıralı)'],
+      ['VANA_KURESEL', 'Pirinç gövde', 'Kare başlık + uzatma mili']
+    ];
+    for (let s = 25, k = 0; s < nl.L - 10; s += 300, k++) {
+      const v = VANALAR[k % VANALAR.length];
+      add(v[0], 'SV', nl.at(s), true, { cover_elev: groundAt(s), dn_mm: 100, material: v[1], actuation: v[2], valve_state: 'Açık', pressure_class: 'PN16' });
+    }
+    // T parçaları (şebeke ayrımları) ve hidrantlar
+    for (let s = 120; s < nl.L - 20; s += 240) add('T_PARCASI', 'TP', nl.at(s), true, { cover_elev: groundAt(s), dn_mm: dn, dn2_mm: 90, material: 'PE100 elektrofüzyon T' });
+    for (let s = 75; s < nl.L - 20; s += 150) add('HIDRANT', 'HD', nl.at(s), true, { cover_elev: groundAt(s), dn_mm: 100, material: 'Duktil döküm, kırmızı RAL 3000 (yerüstü)', pressure_class: 'PN16' });
+    // Bina bağlantıları: hattaki priz/kolye + bina cephesindeki bağlantı noktası
+    buildings.forEach((b) => {
+      const ring = b.coordinates;
+      const cx = ring.reduce((a, c) => a + c[0], 0) / ring.length, cy = ring.reduce((a, c) => a + c[1], 0) / ring.length;
+      const np = nl.nearest([cx, cy]);
+      if (np.dist > NODE_BUILDING_MAX_DIST_M || np.s < 3 || np.s > nl.L - 3) return;
+      const bb = nearestOnRing(ring, np.pt, nl.kx, nl.ky);
+      add('PRIZ_KOLYE', 'PR', np.pt, true, { cover_elev: groundAt(np.s), dn_mm: dn, dn2_mm: 32, material: 'PE100 elektrofüzyon priz kolye', building_id: b.id });
+      add('BINA_BAGLANTI', 'BB', bb, false, { cover_elev: groundAt(np.s), dn_mm: 32, material: 'PE100 Ø32 servis hattı, su sayacı', building_id: b.id, depth_m: line.depth_meters ?? 1.2 });
+    });
+    // Hat sonu: redüksiyon (Ø110→Ø90) ve boru sonu (kör tapa)
+    if (nl.L > 30) add('REDUKSIYON', 'RD', nl.at(nl.L - 12), true, { cover_elev: groundAt(nl.L - 12), dn_mm: dn, dn2_mm: 90, material: 'PE100 elektrofüzyon redüksiyon' });
+    add('BORU_SONU', 'BS', nl.at(nl.L), true, { cover_elev: groundAt(nl.L), dn_mm: dn, material: 'PE100 kör tapa (end cap)' });
+    return out;
+  }
+
+  // Atıksu / yağmursuyu
+  const as = lt === 'atiksu';
+  const bacaPrefix = as ? 'AB' : 'YB';
+  const stations: number[] = [];
+  for (let s = 0; s < nl.L - 25; s += 50) stations.push(s);
+  stations.push(nl.L);
+  stations.forEach((s, k) => {
+    const last = k === stations.length - 1;
+    add(last ? 'DESARJ_BACASI' : 'BACA', last ? 'DB' : bacaPrefix, nl.at(s), true, {
+      cover_elev: groundAt(s), invert_elev: invertAt(s),
+      inner_diameter_mm: last ? 1500 : (as ? 1000 : 1200), wall_thickness_mm: last ? 150 : 120,
+      material: 'Beton (prefabrik)', cover_type: 'Döküm D400'
+    });
+  });
+  const pipeDepthAt = (s: number) => groundAt(s) - invertAt(s);
+  if (as) {
+    // Parsel bacası (bina önünde, cepheden 2 m) ve bağlantının ana hatta girdiği C parçası
+    buildings.forEach((b) => {
+      const ring = b.coordinates;
+      const cx = ring.reduce((a, c) => a + c[0], 0) / ring.length, cy = ring.reduce((a, c) => a + c[1], 0) / ring.length;
+      const np = nl.nearest([cx, cy]);
+      if (np.dist > NODE_BUILDING_MAX_DIST_M || np.s < 5 || np.s > nl.L - 5) return;
+      const edge = nearestOnRing(ring, np.pt, nl.kx, nl.ky);
+      const pb = stepToward(edge, np.pt, Math.min(2, Math.hypot((np.pt[0] - edge[0]) * nl.kx, (np.pt[1] - edge[1]) * nl.ky) / 2), nl.kx, nl.ky);
+      const depth = Math.min(1.2, Math.max(0.8, pipeDepthAt(np.s) - 0.6));
+      add('PARSEL_BACASI', 'PB', pb, false, { cover_elev: groundAt(np.s), invert_elev: r2(groundAt(np.s) - depth), inner_diameter_mm: 600, wall_thickness_mm: 80, material: 'Beton (prefabrik)', cover_type: 'Döküm B125', building_id: b.id });
+      add('C_PARCASI', 'CP', np.pt, true, { inner_diameter_mm: 160, material: 'PVC 45° yan bağlantı (C parçası)', building_id: b.id });
+    });
+  } else {
+    // Yol kenarı ızgaraları: her 40 m'de, hattın iki yanında 4 m açıkta; bağlantı C parçasıyla
+    for (let s = 20, k = 0; s < nl.L - 10; s += 40, k++) {
+      const g = offsetAt(nl, s, k % 2 ? 4 : -4);
+      add('IZGARA', 'IZ', g, false, { cover_elev: groundAt(s), invert_elev: r2(groundAt(s) - 1.0), inner_diameter_mm: 400, wall_thickness_mm: 100, material: 'Beton gövde, döküm ızgara', cover_type: 'Döküm ızgara C250' });
+      add('C_PARCASI', 'CP', nl.at(s), true, { inner_diameter_mm: 200, material: 'Beton/PVC yan bağlantı (C parçası)' });
+    }
+  }
+  return out;
+}
+export const gisNodeRecords: GISNodeRecord[] = gisInfrastructureRecords.flatMap(generateNetworkNodes);
 
 export const initialWbsTasks: Record<string, WBSTask[]> = {
   'IGA-ETAP-1': [

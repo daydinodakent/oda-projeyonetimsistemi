@@ -187,6 +187,47 @@ export interface AltyapiVanasiRecord extends BaseEntity {
   };
 }
 
+// 7d. Nokta Tipleri (LİSTE) — şebeke noktalarının node_type_code sütununun FK
+// ile bağlandığı liste (ODAGIS+ düzeni). networks: tipin geçerli olduğu
+// şebekeler (virgülle; ör. 'atiksu,yagmursuyu'); category: Bağlantı Parçası,
+// Vana, Pompa, Baca, Bağlantı…
+export interface NoktaTipiRecord extends BaseEntity {
+  name: string;
+  code: string;
+  networks: string;
+  category: string;
+}
+
+// 7e. Şebeke Noktaları (GEOMETRI - POINT) — tb_icmesuyu_nokta, tb_atiksu_nokta,
+// tb_yagmursuyu_nokta. Haritada nokta tipine göre simgeyle; "Gerçek Dünya
+// Görünümü"nde tipine göre 3B (vana, T parçası, hidrant, pompa, baca, ızgara…).
+export interface NoktaRecord extends BaseEntity {
+  name: string;
+  project_id: string;
+  line_type: 'icmesuyu' | 'atiksu' | 'yagmursuyu';
+  node_type_code: string;               // tb_nokta_tipi.id
+  line_id?: string | null;              // bağlı altyapı hattı (tb_altyapi_hatlari.id)
+  cover_elev?: number | null;           // zemin/kapak kotu (m)
+  invert_elev?: number | null;          // akar kotu (m) — atıksu/yağmursuyu
+  depth_m?: number | null;              // servis hattı derinliği (m) — içmesuyu
+  dn_mm?: number | null;
+  dn2_mm?: number | null;
+  inner_diameter_mm?: number | null;
+  wall_thickness_mm?: number | null;
+  material?: string | null;
+  cover_type?: string | null;
+  pressure_class?: string | null;
+  actuation?: string | null;
+  valve_state?: string | null;
+  building_id?: string | null;          // bağlı bina (tb_binalar_3d.id)
+  srid: number;
+  veri_durumu?: 'Planlanan' | 'İnşaat' | 'İşletme' | 'İptal';
+  the_geom?: {
+    tip: 'Point';
+    coordinates: [number, number];
+  };
+}
+
 // 8. Bloklar (GEOMETRI - POLYGON)
 export interface BlokRecord extends BaseEntity {
   project_id: string;

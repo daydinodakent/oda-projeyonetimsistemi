@@ -14,7 +14,7 @@ import { rawDb, getRecord, putRecord } from '../../db.js';
 
 const db = rawDb();
 
-export const IZLENEN_TABLOLAR = ['tb_proje_sinirlari', 'tb_binalar_3d', 'tb_altyapi_hatlari', 'tb_altyapi_bacalari', 'tb_altyapi_vanalari'];
+export const IZLENEN_TABLOLAR = ['tb_proje_sinirlari', 'tb_binalar_3d', 'tb_altyapi_hatlari', 'tb_altyapi_bacalari', 'tb_altyapi_vanalari', 'tb_icmesuyu_nokta', 'tb_atiksu_nokta', 'tb_yagmursuyu_nokta'];
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS kayit_gecmisi (
