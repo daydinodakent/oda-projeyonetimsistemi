@@ -1,6 +1,6 @@
 import { 
   Project, WBSTask, ProjectDocument, Asset, MaintenanceLog, Notification,
-  GISBoundaryRecord, GISBuildingRecord, GISInfrastructureRecord 
+  GISBoundaryRecord, GISBuildingRecord, GISInfrastructureRecord, GISManholeRecord
 } from './types';
 
 export const initialProjects: Project[] = [
@@ -802,6 +802,54 @@ function generateEtapInfrastructure(project: Project, etapLabel: string): GISInf
 export const gisInfrastructureRecords: GISInfrastructureRecord[] = initialProjects
   .filter((p) => ETAP_BOUNDARY_RINGS[p.id])
   .flatMap((p) => generateEtapInfrastructure(p, ETAP_LABELS[p.id] || p.name));
+
+// Atıksu ve yağmursuyu hatları boyunca muayene bacaları: başlangıçta, her 50 m'de
+// ve hat sonunda. Kapak kotu hattın zemin kotundan, akar kotu hattın akar
+// kotundan (zincirleme mesafeye göre doğrusal) alınır.
+const MANHOLE_SPACING_M = 50;
+function generateManholes(line: GISInfrastructureRecord): GISManholeRecord[] {
+  if (line.line_type !== 'atiksu' && line.line_type !== 'yagmursuyu') return [];
+  const pts = line.coordinates;
+  if (pts.length < 2) return [];
+  const lats = pts.map((c) => c[1]);
+  const midLat = (Math.min(...lats) + Math.max(...lats)) / 2;
+  const kx = 111320 * Math.cos((midLat * Math.PI) / 180), ky = 110540;
+  const cum = [0];
+  for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot((pts[i][0] - pts[i - 1][0]) * kx, (pts[i][1] - pts[i - 1][1]) * ky));
+  const L = cum[cum.length - 1];
+  const stations: number[] = [];
+  for (let s = 0; s < L - MANHOLE_SPACING_M / 2; s += MANHOLE_SPACING_M) stations.push(s);
+  stations.push(L);
+  const at = (s: number): [number, number] => {
+    let i = 1;
+    while (i < cum.length - 1 && cum[i] < s) i++;
+    const t = cum[i] > cum[i - 1] ? (s - cum[i - 1]) / (cum[i] - cum[i - 1]) : 0;
+    return [pts[i - 1][0] + (pts[i][0] - pts[i - 1][0]) * t, pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * t];
+  };
+  const lerp = (a: number | undefined, b: number | undefined, t: number) => (a ?? 0) + ((b ?? a ?? 0) - (a ?? 0)) * t;
+  const r2 = (v: number) => Math.round(v * 100) / 100;
+  const prefix = line.line_type === 'atiksu' ? 'AB' : 'YB';
+  return stations.map((s, k) => {
+    const t = L > 0 ? s / L : 0;
+    return {
+      id: `baca-${line.id}-${k + 1}`,
+      project_id: line.project_id,
+      line_type: line.line_type as GISManholeRecord['line_type'],
+      name: `${prefix}-${k + 1}`,
+      manhole_no: k + 1,
+      line_id: line.id,
+      cover_elev: r2(lerp(line.start_ground_elev, line.end_ground_elev, t)),
+      invert_elev: r2(lerp(line.start_invert_elev, line.end_invert_elev, t)),
+      inner_diameter_mm: line.line_type === 'atiksu' ? 1000 : 1200,
+      wall_thickness_mm: 120,
+      material: 'Beton (prefabrik)',
+      cover_type: 'Döküm D400',
+      coordinates: at(s),
+      veri_durumu: 'Planlanan' as const
+    };
+  });
+}
+export const gisManholeRecords: GISManholeRecord[] = gisInfrastructureRecords.flatMap(generateManholes);
 
 export const initialWbsTasks: Record<string, WBSTask[]> = {
   'IGA-ETAP-1': [

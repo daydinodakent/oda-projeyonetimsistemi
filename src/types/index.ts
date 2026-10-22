@@ -141,6 +141,30 @@ export interface AltyapiHattiRecord extends BaseEntity {
   };
 }
 
+// 7b. Altyapı Bacaları (GEOMETRI - POINT) — atıksu/yağmursuyu muayene bacaları.
+// Haritada nokta; "Gerçek Dünya Görünümü"nde kapak kotundan akar kotuna inen
+// prefabrik beton baca. Bağlı hattın (line_id) boru profili, hattın kendi akar
+// kotları yoksa bu bacaların akar kotlarından kırıklı olarak çıkarılır.
+export interface AltyapiBacasiRecord extends BaseEntity {
+  name: string;
+  project_id: string;
+  line_type: 'atiksu' | 'yagmursuyu';
+  manhole_no?: number | null;
+  line_id?: string | null;              // bağlı altyapı hattı (tb_altyapi_hatlari.id)
+  cover_elev?: number | null;           // kapak (zemin) kotu (m)
+  invert_elev?: number | null;          // baca akar kotu (m)
+  inner_diameter_mm?: number | null;    // baca iç çapı (mm) — tipik 1000/1200
+  wall_thickness_mm?: number | null;    // bilezik et kalınlığı (mm)
+  material?: string | null;
+  cover_type?: string | null;           // ör. Döküm D400
+  srid: number;
+  veri_durumu?: 'Planlanan' | 'İnşaat' | 'İşletme' | 'İptal';
+  the_geom?: {
+    tip: 'Point';
+    coordinates: [number, number];
+  };
+}
+
 // 8. Bloklar (GEOMETRI - POLYGON)
 export interface BlokRecord extends BaseEntity {
   project_id: string;

@@ -276,6 +276,7 @@ const LAYER_TABLE_MAP: Record<string, string> = {
   'db-layer-sinirlar': 'tb_proje_sinirlari',
   'db-layer-binalar': 'tb_binalar_3d',
   'db-layer-altyapi': 'tb_altyapi_hatlari',
+  'db-layer-bacalar': 'tb_altyapi_bacalari',
 };
 
 // Tablo adı ↔ haritadaki db-layer id'si (geçmişten geri alınan kaydı iframe'e bildirmek için).
@@ -333,6 +334,30 @@ const toBinaFeature = (r: any) => {
     },
   };
 };
+
+// Atıksu/yağmursuyu bacası (nokta) — "Gerçek Dünya Görünümü"nde 3B baca olarak çizilir.
+const toBacaFeature = (r: any, colorByType: Record<string, string>) => ({
+  id: r.id,
+  type: 'Feature',
+  geometry: geomOf(r),
+  properties: {
+    layerId: 'db-layer-bacalar',
+    tablo: LAYER_TABLE_MAP['db-layer-bacalar'],
+    name: r.name,
+    project_id: r.project_id,
+    line_type: r.line_type,
+    manhole_no: r.manhole_no ?? null,
+    line_id: r.line_id ?? null,
+    cover_elev: r.cover_elev ?? null,
+    invert_elev: r.invert_elev ?? null,
+    inner_diameter_mm: r.inner_diameter_mm ?? null,
+    wall_thickness_mm: r.wall_thickness_mm ?? null,
+    material: r.material ?? null,
+    cover_type: r.cover_type ?? null,
+    veri_durumu: r.veri_durumu,
+    line_color: colorByType[String(r.line_type)] || '#64748b',
+  },
+});
 
 const toAltyapiFeature = (r: any, colorByType: Record<string, string>) => ({
   id: r.id,
@@ -435,11 +460,12 @@ const OdaMapModule: React.FC<OdaMapModuleProps> = ({ activeProjectId, onSelectPr
       // kaydedilmiş (handleUpdateDbFeature → api.updateProjeSiniri/updateBina3D/
       // updateAltyapiHatti) bir obje, harita yeniden yüklendiğinde eski/orijinal
       // konumuyla değil SON KAYDEDİLMİŞ haliyle görüntülenir.
-      const [sinirlar, binalar, altyapi, altyapiTipleri] = await Promise.all([
+      const [sinirlar, binalar, altyapi, altyapiTipleri, bacalar] = await Promise.all([
         api.getProjeSinirlari(),
         api.getBinalar3D(),
         api.getAltyapiHatlari(),
         api.getAltyapiTipleri(),
+        api.getAltyapiBacalari(),
       ]);
       // Her altyapı tipinin (içmesuyu/atıksu/yağmursuyu/doğalgaz/elektrik/
       // fiber) kendi haritada çizim rengi — aşağıda her hat objesine
@@ -493,6 +519,18 @@ const OdaMapModule: React.FC<OdaMapModuleProps> = ({ activeProjectId, onSelectPr
           mapId: 'map-genel',
           folderId: 'folder-db',
         },
+        {
+          id: 'db-layer-bacalar',
+          name: 'Bacalar',
+          visible: true,
+          color: '#64748b',
+          lineWidth: 1.5,
+          dash: 'solid',
+          symbol: 'circle',
+          geomType: 'Point',
+          mapId: 'map-genel',
+          folderId: 'folder-db',
+        },
       ];
 
       // Not: id, alttaki mock PostGIS kaydının kendi (kararlı/deterministik) id'si
@@ -510,6 +548,7 @@ const OdaMapModule: React.FC<OdaMapModuleProps> = ({ activeProjectId, onSelectPr
         ...sinirlar.map(toSinirFeature),
         ...binalar.map(toBinaFeature),
         ...altyapi.map((r) => toAltyapiFeature(r, altyapiColorByType)),
+        ...bacalar.map((r) => toBacaFeature(r, altyapiColorByType)),
       ];
 
       iframeWindow.postMessage(
@@ -589,6 +628,9 @@ const OdaMapModule: React.FC<OdaMapModuleProps> = ({ activeProjectId, onSelectPr
             break;
           case 'db-layer-altyapi':
             await api.updateAltyapiHatti(msg.featureId, updateData);
+            break;
+          case 'db-layer-bacalar':
+            await api.updateAltyapiBacasi(msg.featureId, updateData);
             break;
           default:
             break;
@@ -851,7 +893,7 @@ const OdaMapModule: React.FC<OdaMapModuleProps> = ({ activeProjectId, onSelectPr
               const tipler = await api.getAltyapiTipleri();
               const renkler: Record<string, string> = {};
               tipler.forEach((t) => { renkler[String(t.id)] = t.color; });
-              feature = toAltyapiFeature(r.kayit, renkler);
+              feature = layerId === 'db-layer-bacalar' ? toBacaFeature(r.kayit, renkler) : toAltyapiFeature(r.kayit, renkler);
             }
           }
           iframeWindow.postMessage({ type: 'oda:db-feature-restored', layerId, featureId: r.kayit_id, feature }, '*');

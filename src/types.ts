@@ -183,3 +183,21 @@ export interface GISInfrastructureRecord {
   start_ground_elev?: number;
   end_ground_elev?: number;
 }
+
+// Atıksu/yağmursuyu muayene bacası (tb_altyapi_bacalari, nokta) — bkz. AltyapiBacasiRecord
+export interface GISManholeRecord {
+  id: string;
+  project_id: string;
+  line_type: 'atiksu' | 'yagmursuyu';
+  name: string;
+  manhole_no: number;
+  line_id: string;
+  cover_elev: number;
+  invert_elev: number;
+  inner_diameter_mm: number;
+  wall_thickness_mm: number;
+  material: string;
+  cover_type: string;
+  coordinates: [number, number];
+  veri_durumu?: 'Planlanan' | 'İnşaat' | 'İşletme' | 'İptal';
+}
