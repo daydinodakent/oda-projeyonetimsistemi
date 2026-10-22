@@ -241,6 +241,15 @@
   }
   .tree-toggle:hover{color:var(--text);}
   .tree-toggle-spacer{width:24px;height:24px;flex:0 0 auto;}
+  /* Nokta simgeleri lejantı (bkz. buildNodeLegend) */
+  .node-legend{display:flex;flex-direction:column;gap:1px;margin:0 0 6px;padding:4px 6px;border-left:1px solid var(--line);}
+  .node-legend-item{display:flex;align-items:center;gap:7px;padding:2px 4px;border-radius:4px;cursor:pointer;font-size:11.5px;color:var(--text);}
+  .node-legend-item:hover{background:rgba(255,255,255,.05);}
+  .node-legend-item img{width:20px;height:20px;flex:0 0 auto;padding:2px;border-radius:4px;background:#f3ead8;}
+  .node-legend-item .nl-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .node-legend-item .nl-count{font-family:var(--font-mono);font-size:10.5px;color:var(--text-dim);}
+  .node-legend-item.off{opacity:.38;}
+  .node-legend-item.off .nl-name{text-decoration:line-through;}
   #treeContextMenu{
     position:fixed;z-index:50;display:none;flex-direction:column;min-width:170px;
     background:var(--bg-panel);border:1px solid var(--line);border-radius:var(--radius);
@@ -4708,13 +4717,14 @@
       }
     });
     // Şebeke noktalarının şematik simgeleri (vana, T, redüksiyon, baca…): pafta
-    // düzeninde harita düzlemine yatırılır ve bağlı borunun yönüne döndürülür.
+    // düzeninde harita düzlemine yatırılır, bağlı borunun yönüne döndürülür ve
+    // harita biriminde (sabit gerçek boyut) çizilir — bkz. nodeIconSizeExpr.
     ensureLayer('node-point-layer', {
       id:'node-point-layer', type:'symbol', source:'features',
       filter:['all', ['==', ['geometry-type'], 'Point'], ['has', '__symRot']],
       layout:{
         'icon-image': ['concat', 'sym-', ['get','__layerSymbol']],
-        'icon-size': ['*', 0.5, ['coalesce', ['get','__layerScale'], 1]],
+        'icon-size': nodeIconSizeExpr(map.getCenter().lat),
         'icon-rotate': ['get', '__symRot'],
         'icon-rotation-alignment': 'map',
         'icon-pitch-alignment': 'map',
@@ -4727,6 +4737,7 @@
         'icon-halo-width':1.2
       }
     });
+    syncNodeSymbolVisibility();
     // NetCAD yazıları (bkz. importNczLayers → ncz_metin): yazı yüksekliği
     // metre cinsindendir, harita ölçeğiyle birlikte büyür/küçülür. Boyut,
     // ~40° enlemde metre başına piksel × (yazı yüksekliği / büyük harf oranı
@@ -5264,6 +5275,32 @@
       default: dot(16, 16, 11);
     }
   }
+  // Şematik simgeler harita biriminde: her simge zeminde NODE_SYMBOL_METERS genişlik
+  // kaplar (paftadaki gibi) — yakınlaştıkça ekranda büyür, zemindeki boyutu sabittir.
+  // icon-size = metre / (metre/piksel) / 32 px; metre/piksel zoom'la 2 tabanlı üstel
+  // değiştiğinden 'exponential 2' ara değer tam karşılığıdır. Enlem farkı (cos) için
+  // harita uzak bir enleme taşınınca ifade yenilenir (bkz. map.on('moveend') aşağıda).
+  var NODE_SYMBOL_METERS = 1.6;
+  var nodeIconLat = null;
+  function nodeIconSizeExpr(lat){
+    nodeIconLat = lat;
+    var k = NODE_SYMBOL_METERS / (78271.517 * Math.cos(lat * Math.PI / 180) * 32); // zoom 0'daki icon-size
+    var sc = ['coalesce', ['get', '__layerScale'], 1];
+    return ['interpolate', ['exponential', 2], ['zoom'], 0, ['*', k, sc], 24, ['*', k * Math.pow(2, 24), sc]];
+  }
+  // Gerçek Dünya Görünümü'nde noktalar 3B modelleriyle görünür — şematik simgeler gizlenir
+  // (ana harita ve açıksa büyüteç merceği)
+  function syncNodeSymbolVisibility(){
+    var v = bimViewGlobalOn ? 'none' : 'visible';
+    [map, typeof loupe !== 'undefined' && loupe ? loupe.map : null].forEach(function(m){
+      if (m && m.getLayer('node-point-layer')) m.setLayoutProperty('node-point-layer', 'visibility', v);
+    });
+  }
+  map.on('moveend', function(){
+    var lat = map.getCenter().lat;
+    if (nodeIconLat == null || Math.abs(lat - nodeIconLat) < 0.5 || !map.getLayer('node-point-layer')) return;
+    map.setLayoutProperty('node-point-layer', 'icon-size', nodeIconSizeExpr(lat));
+  });
   // Doğalgaz/eski vana katmanındaki vanalar (node_type_code'suz) da aynı işaretlerle
   var VALVE_SYMBOLS = { surgulu: 'nt-valve', kelebek: 'nt-valve-bfly', kuresel: 'nt-valve-ball', hava: 'nt-airvalve', cekvalf: 'nt-check' };
   // Şematik simgelerin boru eksenine göre dönüşü (derece; simgeler yatay eksene göre
@@ -5289,6 +5326,78 @@
     }
     nodeRotCache[f.id] = { key: key, rot: rot };
     return rot;
+  }
+  // ---- nokta simgeleri lejantı (Katmanlar ağacında, nokta katmanlarının altında) ----
+  // Her satır: standart simge, tip adı, katmandaki sayı. Satıra tıklamak o tipi
+  // haritada (2B ve Gerçek Dünya 3B) gizler/gösterir — lyr.hiddenNodeTypes.
+  var NODE_SYMBOL_STD = {
+    'nt-valve': 'ISO 14617-8', 'nt-valve-bfly': 'ISO 14617-8', 'nt-valve-ball': 'ISO 14617-8', 'nt-check': 'ISO 14617-8',
+    'nt-airvalve': 'ISO 14617-8 / DIN 2425', 'nt-pump': 'ISO 10628', 'nt-pump-piston': 'ISO 10628',
+    'nt-tee': 'TS EN ISO 6412', 'nt-reducer': 'TS EN ISO 6412', 'nt-endcap': 'TS EN ISO 6412', 'nt-cfit': 'TS EN ISO 6412',
+    'nt-saddle': 'DIN 2425', 'nt-hydrant': 'DIN 2425', 'nt-service': 'DIN 2425', 'nt-manhole': 'DIN 2425',
+    'nt-outfall': 'DIN 2425', 'nt-parcel': 'DIN 2425', 'nt-grate': 'DIN 2425'
+  };
+  // Lejant anahtarı: nokta tipi kodu ya da (node_type_code'suz vanalarda) 'VANA:<tip>'
+  function nodeLegendKey(f){
+    if (nodeTypeOf(f)) return String(f.properties.node_type_code).toUpperCase();
+    if (isValveFeature(f)) return 'VANA:' + valveTypeKey(f.properties.valve_type);
+    return null;
+  }
+  function nodeLegendInfo(key){
+    if (key.indexOf('VANA:') === 0){ var t = key.slice(5); return { sym: VALVE_SYMBOLS[t] || 'nt-valve', label: VALVE_TYPES[t] || 'Vana' }; }
+    var nt = NODE_TYPES[key] || nodeTypeExtra[key];
+    return nt ? { sym: nt.sym, label: nt.label } : null;
+  }
+  function isNodeTypeHidden(f){
+    var lyr = getLayer(f.properties && f.properties.layerId);
+    if (!lyr || !lyr.hiddenNodeTypes) return false;
+    var k = nodeLegendKey(f);
+    return !!(k && lyr.hiddenNodeTypes[k]);
+  }
+  var nodeLegendIconCache = {};
+  function nodeLegendIcon(sym, color){
+    var k = sym + '|' + color;
+    if (nodeLegendIconCache[k]) return nodeLegendIconCache[k];
+    var c = document.createElement('canvas'); c.width = c.height = 32;
+    var ctx = c.getContext('2d');
+    if (NODE_SYMBOLS.indexOf(sym) >= 0) drawNodeSymbol(ctx, sym); else drawSymbolShape(ctx, sym);
+    ctx.globalCompositeOperation = 'source-in';
+    ctx.fillStyle = color; ctx.fillRect(0, 0, 32, 32);
+    return (nodeLegendIconCache[k] = c.toDataURL());
+  }
+  // Katmanın lejant satırları (yoksa null): tip sırası katalogdaki sıradır
+  function buildNodeLegend(lyr, depth){
+    var counts = {}, order = Object.keys(NODE_TYPES);
+    features.forEach(function(f){
+      if (!f.properties || f.properties.layerId !== lyr.id || !f.geometry || f.geometry.type !== 'Point') return;
+      var k = nodeLegendKey(f);
+      if (k) counts[k] = (counts[k] || 0) + 1;
+    });
+    var keys = Object.keys(counts).filter(nodeLegendInfo);
+    if (!keys.length) return null;
+    keys.sort(function(a, b){
+      var ia = order.indexOf(a), ib = order.indexOf(b);
+      return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib) || a.localeCompare(b);
+    });
+    var box = document.createElement('div');
+    box.className = 'node-legend';
+    box.style.marginLeft = (depth * 14 + 30) + 'px';
+    var color = lyr.color || '#3fc2ac';
+    keys.forEach(function(k){
+      var info = nodeLegendInfo(k), off = !!(lyr.hiddenNodeTypes && lyr.hiddenNodeTypes[k]);
+      var item = document.createElement('div');
+      item.className = 'node-legend-item' + (off ? ' off' : '');
+      item.title = info.label + (NODE_SYMBOL_STD[info.sym] ? ' — simge: ' + NODE_SYMBOL_STD[info.sym] : '') + '\nTıkla: haritada gizle/göster';
+      item.innerHTML = '<img alt="" src="' + nodeLegendIcon(info.sym, color) + '">' +
+        '<span class="nl-name">' + escapeAttrHtml(info.label) + '</span><span class="nl-count">' + counts[k] + '</span>';
+      item.addEventListener('click', function(){
+        lyr.hiddenNodeTypes = lyr.hiddenNodeTypes || {};
+        if (lyr.hiddenNodeTypes[k]) delete lyr.hiddenNodeTypes[k]; else lyr.hiddenNodeTypes[k] = true;
+        renderFeatures();
+      });
+      box.appendChild(item);
+    });
+    return box;
   }
   function ensureSymbolIcons(){
     SYMBOL_LIBRARY.forEach(function(key){
@@ -12537,6 +12646,7 @@
       // (bkz. enableBimViewForFeature), kaba ekstrüzyon kutusu yerine
       // syncFeatureBimMeshes()'in eklediği gerçek mesh gösterilir.
       if (bimViewGlobalOn && bimViewFeatures[f.id]) return false;
+      if (lyr.hiddenNodeTypes && isNodeTypeHidden(f)) return false; // lejanttan gizlenen nokta tipi
       return lyr.visible !== false;
     }).map(function(f){
       // MapLibre, GeoJSON kaynaklarında poligon/çizgi sorgularında (özellikle
@@ -14383,7 +14493,22 @@
       container.appendChild(buildFolderRow(folder, depth));
       if (folder.expanded !== false) renderTreeLevel(container, folder.id, depth + 1);
     });
-    subLayers.forEach(function(lyr){ container.appendChild(buildLayerRow(lyr, depth)); });
+    subLayers.forEach(function(lyr){
+      var row = buildLayerRow(lyr, depth);
+      container.appendChild(row);
+      // Nokta tipli katmanlar (şebeke noktaları, vanalar): simge lejantı
+      if (lyr.geomType !== 'Point') return;
+      var legend = buildNodeLegend(lyr, depth);
+      if (!legend) return;
+      var tg = document.createElement('button');
+      tg.className = 'tree-toggle';
+      tg.title = 'Simge lejantı';
+      tg.textContent = lyr.legendOpen ? '▾' : '▸';
+      tg.addEventListener('click', function(e){ e.stopPropagation(); lyr.legendOpen = !lyr.legendOpen; renderLayerTree(); });
+      var sp = row.querySelector('.tree-toggle-spacer');
+      if (sp) row.replaceChild(tg, sp);
+      if (lyr.legendOpen) container.appendChild(legend);
+    });
     subRasters.forEach(function(r){ container.appendChild(buildRasterRow(r, depth)); });
     subTiles3d.forEach(function(t){ container.appendChild(buildTiles3dRow(t, depth)); });
   }
@@ -17433,7 +17558,7 @@
     function pt(c){ mix(Math.round(c[0] * 1e7)); mix(Math.round(c[1] * 1e7)); }
     mix(map.getTerrain && map.getTerrain() ? 1 : 2);
     var inf = { pipes: [], manholes: [], valves: [], fittings: [], allManholes: [] }, byId = {};
-    layers.forEach(function(l){ byId[l.id] = l; });
+    layers.forEach(function(l){ byId[l.id] = l; if (l.hiddenNodeTypes) str(l.id + ':' + Object.keys(l.hiddenNodeTypes).join(',')); });
     for (var i = 0; i < features.length; i++){
       if ((i & 255) === 255) yield;
       var f = features[i];
@@ -17448,6 +17573,7 @@
       var lyr = byId[p.layerId];
       if (lyr && ((lyr.mapId && lyr.mapId !== activeMapId) || lyr.visible === false ||
         lyr.sourceFormat === 'ifc' || lyr.sourceFormat === 'gltf' || lyr.sourceFormat === 'glb' || lyr.sourceFormat === 'splat')) continue;
+      if (lyr && lyr.hiddenNodeTypes && isNodeTypeHidden(f)) continue;
       inf[kind].push(f);
       if (kind === 'pipes'){
         str(f.id); f.geometry.coordinates.forEach(pt);
@@ -23582,6 +23708,7 @@
   document.getElementById('statusBimViewToggleBtn').addEventListener('click', function(){
     bimViewGlobalOn = !bimViewGlobalOn;
     this.classList.toggle('on', bimViewGlobalOn);
+    syncNodeSymbolVisibility();
     syncFeatureBimMeshes();
     if (typeof syncPipeMeshes === 'function') syncPipeMeshes(true);
     renderFeatures();
@@ -24310,6 +24437,7 @@
     });
     // Gerçek Dünya Görünümü ve diğer 3B katmanlar (borular, CityGML, BIM/IFC) da pencerede çizilir
     loupe.map.on('load', loupeAddMirrors);
+    loupe.map.on('load', syncNodeSymbolVisibility);
     var zEl = el.querySelector('.loupe-z');
     function showZoom(){ zEl.textContent = 'z' + loupe.map.getZoom().toFixed(1); }
     loupe.map.on('zoom', showZoom);
